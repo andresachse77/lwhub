@@ -1,0 +1,49 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start ssh-agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_SSH_KEY }}
+
+      - name: Add known_hosts from secret
+        if: ${{ secrets.HETZNER_KNOWN_HOSTS != '' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HETZNER_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Add host key via ssh-keyscan (fallback)
+        if: ${{ secrets.HETZNER_KNOWN_HOSTS == '' }}
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.HETZNER_SSH_PORT || '22' }}" -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Ensure target directory exists
+        run: |
+          ssh -p "${{ secrets.HETZNER_SSH_PORT || '22' }}" "${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}" "mkdir -p '${{ secrets.HETZNER_DEPLOY_PATH }}'"
+
+      - name: Deploy with rsync
+        run: |
+          rsync -az --delete \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'config.php' \
+            --exclude '*.log' \
+            --exclude '.DS_Store' \
+            --exclude 'Thumbs.db' \
+            -e "ssh -p ${{ secrets.HETZNER_SSH_PORT || '22' }}" \
+            ./ "${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:${{ secrets.HETZNER_DEPLOY_PATH }}/"

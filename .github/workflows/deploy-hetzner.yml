@@ -8,6 +8,7 @@ on:
 
 jobs:
   deploy:
+    environment: FTP
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -15,26 +16,26 @@ jobs:
 
       - name: Validate required FTP secrets
         env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
+          FTP_SERVER_EFFECTIVE: ${{ secrets.FTP_SERVER || secrets.SERVER }}
+          FTP_USERNAME_EFFECTIVE: ${{ secrets.FTP_USERNAME || secrets.USERNAME }}
+          FTP_PASSWORD_EFFECTIVE: ${{ secrets.FTP_PASSWORD || secrets.PASSWORD }}
+          FTP_REMOTE_DIR_EFFECTIVE: ${{ secrets.FTP_REMOTE_DIR || secrets.REMOTE_DIR }}
         run: |
-          test -n "$FTP_SERVER"
-          test -n "$FTP_USERNAME"
-          test -n "$FTP_PASSWORD"
-          test -n "$FTP_REMOTE_DIR"
+          test -n "$FTP_SERVER_EFFECTIVE"
+          test -n "$FTP_USERNAME_EFFECTIVE"
+          test -n "$FTP_PASSWORD_EFFECTIVE"
+          test -n "$FTP_REMOTE_DIR_EFFECTIVE"
 
       - name: Deploy via FTP/FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
+          server: ${{ secrets.FTP_SERVER || secrets.SERVER }}
+          username: ${{ secrets.FTP_USERNAME || secrets.USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD || secrets.PASSWORD }}
           protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
           port: ${{ secrets.FTP_PORT || 21 }}
           local-dir: ./
-          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          server-dir: ${{ secrets.FTP_REMOTE_DIR || secrets.REMOTE_DIR }}
           exclude: |
             **/.git*/**
             **/.github/**

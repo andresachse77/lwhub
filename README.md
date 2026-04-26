@@ -47,13 +47,15 @@ INY_ALLIANCE, INY_PROTECTED_R4_NAMES
 
 Der Workflow liegt in `.github/workflows/deploy-hetzner.yml` und deployed bei jedem Push auf `master` per FTP/FTPS.
 
-1. In GitHub unter **Settings -> Secrets and variables -> Actions** diese **Repository Secrets** anlegen:
+1. In GitHub unter **Settings -> Environments -> FTP** diese **Environment Secrets** anlegen (oder alternativ als Repository Secrets):
 	- `FTP_SERVER` (z. B. `u123456.your-storagebox.de` oder Hetzner-FTP-Host laut Konsole)
 	- `FTP_USERNAME` (FTP-Benutzer)
 	- `FTP_PASSWORD` (FTP-Passwort)
 	- `FTP_REMOTE_DIR` (z. B. `/www/htdocs/w01xxxx/lwhub/`)
 	- optional: `FTP_PROTOCOL` (`ftps` oder `ftp`, Standard: `ftps`)
 	- optional: `FTP_PORT` (Standard: `21`)
+
+   Dein aktuelles Schema mit `SERVER`, `USERNAME`, `PASSWORD`, `REMOTE_DIR` wird ebenfalls unterstuetzt.
 
 2. In Hetzner das Zielverzeichnis einmalig anlegen (falls noch nicht vorhanden).
 

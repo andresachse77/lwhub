@@ -47,7 +47,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER || secrets.SERVER }}
           username: ${{ secrets.FTP_USERNAME || secrets.USERNAME }}
           password: ${{ secrets.FTP_PASSWORD || secrets.PASSWORD }}
-          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
+          protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
           port: ${{ secrets.FTP_PORT || 21 }}
           local-dir: ./
           server-dir: ${{ steps.normalize_remote_dir.outputs.server_dir }}

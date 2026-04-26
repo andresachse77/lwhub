@@ -1,4 +1,4 @@
-name: Deploy to Hetzner
+name: Deploy to Hetzner (FTP)
 
 on:
   push:
@@ -13,37 +13,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Start ssh-agent
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Validate required FTP secrets
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
+        run: |
+          test -n "$FTP_SERVER"
+          test -n "$FTP_USERNAME"
+          test -n "$FTP_PASSWORD"
+          test -n "$FTP_REMOTE_DIR"
+
+      - name: Deploy via FTP/FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          ssh-private-key: ${{ secrets.HETZNER_SSH_KEY }}
-
-      - name: Add known_hosts from secret
-        if: ${{ secrets.HETZNER_KNOWN_HOSTS != '' }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.HETZNER_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-      - name: Add host key via ssh-keyscan (fallback)
-        if: ${{ secrets.HETZNER_KNOWN_HOSTS == '' }}
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -p "${{ secrets.HETZNER_SSH_PORT || '22' }}" -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-      - name: Ensure target directory exists
-        run: |
-          ssh -p "${{ secrets.HETZNER_SSH_PORT || '22' }}" "${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}" "mkdir -p '${{ secrets.HETZNER_DEPLOY_PATH }}'"
-
-      - name: Deploy with rsync
-        run: |
-          rsync -az --delete \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude 'config.php' \
-            --exclude '*.log' \
-            --exclude '.DS_Store' \
-            --exclude 'Thumbs.db' \
-            -e "ssh -p ${{ secrets.HETZNER_SSH_PORT || '22' }}" \
-            ./ "${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:${{ secrets.HETZNER_DEPLOY_PATH }}/"
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
+          port: ${{ secrets.FTP_PORT || 21 }}
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          exclude: |
+            **/.git*/**
+            **/.github/**
+            **/config.php
+            **/*.log
+            **/.DS_Store
+            **/Thumbs.db

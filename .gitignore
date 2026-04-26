@@ -1,0 +1,7 @@
+# Zugangsdaten – niemals einchecken
+config.php
+
+# Build-Artefakte
+*.log
+.DS_Store
+Thumbs.db

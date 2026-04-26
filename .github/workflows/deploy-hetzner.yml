@@ -1,5 +1,8 @@
 name: Deploy to Hetzner (FTP)
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches:
@@ -26,6 +29,18 @@ jobs:
           test -n "$FTP_PASSWORD_EFFECTIVE"
           test -n "$FTP_REMOTE_DIR_EFFECTIVE"
 
+      - name: Normalize remote directory
+        id: normalize_remote_dir
+        env:
+          FTP_REMOTE_DIR_EFFECTIVE: ${{ secrets.FTP_REMOTE_DIR || secrets.REMOTE_DIR }}
+        run: |
+          dir="$FTP_REMOTE_DIR_EFFECTIVE"
+          case "$dir" in
+            */) ;;
+            *) dir="$dir/" ;;
+          esac
+          echo "server_dir=$dir" >> "$GITHUB_OUTPUT"
+
       - name: Deploy via FTP/FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -35,7 +50,7 @@ jobs:
           protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
           port: ${{ secrets.FTP_PORT || 21 }}
           local-dir: ./
-          server-dir: ${{ secrets.FTP_REMOTE_DIR || secrets.REMOTE_DIR }}
+          server-dir: ${{ steps.normalize_remote_dir.outputs.server_dir }}
           exclude: |
             **/.git*/**
             **/.github/**

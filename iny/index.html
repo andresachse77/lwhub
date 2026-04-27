@@ -810,6 +810,16 @@ function getBaseInyUrl(view = '') {
   return url.toString();
 }
 
+function buildForwardedSearch(forAdmin = false) {
+  const params = new URLSearchParams(window.location.search);
+  const next = new URLSearchParams();
+  const api = (params.get('api') || '').trim();
+  const member = (params.get('member') || '').trim();
+  if (api) next.set('api', api);
+  if (!forAdmin && member) next.set('member', member);
+  return next.toString();
+}
+
 function goToView(view) {
   const fileByView = {
     admin: 'index.html',

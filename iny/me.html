@@ -454,7 +454,7 @@ button, select { font-family: inherit; }
   <div class="topbar-actions">
     <button class="ghost-btn" type="button" onclick="goToPointsGuide()">Punkte-Guide</button>
     <button class="secondary-btn" id="btn-admin" type="button" style="display:none" onclick="goToAdmin()">Zur R4 Ansicht</button>
-    <button class="ghost-btn" type="button" style="background:rgba(74,158,255,0.07);color:#85bbff;border-color:rgba(74,158,255,0.2);" onclick="window.location.href=getSiblingPageUrl('me2.html')">Neues Design →</button>
+    <button class="ghost-btn" type="button" style="background:rgba(74,158,255,0.07);color:#85bbff;border-color:rgba(74,158,255,0.2);" onclick="goToView('me2')">Neues Design →</button>
     <button class="ghost-btn" type="button" onclick="discordLogout()">Logout</button>
   </div>
 </div>
@@ -654,6 +654,29 @@ function getSiblingPageUrl(fileName) {
   return url.toString();
 }
 
+function getBaseInyUrl(view = '') {
+  const url = new URL(window.location.href);
+  if (!url.pathname.endsWith('/')) url.pathname = url.pathname.replace(/[^/]*$/, '');
+  const cleanView = String(view || '').trim().toLowerCase();
+  url.hash = cleanView && cleanView !== 'admin' ? `#${cleanView}` : '';
+  return url.toString();
+}
+
+function goToView(view) {
+  window.location.href = getBaseInyUrl(view);
+}
+
+function canonicalizeToBaseView(view) {
+  if (window.location.search) return;
+  const target = getBaseInyUrl(view);
+  const current = `${window.location.origin}${window.location.pathname}${window.location.hash}`;
+  if (current !== target) {
+    history.replaceState(null, '', target.replace(window.location.origin, ''));
+  }
+}
+
+canonicalizeToBaseView('me');
+
 function readAuthState() {
   try {
     const raw = localStorage.getItem(AUTH_STATE_KEY);
@@ -688,16 +711,16 @@ function discordLogout() {
   localStorage.removeItem('discord_token');
   localStorage.removeItem('discord_user');
   clearAuthState();
-  window.location.reload();
+  window.location.href = getBaseInyUrl();
 }
 
 function goToAdmin() {
-  window.location.href = getSiblingPageUrl('index.html');
+  goToView('admin');
 }
 window.goToAdmin = goToAdmin;
 
 function goToPointsGuide() {
-  window.location.href = getSiblingPageUrl('punkte.html');
+  goToView('punkte');
 }
 window.goToPointsGuide = goToPointsGuide;
 

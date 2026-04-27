@@ -761,6 +761,44 @@ function getSiblingPageUrl(fileName) {
   return url.toString();
 }
 
+function getBaseInyUrl(view = '') {
+  const url = new URL(window.location.href);
+  url.search = '';
+  if (url.pathname.endsWith('/')) {
+    // keep
+  } else {
+    url.pathname = url.pathname.replace(/[^/]*$/, '');
+  }
+  const cleanView = String(view || '').trim().toLowerCase();
+  url.hash = cleanView && cleanView !== 'admin' ? `#${cleanView}` : '';
+  return url.toString();
+}
+
+function goToView(view) {
+  window.location.href = getBaseInyUrl(view);
+}
+
+function applyHashRouteIfNeeded() {
+  const view = String(window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
+  if (!view) return;
+  const viewToFile = {
+    me: 'me.html',
+    me2: 'me2.html',
+    me3: 'me3.html',
+    punkte: 'punkte.html'
+  };
+  const targetFile = viewToFile[view];
+  if (!targetFile) return;
+
+  const currentFile = window.location.pathname.split('/').pop() || 'index.html';
+  if (currentFile !== targetFile) {
+    const targetUrl = `${getSiblingPageUrl(targetFile)}#${view}`;
+    window.location.replace(targetUrl);
+  }
+}
+
+applyHashRouteIfNeeded();
+
 function readAuthState() {
   try {
     const raw = localStorage.getItem(AUTH_STATE_KEY);
@@ -787,12 +825,12 @@ function updateMeButton() {
 }
 
 function goToMe() {
-  window.location.href = getSiblingPageUrl('me.html');
+  goToView('me');
 }
 window.goToMe = goToMe;
 
 function goToPointsGuide() {
-  window.location.href = getSiblingPageUrl('punkte.html');
+  goToView('punkte');
 }
 window.goToPointsGuide = goToPointsGuide;
 
@@ -863,7 +901,7 @@ function discordLogout() {
   localStorage.removeItem('discord_token');
   localStorage.removeItem('discord_user');
   clearAuthState();
-  window.location.reload();
+  window.location.href = getBaseInyUrl();
 }
 
 function renderAccessDenied(user, reason = 'Kein Zugriff') {
@@ -2453,7 +2491,7 @@ async function initApp(){
     document.getElementById('logout-btn').style.display = 'block';
 
     if (!authResult.can_manage) {
-      window.location.replace(getSiblingPageUrl('me.html'));
+      window.location.replace(getBaseInyUrl('me'));
       return;
     }
   }
@@ -2473,7 +2511,7 @@ async function initApp(){
       }
     });
     if (localAuth && !localAuth.can_manage) {
-      window.location.replace(getSiblingPageUrl('me.html'));
+      window.location.replace(getBaseInyUrl('me'));
       return;
     }
   } catch(e) {

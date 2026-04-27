@@ -314,13 +314,35 @@ h1 {
   </main>
 
 <script>
-function go(fileName) {
+function getBaseInyUrl(view = '') {
   const url = new URL(window.location.href);
+  if (!url.pathname.endsWith('/')) url.pathname = url.pathname.replace(/[^/]*$/, '');
+  const cleanView = String(view || '').trim().toLowerCase();
   url.search = '';
-  url.hash = '';
-  if (url.pathname.endsWith('/')) url.pathname = `${url.pathname}${fileName}`;
-  else url.pathname = url.pathname.replace(/[^/]*$/, fileName);
-  window.location.href = url.toString();
+  url.hash = cleanView && cleanView !== 'admin' ? `#${cleanView}` : '';
+  return url.toString();
+}
+
+function canonicalizeToBaseView(view) {
+  if (window.location.search) return;
+  const target = getBaseInyUrl(view);
+  const current = `${window.location.origin}${window.location.pathname}${window.location.hash}`;
+  if (current !== target) {
+    history.replaceState(null, '', target.replace(window.location.origin, ''));
+  }
+}
+
+canonicalizeToBaseView('punkte');
+
+function go(fileName) {
+  const fileToView = {
+    'index.html': 'admin',
+    'me.html': 'me',
+    'me2.html': 'me2',
+    'me3.html': 'me3',
+    'punkte.html': 'punkte'
+  };
+  window.location.href = getBaseInyUrl(fileToView[fileName] || 'admin');
 }
 </script>
 </body>

@@ -452,7 +452,40 @@ function getSiblingPageUrl(fileName) {
   else url.pathname = url.pathname.replace(/[^/]*$/, fileName);
   return url.toString();
 }
-function goTo(fileName) { window.location.href = getSiblingPageUrl(fileName); }
+
+function getBaseInyUrl(view = '') {
+  const url = new URL(window.location.href);
+  if (!url.pathname.endsWith('/')) url.pathname = url.pathname.replace(/[^/]*$/, '');
+  const cleanView = String(view || '').trim().toLowerCase();
+  url.hash = cleanView && cleanView !== 'admin' ? `#${cleanView}` : '';
+  return url.toString();
+}
+
+function goToView(view) {
+  window.location.href = getBaseInyUrl(view);
+}
+
+function canonicalizeToBaseView(view) {
+  if (window.location.search) return;
+  const target = getBaseInyUrl(view);
+  const current = `${window.location.origin}${window.location.pathname}${window.location.hash}`;
+  if (current !== target) {
+    history.replaceState(null, '', target.replace(window.location.origin, ''));
+  }
+}
+
+canonicalizeToBaseView('me3');
+
+function goTo(fileName) {
+  const fileToView = {
+    'index.html': 'admin',
+    'me.html': 'me',
+    'me2.html': 'me2',
+    'me3.html': 'me3',
+    'punkte.html': 'punkte'
+  };
+  goToView(fileToView[fileName] || 'admin');
+}
 window.goTo = goTo;
 function readAuthState() { try { const r = localStorage.getItem(AUTH_STATE_KEY); return r ? JSON.parse(r) : null; } catch { return null; } }
 function writeAuthState(state) { authMember = state; localStorage.setItem(AUTH_STATE_KEY, JSON.stringify(state)); }
@@ -465,11 +498,11 @@ function toast(message) {
 function discordLogin() { window.location.href = DISCORD_AUTH_URL; }
 function discordLogout() {
   localStorage.removeItem('discord_token'); localStorage.removeItem('discord_user');
-  clearAuthState(); window.location.reload();
+  clearAuthState(); window.location.href = getBaseInyUrl();
 }
-function goToAdmin() { window.location.href = getSiblingPageUrl('index.html'); }
+function goToAdmin() { goToView('admin'); }
 window.goToAdmin = goToAdmin;
-function goToPointsGuide() { window.location.href = getSiblingPageUrl('punkte.html'); }
+function goToPointsGuide() { goToView('punkte'); }
 window.goToPointsGuide = goToPointsGuide;
 
 function renderLoginPending() {

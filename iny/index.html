@@ -2114,6 +2114,8 @@ async function wacheSet(name, type) {
       rank: e.rank,
       flags: { ...e.flags }
     });
+    await loadEntries();
+    renderWache();
   } catch(err) {
     toast('Fehler: ' + err.message);
   }
@@ -2202,6 +2204,8 @@ async function wuesteSet(name, type) {
       rank: e.rank,
       flags: { ...e.flags }
     });
+    await loadEntries();
+    renderWueste();
   } catch(err) {
     toast('Fehler: ' + err.message);
   }
@@ -2296,6 +2300,8 @@ async function spezialSet(name, type) {
       rank: e.rank,
       flags: { ...e.flags }
     });
+    await loadEntries();
+    renderSpezial();
   } catch(err) {
     toast('Fehler: ' + err.message);
   }

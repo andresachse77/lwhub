@@ -439,6 +439,8 @@ nav {
 .wache-counter { font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:700; color:var(--gold); }
 .event-section { display:none; }
 .event-section.active { display:block; }
+.wt-done-divider { grid-column: 1/-1; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--softer); padding: 6px 2px 2px; border-top: 1px solid var(--line); margin-top: 4px; }
+.wache-tile.done-dim { opacity: 0.38; }
 
 @media (max-width: 720px) {
   body {
@@ -623,12 +625,15 @@ nav {
       <div class="panel-sub">Wache 1-3, Wüste und Spezialevents</div>
     </div>
 
-    <div class="wache-tabs">
-      <button class="wache-tab on" data-ev="w1" onclick="selectEventView('w1')">Wache 1</button>
-      <button class="wache-tab" data-ev="w2" onclick="selectEventView('w2')">Wache 2</button>
-      <button class="wache-tab" data-ev="w3" onclick="selectEventView('w3')">Wache 3</button>
-      <button class="wache-tab" data-ev="wu" onclick="selectEventView('wu')">Wüste</button>
-      <button class="wache-tab" data-ev="se" onclick="selectEventView('se')">Spezial</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div class="wache-tabs">
+        <button class="wache-tab on" data-ev="w1" onclick="selectEventView('w1')">Wache 1</button>
+        <button class="wache-tab" data-ev="w2" onclick="selectEventView('w2')">Wache 2</button>
+        <button class="wache-tab" data-ev="w3" onclick="selectEventView('w3')">Wache 3</button>
+        <button class="wache-tab" data-ev="wu" onclick="selectEventView('wu')">Wüste</button>
+        <button class="wache-tab" data-ev="se" onclick="selectEventView('se')">Spezial</button>
+      </div>
+      <button class="flt-toggle" id="btn-event-done-bottom" title="Erfasste ans Ende sortieren (nochmal: ausblenden)" onclick="toggleEventDoneMode()">↓ Erfasste ans Ende</button>
     </div>
 
     <div class="event-section active" data-event="w">
@@ -1755,27 +1760,38 @@ function renderList(){
 (function(){
   let _flashTimer=null;
   document.addEventListener('keydown',function(e){
-    if(!document.getElementById('page-e').classList.contains('active')) return;
+    const pageE=document.getElementById('page-e').classList.contains('active');
+    const pageW=document.getElementById('page-w').classList.contains('active');
+    if(!pageE && !pageW) return;
     const tag=(document.activeElement?.tagName||'').toLowerCase();
     if(tag==='input'||tag==='textarea'||tag==='select') return;
     if(e.ctrlKey||e.metaKey||e.altKey) return;
     const key=e.key;
     if(!/^[a-zA-Z\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df]$/.test(key)) return;
     const kl=key.toLowerCase();
-    const rows=document.querySelectorAll('#memberList .member-row');
-    let first=null;
-    rows.forEach(row=>{
-      const name=(row.dataset.name||'').toLowerCase();
-      const parts=name.split(/[\s_\-]+/);
-      if(parts.some(p=>p.startsWith(kl))){
-        row.classList.remove('flash-match');
-        void row.offsetWidth;
-        row.classList.add('flash-match');
-        if(!first) first=row;
-      }
-    });
-    if(first) first.scrollIntoView({behavior:'smooth',block:'nearest'});
     if(_flashTimer) clearTimeout(_flashTimer);
+    document.querySelectorAll('.flash-match').forEach(r=>r.classList.remove('flash-match'));
+    let first=null;
+    if(pageE){
+      document.querySelectorAll('#memberList .member-row').forEach(row=>{
+        const name=(row.dataset.name||'').toLowerCase();
+        const parts=name.split(/[\s_\-]+/);
+        if(parts.some(p=>p.startsWith(kl))){
+          row.classList.add('flash-match');
+          if(!first) first=row;
+        }
+      });
+    } else {
+      document.querySelectorAll('.event-section.active .wache-tile').forEach(tile=>{
+        const name=(tile.querySelector('.wt-name')?.textContent||'').toLowerCase();
+        const parts=name.split(/[\s_\-]+/);
+        if(parts.some(p=>p.startsWith(kl))){
+          tile.classList.add('flash-match');
+          if(!first) first=tile;
+        }
+      });
+    }
+    if(first) first.scrollIntoView({behavior:'smooth',block:'nearest'});
     _flashTimer=setTimeout(()=>{
       document.querySelectorAll('.flash-match').forEach(r=>r.classList.remove('flash-match'));
       _flashTimer=null;
@@ -1939,6 +1955,26 @@ function toast(msg){
 // ══════════════════════════════════════════════════════
 let activeWache = 1;
 let activeEventView = 'w1';
+let eventDoneMode = 0; // 0=normal, 1=ans Ende, 2=ausblenden
+
+function toggleEventDoneMode(){
+  eventDoneMode=(eventDoneMode+1)%3;
+  const btn=document.getElementById('btn-event-done-bottom');
+  if(eventDoneMode===0){btn.classList.remove('on');btn.textContent='↓ Erfasste ans Ende';}
+  else if(eventDoneMode===1){btn.classList.add('on');btn.textContent='↓ Erfasste ans Ende';}
+  else{btn.classList.add('on');btn.textContent='○ Erfasste ausblenden';}
+  selectEventView(activeEventView);
+}
+window.toggleEventDoneMode=toggleEventDoneMode;
+
+function applyEventDoneSort(memberList, isDoneFn){
+  if(eventDoneMode===0) return {list:memberList,splitAt:-1};
+  const undone=memberList.filter(n=>!isDoneFn(n));
+  const done=memberList.filter(n=>isDoneFn(n));
+  if(eventDoneMode===2) return {list:undone,splitAt:-1};
+  const splitAt=undone.length>0&&done.length>0?undone.length:-1;
+  return {list:[...undone,...done],splitAt};
+}
 
 function selectWache(n) {
   activeWache = n;
@@ -1971,8 +2007,11 @@ function renderWache() {
   const wKey = 'wache' + activeWache;
   const wDmgKey = 'wache' + activeWache + 'dmg';
 
+  const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f[wKey]||f[wDmgKey]); };
+  const {list,splitAt} = applyEventDoneSort(members, isDone);
+
   let teilCount = 0;
-  grid.innerHTML = members.map(name => {
+  grid.innerHTML = list.map((name,i) => {
     const e = entries.find(x => x.name === name);
     const flags = e ? e.flags : {};
     const teil = !!flags[wKey];
@@ -1982,11 +2021,13 @@ function renderWache() {
     const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
     const cls = dmg ? 'w-dmg' : teil ? 'w-ok' : 'w-none';
     const esc = name.replace(/'/g,"\\'");
+    const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
     const btnBad = `<button class="wt-btn ${dmg?'on-bad':''}" onclick="wacheSet('${esc}','bad')" title="kein DMG (Strafe)">${dmg?'⚠ kein DMG':'💀'}</button>`;
     const btnGood = `<button class="wt-btn ${(teil&&!dmg)?'on-good':''}" onclick="wacheSet('${esc}','good')" title="guter DMG">${(teil&&!dmg)?'⚔ gut':'⚔'}</button>`;
 
-    return `<div class="wache-tile ${cls}">
+    const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
+    return divider+`<div class="wache-tile${dimCls} ${cls}">
       <div class="wt-top">
         <div class="wt-name">${name}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
@@ -2053,9 +2094,12 @@ window.selectEventView = selectEventView;
 // ══════════════════════════════════════════════════════
 function renderWueste() {
   const grid = document.getElementById('wueste-grid');
-  let teilCount = 0;
 
-  grid.innerHTML = members.map(name => {
+  const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.wuesteAnmeldung||f.wuesteTeilnahme||f.wuesteFehlen); };
+  const {list,splitAt} = applyEventDoneSort(members, isDone);
+
+  let teilCount = 0;
+  grid.innerHTML = list.map((name,i) => {
     const e = entries.find(x => x.name === name);
     const flags = e ? e.flags : {};
     const anm = !!flags.wuesteAnmeldung;
@@ -2066,12 +2110,14 @@ function renderWueste() {
     const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
     const cls = fehl ? 'w-dmg' : teil ? 'w-ok' : anm ? 'w-anm' : 'w-none';
     const esc = name.replace(/'/g,"\\'");
+    const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
     const btnAnm  = `<button class="wt-btn ${anm?'on-anm':''}" onclick="wuesteSet('${esc}','anm')" title="Anmeldung">${anm?'📋 an':'📋'}</button>`;
     const btnTeil = `<button class="wt-btn ${teil?'on-good':''}" onclick="wuesteSet('${esc}','teil')" title="Teilnahme">${teil?'⚔ teil':'⚔'}</button>`;
     const btnFehl = `<button class="wt-btn ${fehl?'on-bad':''}" onclick="wuesteSet('${esc}','fehl')" title="Fehlen (Strafe)">${fehl?'⚠ fehlt':'💀'}</button>`;
 
-    return `<div class="wache-tile ${cls}">
+    const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
+    return divider+`<div class="wache-tile${dimCls} ${cls}">
       <div class="wt-top">
         <div class="wt-name">${name}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
@@ -2134,9 +2180,12 @@ window.wuesteSet = wuesteSet;
 // ══════════════════════════════════════════════════════
 function renderSpezial() {
   const grid = document.getElementById('spezial-grid');
-  let teilCount = 0;
 
-  grid.innerHTML = members.map(name => {
+  const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.seTeilnahme||f.seTop50||f.seTop20); };
+  const {list,splitAt} = applyEventDoneSort(members, isDone);
+
+  let teilCount = 0;
+  grid.innerHTML = list.map((name,i) => {
     const e = entries.find(x => x.name === name);
     const flags = e ? e.flags : {};
     const teil = !!flags.seTeilnahme;
@@ -2147,12 +2196,14 @@ function renderSpezial() {
     const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
     const cls = t20 ? 'w-top20' : t50 ? 'w-top50' : teil ? 'w-anm' : 'w-none';
     const esc = name.replace(/'/g,"\\'");
+    const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
     const btnTeil = `<button class="wt-btn ${teil?'on-anm':''}" onclick="spezialSet('${esc}','teil')" title="Teilnahme">${teil?'⚔ teil':'⚔'}</button>`;
     const btn50  = `<button class="wt-btn ${t50?'on-good':''}" onclick="spezialSet('${esc}','t50')" title="Top 50">${t50?'🏅 T50':'🏅'}</button>`;
     const btn20  = `<button class="wt-btn ${t20?'on-gold':''}" onclick="spezialSet('${esc}','t20')" title="Top 20">${t20?'🏆 T20':'🏆'}</button>`;
 
-    return `<div class="wache-tile ${cls}">
+    const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
+    return divider+`<div class="wache-tile${dimCls} ${cls}">
       <div class="wt-top">
         <div class="wt-name">${name}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>

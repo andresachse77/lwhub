@@ -2000,10 +2000,65 @@ function toggleEventDoneMode(){
 }
 window.toggleEventDoneMode=toggleEventDoneMode;
 
+const EVENT_NAME_COLLATOR = new Intl.Collator('de', {
+  sensitivity: 'base',
+  ignorePunctuation: true,
+  numeric: true
+});
+
+function normalizeEventSortToken(token){
+  return String(token || '')
+    .toLowerCase()
+    .replace(/ae/g, 'a')
+    .replace(/oe/g, 'o')
+    .replace(/ue/g, 'u')
+    .replace(/0/g, 'o')
+    .replace(/1/g, 'i')
+    .replace(/3/g, 'e')
+    .replace(/4/g, 'a')
+    .replace(/5/g, 's')
+    .replace(/7/g, 't');
+}
+
+function buildEventSortKey(name){
+  const raw = String(name || '').toLowerCase().trim();
+  if (!raw) return '';
+
+  const normalized = raw
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[_\-.]+/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const tokens = normalized ? normalized.split(' ').filter(Boolean) : [];
+  while (tokens.length > 1 && tokens[0].length <= 2) tokens.shift();
+  while (tokens.length > 1 && tokens[tokens.length - 1].length <= 2) tokens.pop();
+
+  const effective = (tokens.length ? tokens : [normalized || raw]).map(normalizeEventSortToken);
+  return effective.join(' ');
+}
+
+function getEventSortedMembers(memberList){
+  return [...memberList].sort((a, b) => {
+    const keyA = buildEventSortKey(a);
+    const keyB = buildEventSortKey(b);
+    const byKey = EVENT_NAME_COLLATOR.compare(keyA, keyB);
+    if (byKey !== 0) return byKey;
+    return EVENT_NAME_COLLATOR.compare(String(a || ''), String(b || ''));
+  });
+}
+
 function applyEventDoneSort(memberList, isDoneFn){
-  if(eventDoneMode===0) return {list:memberList,splitAt:-1};
-  const undone=memberList.filter(n=>!isDoneFn(n));
-  const done=memberList.filter(n=>isDoneFn(n));
+  const sortedMembers = getEventSortedMembers(memberList);
+  if(eventDoneMode===0) return {list:sortedMembers,splitAt:-1};
+  const undone=sortedMembers.filter(n=>!isDoneFn(n));
+  const done=sortedMembers.filter(n=>isDoneFn(n));
   if(eventDoneMode===2) return {list:undone,splitAt:-1};
   const splitAt=undone.length>0&&done.length>0?undone.length:-1;
   return {list:[...undone,...done],splitAt};

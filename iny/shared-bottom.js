@@ -360,6 +360,10 @@
       el.meta.textContent = 'Bitte erst einloggen';
       return;
     }
+    if (!senderDiscordId) {
+      el.meta.textContent = 'Bitte neu einloggen (Discord-ID fehlt)';
+      return;
+    }
     const text = (el.input.value || '').trim();
     if (!text) return;
 

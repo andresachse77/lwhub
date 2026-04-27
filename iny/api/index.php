@@ -305,24 +305,18 @@ function handlePostChat(PDO $pdo, string $alliance, array $body): never {
     if ($message === '') jsonOut(400, ['error' => 'Nachricht ist leer']);
     if (mb_strlen($message) > 500) jsonOut(400, ['error' => 'Nachricht zu lang (max 500 Zeichen)']);
 
-    $memberName = trim((string)($body['member_name'] ?? ''));
     $discordIdRaw = $body['discord_id'] ?? '';
-    $discordId = '';
-    if ($discordIdRaw !== '') {
-        try {
-            $discordId = normalizeDiscordId($discordIdRaw);
-        } catch (\InvalidArgumentException $e) {
-            jsonOut(400, ['error' => $e->getMessage()]);
-        }
+    try {
+        $discordId = normalizeDiscordId($discordIdRaw);
+    } catch (\InvalidArgumentException $e) {
+        jsonOut(400, ['error' => $e->getMessage()]);
     }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
 
-    if ($discordId !== '') {
-        $member = getDiscordMember($pdo, $alliance, $discordId);
-        if (!$member) jsonOut(403, ['error' => 'Discord-ID ist keinem aktiven Mitglied zugeordnet']);
-        $memberName = trim((string)($member['current_name'] ?? ''));
-    }
-
-    if ($memberName === '') jsonOut(400, ['error' => 'member_name fehlt']);
+    $member = getDiscordMember($pdo, $alliance, $discordId);
+    if (!$member) jsonOut(403, ['error' => 'Discord-ID ist keinem aktiven Mitglied zugeordnet']);
+    $memberName = trim((string)($member['current_name'] ?? ''));
+    if ($memberName === '') jsonOut(403, ['error' => 'Mitgliedsname konnte nicht aufgeloest werden']);
 
     $stmt = $pdo->prepare(" 
         INSERT INTO member_chat_messages (alliance, chat_id, member_name, message, created_at)

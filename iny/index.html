@@ -263,6 +263,12 @@ nav {
 .search-input:focus { border-color: var(--gold); }
 .search-input::placeholder { color: var(--soft); }
 .list-counter { font-size: 12px; color: var(--soft); margin-left: 8px; }
+.flt-toggle { font-size: 11px; padding: 4px 11px; border-radius: 5px; border: 1px solid var(--line2); background: none; color: var(--soft); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; white-space: nowrap; }
+.flt-toggle.on { background: rgba(74,158,255,0.12); color: #8ebeff; border-color: rgba(74,158,255,0.35); }
+.done-divider { font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--softer); padding: 8px 6px 3px; margin-top: 4px; border-top: 1px solid var(--line); }
+.member-row.done-dim { opacity: 0.48; }
+@keyframes kbFlash { 0%,100%{background:transparent;box-shadow:none} 20%,60%{background:rgba(240,165,0,0.22);box-shadow:0 0 0 2px rgba(240,165,0,0.3)} 40%{background:rgba(240,165,0,0.32);box-shadow:0 0 0 2px rgba(240,165,0,0.5)} }
+.flash-match { animation: kbFlash 0.7s ease-out; border-radius: 8px; }
 
 /* ── INLINE EDITOR ── */
 .editor-wrap {
@@ -573,10 +579,13 @@ nav {
       <input type="text" class="search-input" id="searchInput" placeholder="🔍  Mitglied suchen...">
       <span class="list-counter" id="listCounter"></span>
     </div>
-    <div class="filter-row">
-      <button class="flt on" data-lf="all">Alle</button>
-      <button class="flt" data-lf="missing">○ Ausstehend</button>
-      <button class="flt" data-lf="done">✓ Erfasst</button>
+    <div class="filter-row" style="width:100%;justify-content:space-between;align-items:center;">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="flt on" data-lf="all">Alle</button>
+        <button class="flt" data-lf="missing">○ Ausstehend</button>
+        <button class="flt" data-lf="done">✓ Erfasst</button>
+      </div>
+      <button class="flt-toggle" id="btn-done-bottom" title="Erfasste Mitglieder ans Ende sortieren (nochmal klicken: ausblenden)" onclick="toggleDoneMode()">↓ Erfasste ans Ende</button>
     </div>
   </div>
 
@@ -1354,6 +1363,7 @@ const ENTRIES_CACHE_PREFIX = 'iny_entries_cache_v1_';
 const ENTRIES_REFRESH_MS = 60 * 60 * 1000;
 
 let kw=currentYearWeek(), entries=[], activeFilter='all', listFilter='all', search='', edName=null, edFlags={}, edRank=3;
+let doneMode=0; // 0=normal, 1=ans Ende, 2=ausblenden
 let members = [];
 let memberMeta = {};
 let historyData = [];
@@ -1678,6 +1688,16 @@ function renderAll(){
 }
 
 // ── MEMBER LIST ──
+function toggleDoneMode(){
+  doneMode=(doneMode+1)%3;
+  const btn=document.getElementById('btn-done-bottom');
+  if(doneMode===0){btn.classList.remove('on');btn.textContent='↓ Erfasste ans Ende';}
+  else if(doneMode===1){btn.classList.add('on');btn.textContent='↓ Erfasste ans Ende';}
+  else{btn.classList.add('on');btn.textContent='○ Erfasste ausblenden';}
+  renderList();
+}
+window.toggleDoneMode=toggleDoneMode;
+
 function renderList(){
   const n=entries.length, pct=Math.round(n/members.length*100);
   document.getElementById('listCounter').textContent=`${n} / ${members.length} erfasst (${pct}%)`;
@@ -1687,13 +1707,25 @@ function renderList(){
     const e=entries.find(x=>x.name===name);
     if(listFilter==='missing') return !e;
     if(listFilter==='done') return !!e;
+    // doneMode===2: hide done entirely
+    if(doneMode===2 && !!e) return false;
     return true;
   });
 
   const list=document.getElementById('memberList');
   if(!shown.length){list.innerHTML=`<div class="empty">Keine Mitglieder gefunden.</div>`;return;}
 
-  list.innerHTML=shown.map(name=>{
+  // doneMode===1: sort done to bottom (only when listFilter==='all')
+  let displayList=shown;
+  let splitAt=-1;
+  if(doneMode===1 && listFilter==='all'){
+    const undone=shown.filter(name=>!entries.find(x=>x.name===name));
+    const done=shown.filter(name=>!!entries.find(x=>x.name===name));
+    displayList=[...undone,...done];
+    if(undone.length>0 && done.length>0) splitAt=undone.length;
+  }
+
+  list.innerHTML=displayList.map((name,i)=>{
     const e=entries.find(x=>x.name===name);
     const rank=isFixed(name)?fixedRank(name):(PREV[name]||3);
     const hasWarn=e?[...DANGER].some(k=>e.flags[k]):false;
@@ -1707,7 +1739,10 @@ function renderList(){
       return `<span class="tag ${cls}">${LBL[k]||k}</span>`;
     }).join('')+(af.length>3?`<span class="tag" style="color:var(--softer);border-color:var(--softer);">+${af.length-3}</span>`:'');
 
-    return `<div class="member-row" data-name="${name.replace(/"/g,'&quot;')}" onclick="openEditor('${name.replace(/'/g,"\\'")}')">
+    const dimCls=(doneMode===1 && !!e)?' done-dim':'';
+    const divider=(i===splitAt)?'<div class="done-divider">✓ Bereits erfasst</div>':'';
+
+    return divider+`<div class="member-row${dimCls}" data-name="${name.replace(/"/g,'&quot;')}" onclick="openEditor('${name.replace(/'/g,"\\'")}')">
       <span class="m-status">${statusIcon}</span>
       <span class="m-name">${name}${fixedBadge}</span>
       <span class="m-rank">${rankBadge}</span>
@@ -1715,6 +1750,38 @@ function renderList(){
     </div>`;
   }).join('');
 }
+
+// ── TASTATUR-SHORTCUTS (Mitglied-Suche per Buchstabe) ──
+(function(){
+  let _flashTimer=null;
+  document.addEventListener('keydown',function(e){
+    if(!document.getElementById('page-e').classList.contains('active')) return;
+    const tag=(document.activeElement?.tagName||'').toLowerCase();
+    if(tag==='input'||tag==='textarea'||tag==='select') return;
+    if(e.ctrlKey||e.metaKey||e.altKey) return;
+    const key=e.key;
+    if(!/^[a-zA-Z\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df]$/.test(key)) return;
+    const kl=key.toLowerCase();
+    const rows=document.querySelectorAll('#memberList .member-row');
+    let first=null;
+    rows.forEach(row=>{
+      const name=(row.dataset.name||'').toLowerCase();
+      const parts=name.split(/[\s_\-]+/);
+      if(parts.some(p=>p.startsWith(kl))){
+        row.classList.remove('flash-match');
+        void row.offsetWidth;
+        row.classList.add('flash-match');
+        if(!first) first=row;
+      }
+    });
+    if(first) first.scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(_flashTimer) clearTimeout(_flashTimer);
+    _flashTimer=setTimeout(()=>{
+      document.querySelectorAll('.flash-match').forEach(r=>r.classList.remove('flash-match'));
+      _flashTimer=null;
+    },750);
+  });
+})();
 
 // ── DASHBOARD ──
 function renderDashboard(){

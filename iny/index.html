@@ -806,7 +806,18 @@ function getBaseInyUrl(view = '') {
 }
 
 function goToView(view) {
-  window.location.href = getBaseInyUrl(view);
+  const fileByView = {
+    admin: 'index.html',
+    me: 'me.html',
+    me2: 'me2.html',
+    me3: 'me3.html',
+    punkte: 'punkte.html'
+  };
+  const key = String(view || 'admin').trim().toLowerCase();
+  const file = fileByView[key] || 'index.html';
+  const target = new URL(getSiblingPageUrl(file));
+  target.search = buildForwardedSearch(file === 'index.html');
+  window.location.href = target.toString();
 }
 
 function applyHashRouteIfNeeded() {
@@ -823,8 +834,9 @@ function applyHashRouteIfNeeded() {
 
   const currentFile = window.location.pathname.split('/').pop() || 'index.html';
   if (currentFile !== targetFile) {
-    const targetUrl = `${getSiblingPageUrl(targetFile)}#${view}`;
-    window.location.replace(targetUrl);
+    const target = new URL(getSiblingPageUrl(targetFile));
+    target.search = buildForwardedSearch(targetFile === 'index.html');
+    window.location.replace(target.toString());
   }
 }
 
@@ -1772,25 +1784,33 @@ function renderList(){
 
 // ── TASTATUR-SHORTCUTS (Mitglied-Suche per Buchstabe) ──
 (function(){
-  let _flashTimer=null;
-  document.addEventListener('keydown',function(e){
+  let keyChain='';
+
+  function clearHighlights(){
+    document.querySelectorAll('.flash-match').forEach(r=>r.classList.remove('flash-match'));
+  }
+
+  function clearKeyChain(){
+    keyChain='';
+    clearHighlights();
+  }
+
+  function applyChainedHighlight(){
     const pageE=document.getElementById('page-e').classList.contains('active');
     const pageW=document.getElementById('page-w').classList.contains('active');
     if(!pageE && !pageW) return;
-    const tag=(document.activeElement?.tagName||'').toLowerCase();
-    if(tag==='input'||tag==='textarea'||tag==='select') return;
-    if(e.ctrlKey||e.metaKey||e.altKey) return;
-    const key=e.key;
-    if(!/^[a-zA-Z\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df]$/.test(key)) return;
-    const kl=key.toLowerCase();
-    if(_flashTimer) clearTimeout(_flashTimer);
-    document.querySelectorAll('.flash-match').forEach(r=>r.classList.remove('flash-match'));
+    if(!keyChain){
+      clearHighlights();
+      return;
+    }
+
+    clearHighlights();
     let first=null;
     if(pageE){
       document.querySelectorAll('#memberList .member-row').forEach(row=>{
         const name=(row.dataset.name||'').toLowerCase();
         const parts=name.split(/[\s_\-]+/);
-        if(parts.some(p=>p.startsWith(kl))){
+        if(parts.some(p=>p.startsWith(keyChain))){
           row.classList.add('flash-match');
           if(!first) first=row;
         }
@@ -1799,17 +1819,49 @@ function renderList(){
       document.querySelectorAll('.event-section.active .wache-tile').forEach(tile=>{
         const name=(tile.querySelector('.wt-name')?.textContent||'').toLowerCase();
         const parts=name.split(/[\s_\-]+/);
-        if(parts.some(p=>p.startsWith(kl))){
+        if(parts.some(p=>p.startsWith(keyChain))){
           tile.classList.add('flash-match');
           if(!first) first=tile;
         }
       });
     }
+
     if(first) first.scrollIntoView({behavior:'smooth',block:'nearest'});
-    _flashTimer=setTimeout(()=>{
-      document.querySelectorAll('.flash-match').forEach(r=>r.classList.remove('flash-match'));
-      _flashTimer=null;
-    },750);
+  }
+
+  document.addEventListener('keydown',function(e){
+    const pageE=document.getElementById('page-e').classList.contains('active');
+    const pageW=document.getElementById('page-w').classList.contains('active');
+    if(!pageE && !pageW) return;
+    const tag=(document.activeElement?.tagName||'').toLowerCase();
+    if(tag==='input'||tag==='textarea'||tag==='select') return;
+    if(e.ctrlKey||e.metaKey||e.altKey) return;
+    const key=e.key;
+
+    if(key===' '){
+      if(keyChain){
+        e.preventDefault();
+        clearKeyChain();
+      }
+      return;
+    }
+
+    if(key==='Backspace'){
+      if(!keyChain) return;
+      e.preventDefault();
+      keyChain = keyChain.slice(0, -1);
+      applyChainedHighlight();
+      return;
+    }
+
+    if(!/^[a-zA-Z\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df]$/.test(key)) return;
+    keyChain += key.toLowerCase();
+    applyChainedHighlight();
+  });
+
+  document.addEventListener('click',function(){
+    if(!keyChain) return;
+    clearKeyChain();
   });
 })();
 

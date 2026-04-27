@@ -13,6 +13,13 @@
     }
   }
 
+  function isAuthenticated(auth) {
+    if (!auth || typeof auth !== 'object') return false;
+    const member = String(auth.member_name || '').trim();
+    const discordId = String(auth.discord_id || '').trim();
+    return member !== '' || discordId !== '' || auth.local_preview === true;
+  }
+
   function getApiBase() {
     const override = (localStorage.getItem('iny_api_base') || '').replace(/\/$/, '');
     if (override) return override;
@@ -331,9 +338,23 @@
     });
   }
 
-  injectStyles();
-  const el = createUi();
-  wire(el);
-  refresh(el);
-  setInterval(function () { refresh(el); }, 20000);
+  function mountWidget() {
+    injectStyles();
+    const el = createUi();
+    wire(el);
+    refresh(el);
+    setInterval(function () { refresh(el); }, 20000);
+  }
+
+  if (isAuthenticated(getAuth())) {
+    mountWidget();
+    return;
+  }
+
+  // Wait for async login flow (Discord verification / local preview seed).
+  const waitForAuth = setInterval(function () {
+    if (!isAuthenticated(getAuth())) return;
+    clearInterval(waitForAuth);
+    mountWidget();
+  }, 1000);
 })();

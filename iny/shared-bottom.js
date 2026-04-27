@@ -118,6 +118,11 @@
         margin-bottom: 8px;
         line-height: 1.35;
       }
+      .iny-msg-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
       .iny-msg .n {
         color: #7ec0ff;
         font-size: 11px;
@@ -127,6 +132,20 @@
         color: #8e9ab2;
         font-size: 10px;
         margin-left: 6px;
+      }
+      .iny-msg .del {
+        margin-left: auto;
+        border: 1px solid rgba(224,85,69,0.4);
+        background: rgba(224,85,69,0.14);
+        color: #ffb8af;
+        border-radius: 6px;
+        font-size: 10px;
+        padding: 2px 6px;
+        cursor: pointer;
+      }
+      .iny-msg .del:hover {
+        background: rgba(224,85,69,0.24);
+        color: #ffd0ca;
       }
       .iny-msg .m {
         color: #e8edfb;
@@ -202,11 +221,31 @@
     };
   }
 
+  function parseServerTimestamp(ts) {
+    if (!ts) return null;
+    const raw = String(ts).trim();
+    if (!raw) return null;
+
+    // MySQL DATETIME often arrives as "YYYY-MM-DD HH:MM:SS" without timezone info.
+    // Backend writes UTC, so force UTC parsing for consistent local conversion in browser.
+    const mysqlLike = /^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/;
+    const date = mysqlLike.test(raw)
+      ? new Date(raw.replace(' ', 'T') + 'Z')
+      : new Date(raw);
+
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
   function fmtTime(ts) {
     if (!ts) return '';
-    const d = new Date(ts);
-    if (Number.isNaN(d.getTime())) return '';
+    const d = parseServerTimestamp(ts);
+    if (!d) return '';
     return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function canManageChat() {
+    const a = getAuth();
+    return !!(a && a.can_manage);
   }
 
   function renderOnline(el, items) {
@@ -226,12 +265,14 @@
 
   function renderChat(el, messages) {
     const atBottom = el.chat.scrollHeight - el.chat.scrollTop - el.chat.clientHeight < 24;
+    const canManage = canManageChat();
     el.chat.innerHTML = '';
     (messages || []).forEach((msg) => {
       const row = document.createElement('div');
       row.className = 'iny-msg';
 
       const head = document.createElement('div');
+      head.className = 'iny-msg-head';
       const name = document.createElement('span');
       name.className = 'n';
       name.textContent = msg.member_name || 'Unbekannt';
@@ -240,7 +281,20 @@
       const t = document.createElement('span');
       t.className = 't';
       t.textContent = fmtTime(msg.created_at);
+      const parsedDate = parseServerTimestamp(msg.created_at);
+      if (parsedDate) t.title = parsedDate.toLocaleString('de-DE');
       head.appendChild(t);
+
+      if (canManage && msg.chat_id) {
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'del';
+        del.textContent = 'Loeschen';
+        del.addEventListener('click', function () {
+          deleteMessage(el, msg.chat_id);
+        });
+        head.appendChild(del);
+      }
 
       const body = document.createElement('div');
       body.className = 'm';
@@ -327,6 +381,27 @@
     } finally {
       el.send.disabled = false;
       el.input.focus();
+    }
+  }
+
+  async function deleteMessage(el, chatId) {
+    const senderDiscordId = getSenderDiscordId();
+    if (!senderDiscordId) {
+      el.meta.textContent = 'Discord-ID fehlt';
+      return;
+    }
+    if (!confirm('Nachricht wirklich loeschen?')) return;
+
+    try {
+      const res = await api(`/chat/${encodeURIComponent(chatId)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: senderDiscordId })
+      });
+      renderChat(el, res.messages || []);
+      el.meta.textContent = 'Nachricht geloescht';
+    } catch {
+      el.meta.textContent = 'Loeschen fehlgeschlagen';
     }
   }
 

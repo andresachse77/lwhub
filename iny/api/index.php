@@ -333,6 +333,27 @@ function handlePostChat(PDO $pdo, string $alliance, array $body): never {
     handleGetChat($pdo, $alliance);
 }
 
+function handleDeleteChatMessage(PDO $pdo, string $alliance, string $chatIdEncoded, array $body): never {
+    ensureChatTable($pdo);
+    $chatId = rawurldecode($chatIdEncoded);
+    if ($chatId === '') jsonOut(400, ['error' => 'chat_id fehlt']);
+
+    try {
+        $discordId = normalizeDiscordId($body['discord_id'] ?? '');
+    } catch (\InvalidArgumentException $e) {
+        jsonOut(400, ['error' => $e->getMessage()]);
+    }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+
+    $manager = getDiscordMember($pdo, $alliance, $discordId, true);
+    if (!$manager) jsonOut(403, ['error' => 'Nur R4/R5 darf Chat-Nachrichten loeschen']);
+
+    $stmt = $pdo->prepare("DELETE FROM member_chat_messages WHERE alliance = ? AND chat_id = ?");
+    $stmt->execute([$alliance, $chatId]);
+
+    handleGetChat($pdo, $alliance);
+}
+
 function logRankChange(PDO $pdo, string $alliance, array $payload): void {
     $stmt = $pdo->prepare("
         INSERT INTO rank_change_log
@@ -1045,7 +1066,13 @@ function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array
     $protection    = applyProtectedRankRule($name, $requestedRank, $protectedNames);
     $rank          = $protection['effectiveRank'];
 
-    $pdo->beginTransaction();
+    $txStarted = false;
+    try {
+        $txStarted = $pdo->beginTransaction();
+    } catch (\PDOException) {
+        $txStarted = false;
+    }
+    
     try {
         $pdo->prepare("INSERT INTO week_periods (alliance, year_week) VALUES (?, ?) ON DUPLICATE KEY UPDATE year_week = VALUES(year_week)")->execute([$alliance, $kw]);
 
@@ -1102,10 +1129,12 @@ function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array
             $pdo->prepare("INSERT INTO weekly_entry_flags (alliance, entry_id, flag_key) VALUES (?, ?, ?)")->execute([$alliance, $entryId, $flagKey]);
         }
 
-        $pdo->commit();
+        if ($txStarted && $pdo->inTransaction()) {
+            $pdo->commit();
+        }
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($txStarted && $pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
 }
@@ -1238,6 +1267,9 @@ try {
     }
     if ($method === 'POST' && $path === '/chat') {
         handlePostChat($pdo, $ALLIANCE, $body);
+    }
+    if ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'chat') {
+        handleDeleteChatMessage($pdo, $ALLIANCE, $segments[1], $body);
     }
 
     // GET /members

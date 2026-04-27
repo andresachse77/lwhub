@@ -665,6 +665,22 @@ function getBaseInyUrl(view = '') {
   return url.toString();
 }
 
+function buildForwardedSearch(forAdmin = false) {
+  const params = new URLSearchParams(window.location.search);
+  const next = new URLSearchParams();
+  const api = (params.get('api') || '').trim();
+  const member = (params.get('member') || '').trim();
+  if (api) next.set('api', api);
+  if (!forAdmin && member) next.set('member', member);
+  return next.toString();
+}
+
+function getSiblingPageUrlWithForwardedSearch(fileName, forAdmin = false) {
+  const target = new URL(getSiblingPageUrl(fileName));
+  target.search = buildForwardedSearch(forAdmin);
+  return target.toString();
+}
+
 function goToView(view) {
   const fileByView = {
     admin: 'index.html',
@@ -676,10 +692,12 @@ function goToView(view) {
   const key = String(view || 'admin').trim().toLowerCase();
   const file = fileByView[key] || 'index.html';
   if (file === 'index.html') {
-    window.location.href = getBaseInyUrl();
+    const base = new URL(getBaseInyUrl());
+    base.search = buildForwardedSearch(true);
+    window.location.href = base.toString();
     return;
   }
-  window.location.href = getSiblingPageUrl(file);
+  window.location.href = getSiblingPageUrlWithForwardedSearch(file, false);
 }
 
 function readAuthState() {

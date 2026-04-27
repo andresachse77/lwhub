@@ -323,6 +323,16 @@ function getBaseInyUrl(view = '') {
   return url.toString();
 }
 
+function buildForwardedSearch(forAdmin = false) {
+  const params = new URLSearchParams(window.location.search);
+  const next = new URLSearchParams();
+  const api = (params.get('api') || '').trim();
+  const member = (params.get('member') || '').trim();
+  if (api) next.set('api', api);
+  if (!forAdmin && member) next.set('member', member);
+  return next.toString();
+}
+
 function canonicalizeToBaseView(view) {
   if (window.location.search) return;
   const target = getBaseInyUrl(view);
@@ -334,11 +344,13 @@ function canonicalizeToBaseView(view) {
 
 function go(fileName) {
   if (fileName === 'index.html') {
-    window.location.href = getBaseInyUrl();
+    const base = new URL(getBaseInyUrl());
+    base.search = buildForwardedSearch(true);
+    window.location.href = base.toString();
     return;
   }
   const url = new URL(window.location.href);
-  url.search = '';
+  url.search = buildForwardedSearch(false);
   url.hash = '';
   if (url.pathname.endsWith('/')) url.pathname = `${url.pathname}${fileName}`;
   else url.pathname = url.pathname.replace(/[^/]*$/, fileName);

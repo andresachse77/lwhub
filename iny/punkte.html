@@ -332,17 +332,17 @@ function canonicalizeToBaseView(view) {
   }
 }
 
-canonicalizeToBaseView('punkte');
-
 function go(fileName) {
-  const fileToView = {
-    'index.html': 'admin',
-    'me.html': 'me',
-    'me2.html': 'me2',
-    'me3.html': 'me3',
-    'punkte.html': 'punkte'
-  };
-  window.location.href = getBaseInyUrl(fileToView[fileName] || 'admin');
+  if (fileName === 'index.html') {
+    window.location.href = getBaseInyUrl();
+    return;
+  }
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  if (url.pathname.endsWith('/')) url.pathname = `${url.pathname}${fileName}`;
+  else url.pathname = url.pathname.replace(/[^/]*$/, fileName);
+  window.location.href = url.toString();
 }
 </script>
 </body>

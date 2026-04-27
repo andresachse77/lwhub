@@ -601,9 +601,12 @@ const IS_GITHUB_PAGES = window.location.hostname.endsWith('github.io');
 
 function buildApiBaseCandidates() {
   if (API_BASE_OVERRIDE) return [API_BASE_OVERRIDE];
-  if (window.location.protocol === 'file:') return ['http://127.0.0.1:8080/api'];
+  if (window.location.protocol === 'file:') return ['http://127.0.0.1:8080/iny/api'];
   if (IS_GITHUB_PAGES) return [];
-  return [`${window.location.origin}/api`];
+  const basePath = window.location.pathname.endsWith('/')
+    ? window.location.pathname
+    : window.location.pathname.replace(/[^/]*$/, '');
+  return [`${window.location.origin}${basePath}api`];
 }
 
 const API_BASE_CANDIDATES = buildApiBaseCandidates();
@@ -663,19 +666,21 @@ function getBaseInyUrl(view = '') {
 }
 
 function goToView(view) {
-  window.location.href = getBaseInyUrl(view);
-}
-
-function canonicalizeToBaseView(view) {
-  if (window.location.search) return;
-  const target = getBaseInyUrl(view);
-  const current = `${window.location.origin}${window.location.pathname}${window.location.hash}`;
-  if (current !== target) {
-    history.replaceState(null, '', target.replace(window.location.origin, ''));
+  const fileByView = {
+    admin: 'index.html',
+    me: 'me.html',
+    me2: 'me2.html',
+    me3: 'me3.html',
+    punkte: 'punkte.html'
+  };
+  const key = String(view || 'admin').trim().toLowerCase();
+  const file = fileByView[key] || 'index.html';
+  if (file === 'index.html') {
+    window.location.href = getBaseInyUrl();
+    return;
   }
+  window.location.href = getSiblingPageUrl(file);
 }
-
-canonicalizeToBaseView('me');
 
 function readAuthState() {
   try {

@@ -729,9 +729,12 @@ const API_BASE_OVERRIDE = (localStorage.getItem('iny_api_base') || '').replace(/
 
 function buildApiBaseCandidates() {
   if (API_BASE_OVERRIDE) return [API_BASE_OVERRIDE];
-  if (window.location.protocol === 'file:') return ['http://127.0.0.1:8080/api'];
+  if (window.location.protocol === 'file:') return ['http://127.0.0.1:8080/iny/api'];
   if (IS_GITHUB_PAGES) return [];
-  return [`${window.location.origin}/api`];
+  const basePath = window.location.pathname.endsWith('/')
+    ? window.location.pathname
+    : window.location.pathname.replace(/[^/]*$/, '');
+  return [`${window.location.origin}${basePath}api`];
 }
 
 const API_BASE_CANDIDATES = buildApiBaseCandidates();

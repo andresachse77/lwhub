@@ -5,22 +5,23 @@ Alliance tracker – PHP/MySQL edition.
 ## Setup
 
 1. Webserver mit PHP 8.1+ und MySQL/MariaDB
-2. `config.example.php` → `config.php` kopieren und Zugangsdaten eintragen
+2. `iny/config.example.php` → `iny/config.php` kopieren und Zugangsdaten eintragen
 3. Dateien per SFTP/FTP hochladen (oder GitHub Actions Workflow nutzen)
 4. DB-Schema einrichten: `c:/git/iny/mysql_free_2026_04_20/mysql_schema.sql` aus dem Elternprojekt
 
 ## Datenbank-Config
 
-- Ort: `config.php` im Projekt-Root (neben `index.html`)
+- Ort: `iny/config.php` (neben `iny/index.html`)
 - Nie einchecken: Die Datei ist absichtlich in `.gitignore`
-- Vorlage: `config.example.php`
+- Vorlage: `iny/config.example.php`
 
 ## Lokaler Test
 
 ```
 scripte\start-local.bat
-# App: http://127.0.0.1:8080
-# API: http://127.0.0.1:8080/api/health
+# App (Landing): http://127.0.0.1:8080
+# App (INY): http://127.0.0.1:8080/iny/
+# API: http://127.0.0.1:8080/iny/api/health
 ```
 
 Alternative ohne Script:
@@ -60,6 +61,10 @@ INY_ALLIANCE, INY_PROTECTED_R4_NAMES
 
 Der Workflow liegt in `.github/workflows/deploy-hetzner.yml` und deployed bei jedem Push auf `master` per FTP/FTPS.
 
+Repo-Struktur nach Umstellung:
+- Root: kleine Landing-Page mit Link auf `https://iny.lwhub.de`
+- `iny/`: komplette INY-App inkl. API
+
 1. In GitHub unter **Settings -> Environments -> FTP** diese **Environment Secrets** anlegen (oder alternativ als Repository Secrets):
 	- `FTP_SERVER` (z. B. `u123456.your-storagebox.de` oder Hetzner-FTP-Host laut Konsole)
 	- `FTP_USERNAME` (FTP-Benutzer)
@@ -72,7 +77,7 @@ Der Workflow liegt in `.github/workflows/deploy-hetzner.yml` und deployed bei je
 
 2. In Hetzner das Zielverzeichnis einmalig anlegen (falls noch nicht vorhanden).
 
-3. Falls noch nicht vorhanden, auf dem Server einmalig `config.php` im Deploy-Verzeichnis anlegen (wird vom Workflow bewusst nicht ueberschrieben).
+3. Falls noch nicht vorhanden, auf dem Server einmalig `iny/config.php` anlegen (wird vom Workflow bewusst nicht ueberschrieben).
 
 4. Push auf `master` ausfuehren. Der Action-Run synchronisiert die Dateien per FTP/FTPS.
 

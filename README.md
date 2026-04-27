@@ -7,13 +7,26 @@ Alliance tracker – PHP/MySQL edition.
 1. Webserver mit PHP 8.1+ und MySQL/MariaDB
 2. `config.example.php` → `config.php` kopieren und Zugangsdaten eintragen
 3. Dateien per SFTP/FTP hochladen (oder GitHub Actions Workflow nutzen)
-4. DB-Schema einrichten: `mysql_free_2026_04_20/mysql_schema.sql` aus dem iny-Repo
+4. DB-Schema einrichten: `c:/git/iny/mysql_free_2026_04_20/mysql_schema.sql` aus dem Elternprojekt
+
+## Datenbank-Config
+
+- Ort: `config.php` im Projekt-Root (neben `index.html`)
+- Nie einchecken: Die Datei ist absichtlich in `.gitignore`
+- Vorlage: `config.example.php`
 
 ## Lokaler Test
 
 ```
-php -S localhost:8080
-# API: http://localhost:8080/api/health
+scripte\start-local.bat
+# App: http://127.0.0.1:8080
+# API: http://127.0.0.1:8080/api/health
+```
+
+Alternative ohne Script:
+
+```
+php -S 127.0.0.1:8080 scripte/router.php
 ```
 
 ## API-Routen

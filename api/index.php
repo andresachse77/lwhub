@@ -15,6 +15,7 @@ $DB_PORT = (int)(getenv('MYSQL_PORT') ?: (defined('MYSQL_PORT')   ? MYSQL_PORT  
 $DB_NAME = getenv('MYSQL_DATABASE') ?: (defined('MYSQL_DATABASE') ? MYSQL_DATABASE : '');
 $DB_USER = getenv('MYSQL_USER')     ?: (defined('MYSQL_USER')     ? MYSQL_USER     : '');
 $DB_PASS = getenv('MYSQL_PASSWORD') ?: (defined('MYSQL_PASSWORD') ? MYSQL_PASSWORD : '');
+$DB_SSL_CA = getenv('MYSQL_SSL_CA') ?: (defined('MYSQL_SSL_CA') ? MYSQL_SSL_CA : '');
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 header('Access-Control-Allow-Origin: *');
@@ -100,14 +101,20 @@ function isBadFieldError(\PDOException $e): bool {
         || str_contains($e->getMessage(), "Unknown column");
 }
 
-function openDb(string $host, int $port, string $db, string $user, string $pass): PDO {
+function openDb(string $host, int $port, string $db, string $user, string $pass, string $sslCa = ''): PDO {
     $dsn = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
+    $options = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
-        PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
-    ]);
+    ];
+    if ($sslCa !== '' && defined('PDO::MYSQL_ATTR_SSL_CA')) {
+        $options[PDO::MYSQL_ATTR_SSL_CA] = $sslCa;
+        if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
+            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+        }
+    }
+    $pdo = new PDO($dsn, $user, $pass, $options);
     return $pdo;
 }
 
@@ -1046,7 +1053,7 @@ try {
         jsonOut(500, ['error' => 'Datenbank nicht konfiguriert. Bitte config.php anlegen.']);
     }
 
-    $pdo = openDb($DB_HOST, $DB_PORT, $DB_NAME, $DB_USER, $DB_PASS);
+    $pdo = openDb($DB_HOST, $DB_PORT, $DB_NAME, $DB_USER, $DB_PASS, $DB_SSL_CA);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
 
     // GET /health

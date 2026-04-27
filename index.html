@@ -711,15 +711,13 @@ nav {
 
 <script>
 // ══════════════════════════════════════════════════════
-//  INY RANKING – Backend API (Flask /api)
+//  INY RANKING – Backend API (PHP /api)
 // ══════════════════════════════════════════════════════
 
 // ─── KONFIGURATION ───
 // Optional: localStorage.setItem('iny_api_base', 'https://dein-api-host/api')
 // Optional: ?api=https://dein-api-host/api (wird in localStorage gespeichert)
 const IS_GITHUB_PAGES = window.location.hostname.endsWith('github.io');
-const IS_NETLIFY = window.location.hostname.endsWith('.netlify.app');
-const IS_LOCAL_HOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const apiFromQuery = new URLSearchParams(window.location.search).get('api');
 if (apiFromQuery) {
   localStorage.setItem('iny_api_base', apiFromQuery.replace(/\/$/, ''));
@@ -731,13 +729,9 @@ const API_BASE_OVERRIDE = (localStorage.getItem('iny_api_base') || '').replace(/
 
 function buildApiBaseCandidates() {
   if (API_BASE_OVERRIDE) return [API_BASE_OVERRIDE];
-  if (window.location.protocol === 'file:') return ['http://127.0.0.1:5000/api'];
+  if (window.location.protocol === 'file:') return ['http://127.0.0.1:8080/api'];
   if (IS_GITHUB_PAGES) return [];
-  if (IS_LOCAL_HOST) return [`${window.location.origin}/api`];
-
-  const fn = `${window.location.origin}/.netlify/functions/api`;
-  const classic = `${window.location.origin}/api`;
-  return IS_NETLIFY ? [fn, classic] : [fn, classic];
+  return [`${window.location.origin}/api`];
 }
 
 const API_BASE_CANDIDATES = buildApiBaseCandidates();
@@ -2434,7 +2428,7 @@ async function initApp(){
     document.getElementById('login-box').innerHTML = `
       <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;margin-bottom:10px;">API nicht konfiguriert</div>
       <div style="color:var(--soft);font-size:13px;line-height:1.5;max-width:560px;">
-        Diese Seite laeuft auf GitHub Pages (nur statisch). Bitte setze einmalig die API-URL in der Browser-Konsole:
+        Bitte setze einmalig die API-URL in der Browser-Konsole:
         <br><br>
         localStorage.setItem('iny_api_base','https://DEIN-API-HOST/api'); location.reload();
       </div>

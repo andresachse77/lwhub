@@ -1,5 +1,6 @@
 # Zugangsdaten – niemals einchecken
 config.php
+scripte/
 
 # Build-Artefakte
 *.log

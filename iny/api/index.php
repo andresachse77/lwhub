@@ -190,6 +190,133 @@ function ensureDiscordProfileCacheTable(PDO $pdo): void {
     ");
 }
 
+function ensurePresenceTable(PDO $pdo): void {
+    $pdo->exec(" 
+        CREATE TABLE IF NOT EXISTS member_presence (
+            alliance VARCHAR(50) NOT NULL,
+            member_name VARCHAR(150) NOT NULL,
+            discord_user_id VARCHAR(50) NULL,
+            discord_username VARCHAR(100) NULL,
+            last_seen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (alliance, member_name),
+            KEY ix_member_presence_seen (alliance, last_seen)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+function ensureChatTable(PDO $pdo): void {
+    $pdo->exec(" 
+        CREATE TABLE IF NOT EXISTS member_chat_messages (
+            alliance VARCHAR(50) NOT NULL,
+            chat_id CHAR(36) NOT NULL,
+            member_name VARCHAR(150) NOT NULL,
+            message TEXT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (alliance, chat_id),
+            KEY ix_member_chat_created (alliance, created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+function getOnlineMembers(PDO $pdo, string $alliance, int $seconds = 180): array {
+    ensurePresenceTable($pdo);
+    $seconds = max(30, min(600, $seconds));
+    $stmt = $pdo->prepare(" 
+        SELECT member_name, discord_user_id, discord_username, last_seen
+        FROM member_presence
+        WHERE alliance = ?
+          AND last_seen >= (UTC_TIMESTAMP() - INTERVAL ? SECOND)
+        ORDER BY member_name ASC
+    ");
+    $stmt->execute([$alliance, $seconds]);
+    return $stmt->fetchAll();
+}
+
+function handlePresenceList(PDO $pdo, string $alliance): never {
+    $seconds = (int)($_GET['seconds'] ?? 180);
+    $online = getOnlineMembers($pdo, $alliance, $seconds);
+    jsonOut(200, [
+        'ok' => true,
+        'online_count' => count($online),
+        'online' => $online,
+        'window_seconds' => max(30, min(600, $seconds)),
+        'server_time' => gmdate('c'),
+    ]);
+}
+
+function handlePresencePing(PDO $pdo, string $alliance, array $body): never {
+    $memberName = trim((string)($body['member_name'] ?? ''));
+    if ($memberName === '') jsonOut(400, ['error' => 'member_name fehlt']);
+
+    try {
+        $discordId = normalizeDiscordId($body['discord_id'] ?? '');
+    } catch (\InvalidArgumentException $e) {
+        jsonOut(400, ['error' => $e->getMessage()]);
+    }
+
+    $discordUsername = trim((string)($body['discord_username'] ?? '')) ?: null;
+
+    ensurePresenceTable($pdo);
+    $stmt = $pdo->prepare(" 
+        INSERT INTO member_presence (alliance, member_name, discord_user_id, discord_username, last_seen)
+        VALUES (?, ?, ?, ?, UTC_TIMESTAMP())
+        ON DUPLICATE KEY UPDATE
+            discord_user_id = VALUES(discord_user_id),
+            discord_username = VALUES(discord_username),
+            last_seen = UTC_TIMESTAMP()
+    ");
+    $stmt->execute([$alliance, $memberName, $discordId !== '' ? $discordId : null, $discordUsername]);
+
+    $online = getOnlineMembers($pdo, $alliance, 180);
+    jsonOut(200, [
+        'ok' => true,
+        'online_count' => count($online),
+        'online' => $online,
+        'server_time' => gmdate('c'),
+    ]);
+}
+
+function handleGetChat(PDO $pdo, string $alliance): never {
+    ensureChatTable($pdo);
+    $limit = (int)($_GET['limit'] ?? 40);
+    $limit = max(5, min(100, $limit));
+
+    $stmt = $pdo->prepare(" 
+        SELECT chat_id, member_name, message, created_at
+        FROM member_chat_messages
+        WHERE alliance = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+    ");
+    $stmt->bindValue(1, $alliance, PDO::PARAM_STR);
+    $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    $rows = array_reverse($stmt->fetchAll());
+
+    jsonOut(200, [
+        'ok' => true,
+        'messages' => $rows,
+    ]);
+}
+
+function handlePostChat(PDO $pdo, string $alliance, array $body): never {
+    ensureChatTable($pdo);
+    $memberName = trim((string)($body['member_name'] ?? ''));
+    if ($memberName === '') jsonOut(400, ['error' => 'member_name fehlt']);
+
+    $message = trim((string)($body['message'] ?? ''));
+    if ($message === '') jsonOut(400, ['error' => 'Nachricht ist leer']);
+    if (mb_strlen($message) > 500) jsonOut(400, ['error' => 'Nachricht zu lang (max 500 Zeichen)']);
+
+    $stmt = $pdo->prepare(" 
+        INSERT INTO member_chat_messages (alliance, chat_id, member_name, message, created_at)
+        VALUES (?, ?, ?, ?, UTC_TIMESTAMP())
+    ");
+    $stmt->execute([$alliance, uuid4(), $memberName, $message]);
+
+    handleGetChat($pdo, $alliance);
+}
+
 function logRankChange(PDO $pdo, string $alliance, array $payload): void {
     ensureRankChangeLogTable($pdo, $alliance);
     $stmt = $pdo->prepare("
@@ -1079,6 +1206,22 @@ try {
     // GET /rank-change-log
     if ($method === 'GET' && $path === '/rank-change-log') {
         handleListRankChangeLog($pdo, $ALLIANCE);
+    }
+
+    // presence
+    if ($method === 'GET' && $path === '/presence') {
+        handlePresenceList($pdo, $ALLIANCE);
+    }
+    if ($method === 'POST' && $path === '/presence') {
+        handlePresencePing($pdo, $ALLIANCE, $body);
+    }
+
+    // chat
+    if ($method === 'GET' && $path === '/chat') {
+        handleGetChat($pdo, $ALLIANCE);
+    }
+    if ($method === 'POST' && $path === '/chat') {
+        handlePostChat($pdo, $ALLIANCE, $body);
     }
 
     // GET /members

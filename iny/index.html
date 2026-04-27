@@ -411,36 +411,47 @@ nav {
 
 /* ── WACHE TILES ── */
 .wache-tabs { display:flex; gap:6px; margin-bottom:1rem; }
-.wache-tab { padding:8px 20px; border-radius:8px; border:1px solid var(--line2); background:var(--card); color:var(--soft); cursor:pointer; font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; transition:all 0.15s; }
+.wache-tab { padding:8px 20px; border-radius:8px; border:1px solid var(--line2); background:var(--card2); color:var(--text); cursor:pointer; font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; transition:all 0.15s; }
 .wache-tab.on { background:rgba(74,158,255,0.12); color:#80b8ff; border-color:rgba(74,158,255,0.4); }
 .wache-tab:hover:not(.on) { border-color:var(--line2); color:var(--text); }
 .wache-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
 .wache-tile { position:relative; border-radius:8px; border:1px solid var(--line); background:var(--card); overflow:hidden; transition:all 0.15s; }
 .wache-tile .wt-top { padding:8px 10px 4px; text-align:center; }
-.wache-tile .wt-name { font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.wache-tile .wt-rank { font-family:'Rajdhani',sans-serif; font-size:10px; color:var(--soft); margin-top:1px; }
+.wache-tile .wt-name { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wache-tile .wt-rank { font-family:'Rajdhani',sans-serif; font-size:10px; color:#b5c0db; margin-top:1px; }
 .wache-tile .wt-btns { display:flex; border-top:1px solid var(--line); }
-.wt-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 4px; cursor:pointer; font-size:12px; font-family:'Inter',sans-serif; transition:all 0.12s; user-select:none; -webkit-tap-highlight-color:transparent; border:none; background:none; color:var(--softer); }
+.wt-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 4px; cursor:pointer; font-size:12px; font-weight:600; font-family:'Inter',sans-serif; transition:all 0.12s; user-select:none; -webkit-tap-highlight-color:transparent; border:none; background:none; color:var(--soft); }
 .wt-btn:first-child { border-right:1px solid var(--line); }
-.wt-btn:hover { background:var(--card2); }
+.wt-btn:hover { background:var(--card2); color:var(--text); }
 .wt-btn:active { transform:scale(0.95); }
 .wt-btn.on-bad { background:rgba(224,85,69,0.12); color:var(--red); }
 .wt-btn.on-good { background:rgba(46,203,122,0.10); color:var(--green); }
 .wache-tile.w-ok { border-color:rgba(46,203,122,0.4); }
 .wache-tile.w-dmg { border-color:rgba(224,85,69,0.4); }
-.wache-tile.w-none { opacity:0.5; }
+.wache-tile.w-none { opacity:0.86; }
 .wache-tile.w-anm { border-color:rgba(74,158,255,0.4); }
 .wache-tile.w-top20 { border-color:rgba(240,165,0,0.5); }
 .wache-tile.w-top50 { border-color:rgba(46,203,122,0.4); }
 .wt-btn.on-anm { background:rgba(74,158,255,0.12); color:var(--blue); }
 .wt-btn.on-gold { background:rgba(240,165,0,0.15); color:var(--gold); }
-.wache-legend { display:flex; gap:16px; margin-bottom:1rem; font-size:12px; color:var(--soft); align-items:center; flex-wrap:wrap; }
+.wache-legend { display:flex; gap:16px; margin-bottom:1rem; font-size:12px; color:#c7d1ea; align-items:center; flex-wrap:wrap; }
 .wache-legend span { display:flex; align-items:center; gap:4px; }
 .wache-counter { font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:700; color:var(--gold); }
 .event-section { display:none; }
 .event-section.active { display:block; }
 .wt-done-divider { grid-column: 1/-1; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--softer); padding: 6px 2px 2px; border-top: 1px solid var(--line); margin-top: 4px; }
-.wache-tile.done-dim { opacity: 0.38; }
+.wache-tile.done-dim { opacity: 0.62; }
+.flt-toggle.hc-on { background: rgba(240,165,0,0.15); color: var(--gold2); border-color: rgba(240,165,0,0.45); }
+body.event-high-contrast .wache-tab { background: #1f2538; color: #eef3ff; border-color: #4e5a82; }
+body.event-high-contrast .wache-tab.on { background: rgba(240,165,0,0.2); color: #ffe08a; border-color: rgba(240,165,0,0.62); }
+body.event-high-contrast .wache-tile { background: #1a2031; border-color: #46506f; }
+body.event-high-contrast .wache-tile .wt-name { color: #f6f9ff; }
+body.event-high-contrast .wache-tile .wt-rank { color: #d5def3; }
+body.event-high-contrast .wt-btn { color: #d8e1f5; }
+body.event-high-contrast .wt-btn:hover { background: #242c44; color: #ffffff; }
+body.event-high-contrast .wache-legend { color: #dee6fb; }
+body.event-high-contrast .wache-tile.w-none { opacity: 0.95; }
+body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 
 @media (max-width: 720px) {
   body {
@@ -633,7 +644,10 @@ nav {
         <button class="wache-tab" data-ev="wu" onclick="selectEventView('wu')">Wüste</button>
         <button class="wache-tab" data-ev="se" onclick="selectEventView('se')">Spezial</button>
       </div>
-      <button class="flt-toggle" id="btn-event-done-bottom" title="Erfasste ans Ende sortieren (nochmal: ausblenden)" onclick="toggleEventDoneMode()">↓ Erfasste ans Ende</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="flt-toggle" id="btn-event-done-bottom" title="Erfasste ans Ende sortieren (nochmal: ausblenden)" onclick="toggleEventDoneMode()">↓ Erfasste ans Ende</button>
+        <button class="flt-toggle" id="btn-event-contrast" title="Hoeherer Kontrast fuer Event-Erfassung" onclick="toggleEventContrast()">◐ High Contrast</button>
+      </div>
     </div>
 
     <div class="event-section active" data-event="w">
@@ -1956,6 +1970,25 @@ function toast(msg){
 let activeWache = 1;
 let activeEventView = 'w1';
 let eventDoneMode = 0; // 0=normal, 1=ans Ende, 2=ausblenden
+const EVENT_CONTRAST_KEY = 'iny_event_high_contrast_v1';
+let eventHighContrast = localStorage.getItem(EVENT_CONTRAST_KEY) === '1';
+
+function applyEventContrastState(){
+  document.body.classList.toggle('event-high-contrast', eventHighContrast);
+  const btn = document.getElementById('btn-event-contrast');
+  if (!btn) return;
+  btn.classList.toggle('hc-on', eventHighContrast);
+  btn.textContent = eventHighContrast ? '◑ High Contrast' : '◐ High Contrast';
+}
+
+function toggleEventContrast(){
+  eventHighContrast = !eventHighContrast;
+  localStorage.setItem(EVENT_CONTRAST_KEY, eventHighContrast ? '1' : '0');
+  applyEventContrastState();
+  if (document.getElementById('page-w').classList.contains('active')) selectEventView(activeEventView);
+}
+window.toggleEventContrast = toggleEventContrast;
+applyEventContrastState();
 
 function toggleEventDoneMode(){
   eventDoneMode=(eventDoneMode+1)%3;

@@ -255,21 +255,33 @@
 
   function getSenderName() {
     const a = getAuth();
-    return (a && (a.member_name || a.discord_username)) ? (a.member_name || a.discord_username) : '';
+    return a && a.member_name ? String(a.member_name).trim() : '';
+  }
+
+  function getSenderDiscordId() {
+    const a = getAuth();
+    const raw = a && a.discord_id ? String(a.discord_id).trim() : '';
+    return /^\d{5,30}$/.test(raw) ? raw : '';
+  }
+
+  function getSenderDiscordUsername() {
+    const a = getAuth();
+    return a && a.discord_username ? String(a.discord_username).trim() : '';
   }
 
   async function refresh(el) {
     const sender = getSenderName();
+    const senderDiscordId = getSenderDiscordId();
+    const senderDiscordUsername = getSenderDiscordUsername();
     try {
       if (sender) {
-        const a = getAuth();
         await api('/presence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             member_name: sender,
-            discord_id: a?.discord_id || '',
-            discord_username: a?.discord_username || ''
+            discord_id: senderDiscordId,
+            discord_username: senderDiscordUsername
           })
         });
       }
@@ -289,6 +301,7 @@
 
   async function sendMessage(el) {
     const sender = getSenderName();
+    const senderDiscordId = getSenderDiscordId();
     if (!sender) {
       el.meta.textContent = 'Bitte erst einloggen';
       return;
@@ -301,7 +314,11 @@
       const res = await api('/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ member_name: sender, message: text })
+        body: JSON.stringify({
+          member_name: sender,
+          discord_id: senderDiscordId,
+          message: text
+        })
       });
       renderChat(el, res.messages || []);
       el.input.value = '';

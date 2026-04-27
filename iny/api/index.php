@@ -301,12 +301,28 @@ function handleGetChat(PDO $pdo, string $alliance): never {
 
 function handlePostChat(PDO $pdo, string $alliance, array $body): never {
     ensureChatTable($pdo);
-    $memberName = trim((string)($body['member_name'] ?? ''));
-    if ($memberName === '') jsonOut(400, ['error' => 'member_name fehlt']);
-
     $message = trim((string)($body['message'] ?? ''));
     if ($message === '') jsonOut(400, ['error' => 'Nachricht ist leer']);
     if (mb_strlen($message) > 500) jsonOut(400, ['error' => 'Nachricht zu lang (max 500 Zeichen)']);
+
+    $memberName = trim((string)($body['member_name'] ?? ''));
+    $discordIdRaw = $body['discord_id'] ?? '';
+    $discordId = '';
+    if ($discordIdRaw !== '') {
+        try {
+            $discordId = normalizeDiscordId($discordIdRaw);
+        } catch (\InvalidArgumentException $e) {
+            jsonOut(400, ['error' => $e->getMessage()]);
+        }
+    }
+
+    if ($discordId !== '') {
+        $member = getDiscordMember($pdo, $alliance, $discordId);
+        if (!$member) jsonOut(403, ['error' => 'Discord-ID ist keinem aktiven Mitglied zugeordnet']);
+        $memberName = trim((string)($member['current_name'] ?? ''));
+    }
+
+    if ($memberName === '') jsonOut(400, ['error' => 'member_name fehlt']);
 
     $stmt = $pdo->prepare(" 
         INSERT INTO member_chat_messages (alliance, chat_id, member_name, message, created_at)
@@ -318,7 +334,6 @@ function handlePostChat(PDO $pdo, string $alliance, array $body): never {
 }
 
 function logRankChange(PDO $pdo, string $alliance, array $payload): void {
-    ensureRankChangeLogTable($pdo, $alliance);
     $stmt = $pdo->prepare("
         INSERT INTO rank_change_log
             (alliance, log_id, player_id, player_name, old_rank_code, requested_rank_code,
@@ -832,7 +847,7 @@ function handleAddMember(PDO $pdo, string $alliance, array $body, array $protect
         $pdo->commit();
         jsonOut(201, ['ok' => true]);
     } catch (\PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         if (str_contains($e->getMessage(), 'Duplicate') || str_contains($e->getCode(), '23000')) {
             jsonOut(409, ['error' => 'Mitglied existiert bereits']);
         }
@@ -901,7 +916,7 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
                 $conflict = $pdo->prepare("SELECT 1 FROM player_identities WHERE alliance = ? AND discord_user_id = ? AND player_id <> ? LIMIT 1");
                 $conflict->execute([$alliance, $discordId, $playerId]);
                 if ($conflict->fetch()) {
-                    $pdo->rollBack();
+                    if ($pdo->inTransaction()) $pdo->rollBack();
                     jsonOut(409, ['error' => 'Discord-ID ist bereits einem anderen Spieler zugeordnet']);
                 }
 
@@ -922,7 +937,7 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
         $pdo->commit();
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         if (str_contains($e->getMessage(), 'Duplicate') || $e->getCode() === '23000') {
             jsonOut(409, ['error' => 'Name existiert bereits']);
         }
@@ -949,7 +964,7 @@ function handleDeleteMember(PDO $pdo, string $alliance, string $nameEncoded): ne
         $pdo->commit();
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
 }
@@ -991,7 +1006,7 @@ function handleSwapIdToDiscord(PDO $pdo, string $alliance, string $nameEncoded):
         $pdo->commit();
         jsonOut(200, ['ok' => true, 'swapped' => true, 'old_player_id' => $oldPlayerId, 'player_id' => $discordUserId]);
     } catch (\PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         if (str_contains($e->getMessage(), 'Duplicate') || $e->getCode() === '23000') {
             jsonOut(409, ['error' => 'ID-Tausch nicht moeglich (Konflikt)']);
         }
@@ -1090,7 +1105,7 @@ function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array
         $pdo->commit();
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
 }
@@ -1109,7 +1124,7 @@ function handleDeleteEntry(PDO $pdo, string $alliance, int $kw, string $nameEnco
         $pdo->commit();
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
 }
@@ -1181,6 +1196,7 @@ try {
     }
 
     $pdo = openDb($DB_HOST, $DB_PORT, $DB_NAME, $DB_USER, $DB_PASS, $DB_SSL_CA);
+    ensureRankChangeLogTable($pdo, $ALLIANCE);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
 
     // GET /health

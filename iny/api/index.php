@@ -256,6 +256,12 @@ function handlePresencePing(PDO $pdo, string $alliance, array $body): never {
 
     $discordUsername = trim((string)($body['discord_username'] ?? '')) ?: null;
 
+    // Hole den aktuellen Namen aus der Datenbank für Konsistenz
+    $member = getDiscordMember($pdo, $alliance, $discordId);
+    if ($member) {
+        $memberName = trim((string)($member['current_name'] ?? $memberName));
+    }
+
     ensurePresenceTable($pdo);
     $stmt = $pdo->prepare(" 
         INSERT INTO member_presence (alliance, member_name, discord_user_id, discord_username, last_seen)
@@ -272,6 +278,7 @@ function handlePresencePing(PDO $pdo, string $alliance, array $body): never {
         'ok' => true,
         'online_count' => count($online),
         'online' => $online,
+        'current_member_name' => $memberName,
         'server_time' => gmdate('c'),
     ]);
 }

@@ -328,8 +328,9 @@
     const senderDiscordId = getSenderDiscordId();
     const senderDiscordUsername = getSenderDiscordUsername();
     try {
+      let presenceRes = null;
       if (sender) {
-        await api('/presence', {
+        presenceRes = await api('/presence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -338,6 +339,14 @@
             discord_username: senderDiscordUsername
           })
         });
+        // Aktualisiere localStorage mit dem aktuellen Namen aus der DB
+        if (presenceRes.current_member_name && presenceRes.current_member_name !== sender) {
+          const auth = getAuth();
+          if (auth) {
+            auth.member_name = presenceRes.current_member_name;
+            localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+          }
+        }
       }
 
       const [onlineRes, chatRes] = await Promise.all([

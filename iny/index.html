@@ -1223,7 +1223,8 @@ async function api(action, params = {}) {
         discord_username: m.discord_username || null,
         discord_avatar: m.discord_avatar || null,
         discord_connected: !!m.discord_connected,
-        discord_avatar_url: m.discord_avatar_url || null
+        discord_avatar_url: m.discord_avatar_url || null,
+        last_visit_at: m.last_visit_at || null
       }));
     }
     case 'entries': {

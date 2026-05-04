@@ -204,6 +204,17 @@ function ensurePresenceTable(PDO $pdo): void {
     ");
 }
 
+function ensureLastVisitColumn(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+    try {
+        $pdo->exec("ALTER TABLE players ADD COLUMN last_visit_at DATETIME NULL DEFAULT NULL");
+    } catch (\PDOException) {
+        // Spalte existiert bereits – ignorieren
+    }
+}
+
 function ensureChatTable(PDO $pdo): void {
     $pdo->exec(" 
         CREATE TABLE IF NOT EXISTS member_chat_messages (
@@ -272,6 +283,11 @@ function handlePresencePing(PDO $pdo, string $alliance, array $body): never {
             last_seen = UTC_TIMESTAMP()
     ");
     $stmt->execute([$alliance, $memberName, $discordId !== '' ? $discordId : null, $discordUsername]);
+
+    // last_visit_at in players aktualisieren
+    ensureLastVisitColumn($pdo);
+    $pdo->prepare("UPDATE players SET last_visit_at = UTC_TIMESTAMP() WHERE alliance = ? AND current_name = ? AND is_active = 1")
+        ->execute([$alliance, $memberName]);
 
     $online = getOnlineMembers($pdo, $alliance, 180);
     jsonOut(200, [
@@ -790,8 +806,9 @@ function handleListRankChangeLog(PDO $pdo, string $alliance): never {
 
 function handleGetMembers(PDO $pdo, string $alliance): never {
     ensureDiscordProfileCacheTable($pdo);
+    ensureLastVisitColumn($pdo);
     $stmt = $pdo->prepare("
-        SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code,
+        SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.last_visit_at,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
                COALESCE(puld.discord_avatar, dpc.discord_avatar) AS discord_avatar
@@ -830,6 +847,7 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
         'discord_avatar'     => $r['discord_avatar'] ?? null,
         'discord_connected'  => !empty($r['discord_user_id']),
         'discord_avatar_url' => memberToDiscordAvatarUrl($r['discord_user_id'] ?? null, $r['discord_avatar'] ?? null, 64),
+        'last_visit_at'      => $r['last_visit_at'] ?? null,
     ], $rows);
 
     jsonOut(200, $result);
@@ -1034,6 +1052,188 @@ function handleSwapIdToDiscord(PDO $pdo, string $alliance, string $nameEncoded):
         }
         throw $e;
     }
+}
+
+function handleGetSeInactive(PDO $pdo, string $alliance): never {
+    $weeks = max(1, min(12, (int)($_GET['weeks'] ?? 4)));
+
+    // Die letzten N erfassten Wochen ermitteln (nach year_week absteigend)
+    $stmt = $pdo->prepare("
+        SELECT DISTINCT we.year_week
+        FROM weekly_entries we
+        WHERE we.alliance = ?
+        ORDER BY we.year_week DESC
+        LIMIT ?
+    ");
+    $stmt->execute([$alliance, $weeks]);
+    $recentWeeks = array_column($stmt->fetchAll(), 'year_week');
+
+    if (empty($recentWeeks)) {
+        jsonOut(200, ['weeks' => [], 'inactive' => []]);
+    }
+
+    // Alle aktiven Spieler laden
+    $stmt = $pdo->prepare("SELECT player_id, current_name FROM players WHERE alliance = ? AND is_active = 1 ORDER BY current_name");
+    $stmt->execute([$alliance]);
+    $allPlayers = $stmt->fetchAll();
+
+    // Für jeden Spieler: Einträge + Flags für alle Wochen sammeln
+    $inactive = [];
+    foreach ($allPlayers as $player) {
+        $neverSE    = true;
+        $alwaysAfk  = true;
+        $weekDetails = [];
+
+        foreach ($recentWeeks as $yw) {
+            $stmt2 = $pdo->prepare("
+                SELECT we.entry_id, we.afk
+                FROM weekly_entries we
+                WHERE we.alliance = ? AND we.year_week = ? AND we.player_id = ?
+            ");
+            $stmt2->execute([$alliance, $yw, $player['player_id']]);
+            $entry = $stmt2->fetch();
+
+            if (!$entry) {
+                $weekDetails[$yw] = ['status' => 'missing', 'flags' => []];
+                $alwaysAfk = false;
+                continue;
+            }
+
+            if ($entry['afk']) {
+                $weekDetails[$yw] = ['status' => 'afk', 'flags' => []];
+                continue;
+            }
+
+            $alwaysAfk = false;
+
+            // Alle Flags für diesen Eintrag laden
+            $stmtF = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?");
+            $stmtF->execute([$alliance, $entry['entry_id']]);
+            $flags = array_column($stmtF->fetchAll(), 'flag_key');
+
+            $hasSE = in_array('seTeilnahme', $flags, true);
+            if ($hasSE) $neverSE = false;
+
+            $weekDetails[$yw] = [
+                'status' => $hasSE ? 'se' : 'no_se',
+                'flags'  => $flags,
+            ];
+        }
+
+        // Spieler ist inaktiv wenn: nicht immer AFK, und nie seTeilnahme gesetzt
+        if ($neverSE && !$alwaysAfk) {
+            $inactive[] = [
+                'name'  => $player['current_name'],
+                'weeks' => $weekDetails,
+            ];
+        }
+    }
+
+    jsonOut(200, ['weeks' => $recentWeeks, 'inactive' => $inactive]);
+}
+
+function handleGetRankingHistory(PDO $pdo, string $alliance): never {
+    $weeks = max(2, min(8, (int)($_GET['weeks'] ?? 4)));
+
+    // Aktuelle ISO-KW berechnen (Format YYWW, z.B. 2619)
+    // date('N') = 1=Mo, 7=So  →  Woche gilt als abgeschlossen ab Sonntag
+    $currentKw = (int)(date('y') . date('W'));
+    $weekClosed = (int)date('N') === 7; // Sonntag = abgeschlossen
+
+    // Die letzten N erfassten Wochen ermitteln
+    // Laufende Woche (Mo–Sa) wird herausgefiltert – erst ab Sonntag nutzbar
+    $stmt = $pdo->prepare("
+        SELECT DISTINCT year_week FROM weekly_entries
+        WHERE alliance = ? ORDER BY year_week DESC LIMIT ?
+    ");
+    $stmt->execute([$alliance, $weeks + 1]); // +1 für den Fall dass aktuelle KW gefiltert wird
+    $allWeeks = array_column($stmt->fetchAll(), 'year_week');
+
+    $recentWeeks = [];
+    $currentKwFiltered = false;
+    foreach ($allWeeks as $yw) {
+        if ((int)$yw === $currentKw && !$weekClosed) {
+            $currentKwFiltered = true;
+            continue; // laufende Woche überspringen
+        }
+        $recentWeeks[] = $yw;
+        if (count($recentWeeks) >= $weeks) break;
+    }
+
+    if (empty($recentWeeks)) {
+        jsonOut(200, ['weeks' => [], 'players' => [], 'currentKwFiltered' => $currentKwFiltered]);
+    }
+
+    // Alle aktiven Spieler laden
+    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code FROM players WHERE alliance = ? AND is_active = 1 ORDER BY current_name");
+    $stmt->execute([$alliance]);
+    $allPlayers = $stmt->fetchAll();
+
+    $result = [];
+    foreach ($allPlayers as $player) {
+        $playerWeeks = [];
+        foreach ($recentWeeks as $yw) {
+            $stmt2 = $pdo->prepare("SELECT we.entry_id, we.afk FROM weekly_entries we WHERE we.alliance = ? AND we.year_week = ? AND we.player_id = ?");
+            $stmt2->execute([$alliance, $yw, $player['player_id']]);
+            $entry = $stmt2->fetch();
+            if (!$entry) {
+                $playerWeeks[$yw] = ['flags' => [], 'afk' => false, 'missing' => true];
+                continue;
+            }
+            $stmtF = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?");
+            $stmtF->execute([$alliance, $entry['entry_id']]);
+            $flags = [];
+            foreach ($stmtF->fetchAll() as $f) $flags[$f['flag_key']] = true;
+            $playerWeeks[$yw] = ['flags' => $flags, 'afk' => (bool)$entry['afk'], 'missing' => false];
+        }
+        $result[] = [
+            'name'    => $player['current_name'],
+            'rank'    => (int)$player['current_rank_code'],
+            'entries' => $playerWeeks,
+        ];
+    }
+
+    jsonOut(200, ['weeks' => $recentWeeks, 'players' => $result, 'currentKwFiltered' => $currentKwFiltered, 'currentKw' => $currentKw]);
+}
+
+function handleApplyRankChange(PDO $pdo, string $alliance, array $body, array $protectedNames): never {
+    $name    = trim($body['name'] ?? '');
+    $newRank = (int)($body['newRank'] ?? 0);
+    $confirm = trim($body['confirmation'] ?? '');
+
+    if ($name === '') jsonOut(400, ['error' => 'Name fehlt']);
+    if ($newRank < 1 || $newRank > 5) jsonOut(400, ['error' => 'Ungültiger Rang']);
+    if ($confirm === '') jsonOut(400, ['error' => 'Bestätigung fehlt']);
+
+    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code FROM players WHERE alliance = ? AND current_name = ?");
+    $stmt->execute([$alliance, $name]);
+    $player = $stmt->fetch();
+    if (!$player) jsonOut(404, ['error' => 'Spieler nicht gefunden']);
+
+    // R4/R5 sind geschützt, nur R5 kann R4/R5 setzen
+    if ($player['current_rank_code'] >= 4 || $newRank >= 4) {
+        jsonOut(403, ['error' => 'R4/R5 können nicht über dieses Tool geändert werden']);
+    }
+
+    $protection = applyProtectedRankRule($name, $newRank, $protectedNames);
+    $effectiveRank = $protection['effectiveRank'];
+
+    $oldRank = (int)$player['current_rank_code'];
+    $pdo->prepare("UPDATE players SET current_rank_code = ? WHERE alliance = ? AND player_id = ?")
+        ->execute([$effectiveRank, $alliance, $player['player_id']]);
+
+    logRankChange($pdo, $alliance, [
+        'playerId'      => $player['player_id'],
+        'playerName'    => $player['current_name'],
+        'oldRank'       => $oldRank,
+        'requestedRank' => $newRank,
+        'appliedRank'   => $effectiveRank,
+        'source'        => 'manual:ergebnis',
+        'blocked'       => $protection['blocked'],
+        'reason'        => "confirmation:{$confirm}",
+    ]);
+
+    jsonOut(200, ['ok' => true, 'oldRank' => $oldRank, 'newRank' => $effectiveRank]);
 }
 
 function handleGetEntries(PDO $pdo, string $alliance, int $kw): never {
@@ -1314,6 +1514,21 @@ try {
         if ($method === 'GET'    && count($segments) === 2) handleGetEntries($pdo, $ALLIANCE, $kw);
         if ($method === 'POST'   && count($segments) === 2) handleSaveEntry($pdo, $ALLIANCE, $kw, $body, $PROTECTED_R4_NAMES);
         if ($method === 'DELETE' && count($segments) === 3) handleDeleteEntry($pdo, $ALLIANCE, $kw, $segments[2]);
+    }
+
+    // GET /se-inactive?weeks=4  → Spieler ohne SE-Teilnahme in den letzten N Wochen (und nicht AFK)
+    if ($method === 'GET' && count($segments) === 1 && $segments[0] === 'se-inactive') {
+        handleGetSeInactive($pdo, $ALLIANCE);
+    }
+
+    // GET /ranking-history?weeks=4  → Verlauf der letzten N Wochen je Spieler (für Ergebnis-Sheet)
+    if ($method === 'GET' && count($segments) === 1 && $segments[0] === 'ranking-history') {
+        handleGetRankingHistory($pdo, $ALLIANCE);
+    }
+
+    // POST /apply-rank-change  → Rang manuell anwenden (mit Bestätigung)
+    if ($method === 'POST' && count($segments) === 1 && $segments[0] === 'apply-rank-change') {
+        handleApplyRankChange($pdo, $ALLIANCE, $body, $PROTECTED_R4_NAMES);
     }
 
     jsonOut(404, ['error' => "Route not found: {$method} {$path}"]);

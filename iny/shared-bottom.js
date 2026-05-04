@@ -3,6 +3,16 @@
   window.__inyBottomWidgetLoaded = true;
 
   const AUTH_KEY = 'iny_auth_state_v1';
+  const LAST_CHAT_VISIT_KEY = 'iny_chat_last_visit';
+
+  function getLastChatVisit() {
+    const raw = localStorage.getItem(LAST_CHAT_VISIT_KEY);
+    return raw ? new Date(raw) : null;
+  }
+
+  function markChatRead() {
+    localStorage.setItem(LAST_CHAT_VISIT_KEY, new Date().toISOString());
+  }
 
   function getAuth() {
     try {
@@ -79,6 +89,18 @@
         cursor: pointer;
         font-size: 11px;
         padding: 4px 8px;
+        position: relative;
+      }
+      .iny-unread-badge {
+        display: inline-block;
+        background: #e05545;
+        color: #fff;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        margin-left: 5px;
+        vertical-align: middle;
       }
       .iny-bottom-body { padding: 10px 10px 8px; }
       .iny-bottom-body.hidden { display: none; }
@@ -195,7 +217,10 @@
             <strong>Online & Chat</strong>
             <div class="meta" id="iny-meta">lade...</div>
           </div>
-          <button class="iny-bottom-toggle" id="iny-toggle">−</button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span id="iny-unread" class="iny-unread-badge" style="display:none"></span>
+            <button class="iny-bottom-toggle" id="iny-toggle">−</button>
+          </div>
         </div>
         <div class="iny-bottom-body" id="iny-body">
           <div class="iny-online-list" id="iny-online"></div>
@@ -218,6 +243,7 @@
       send: wrap.querySelector('#iny-send'),
       meta: wrap.querySelector('#iny-meta'),
       toggle: wrap.querySelector('#iny-toggle'),
+      unread: wrap.querySelector('#iny-unread'),
     };
   }
 
@@ -264,7 +290,8 @@
   }
 
   function renderChat(el, messages) {
-    const atBottom = el.chat.scrollHeight - el.chat.scrollTop - el.chat.clientHeight < 24;
+    const isHidden = el.body.classList.contains('hidden');
+    const atBottom = isHidden || el.chat.scrollHeight - el.chat.scrollTop - el.chat.clientHeight < 24;
     const canManage = canManageChat();
     el.chat.innerHTML = '';
     (messages || []).forEach((msg) => {
@@ -304,7 +331,7 @@
       row.appendChild(body);
       el.chat.appendChild(row);
     });
-    if (atBottom) el.chat.scrollTop = el.chat.scrollHeight;
+    if (atBottom && !isHidden) el.chat.scrollTop = el.chat.scrollHeight;
   }
 
   function getSenderName() {
@@ -357,6 +384,45 @@
       renderOnline(el, onlineRes.online || []);
       renderChat(el, chatRes.messages || []);
       el.meta.textContent = `${(onlineRes.online || []).length} online`;
+
+      // Unread-Logik: zähle Nachrichten neuer als letzter Besuch
+      const lastVisit = getLastChatVisit();
+      const messages = chatRes.messages || [];
+      let unreadCount = 0;
+      if (lastVisit) {
+        unreadCount = messages.filter(m => {
+          const d = parseServerTimestamp(m.created_at);
+          return d && d > lastVisit;
+        }).length;
+      } else if (messages.length > 0) {
+        // Noch nie besucht → alle als ungelesen zählen
+        unreadCount = messages.length;
+      }
+
+      const isCollapsed = el.body.classList.contains('hidden');
+      if (unreadCount > 0) {
+        el.unread.textContent = `${unreadCount} neu`;
+        el.unread.style.display = 'inline-block';
+        // Auto-expand wenn noch nicht geöffnet und nicht vom Nutzer explizit geschlossen
+        if (isCollapsed && localStorage.getItem('iny_bottom_widget_user_closed') !== '1') {
+          el.body.classList.remove('hidden');
+          el.toggle.textContent = '−';
+          requestAnimationFrame(() => { el.chat.scrollTop = el.chat.scrollHeight; });
+        }
+      } else {
+        el.unread.style.display = 'none';
+        // Wenn kein Unread → Standard kollabiert (außer Nutzer hat explizit geöffnet)
+        if (localStorage.getItem('iny_bottom_widget_collapsed') === '1' && !unreadCount) {
+          el.body.classList.add('hidden');
+          el.toggle.textContent = '+';
+        }
+      }
+
+      // Wenn gerade geöffnet: sofort als gelesen markieren
+      if (!el.body.classList.contains('hidden') && unreadCount > 0) {
+        markChatRead();
+        el.unread.style.display = 'none';
+      }
     } catch (e) {
       el.meta.textContent = 'nicht verbunden';
     }
@@ -423,11 +489,27 @@
       const hidden = el.body.classList.toggle('hidden');
       el.toggle.textContent = hidden ? '+' : '−';
       localStorage.setItem('iny_bottom_widget_collapsed', hidden ? '1' : '0');
+      if (!hidden) {
+        // Widget geöffnet → als gelesen markieren, Badge ausblenden, nach unten scrollen
+        markChatRead();
+        el.unread.style.display = 'none';
+        localStorage.removeItem('iny_bottom_widget_user_closed');
+        requestAnimationFrame(() => { el.chat.scrollTop = el.chat.scrollHeight; });
+      } else {
+        // Nutzer hat explizit geschlossen → merken damit auto-expand nicht sofort wieder aufmacht
+        localStorage.setItem('iny_bottom_widget_user_closed', '1');
+      }
     });
 
+    // Initial: wenn keine ungelesenen Nachrichten und Nutzer hat kollabiert → kollabiert lassen
+    // (Die unread-Logik in refresh() kümmert sich ums Auto-Expand)
     if (localStorage.getItem('iny_bottom_widget_collapsed') === '1') {
       el.body.classList.add('hidden');
       el.toggle.textContent = '+';
+    } else {
+      // Widget ist offen beim Start → als gelesen markieren + nach unten scrollen
+      markChatRead();
+      requestAnimationFrame(() => { el.chat.scrollTop = el.chat.scrollHeight; });
     }
 
     el.send.addEventListener('click', function () { sendMessage(el); });

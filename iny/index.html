@@ -27,7 +27,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   background-color: var(--bg);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1400 900'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' transform='rotate(-24 700 450)' fill='%23ffffff' fill-opacity='0.045' font-family='Rajdhani, sans-serif' font-size='320' font-weight='700' letter-spacing='26'%3ETEST%3C/text%3E%3C/svg%3E");
+  background-image: none;
   background-repeat: no-repeat;
   background-position: center;
   background-size: min(100vw, 1200px) auto;
@@ -518,6 +518,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <button class="tab active" id="tab-d" onclick="showPage('d')">Dashboard</button>
     <button class="tab" id="tab-e" onclick="showPage('e')">Eingabe</button>
     <button class="tab" id="tab-w" onclick="showPage('w')">Events</button>
+    <button class="tab" id="tab-r" onclick="showPage('r')">Ergebnis</button>
     <button class="tab" id="tab-v" onclick="showPage('v')">Verwaltung</button>
   </div>
   <div class="nav-actions">
@@ -648,6 +649,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
         <button class="wache-tab" data-ev="w3" onclick="selectEventView('w3')">Wache 3</button>
         <button class="wache-tab" data-ev="wu" onclick="selectEventView('wu')">Wüste</button>
         <button class="wache-tab" data-ev="se" onclick="selectEventView('se')">Spezial</button>
+        <button class="wache-tab" data-ev="vs" onclick="selectEventView('vs')">VS</button>
+        <button class="wache-tab" data-ev="sp" onclick="selectEventView('sp')">Spenden</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="flt-toggle" id="btn-event-done-bottom" title="Erfasste ans Ende sortieren (nochmal: ausblenden)" onclick="toggleEventDoneMode()">↓ Erfasste ans Ende</button>
@@ -657,8 +660,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 
     <div class="event-section active" data-event="w">
       <div class="wache-legend">
-        <span><span style="color:var(--red);">⚠</span> kein DMG (Strafe)</span>
-        <span><span style="color:var(--green);">⚔</span> guter DMG</span>
+        <span><span style="color:var(--red);">⚠</span> wenig Schaden (&lt;2M, Strafe)</span>
+        <span><span style="color:var(--green);">⚔</span> guter Schaden</span>
         <span><span style="color:var(--softer);">○</span> nicht dabei</span>
         <span style="margin-left:auto;" class="wache-counter" id="w-counter">0 / 0</span>
       </div>
@@ -687,6 +690,54 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 
       <div class="wache-grid" id="spezial-grid"></div>
     </div>
+
+    <div class="event-section" data-event="vs">
+      <div class="wache-legend">
+        <span><span style="color:var(--red);">⚠</span> unter 50 Mio (Strafe)</span>
+        <span><span style="color:var(--blue);">🥈</span> Top 30 (Bonus)</span>
+        <span><span style="color:var(--gold);">🏆</span> Top 10 (Bonus)</span>
+        <span style="margin-left:auto;" class="wache-counter" id="vs-counter">0 / 0</span>
+      </div>
+      <div class="wache-grid" id="vs-grid"></div>
+    </div>
+
+    <div class="event-section" data-event="sp">
+      <div class="wache-legend">
+        <span><span style="color:var(--red);">⚠</span> unter 35K (Strafe)</span>
+        <span><span style="color:var(--blue);">🏅</span> Top 20 (Bonus)</span>
+        <span style="margin-left:auto;" class="wache-counter" id="sp-counter">0 / 0</span>
+      </div>
+      <div class="wache-grid" id="spende-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ERGEBNIS ═══ -->
+<div class="page" id="page-r">
+  <div class="panel" style="max-width:100%;">
+    <div class="panel-head" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="panel-title">📊 Rang-Empfehlungen</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+        <label style="font-size:0.85rem;color:var(--muted);">Wochen:</label>
+        <select id="ergebnis-weeks" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.85rem;">
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+        <button class="wt-btn" onclick="loadErgebnis()" style="padding:5px 14px;">🔄 Laden</button>
+      </div>
+    </div>
+    <div id="ergebnis-legend" style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.78rem;margin-bottom:12px;color:var(--muted);">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2ecb7a;margin-right:4px;vertical-align:middle;"></span>Beförderung empfohlen (≥2 Wochen stabil)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e05545;margin-right:4px;vertical-align:middle;"></span>Herabstufung empfohlen (&gt;2 Wochen schlecht)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f0a500;margin-right:4px;vertical-align:middle;"></span>AFK (sperrt Rang-Änderung)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#888;margin-right:4px;vertical-align:middle;"></span>Keine Daten vorhanden</span>
+    </div>
+    <div id="ergebnis-loading" style="display:none;color:var(--muted);text-align:center;padding:24px;">Lade Daten…</div>
+    <div id="ergebnis-info" style="display:none;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.3);border-radius:6px;padding:8px 14px;font-size:0.83rem;color:#f0a500;margin-bottom:10px;"></div>
+    <div id="ergebnis-empty" style="display:none;color:var(--muted);text-align:center;padding:24px;">Keine Daten vorhanden.</div>
+    <div id="ergebnis-table-wrap" style="overflow-x:auto;"></div>
   </div>
 </div>
 
@@ -739,6 +790,25 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <div class="panel-sub" id="v-access-count">0 offen</div>
     </div>
     <div id="v-access-requests" class="v-access-list"></div>
+  </div>
+
+  <!-- SE AUSWERTUNG -->
+  <div class="panel" style="margin-top:1rem;">
+    <div class="panel-head">
+      <div class="panel-title">🔍 Kein Spezialevent in letzten Wochen</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="font-size:0.85em;color:var(--softer);">Wochen:</label>
+        <select id="se-weeks-select" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.85em;">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+        <button class="save-btn" onclick="loadSeInactive()" style="padding:4px 12px;font-size:0.85em;">Laden</button>
+      </div>
+    </div>
+    <div id="se-inactive-result" style="padding:8px 0;"></div>
   </div>
 </div>
 
@@ -1170,6 +1240,10 @@ async function api(action, params = {}) {
       return fetchJson(`/verify-discord?discord_id=${encodeURIComponent(params.discord_id || '')}`);
     case 'access_requests':
       return fetchJson('/access-requests?status=pending');
+    case 'ranking-history': {
+      const w = parseInt(params.weeks, 10) || 4;
+      return fetchJson(`/ranking-history?weeks=${w}`);
+    }
     default:
       return { error: `Unknown action: ${action}` };
   }
@@ -1265,6 +1339,10 @@ async function apiPost(data) {
     case 'archive_week':
     case 'update_ergebnis':
       return { ok: true };
+    case 'delete_entry': {
+      const name = encodeURIComponent(data.name || '');
+      return fetchJson(`/entries/${kw}/${name}`, { method: 'DELETE' });
+    }
     default:
       return { error: `Unknown action: ${action}` };
   }
@@ -1318,7 +1396,7 @@ const CATS = [
   { l:'💰 Spenden', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
     f:[{k:'spendeUnter35k',l:'unter 35K',t:'r'},{k:'spendeTop20',l:'Top 20',t:'b'}] },
   { l:'🛡 Wache', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
-    f:[{k:'wache1',l:'W1 Teilnahme',t:'b'},{k:'wache1dmg',l:'W1 kein DMG',t:'r'},{k:'wache2',l:'W2 Teilnahme',t:'b'},{k:'wache2dmg',l:'W2 kein DMG',t:'r'},{k:'wache3',l:'W3 Teilnahme',t:'b'},{k:'wache3dmg',l:'W3 kein DMG',t:'r'}] },
+    f:[{k:'wache1',l:'W1 Teilnahme',t:'b'},{k:'wache1dmg',l:'W1 wenig Schaden',t:'r'},{k:'wache2',l:'W2 Teilnahme',t:'b'},{k:'wache2dmg',l:'W2 wenig Schaden',t:'r'},{k:'wache3',l:'W3 Teilnahme',t:'b'},{k:'wache3dmg',l:'W3 wenig Schaden',t:'r'}] },
   { l:'🎯 Spezialevents', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
     f:[{k:'seTeilnahme',l:'Teilnahme',t:'b'},{k:'seTop50',l:'Top 50',t:'b'},{k:'seTop20',l:'Top 20',t:'b'}] },
   { l:'🏜 Wüste', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
@@ -1417,6 +1495,7 @@ let accessRequests = [];
 let entriesLoading = false;
 let entriesLoadedAt = 0;
 let avatarCache = {};
+const AVATAR_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 Tage
 try {
   avatarCache = JSON.parse(localStorage.getItem('iny_avatar_cache') || '{}') || {};
 } catch (err) {
@@ -1426,8 +1505,28 @@ try {
 function getEffectiveAvatarUrl(meta) {
   if (!meta) return null;
   if (meta.discordAvatarUrl) return meta.discordAvatarUrl;
-  if (meta.discordId && avatarCache[meta.discordId]) return avatarCache[meta.discordId];
+  if (meta.discordId) {
+    const entry = avatarCache[meta.discordId];
+    if (entry) {
+      // Altes Format (plain string) und neues Format ({url, savedAt})
+      const url = typeof entry === 'string' ? entry : entry.url;
+      if (url) return url;
+    }
+  }
   return null;
+}
+
+function isAvatarCacheStale(discordId) {
+  if (!discordId) return true;
+  const entry = avatarCache[discordId];
+  if (!entry) return true;
+  if (typeof entry === 'string') return true; // altes Format → neu laden
+  return (Date.now() - (entry.savedAt || 0)) > AVATAR_CACHE_TTL;
+}
+
+function setAvatarCache(discordId, url) {
+  avatarCache[discordId] = { url, savedAt: Date.now() };
+  try { localStorage.setItem('iny_avatar_cache', JSON.stringify(avatarCache)); } catch {}
 }
 
 function getEntriesCacheKey(yearWeek) {
@@ -1493,14 +1592,28 @@ async function loadMemberDiscordAvatar(name) {
     return;
   }
 
-  avatarCache[meta.discordId] = probeUrl;
-  localStorage.setItem('iny_avatar_cache', JSON.stringify(avatarCache));
+  setAvatarCache(meta.discordId, probeUrl);
   meta.discordAvatarUrl = probeUrl;
   memberMeta[name] = meta;
   renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
   toast('Discord-Bild geladen.');
 }
 window.loadMemberDiscordAvatar = loadMemberDiscordAvatar;
+
+async function autoRefreshAvatars() {
+  const stale = Object.values(memberMeta).filter(m => m.discordId && isAvatarCacheStale(m.discordId));
+  if (!stale.length) return;
+  for (const meta of stale) {
+    const probeUrl = `https://unavatar.io/discord/${encodeURIComponent(meta.discordId)}?fallback=false`;
+    const ok = await new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = probeUrl + '&t=' + Date.now();
+    });
+    if (ok) setAvatarCache(meta.discordId, probeUrl);
+  }
+}
 
 // ══════════════════════════════════════════════════════
 //  Daten laden/speichern via Google Apps Script API
@@ -1519,7 +1632,8 @@ async function loadMembers() {
       discordId: m.discord_id || null,
       discordUsername: m.discord_username || null,
       discordAvatarUrl: m.discord_avatar_url || null,
-      discordConnected: !!m.discord_connected
+      discordConnected: !!m.discord_connected,
+      lastVisitAt: m.last_visit_at || null
     };
     if (m.role === 'r4' || m.rank === 4) R4.add(m.name);
     if (m.role === 'r5' || m.rank === 5) R5.add(m.name);
@@ -1717,10 +1831,12 @@ async function showPage(id){
   document.getElementById('tab-d').classList.toggle('active',id==='d');
   document.getElementById('tab-e').classList.toggle('active',id==='e');
   document.getElementById('tab-w').classList.toggle('active',id==='w');
+  document.getElementById('tab-r').classList.toggle('active',id==='r');
   document.getElementById('tab-v').classList.toggle('active',id==='v');
   if(id==='d') renderDashboard();
   if(id==='e') renderList();
   if(id==='w') selectEventView(activeEventView);
+  if(id==='r') loadErgebnis();
   if(id==='v') renderVerwaltung();
   if (id !== 'v') refreshEntriesIfNeeded({ background: true });
 }
@@ -2140,7 +2256,7 @@ function selectEventView(view) {
   activeEventView = view;
   document.querySelectorAll('.wache-tab').forEach(b => b.classList.toggle('on', b.dataset.ev === view));
 
-  const mode = view === 'wu' ? 'wu' : (view === 'se' ? 'se' : 'w');
+  const mode = view === 'wu' ? 'wu' : (view === 'se' ? 'se' : view === 'vs' ? 'vs' : view === 'sp' ? 'sp' : 'w');
   document.querySelectorAll('.event-section').forEach(sec => {
     sec.classList.toggle('active', sec.dataset.event === mode);
   });
@@ -2150,10 +2266,9 @@ function selectEventView(view) {
     renderWache();
     return;
   }
-  if (mode === 'wu') {
-    renderWueste();
-    return;
-  }
+  if (mode === 'wu') { renderWueste(); return; }
+  if (mode === 'vs') { renderVS(); return; }
+  if (mode === 'sp') { renderSpende(); return; }
   renderSpezial();
 }
 
@@ -2178,8 +2293,8 @@ function renderWache() {
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
-    const btnBad = `<button class="wt-btn ${dmg?'on-bad':''}" onclick="wacheSet('${esc}','bad')" title="kein DMG (Strafe)">${dmg?'⚠ kein DMG':'💀'}</button>`;
-    const btnGood = `<button class="wt-btn ${(teil&&!dmg)?'on-good':''}" onclick="wacheSet('${esc}','good')" title="guter DMG">${(teil&&!dmg)?'⚔ gut':'⚔'}</button>`;
+    const btnBad = `<button class="wt-btn ${dmg?'on-bad':''}" onclick="wacheSet('${esc}','bad')" title="wenig Schaden < 2M (Strafe)">${dmg?'⚠ &lt;2M':'💤'}</button>`;
+    const btnGood = `<button class="wt-btn ${(teil&&!dmg)?'on-good':''}" onclick="wacheSet('${esc}','good')" title="guter Schaden">${(teil&&!dmg)?'⚔ gut':'⚔'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
     return divider+`<div class="wache-tile${dimCls} ${cls}">
@@ -2207,22 +2322,11 @@ async function wacheSet(name, type) {
   const flags = e.flags;
 
   if (type === 'bad') {
-    if (flags[wDmgKey]) {
-      // Toggle aus
-      delete flags[wKey];
-      delete flags[wDmgKey];
-    } else {
-      flags[wKey] = true;
-      flags[wDmgKey] = true;
-    }
+    if (flags[wDmgKey]) { delete flags[wKey]; delete flags[wDmgKey]; }
+    else { flags[wKey] = true; flags[wDmgKey] = true; }
   } else {
-    if (flags[wKey] && !flags[wDmgKey]) {
-      // Toggle aus
-      delete flags[wKey];
-    } else {
-      flags[wKey] = true;
-      delete flags[wDmgKey];
-    }
+    if (flags[wKey] && !flags[wDmgKey]) { delete flags[wKey]; }
+    else { flags[wKey] = true; delete flags[wDmgKey]; }
   }
 
   e.points = calcPoints(flags);
@@ -2230,17 +2334,15 @@ async function wacheSet(name, type) {
   renderWache();
 
   try {
-    await apiPost({
-      action: 'save_wache',
-      name,
-      rank: e.rank,
-      flags: { ...e.flags }
-    });
+    if (Object.keys(flags).length === 0) {
+      entries = entries.filter(x => x.name !== name);
+      await apiPost({ action: 'delete_entry', name });
+    } else {
+      await apiPost({ action: 'save_wache', name, rank: PREV[name] || e.baseRank || 3, flags: { ...flags } });
+    }
     await loadEntries();
     renderWache();
-  } catch(err) {
-    toast('Fehler: ' + err.message);
-  }
+  } catch(err) { toast('Fehler: ' + err.message); }
 }
 window.wacheSet = wacheSet;
 window.selectWache = selectWache;
@@ -2300,19 +2402,11 @@ async function wuesteSet(name, type) {
     if (flags.wuesteAnmeldung) delete flags.wuesteAnmeldung;
     else flags.wuesteAnmeldung = true;
   } else if (type === 'teil') {
-    if (flags.wuesteTeilnahme) {
-      delete flags.wuesteTeilnahme;
-    } else {
-      flags.wuesteTeilnahme = true;
-      delete flags.wuesteFehlen;
-    }
+    if (flags.wuesteTeilnahme) { delete flags.wuesteTeilnahme; }
+    else { flags.wuesteTeilnahme = true; delete flags.wuesteFehlen; }
   } else if (type === 'fehl') {
-    if (flags.wuesteFehlen) {
-      delete flags.wuesteFehlen;
-    } else {
-      flags.wuesteFehlen = true;
-      delete flags.wuesteTeilnahme;
-    }
+    if (flags.wuesteFehlen) { delete flags.wuesteFehlen; }
+    else { flags.wuesteFehlen = true; delete flags.wuesteTeilnahme; }
   }
 
   e.points = calcPoints(flags);
@@ -2320,17 +2414,15 @@ async function wuesteSet(name, type) {
   renderWueste();
 
   try {
-    await apiPost({
-      action: 'save_wueste',
-      name,
-      rank: e.rank,
-      flags: { ...e.flags }
-    });
+    if (Object.keys(flags).length === 0) {
+      entries = entries.filter(x => x.name !== name);
+      await apiPost({ action: 'delete_entry', name });
+    } else {
+      await apiPost({ action: 'save_wueste', name, rank: PREV[name] || e.baseRank || 3, flags: { ...flags } });
+    }
     await loadEntries();
     renderWueste();
-  } catch(err) {
-    toast('Fehler: ' + err.message);
-  }
+  } catch(err) { toast('Fehler: ' + err.message); }
 }
 window.wuesteSet = wuesteSet;
 
@@ -2416,12 +2508,12 @@ async function spezialSet(name, type) {
   renderSpezial();
 
   try {
-    await apiPost({
-      action: 'save_spezial',
-      name,
-      rank: e.rank,
-      flags: { ...e.flags }
-    });
+    if (Object.keys(flags).length === 0) {
+      entries = entries.filter(x => x.name !== name);
+      await apiPost({ action: 'delete_entry', name });
+    } else {
+      await apiPost({ action: 'save_spezial', name, rank: PREV[name] || e.baseRank || 3, flags: { ...flags } });
+    }
     await loadEntries();
     renderSpezial();
   } catch(err) {
@@ -2430,7 +2522,154 @@ async function spezialSet(name, type) {
 }
 window.spezialSet = spezialSet;
 
-// ── VERWALTUNG ──
+// ══════════════════════════════════════════════════════
+//  VS-VERWALTUNG
+// ══════════════════════════════════════════════════════
+function renderVS() {
+  const grid = document.getElementById('vs-grid');
+
+  const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.vsUnter50||f.vsTop30||f.vsTop10); };
+  const {list,splitAt} = applyEventDoneSort(members, isDone);
+
+  let doneCount = 0;
+  grid.innerHTML = list.map((name,i) => {
+    const e = entries.find(x => x.name === name);
+    const flags = e ? e.flags : {};
+    const unter = !!flags.vsUnter50;
+    const t30 = !!flags.vsTop30;
+    const t10 = !!flags.vsTop10;
+    if (unter||t30||t10) doneCount++;
+
+    const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
+    const cls = unter ? 'w-dmg' : t10 ? 'w-top20' : t30 ? 'w-anm' : 'w-none';
+    const esc = name.replace(/'/g,"\\'");
+    const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
+
+    const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="vsSet('${esc}','unter')" title="unter 50 Mio Punkte (Strafe)">${unter?'⚠ &lt;50M':'🟥'}</button>`;
+    const btnT30   = `<button class="wt-btn ${t30?'on-anm':''}" onclick="vsSet('${esc}','t30')" title="Top 30">${t30?'🥈 T30':'🥈'}</button>`;
+    const btnT10   = `<button class="wt-btn ${t10?'on-gold':''}" onclick="vsSet('${esc}','t10')" title="Top 10">${t10?'🏆 T10':'🏆'}</button>`;
+
+    const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
+    return divider+`<div class="wache-tile${dimCls} ${cls}">
+      <div class="wt-top">
+        <div class="wt-name">${name}</div>
+        <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
+      </div>
+      <div class="wt-btns">${btnUnter}${btnT30}${btnT10}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('vs-counter').textContent = `${doneCount} / ${members.length}`;
+}
+
+async function vsSet(name, type) {
+  let e = entries.find(x => x.name === name);
+  if (!e) {
+    const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
+    e = { name, rank, baseRank: rank, flags: {}, points: 0, afk: false };
+    entries.push(e);
+  }
+  const flags = e.flags;
+
+  if (type === 'unter') {
+    if (flags.vsUnter50) { delete flags.vsUnter50; }
+    else { flags.vsUnter50 = true; delete flags.vsTop30; delete flags.vsTop10; }
+  } else if (type === 't30') {
+    if (flags.vsTop30) { delete flags.vsTop30; }
+    else { flags.vsTop30 = true; delete flags.vsUnter50; }
+  } else if (type === 't10') {
+    if (flags.vsTop10) { delete flags.vsTop10; }
+    else { flags.vsTop10 = true; delete flags.vsUnter50; }
+  }
+
+  e.points = calcPoints(flags);
+  e.rank = calcRanking(e.points, e.baseRank || PREV[name] || 3);
+  renderVS();
+
+  try {
+    if (Object.keys(flags).length === 0) {
+      entries = entries.filter(x => x.name !== name);
+      await apiPost({ action: 'delete_entry', name });
+    } else {
+      await apiPost({ action: 'save_wache', name, rank: PREV[name] || e.baseRank || 3, flags: { ...flags } });
+    }
+    await loadEntries();
+    renderVS();
+  } catch(err) { toast('Fehler: ' + err.message); }
+}
+window.vsSet = vsSet;
+
+// ══════════════════════════════════════════════════════
+//  SPENDEN-VERWALTUNG
+// ══════════════════════════════════════════════════════
+function renderSpende() {
+  const grid = document.getElementById('spende-grid');
+
+  const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.spendeUnter35k||f.spendeTop20); };
+  const {list,splitAt} = applyEventDoneSort(members, isDone);
+
+  let doneCount = 0;
+  grid.innerHTML = list.map((name,i) => {
+    const e = entries.find(x => x.name === name);
+    const flags = e ? e.flags : {};
+    const unter = !!flags.spendeUnter35k;
+    const top20 = !!flags.spendeTop20;
+    if (unter||top20) doneCount++;
+
+    const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
+    const cls = unter ? 'w-dmg' : top20 ? 'w-anm' : 'w-none';
+    const esc = name.replace(/'/g,"\\'");
+    const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
+
+    const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="spendeSet('${esc}','unter')" title="unter 35K gespendet (Strafe)">${unter?'⚠ &lt;35K':'🟥'}</button>`;
+    const btnTop20 = `<button class="wt-btn ${top20?'on-anm':''}" onclick="spendeSet('${esc}','top20')" title="Top 20 Spender (Bonus)">${top20?'🏅 T20':'🏅'}</button>`;
+
+    const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
+    return divider+`<div class="wache-tile${dimCls} ${cls}">
+      <div class="wt-top">
+        <div class="wt-name">${name}</div>
+        <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
+      </div>
+      <div class="wt-btns">${btnUnter}${btnTop20}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('sp-counter').textContent = `${doneCount} / ${members.length}`;
+}
+
+async function spendeSet(name, type) {
+  let e = entries.find(x => x.name === name);
+  if (!e) {
+    const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
+    e = { name, rank, baseRank: rank, flags: {}, points: 0, afk: false };
+    entries.push(e);
+  }
+  const flags = e.flags;
+
+  if (type === 'unter') {
+    if (flags.spendeUnter35k) { delete flags.spendeUnter35k; }
+    else { flags.spendeUnter35k = true; delete flags.spendeTop20; }
+  } else if (type === 'top20') {
+    if (flags.spendeTop20) { delete flags.spendeTop20; }
+    else { flags.spendeTop20 = true; delete flags.spendeUnter35k; }
+  }
+
+  e.points = calcPoints(flags);
+  e.rank = calcRanking(e.points, e.baseRank || PREV[name] || 3);
+  renderSpende();
+
+  try {
+    if (Object.keys(flags).length === 0) {
+      entries = entries.filter(x => x.name !== name);
+      await apiPost({ action: 'delete_entry', name });
+    } else {
+      await apiPost({ action: 'save_wache', name, rank: PREV[name] || e.baseRank || 3, flags: { ...flags } });
+    }
+    await loadEntries();
+    renderSpende();
+  } catch(err) { toast('Fehler: ' + err.message); }
+}
+window.spendeSet = spendeSet;
 let vNewRank=3;
 
 document.querySelectorAll('.vrank-btn').forEach(btn=>{
@@ -2489,9 +2728,7 @@ function renderVerwaltung(filter=''){
     const swapButton = meta.discordConnected && meta.discordId && meta.id !== meta.discordId
       ? `<button class="v-btn swap" onclick="swapMemberIdToDiscord('${esc}')">ID = Discord-ID</button>`
       : '';
-    const avatarLoadButton = meta.discordId
-      ? `<button class="v-btn map" onclick="loadMemberDiscordAvatar('${esc}')">DC Bild laden</button>`
-      : '';
+    const avatarLoadButton = '';
 
     if(editingMember===name){
       return `<div class="v-row">
@@ -2521,6 +2758,10 @@ function renderVerwaltung(filter=''){
       </div>`;
     }
 
+    const lastVisitStr = meta.lastVisitAt
+      ? (() => { const d = new Date(meta.lastVisitAt.replace(' ','T')+'Z'); return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); })()
+      : null;
+
     return `<div class="v-row">
       <div class="v-member">
         ${avatar}
@@ -2528,6 +2769,7 @@ function renderVerwaltung(filter=''){
           <div class="v-name"><button class="member-jump" type="button" onclick="event.stopPropagation();openMemberMe('${esc}')">${escHtml(name)}</button></div>
           <div class="v-meta">Allianz: ${escHtml(meta.alliance || 'INY')} | Spieler-ID: ${escHtml(meta.id || 'unbekannt')}</div>
           <div class="v-meta">Discord-ID: ${escHtml(meta.discordId || 'nicht verbunden')} ${meta.discordUsername ? `(${escHtml(meta.discordUsername)})` : ''}</div>
+          ${lastVisitStr ? `<div class="v-meta" style="color:#6aabff;">🕐 Zuletzt online: ${lastVisitStr}</div>` : `<div class="v-meta" style="color:#555;">🕐 Noch nie eingeloggt</div>`}
         </div>
       </div>
       ${discordState}
@@ -2713,6 +2955,274 @@ async function removeMember(name){
 }
 window.removeMember=removeMember;
 
+window.removeMember=removeMember;
+
+// ── SE INAKTIV AUSWERTUNG ──
+async function loadSeInactive() {
+  const box = document.getElementById('se-inactive-result');
+  const weeks = parseInt(document.getElementById('se-weeks-select')?.value || 4);
+  box.innerHTML = '<div class="hint">Lade...</div>';
+  try {
+    const data = await fetchJson(`/se-inactive?weeks=${weeks}`);
+
+    if (!data.inactive || data.inactive.length === 0) {
+      box.innerHTML = '<div class="hint" style="color:var(--green);">✓ Alle aktiven Mitglieder waren mindestens einmal beim Spezialevent dabei!</div>';
+      return;
+    }
+
+    const weekLabels = (data.weeks || []).map(w => `KW ${String(w).slice(2)}`);
+
+    // Punkte pro Spieler + Woche berechnen (flags kommen jetzt vom API)
+    const playerPoints = {}; // name → { [yw]: pts, total: n }
+    const weekTotals  = {};  // yw → Summe aller Spieler
+    (data.weeks || []).forEach(w => { weekTotals[w] = 0; });
+
+    for (const player of data.inactive) {
+      let total = 0;
+      playerPoints[player.name] = {};
+      for (const [yw, detail] of Object.entries(player.weeks)) {
+        const flags = {};
+        if (Array.isArray(detail.flags)) detail.flags.forEach(k => { flags[k] = true; });
+        const pts = (detail.status === 'afk' || detail.status === 'missing') ? null : calcPoints(flags);
+        playerPoints[player.name][yw] = pts;
+        if (pts !== null) { total += pts; weekTotals[yw] = (weekTotals[yw] || 0) + pts; }
+      }
+      playerPoints[player.name].total = total;
+    }
+
+    // Aufsteigend nach Gesamtpunktzahl sortieren
+    data.inactive.sort((a, b) => (playerPoints[a.name]?.total ?? 0) - (playerPoints[b.name]?.total ?? 0));
+
+    let html = `<div style="margin-bottom:8px;color:var(--softer);font-size:0.85em;">
+      ${data.inactive.length} Spieler ohne Spezialevent-Teilnahme in den letzten ${weeks} Wochen (${weekLabels.join(', ')}):
+    </div>`;
+    html += `<table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+      <thead><tr>
+        <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border);">Spieler</th>
+        ${(data.weeks||[]).map((w,i) => `<th style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">${weekLabels[i]}<br><span style="font-size:0.82em;color:var(--softer);font-weight:400;">${weekTotals[w] ?? 0} Pkt</span></th>`).join('')}
+        <th style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">Gesamt</th>
+      </tr></thead><tbody>`;
+
+    const statusIcon = s => {
+      if (s === 'se')      return '<span style="color:var(--green);">✓ SE</span>';
+      if (s === 'afk')     return '<span style="color:var(--softer);">AFK</span>';
+      if (s === 'no_se')   return '<span style="color:var(--red);">–</span>';
+      if (s === 'missing') return '<span style="color:var(--softer);">?</span>';
+      return '?';
+    };
+
+    for (const player of data.inactive) {
+      const esc = player.name.replace(/"/g, '&quot;');
+      const totalPts = playerPoints[player.name]?.total ?? 0;
+      html += `<tr>
+        <td style="padding:4px 8px;border-bottom:1px solid var(--border);">
+          <span style="cursor:pointer;color:var(--accent);text-decoration:underline;text-underline-offset:3px;" onclick="openMemberMe('${esc.replace(/'/g, "\\'")}')">${ player.name}</span>
+        </td>
+        ${(data.weeks||[]).map(w => {
+          const detail = player.weeks[w] || { status: 'missing' };
+          const pts = playerPoints[player.name]?.[w];
+          const ptsStr = pts !== null && pts !== undefined
+            ? `<br><span style="font-size:0.82em;color:var(--softer);">${pts} Pkt</span>` : '';
+          return `<td style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">${statusIcon(detail.status)}${ptsStr}</td>`;
+        }).join('')}
+        <td style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);font-weight:600;color:${totalPts < 100 ? 'var(--red)' : totalPts < 200 ? 'var(--gold)' : 'var(--green)'};">${totalPts}</td>
+      </tr>`;
+    }
+
+    html += '</tbody></table>';
+    box.innerHTML = html;
+  } catch(e) {
+    box.innerHTML = `<div class="hint" style="color:var(--red);">Fehler: ${e.message}</div>`;
+  }
+}
+window.loadSeInactive = loadSeInactive;
+
+// ══════════════════════════════════════════════════════
+//  ERGEBNIS-SHEET — Rang-Empfehlungen
+// ══════════════════════════════════════════════════════
+
+// Empfehlungslogik:
+//   Beförderung: calcRanking(pts, realRank) > realRank in den letzten ≥2 Wochen (nicht AFK)
+//   Herabstufung: calcRanking(pts, realRank) < realRank in den letzten >2 Wochen (nicht AFK)
+//   AFK in einer relevanten Woche: sperrt die Empfehlung
+//   Nur ±1 Schritt, R4/R5 unverändert
+
+function ergebnisRecommend(playerData, weeks) {
+  // weeks ist sortiert absteigend (neueste zuerst)
+  const realRank = playerData.rank;
+  if (realRank >= 4) return { type: 'fixed', label: 'Fixiert (R4/R5)' };
+
+  // Wochenbewertungen: +1=besser, 0=gleich, -1=schlechter; null=missing
+  const evals = weeks.map(yw => {
+    const e = playerData.entries[yw];
+    if (!e || e.missing) return null;
+    if (e.afk) return 'afk';
+    const pts = calcPoints(e.flags);
+    const suggested = calcRanking(pts, realRank);
+    if (suggested > realRank) return 'up';
+    if (suggested < realRank) return 'down';
+    return 'ok';
+  });
+
+  // Aufeinanderfolgende Wochen von der neuesten prüfen
+  // Zähle, wie viele konsekutive Wochen (von der neuesten) den gleichen Trend haben
+  // Ignoriere "missing" Wochen komplett (als wären sie nicht da)
+  const meaningful = evals.filter(v => v !== null);
+
+  // AFK-Check: wenn die letzte (neueste) nicht-missing Woche AFK ist → sperren
+  const latestNonMissing = meaningful[0];
+  if (latestNonMissing === 'afk') return { type: 'afk', label: '⏸ AFK (gesperrt)' };
+
+  // Konsekutive Wochen von vorne (neueste) zählen für 'up' oder 'down'
+  // AFK in der Sequenz unterbricht die Zählung
+  let upCount = 0, downCount = 0;
+  for (const v of meaningful) {
+    if (v === 'up') { upCount++; downCount = 0; }
+    else if (v === 'down') { downCount++; upCount = 0; }
+    else if (v === 'afk') { break; } // AFK unterbricht
+    else { upCount = 0; downCount = 0; } // 'ok' setzt zurück
+  }
+
+  if (upCount >= 2 && realRank < 3) {
+    return { type: 'promote', label: `⬆ Befördern → R${realRank + 1}`, targetRank: realRank + 1 };
+  }
+  if (downCount > 2 && realRank > 1) {
+    return { type: 'demote', label: `⬇ Herabstufen → R${realRank - 1}`, targetRank: realRank - 1 };
+  }
+  return { type: 'ok', label: '✔ Halten' };
+}
+
+function ergebnisWeekCell(entry, realRank) {
+  if (!entry || entry.missing) return '<td style="color:#555;text-align:center;">—</td>';
+  if (entry.afk) return '<td style="color:#f0a500;text-align:center;">⏸ AFK</td>';
+  const pts = calcPoints(entry.flags);
+  const sug = calcRanking(pts, realRank);
+  let color = '#aaa';
+  if (sug > realRank) color = '#2ecb7a';
+  else if (sug < realRank) color = '#e05545';
+  return `<td style="text-align:center;color:${color};">${pts} Pkt<br><small style="color:${color};">R${sug}</small></td>`;
+}
+
+async function loadErgebnis() {
+  const weeksN = parseInt(document.getElementById('ergebnis-weeks').value, 10) || 4;
+  const loading = document.getElementById('ergebnis-loading');
+  const empty = document.getElementById('ergebnis-empty');
+  const wrap = document.getElementById('ergebnis-table-wrap');
+  loading.style.display = 'block';
+  empty.style.display = 'none';
+  wrap.innerHTML = '';
+
+  let data;
+  try {
+    data = await api('ranking-history', { weeks: weeksN });
+  } catch(err) {
+    toast('Fehler: ' + err.message);
+    loading.style.display = 'none';
+    return;
+  }
+  loading.style.display = 'none';
+
+  if (!data || !data.players || data.players.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+
+  // Hinweis wenn aktuelle KW noch nicht abgeschlossen (Mo–Sa)
+  const infoEl = document.getElementById('ergebnis-info');
+  if (data.currentKwFiltered) {
+    infoEl.style.display = 'block';
+    infoEl.textContent = `ℹ KW ${data.currentKw} läuft noch und wird erst ab Sonntag in die Bewertung einbezogen.`;
+  } else {
+    infoEl.style.display = 'none';
+  }
+
+  const weeks = data.weeks; // absteigend sortiert (neueste zuerst)
+
+  // Empfehlungen berechnen und sortieren: Befördern zuerst, dann Herabstufen, dann Rest
+  const rows = data.players.map(p => ({ player: p, rec: ergebnisRecommend(p, weeks) }));
+  rows.sort((a, b) => {
+    const order = { promote: 0, demote: 1, afk: 2, ok: 3, fixed: 4 };
+    const oa = order[a.rec.type] ?? 5;
+    const ob = order[b.rec.type] ?? 5;
+    if (oa !== ob) return oa - ob;
+    return a.player.name.localeCompare(b.player.name);
+  });
+
+  // Tabelle rendern
+  const weekHeaders = weeks.map(yw => `<th style="text-align:center;min-width:80px;">KW ${yw}</th>`).join('');
+  let html = `<table class="ergebnis-table" style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);">Spieler</th>
+        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">Echter Rang</th>
+        ${weekHeaders.replace(/(<th)/g, '$1 style="padding:6px 10px;border-bottom:1px solid var(--border);"')}
+        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">Empfehlung</th>
+        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">Aktion</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  for (const { player, rec } of rows) {
+    const rankColor = RC[player.rank] || '#888';
+    const recColor = rec.type === 'promote' ? '#2ecb7a' : rec.type === 'demote' ? '#e05545' : rec.type === 'afk' ? '#f0a500' : '#aaa';
+    const weekCells = weeks.map(yw => ergebnisWeekCell(player.entries[yw], player.rank)).join('');
+
+    let actionCell = '<td></td>';
+    if (rec.type === 'promote' || rec.type === 'demote') {
+      const verb = rec.type === 'promote' ? 'Befördern' : 'Herabstufen';
+      const btnColor = rec.type === 'promote' ? '#2ecb7a' : '#e05545';
+      const esc = player.name.replace(/'/g, "\\'");
+      actionCell = `<td style="text-align:center;">
+        <button onclick="ergebnisApply('${esc}',${rec.targetRank})"
+          style="background:${btnColor}22;color:${btnColor};border:1px solid ${btnColor};border-radius:5px;padding:4px 10px;cursor:pointer;font-size:0.8rem;">
+          ${verb} → R${rec.targetRank}
+        </button>
+      </td>`;
+    }
+
+    html += `<tr style="border-bottom:1px solid var(--border)20;">
+      <td style="padding:6px 10px;font-weight:500;">${player.name}</td>
+      <td style="text-align:center;padding:6px 4px;color:${rankColor};">R${player.rank} · ${RL[player.rank]||''}</td>
+      ${weekCells}
+      <td style="text-align:center;padding:6px 4px;color:${recColor};white-space:nowrap;">${rec.label}</td>
+      ${actionCell}
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+async function ergebnisApply(name, targetRank) {
+  const player = { name, realRank: PREV[name] || 3 };
+  const rankLabel = RL[targetRank] || `R${targetRank}`;
+  const direction = targetRank > (PREV[name] || 3) ? 'befördern' : 'herabstufen';
+
+  const confirmed = window.confirm(
+    `Bestätigung erforderlich:\n\n` +
+    `Ich habe Spieler "${name}" ingame auf Rang ${targetRank} (${rankLabel}) ${direction}.\n\n` +
+    `Soll der Rang jetzt auch im Tool aktualisiert werden?`
+  );
+  if (!confirmed) return;
+
+  const confirmation = `ingame-confirmed:${name}→R${targetRank}`;
+  try {
+    await fetchJson('/apply-rank-change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, newRank: targetRank, confirmation })
+    });
+    toast(`${name} wurde auf R${targetRank} (${rankLabel}) gesetzt.`);
+    PREV[name] = targetRank;
+    await loadMembers();
+    await loadErgebnis();
+  } catch(err) {
+    toast('Fehler: ' + err.message);
+  }
+}
+window.loadErgebnis = loadErgebnis;
+window.ergebnisApply = ergebnisApply;
+
 // ── SYNC ──
 async function syncData(){
   const btn = document.getElementById('btn-sync');
@@ -2782,6 +3292,7 @@ async function initApp(){
   document.getElementById('login-screen').style.display = 'none';
   try {
     await loadMembers();
+    autoRefreshAvatars(); // Avatar-Cache im Hintergrund auffrischen (max. 1x pro 7 Tage)
     const localAuth = ensureLocalPreviewAuth();
     renderAll();
     hydrateEntriesFromCache(kw, { allowStale: true });

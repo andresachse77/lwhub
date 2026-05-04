@@ -1837,7 +1837,7 @@ async function showPage(id){
   if(id==='e') renderList();
   if(id==='w') selectEventView(activeEventView);
   if(id==='r') loadErgebnis();
-  if(id==='v') renderVerwaltung();
+  if(id==='v'){ await loadMembers(); renderVerwaltung(); }
   if (id !== 'v') refreshEntriesIfNeeded({ background: true });
 }
 

@@ -1120,8 +1120,9 @@ function handleGetSeInactive(PDO $pdo, string $alliance): never {
             ];
         }
 
-        // Spieler ist inaktiv wenn: nicht immer AFK, und nie seTeilnahme gesetzt
-        if ($neverSE && !$alwaysAfk) {
+        // Spieler ist inaktiv wenn: kein AFK in irgendeiner Woche, und nie seTeilnahme gesetzt
+        $hasAnyAfk = in_array('afk', array_column($weekDetails, 'status'), true);
+        if ($neverSE && !$hasAnyAfk) {
             $inactive[] = [
                 'name'  => $player['current_name'],
                 'weeks' => $weekDetails,

@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin – INY Hub</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #0c0e14;
+  --bg2: #111521;
+  --card: #141720;
+  --card2: #1a1f2e;
+  --line: rgba(255,255,255,0.07);
+  --line2: rgba(255,255,255,0.13);
+  --text: #dde1ec;
+  --soft: #7a8498;
+  --softer: #3e4558;
+  --gold: #f0a500;
+  --gold2: #ffd060;
+  --red: #e05545;
+  --green: #2ecb7a;
+  --blue: #4a9eff;
+  --purple: #9b6dff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; min-height: 100vh; }
+button, input, select, textarea { font-family: inherit; }
+
+/* ── Login ── */
+#login-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-box {
+  text-align: center; padding: 2.5rem 2rem;
+  background: var(--card); border: 1px solid var(--line2); border-radius: 16px;
+  max-width: 380px; width: 90%;
+}
+.login-logo { font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: 4px; color: var(--gold); margin-bottom: 6px; }
+.login-logo em { color: var(--text); font-style: normal; }
+.login-subtitle { font-size: 12px; color: var(--soft); margin-bottom: 1.5rem; }
+.discord-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: #5865F2; color: #fff; border: none; border-radius: 8px;
+  padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.discord-btn:hover { background: #4752C4; }
+.discord-btn svg { width: 22px; height: 22px; }
+.login-spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.08); border-top-color: var(--gold); animation: spin 0.85s linear infinite; margin: 0 auto 14px; }
+.login-err { color: var(--red); font-size: 12px; margin-top: 12px; }
+
+/* ── Nav ── */
+nav {
+  background: var(--card); border-bottom: 1px solid var(--line);
+  height: 54px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1.5rem; position: sticky; top: 0; z-index: 100;
+}
+.nav-logo { font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 3px; color: var(--gold); display: flex; flex-direction: column; line-height: 1; }
+.nav-logo .nav-sub { font-family: 'Inter', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--soft); font-weight: 400; margin-top: 2px; }
+.nav-tabs { display: flex; gap: 4px; background: var(--card2); border-radius: 8px; padding: 3px; }
+.nav-tab { padding: 5px 16px; font-size: 12px; font-weight: 600; border: none; border-radius: 6px; background: none; color: var(--soft); cursor: pointer; transition: all 0.15s; }
+.nav-tab.active { background: var(--card); color: var(--text); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-user { display: flex; align-items: center; gap: 8px; }
+.nav-user img { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line2); }
+.nav-user span { font-size: 12px; color: var(--soft); }
+.logout-btn { background: none; border: 1px solid var(--line2); border-radius: 6px; color: var(--soft); font-size: 11px; padding: 5px 10px; cursor: pointer; }
+.logout-btn:hover { color: var(--red); border-color: var(--red); }
+
+/* ── Pages ── */
+.page { display: none; max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
+.page.active { display: block; }
+
+/* ── Section headers ── */
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 12px; }
+.section-title { font-family: 'Rajdhani', sans-serif; font-size: 18px; letter-spacing: 1px; font-weight: 700; }
+.section-sub { font-size: 12px; color: var(--soft); margin-top: 2px; }
+
+/* ── Cards ── */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 10px; }
+.card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.card-title { font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700; }
+.card-sub { font-size: 11px; color: var(--soft); }
+
+/* ── Alliance list ── */
+.alliance-list { display: grid; gap: 8px; }
+.alliance-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+}
+.alliance-short { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; color: var(--gold); min-width: 60px; }
+.alliance-title-text { flex: 1; font-size: 14px; color: var(--text); }
+.alliance-title-text small { display: block; font-size: 11px; color: var(--soft); margin-top: 2px; }
+.alliance-actions { display: flex; gap: 6px; }
+
+/* ── Archive list ── */
+.archive-filter { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.archive-filter select { background: var(--card2); border: 1px solid var(--line2); border-radius: 8px; color: var(--text); padding: 7px 10px; font-size: 12px; }
+.archive-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.archive-table th { text-align: left; padding: 8px 10px; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); border-bottom: 1px solid var(--line2); font-weight: 600; }
+.archive-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.archive-table tr:last-child td { border-bottom: none; }
+.archive-table tr:hover td { background: rgba(255,255,255,0.02); }
+.rank-badge { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+
+/* ── Buttons ── */
+.btn { border: none; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-gold { background: linear-gradient(135deg, rgba(240,165,0,0.22), rgba(255,208,96,0.1)); color: var(--gold2); border: 1px solid rgba(240,165,0,0.3); }
+.btn-gold:hover { border-color: var(--gold); color: var(--gold); }
+.btn-ghost { background: rgba(255,255,255,0.04); color: var(--soft); border: 1px solid var(--line2); }
+.btn-ghost:hover { color: var(--text); border-color: var(--line2); }
+.btn-green { background: rgba(46,203,122,0.15); color: #4de896; border: 1px solid rgba(46,203,122,0.3); }
+.btn-green:hover { background: rgba(46,203,122,0.25); }
+.btn-red { background: rgba(224,85,69,0.15); color: #f39b8f; border: 1px solid rgba(224,85,69,0.28); }
+.btn-red:hover { background: rgba(224,85,69,0.25); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+
+/* ── Modal ── */
+.modal-bg { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-bg.hidden { display: none; }
+.modal { background: var(--card); border: 1px solid var(--line2); border-radius: 14px; padding: 24px; width: min(460px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+.modal-title { font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* ── Form ── */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--soft); margin-bottom: 5px; }
+.field input, .field select, .field textarea {
+  width: 100%; background: var(--card2); border: 1px solid var(--line2); border-radius: 8px;
+  color: var(--text); font-size: 13px; padding: 9px 11px; outline: none;
+}
+.field input:focus, .field select:focus { border-color: var(--gold); }
+.field .hint { font-size: 11px; color: var(--soft); margin-top: 4px; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; left: 50%; bottom: 20px;
+  transform: translateX(-50%) translateY(20px); opacity: 0;
+  background: rgba(7,10,16,0.92); color: var(--text);
+  border: 1px solid var(--line2); border-radius: 999px;
+  padding: 10px 16px; font-size: 12px;
+  transition: opacity 0.18s, transform 0.18s;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.ok { border-color: rgba(46,203,122,0.4); color: #4de896; }
+.toast.err { border-color: rgba(224,85,69,0.4); color: #f39b8f; }
+
+/* ── Misc ── */
+.empty { padding: 18px; text-align: center; color: var(--soft); font-size: 13px; }
+.spin { animation: spin 0.8s linear infinite; display: inline-block; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-box" id="login-box">
+    <div class="login-logo">ADMIN<em> HUB</em></div>
+    <div class="login-subtitle">Nur für R5 – Allianz-Verwaltung</div>
+    <button class="discord-btn" onclick="discordLogin()">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+      Mit Discord anmelden
+    </button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none">
+  <nav>
+    <div class="nav-logo">
+      ADMIN
+      <span class="nav-sub">Alliance Hub</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showTab('alliances')">Allianzen</button>
+      <button class="nav-tab" onclick="showTab('archive')">Archiv</button>
+      <button class="nav-tab" onclick="showTab('transfer')">Transfer</button>
+      <button class="nav-tab" onclick="showTab('admins')">Admins</button>
+    </div>
+    <div class="nav-right">
+      <div class="nav-user">
+        <img id="nav-avatar" src="" alt="" style="display:none">
+        <span id="nav-username"></span>
+      </div>
+      <button class="logout-btn" onclick="goBack()">← Zurück</button>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Alliances Tab -->
+  <div class="page active" id="tab-alliances">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Allianzen</div>
+        <div class="section-sub">Kurznamen und Titel verwalten. Beim Umbenennen des Kürzels werden alle Spieler-Daten migriert.</div>
+      </div>
+      <button class="btn btn-gold" onclick="openCreateAlliance()">+ Neue Allianz</button>
+    </div>
+    <div class="alliance-list" id="alliance-list">
+      <div class="empty">Lade …</div>
+    </div>
+  </div>
+
+  <!-- Archive Tab -->
+  <div class="page" id="tab-archive">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Spieler-Archiv</div>
+        <div class="section-sub">Gelöschte Spieler können hier wiederhergestellt werden (alle Daten inklusive).</div>
+      </div>
+    </div>
+    <div class="archive-filter">
+      <select id="archive-alliance-filter" onchange="loadArchive()">
+        <option value="">Alle Allianzen</option>
+      </select>
+      <button class="btn btn-ghost" onclick="loadArchive()">↻ Aktualisieren</button>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table class="archive-table" id="archive-table">
+        <thead>
+          <tr>
+            <th>Spieler</th>
+            <th>Allianz</th>
+            <th>Rank</th>
+            <th>Archiviert</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="archive-tbody">
+          <tr><td colspan="5" class="empty">Lade …</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Transfer Tab -->
+  <div class="page" id="tab-transfer">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Spieler transferieren</div>
+        <div class="section-sub">Spieler in eine andere Allianz verschieben. Alle Daten (Einträge, Identitäten, Namenshistorie) werden mitgenommen.</div>
+      </div>
+    </div>
+    <div class="card" style="max-width:480px">
+      <div class="field">
+        <label>Von Allianz</label>
+        <select id="transfer-from" onchange="loadTransferPlayers()">
+          <option value="">– wählen –</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Spieler</label>
+        <select id="transfer-player">
+          <option value="">Erst Allianz wählen</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Nach Allianz</label>
+        <select id="transfer-to">
+          <option value="">Ziel-Allianz wählen …</option>
+        </select>
+      </div>
+      <div class="modal-footer" style="padding:0;margin-top:12px">
+        <button class="btn btn-gold" onclick="submitTransfer()">Transferieren</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admins Tab -->
+  <div class="page" id="tab-admins">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Admin-Verwaltung</div>
+        <div class="section-sub">Spieler mit Admin-Rechten ausstatten (unabhängig vom Rang). Lion Tooth und R5-Spieler haben automatisch Zugriff.</div>
+      </div>
+      <button class="btn btn-gold" onclick="openGrantAdmin()">+ Admin vergeben</button>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table class="archive-table" id="admins-table">
+        <thead>
+          <tr>
+            <th>Spieler</th>
+            <th>Discord</th>
+            <th>Allianz</th>
+            <th>Vergeben von</th>
+            <th>Notiz</th>
+            <th>Seit</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="admins-tbody">
+          <tr><td colspan="7" class="empty">Lade …</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Grant Admin -->
+<div class="modal-bg hidden" id="modal-grant-admin">
+  <div class="modal">
+    <div class="modal-title">Admin vergeben</div>
+    <div class="field">
+      <label>Spielername <em style="color:var(--soft);font-weight:400">(oder Discord-ID)</em></label>
+      <input type="text" id="grant-player-name" placeholder="z.B. Lion Tooth" autocomplete="off">
+      <div class="hint">Name muss exakt mit dem aktuellen Spielernamen übereinstimmen.</div>
+    </div>
+    <div class="field">
+      <label>Notiz (optional)</label>
+      <input type="text" id="grant-note" maxlength="255" placeholder="z.B. Allianz-Leitung">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-grant-admin')">Abbrechen</button>
+      <button class="btn btn-gold" onclick="submitGrantAdmin()">Vergeben</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Create Alliance -->
+<div class="modal-bg hidden" id="modal-create">
+  <div class="modal">
+    <div class="modal-title">Neue Allianz anlegen</div>
+    <div class="field">
+      <label>Kürzel (z.B. INY)</label>
+      <input type="text" id="create-short" maxlength="50" placeholder="z.B. INY oder my-ally">
+      <div class="hint">Max. 50 Zeichen, wird automatisch in Großbuchstaben gespeichert</div>
+    </div>
+    <div class="field">
+      <label>Vollständiger Titel (optional)</label>
+      <input type="text" id="create-title" maxlength="255" placeholder="INY – It's Not Yellow">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create')">Abbrechen</button>
+      <button class="btn btn-gold" onclick="submitCreate()">Anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit Alliance -->
+<div class="modal-bg hidden" id="modal-edit">
+  <div class="modal">
+    <div class="modal-title">Allianz bearbeiten</div>
+    <input type="hidden" id="edit-old-short">
+    <div class="field">
+      <label>Kürzel</label>
+      <input type="text" id="edit-short" maxlength="50">
+      <div class="hint">⚠️ Kürzel-Änderung migriert alle Spieler, Einträge und Logs!</div>
+    </div>
+    <div class="field">
+      <label>Vollständiger Titel</label>
+      <input type="text" id="edit-title" maxlength="255" placeholder="INY – It's Not Yellow">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit')">Abbrechen</button>
+      <button class="btn btn-gold" onclick="submitEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const DISCORD_CLIENT_ID = '1494427568361967626';
+const DISCORD_REDIRECT  = window.location.origin + window.location.pathname;
+const AUTH_KEY  = 'iny_auth_state_v1';
+const ADMIN_KEY = 'iny_admin_discord_id';
+const IS_LOCAL  = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const LOCAL_ADMIN_DISCORD_ID = 'local-preview';
+
+function getApiBase() {
+  const override = (localStorage.getItem('iny_api_base') || '').replace(/\/$/, '');
+  if (override) return override;
+  const p = window.location.pathname;
+  const base = p.endsWith('/') ? p : p.replace(/[^/]*$/, '');
+  return `${window.location.origin}${base}api`;
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(getApiBase() + path, options);
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function escHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function rankLabel(r) {
+  return { 1:'Rookie', 2:'Pro', 3:'Elite', 4:'Leader', 5:'Chef' }[r] || 'Unbekannt';
+}
+
+function rankColor(r) {
+  return { 1:'#f0a500', 2:'#2ecb7a', 3:'#4a9eff', 4:'#e05545', 5:'#9b6dff' }[r] || '#7a8498';
+}
+
+// ── Toast ──
+let _toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show${type ? ' ' + type : ''}`;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.classList.remove('show'); }, 3200);
+}
+
+// ── Modals ──
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+
+// ── Auth ──
+let adminDiscordId = '';
+
+function discordLogin() {
+  const state = Math.random().toString(36).slice(2);
+  sessionStorage.setItem('discord_oauth_state', state);
+  const url = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=token&scope=identify&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT)}&state=${state}`;
+  window.location.href = url;
+}
+
+async function handleOAuthCallback() {
+  const hash = window.location.hash.slice(1);
+  if (!hash.includes('access_token')) return false;
+  const params = new URLSearchParams(hash);
+  const token = params.get('access_token');
+  if (!token) return false;
+  history.replaceState(null, '', window.location.pathname);
+
+  showLoginSpinner('Verifiziere …');
+  try {
+    const me = await fetch('https://discord.com/api/users/@me', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+    return await verifyAdminAccess(me.id, me.username, me.avatar);
+  } catch (e) {
+    showLoginError('Discord-Fehler: ' + e.message);
+    return false;
+  }
+}
+
+async function verifyAdminAccess(discordId, username, avatar) {
+  showLoginSpinner('Prüfe Berechtigung …');
+  try {
+    // Local preview: skip Discord/rank check entirely
+    if (IS_LOCAL) {
+      adminDiscordId = discordId;
+      document.getElementById('nav-username').textContent = username || 'Lokaler Admin';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      await loadAlliances();
+      await loadArchive();
+      await loadAdmins();
+      return true;
+    }
+
+    // Verify by checking if this person is R5 anywhere — use health + my-chars to check
+    const chars = await api(`/my-chars?discord_id=${encodeURIComponent(discordId)}`);
+    const isR5 = (chars.chars || []).some(c => c.rank === 5);
+    const isSiteAdmin = chars.is_site_admin === true;
+    if (!isR5 && !isSiteAdmin) {
+      showLoginError('Kein Zugriff – nur Admins dürfen den Adminbereich nutzen.');
+      return false;
+    }
+    adminDiscordId = discordId;
+    localStorage.setItem(ADMIN_KEY, JSON.stringify({ discordId, username, avatar, ts: Date.now() }));
+
+    const avatarUrl = avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=64` : null;
+    const navAvatar = document.getElementById('nav-avatar');
+    if (avatarUrl) { navAvatar.src = avatarUrl; navAvatar.style.display = 'block'; }
+    document.getElementById('nav-username').textContent = username || '';
+
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    await loadAlliances();
+    await loadArchive();
+    await loadAdmins();
+    return true;
+  } catch (e) {
+    showLoginError('Fehler: ' + e.message);
+    return false;
+  }
+}
+
+function showLoginSpinner(msg) {
+  document.getElementById('login-box').innerHTML = `
+    <div class="login-spinner"></div>
+    <div style="color:var(--soft);font-size:13px">${escHtml(msg)}</div>`;
+}
+
+function showLoginError(msg) {
+  document.getElementById('login-box').innerHTML = `
+    <div class="login-logo">ADMIN<em> HUB</em></div>
+    <div class="login-subtitle">Nur für R5 – Allianz-Verwaltung</div>
+    <button class="discord-btn" onclick="discordLogin()">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+      Mit Discord anmelden
+    </button>
+    <div class="login-err">${escHtml(msg)}</div>`;
+}
+
+function doLogout() {
+  localStorage.removeItem(ADMIN_KEY);
+  adminDiscordId = '';
+  location.reload();
+}
+
+function goBack() {
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.pathname = url.pathname.endsWith('/')
+    ? url.pathname + 'index.html'
+    : url.pathname.replace(/[^/]*$/, 'index.html');
+  window.location.href = url.toString();
+}
+
+async function tryAutoLogin() {
+  const raw = localStorage.getItem(ADMIN_KEY);
+  if (!raw) return false;
+  try {
+    const saved = JSON.parse(raw);
+    if (!saved.discordId) return false;
+    if (Date.now() - (saved.ts || 0) > 3600 * 1000 * 6) { // 6h session
+      localStorage.removeItem(ADMIN_KEY);
+      return false;
+    }
+    return await verifyAdminAccess(saved.discordId, saved.username, saved.avatar);
+  } catch { return false; }
+}
+
+// ── Tabs ──
+function showTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'transfer') loadTransferAlliances();
+}
+
+// ── Alliances ──
+let _alliances = [];
+
+async function loadAlliances() {
+  try {
+    const data = await api('/alliances');
+    _alliances = data.alliances || [];
+    renderAllianceList();
+    // Populate archive filter
+    const sel = document.getElementById('archive-alliance-filter');
+    sel.innerHTML = '<option value="">Alle Allianzen</option>' +
+      _alliances.map(a => `<option value="${escHtml(a.short_name)}">${escHtml(a.short_name)}</option>`).join('');
+  } catch (e) {
+    document.getElementById('alliance-list').innerHTML = `<div class="empty">Fehler: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderAllianceList() {
+  const el = document.getElementById('alliance-list');
+  if (!_alliances.length) {
+    el.innerHTML = '<div class="empty">Keine Allianzen gefunden.</div>';
+    return;
+  }
+  el.innerHTML = _alliances.map(a => `
+    <div class="alliance-row">
+      <div class="alliance-short">${escHtml(a.short_name)}</div>
+      <div class="alliance-title-text">
+        ${a.title ? escHtml(a.title) : '<em style="color:var(--soft)">Kein Titel</em>'}
+        <small>Erstellt: ${a.created_at ? a.created_at.slice(0,10) : '-'}</small>
+      </div>
+      <div class="alliance-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditAlliance(${escHtml(JSON.stringify(a.short_name))}, ${escHtml(JSON.stringify(a.title || ''))})">Bearbeiten</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openCreateAlliance() {
+  document.getElementById('create-short').value = '';
+  document.getElementById('create-title').value = '';
+  openModal('modal-create');
+}
+
+async function submitCreate() {
+  const short = document.getElementById('create-short').value.trim();
+  const title = document.getElementById('create-title').value.trim() || null;
+  if (!short) { toast('Kürzel darf nicht leer sein', 'err'); return; }
+  try {
+    await api('/alliances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: adminDiscordId, short_name: short, title })
+    });
+    closeModal('modal-create');
+    toast('Allianz angelegt', 'ok');
+    await loadAlliances();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+function openEditAlliance(short, title) {
+  document.getElementById('edit-old-short').value = short;
+  document.getElementById('edit-short').value = short;
+  document.getElementById('edit-title').value = title;
+  openModal('modal-edit');
+}
+
+async function submitEdit() {
+  const oldShort = document.getElementById('edit-old-short').value;
+  const newShort = document.getElementById('edit-short').value.trim();
+  const title    = document.getElementById('edit-title').value.trim() || null;
+  if (!newShort) { toast('Kürzel darf nicht leer sein', 'err'); return; }
+
+  const doMigrate = newShort !== oldShort;
+  if (doMigrate && !confirm(`Kürzel von "${oldShort}" auf "${newShort}" ändern?\n\nAlle Spieler, Einträge und Logs werden migriert. Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
+
+  try {
+    await api(`/alliances/${encodeURIComponent(oldShort)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: adminDiscordId, short_name: newShort, title })
+    });
+    closeModal('modal-edit');
+    toast(doMigrate ? 'Allianz umbenannt & Daten migriert' : 'Titel gespeichert', 'ok');
+    await loadAlliances();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+// ── Archive ──
+async function loadArchive() {
+  const alliance = document.getElementById('archive-alliance-filter')?.value || '';
+  const tbody = document.getElementById('archive-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="empty"><span class="spin">↻</span> Lade …</td></tr>';
+  try {
+    const params = alliance ? `?discord_id=${encodeURIComponent(adminDiscordId)}&alliance=${encodeURIComponent(alliance)}`
+                            : `?discord_id=${encodeURIComponent(adminDiscordId)}`;
+    const data = await api('/archived-players' + params);
+    const players = data.players || [];
+    if (!players.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">Keine archivierten Spieler gefunden.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = players.map(p => `
+      <tr>
+        <td><strong>${escHtml(p.current_name)}</strong></td>
+        <td>${escHtml(p.alliance)}</td>
+        <td><span class="rank-badge" style="background:${rankColor(p.current_rank_code)}22;color:${rankColor(p.current_rank_code)};border:1px solid ${rankColor(p.current_rank_code)}44">
+          R${p.current_rank_code} ${escHtml(rankLabel(p.current_rank_code))}
+        </span></td>
+        <td style="color:var(--soft);font-size:12px">${p.archived_at ? p.archived_at.slice(0,16).replace('T',' ') : '-'}</td>
+        <td><button class="btn btn-green btn-sm" onclick="restorePlayer(${escHtml(JSON.stringify(p.archive_id))}, ${escHtml(JSON.stringify(p.current_name))})">Wiederherstellen</button></td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">Fehler: ${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+async function restorePlayer(archiveId, name) {
+  if (!confirm(`Spieler "${name}" wiederherstellen?\n\nAlle Daten (Einträge, Namenshistorie, Identitäten) werden zurückgeholt.`)) return;
+  try {
+    await api(`/archived-players/${encodeURIComponent(archiveId)}/restore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: adminDiscordId })
+    });
+    toast(`${name} wiederhergestellt`, 'ok');
+    await loadArchive();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+// ── Transfer ──
+async function loadTransferAlliances() {
+  try {
+    const data = await api('/alliances');
+    const alliances = (data.alliances || []);
+    ['transfer-from', 'transfer-to'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const current = el.value;
+      el.innerHTML = '<option value="">– wählen –</option>';
+      alliances.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.short_name; opt.textContent = a.short_name;
+        el.appendChild(opt);
+      });
+      if (current) el.value = current;
+    });
+  } catch (e) { /* ignore */ }
+}
+
+async function loadTransferPlayers() {
+  const fromEl = document.getElementById('transfer-from');
+  const playerEl = document.getElementById('transfer-player');
+  const fromAlliance = fromEl?.value;
+  if (!fromAlliance) { playerEl.innerHTML = '<option value="">Erst Allianz wählen</option>'; return; }
+  playerEl.innerHTML = '<option value="">Lade …</option>';
+  try {
+    const data = await api(`/members?alliance=${encodeURIComponent(fromAlliance)}&discord_id=${encodeURIComponent(adminDiscordId)}`);
+    const members = Array.isArray(data) ? data : (data.members || []);
+    if (!members.length) { playerEl.innerHTML = '<option value="">Keine Spieler</option>'; return; }
+    playerEl.innerHTML = '<option value="">Spieler wählen …</option>' +
+      members.map(m => `<option value="${escHtml(m.name)}">${escHtml(m.name)} (R${m.default_rank ?? m.rank})</option>`).join('');
+  } catch (e) { playerEl.innerHTML = '<option value="">Fehler beim Laden</option>'; }
+}
+
+async function submitTransfer() {
+  const fromAlliance = document.getElementById('transfer-from')?.value?.trim();
+  const playerName   = document.getElementById('transfer-player')?.value?.trim();
+  const toAlliance   = document.getElementById('transfer-to')?.value?.trim();
+  if (!fromAlliance || !playerName || !toAlliance) { toast('Bitte alle Felder ausfüllen', 'err'); return; }
+  if (fromAlliance === toAlliance) { toast('Quell- und Ziel-Allianz sind identisch', 'err'); return; }
+  if (!confirm(`Spieler "${playerName}" von ${fromAlliance} nach ${toAlliance} transferieren?\n\nAlle Daten werden mitgenommen.`)) return;
+  try {
+    await api(`/members/${encodeURIComponent(playerName)}/transfer?alliance=${encodeURIComponent(fromAlliance)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: adminDiscordId, to_alliance: toAlliance })
+    });
+    toast(`${playerName} nach ${toAlliance} transferiert`, 'ok');
+    document.getElementById('transfer-player').innerHTML = '<option value="">Spieler wählen …</option>';
+    await loadTransferPlayers();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+// ── Admins ──
+async function loadAdmins() {
+  const tbody = document.getElementById('admins-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" class="empty"><span class="spin">↻</span> Lade …</td></tr>';
+  try {
+    const data = await api(`/admins?discord_id=${encodeURIComponent(adminDiscordId)}`);
+    const admins = data.admins || [];
+    if (!admins.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">Keine Admins gefunden.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = admins.map(a => {
+      const avatarHtml = a.avatar
+        ? `<img src="https://cdn.discordapp.com/avatars/${escHtml(a.discord_user_id)}/${escHtml(a.avatar)}.png?size=32" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;">` : '';
+      const displayName = a.player_name || a.username || a.discord_user_id;
+      const isSelf = a.discord_user_id === adminDiscordId;
+      return `<tr>
+        <td><strong>${escHtml(displayName)}</strong></td>
+        <td style="color:var(--soft);font-size:12px">${avatarHtml}${escHtml(a.username || a.discord_user_id)}</td>
+        <td>${a.alliance ? escHtml(a.alliance) : '<em style="color:var(--softer)">-</em>'}</td>
+        <td style="color:var(--soft);font-size:12px">${escHtml(a.granted_by === 'system' ? 'System' : (a.granted_by || '-'))}</td>
+        <td style="color:var(--soft);font-size:12px">${escHtml(a.note || '')}</td>
+        <td style="color:var(--soft);font-size:12px">${a.granted_at ? a.granted_at.slice(0,10) : '-'}</td>
+        <td>${isSelf ? '' : `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" onclick="revokeAdmin(${escHtml(JSON.stringify(a.discord_user_id))}, ${escHtml(JSON.stringify(displayName))})">Entziehen</button>`}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="empty">Fehler: ${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+function openGrantAdmin() {
+  document.getElementById('grant-player-name').value = '';
+  document.getElementById('grant-note').value = '';
+  openModal('modal-grant-admin');
+}
+
+async function submitGrantAdmin() {
+  const input = document.getElementById('grant-player-name').value.trim();
+  const note  = document.getElementById('grant-note').value.trim();
+  if (!input) { toast('Name oder Discord-ID eingeben', 'err'); return; }
+
+  // Heuristic: if it looks like a numeric Discord ID, use target_discord_id; else player name
+  const isDiscordId = /^\d{15,25}$/.test(input);
+  const payload = {
+    discord_id: adminDiscordId,
+    note,
+    ...(isDiscordId ? { target_discord_id: input } : { target_player_name: input })
+  };
+  try {
+    await api('/admins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    closeModal('modal-grant-admin');
+    toast('Admin-Recht vergeben', 'ok');
+    await loadAdmins();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+async function revokeAdmin(targetDiscordId, displayName) {
+  if (!confirm(`Admin-Recht von "${displayName}" entziehen?`)) return;
+  try {
+    await api(`/admins/${encodeURIComponent(targetDiscordId)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: adminDiscordId })
+    });
+    toast(`Admin-Recht von ${displayName} entzogen`, 'ok');
+    await loadAdmins();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+// ── Init ──
+(async () => {
+  const apiFromQuery = new URLSearchParams(window.location.search).get('api');
+  if (apiFromQuery) {
+    localStorage.setItem('iny_api_base', apiFromQuery.replace(/\/$/, ''));
+    history.replaceState(null, '', window.location.pathname);
+  }
+
+  // Skip Discord entirely on localhost / file://
+  if (IS_LOCAL) {
+    await verifyAdminAccess(LOCAL_ADMIN_DISCORD_ID, 'Lokaler Admin', null);
+    return;
+  }
+
+  const ok = await handleOAuthCallback();
+  if (!ok) await tryAutoLogin();
+})();
+</script>
+</body>
+</html>

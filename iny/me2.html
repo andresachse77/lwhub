@@ -418,7 +418,7 @@ button, select { font-family: inherit; }
 <div class="topbar">
   <div class="topbar-left">
     <div class="eyebrow">Persönlicher Bereich · v2</div>
-    <div class="title">INY</div>
+    <div class="title"><span class="js-alliance-short">INY</span><span class="js-alliance-title" style="font-size:14px;font-weight:400;color:var(--soft);margin-left:8px;letter-spacing:1px;"></span></div>
   </div>
   <!--
     DESIGN: Navigation zwischen den Varianten direkt in der Topbar
@@ -432,7 +432,6 @@ button, select { font-family: inherit; }
     <a class="nav-btn" id="link-me" href="me.html" onclick="goTo('me.html');return false;">← Original</a>
     <a class="nav-btn" id="link-me3" href="me3.html" onclick="goTo('me3.html');return false;" style="background:rgba(155,109,255,0.1);color:#c0a0ff;border-color:rgba(155,109,255,0.25);">Zombi-Version →</a>
     <div class="topbar-divider"></div>
-    <button class="ghost-btn" type="button" onclick="discordLogout()">Logout</button>
   </div>
 </div>
 
@@ -793,6 +792,12 @@ function restoreLoginBoxMarkup() {
 
 async function fetchJson(path, options = {}) {
   if (!API_BASE_CANDIDATES.length) throw new Error('API nicht konfiguriert');
+  try {
+    const activeChar = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null');
+    if (activeChar?.alliance) {
+      path = path + (path.includes('?') ? '&' : '?') + 'alliance=' + encodeURIComponent(activeChar.alliance);
+    }
+  } catch (_) {}
   let lastError = null;
   for (let i = activeApiBaseIndex; i < API_BASE_CANDIDATES.length; i++) {
     const url = `${API_BASE_CANDIDATES[i]}${path}`;
@@ -812,7 +817,6 @@ async function fetchJson(path, options = {}) {
   throw lastError || new Error('API request failed');
 }
 
-function calcPoints(flags = {}) {
   const has = (key) => flags[key] ? 1 : 0;
   const vsGesamt = W.vsAlle - (has('vsUnter50') * W.vsUnter50) + (has('vsTop30') * W.vsTop30) + (has('vsTop10') * W.vsTop10);
   const vsGew = Math.min(vsGesamt * 5, 140);
@@ -1190,8 +1194,15 @@ async function init() {
       }
       activeMemberName = MEMBER_QUERY && canViewOther ? MEMBER_QUERY : (authMember?.member_name || LOCAL_DEV_MEMBER_NAME);
       historyBundle = await loadMemberHistory({ name: activeMemberName });
-      selectedWeekIndex = 0; renderOverview(); return;
-    } catch (error) { toast(`Lokaler Test fehlgeschlagen: ${error.message}`); return; }
+      selectedWeekIndex = 0; renderOverview();
+      if (typeof window.initCharSwitcher === 'function') {
+        window.initCharSwitcher({ id: authMember?.discord_id || 'local-preview', username: authMember?.discord_username || 'Lokaler Admin', avatar: null }, authMember);
+      } else {
+        window.addEventListener('load', () => {
+          if (typeof window.initCharSwitcher === 'function')
+            window.initCharSwitcher({ id: authMember?.discord_id || 'local-preview', username: authMember?.discord_username || 'Lokaler Admin', avatar: null }, authMember);
+        });
+      }
   }
   const verify = await checkDiscordAuth();
   if (!verify) return;
@@ -1209,11 +1220,15 @@ async function init() {
       historyBundle = await loadMemberHistory({ discordId: verify.discord_id });
     }
     selectedWeekIndex = 0; renderOverview();
+    if (typeof window.initCharSwitcher === 'function') {
+      window.initCharSwitcher(currentDiscordUser, authMember);
+    }
   } catch (error) { toast(`Laden fehlgeschlagen: ${error.message}`); }
 }
 
 init();
 </script>
+<script src="char-switcher.js"></script>
 <script src="shared-bottom.js"></script>
 </body>
 </html>

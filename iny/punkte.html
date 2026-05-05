@@ -237,7 +237,7 @@ h1 {
 </head>
 <body>
   <div class="topbar">
-    <div class="brand">INY</div>
+    <div class="brand"><span class="js-alliance-short">INY</span></div>
     <div class="actions">
       <button class="nav-btn" type="button" onclick="go('index.html')">R4 Ansicht</button>
       <button class="nav-btn" type="button" onclick="go('me.html')">Mein Bereich</button>
@@ -356,6 +356,21 @@ function go(fileName) {
   else url.pathname = url.pathname.replace(/[^/]*$/, fileName);
   window.location.href = url.toString();
 }
+</script>
+<script>
+// Load alliance title from API health endpoint
+(async function() {
+  try {
+    const apiBase = localStorage.getItem('iny_api_base');
+    if (!apiBase) return;
+    const res = await fetch(apiBase + '/health');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.alliance) {
+      document.querySelectorAll('.js-alliance-short').forEach(el => el.textContent = data.alliance);
+    }
+  } catch(e) {}
+})();
 </script>
 <script src="shared-bottom.js"></script>
 </body>

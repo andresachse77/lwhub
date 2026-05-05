@@ -53,6 +53,7 @@ function safeRank(mixed $value): int {
 function normalizeDiscordId(mixed $value): string {
     $id = trim((string)($value ?? ''));
     if ($id === '') return '';
+    if (isLocalRequest() && $id === 'local-preview') return 'local-preview';
     if (!preg_match('/^\d+$/', $id)) throw new InvalidArgumentException('Discord-ID muss numerisch sein');
     return $id;
 }
@@ -85,6 +86,12 @@ function roleFromRank(int $rank): string {
     if ($rank === 5) return 'r5';
     if ($rank === 4) return 'r4';
     return 'normal';
+}
+
+/** True when the PHP dev-server is serving a local request (127.0.0.1). */
+function isLocalRequest(): bool {
+    $remote = $_SERVER['REMOTE_ADDR'] ?? '';
+    return $remote === '127.0.0.1' || $remote === '::1';
 }
 
 function isOptionalTableError(\PDOException $e): bool {
@@ -574,10 +581,20 @@ function memberToDiscordAvatarUrl(?string $discordUserId, ?string $discordAvatar
 function handleHealth(PDO $pdo, string $alliance): never {
     $stmt = $pdo->query('SELECT 1 AS ok');
     $row  = $stmt->fetch();
+    $title = null;
+    try {
+        ensureAlliancesTable($pdo);
+        upsertAllianceFromConfig($pdo, $alliance);
+        $aStmt = $pdo->prepare("SELECT alliance_name FROM alliances WHERE alliance = ?");
+        $aStmt->execute([$alliance]);
+        $aRow = $aStmt->fetch();
+        $title = $aRow ? ($aRow['alliance_name'] ?? null) : null;
+    } catch (\PDOException) {}
     jsonOut(200, [
-        'ok'       => (bool)($row['ok'] ?? false),
-        'backend'  => 'php-mysql',
-        'alliance' => $alliance,
+        'ok'             => (bool)($row['ok'] ?? false),
+        'backend'        => 'php-mysql',
+        'alliance'       => $alliance,
+        'alliance_title' => $title,
     ]);
 }
 
@@ -857,6 +874,24 @@ function handleAddMember(PDO $pdo, string $alliance, array $body, array $protect
     $name = trim($body['name'] ?? '');
     if ($name === '') jsonOut(400, ['error' => 'Name fehlt']);
 
+    // Check for conflict before starting transaction
+    $existing = $pdo->prepare("SELECT player_id, is_active FROM players WHERE alliance = ? AND current_name = ? LIMIT 1");
+    $existing->execute([$alliance, $name]);
+    $existingRow = $existing->fetch();
+    if ($existingRow) {
+        if ((int)$existingRow['is_active'] === 0) {
+            jsonOut(409, ['error' => 'Dieser Spieler ist archiviert. Bitte über Archiv wiederherstellen.']);
+        }
+        jsonOut(409, ['error' => 'Mitglied mit diesem Namen existiert bereits']);
+    }
+
+    $discordIdRaw = trim($body['discord_id'] ?? '');
+    $discordId = '';
+    if ($discordIdRaw !== '') {
+        try { $discordId = normalizeDiscordId($discordIdRaw); }
+        catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => 'Ungültige Discord-ID: ' . $e->getMessage()]); }
+    }
+
     $requestedRank = safeRank((int)($body['default_rank'] ?? $body['rank'] ?? 3));
     $protection    = applyProtectedRankRule($name, $requestedRank, $protectedNames);
     $rank          = $protection['effectiveRank'];
@@ -881,16 +916,93 @@ function handleAddMember(PDO $pdo, string $alliance, array $body, array $protect
             ]);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)");
+        $stmt = $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)");
         $stmt->execute([$alliance, $nameEventId, $playerId, $name]);
 
+        if ($discordId !== '') {
+            try {
+                $pdo->prepare("INSERT IGNORE INTO player_identities (alliance, identity_id, player_id, discord_user_id) VALUES (?, ?, ?, ?)"
+                )->execute([$alliance, uuid4(), $playerId, $discordId]);
+            } catch (\PDOException $e) {
+                if (!isOptionalTableError($e)) throw $e;
+            }
+        }
+
         $pdo->commit();
-        jsonOut(201, ['ok' => true]);
+        jsonOut(201, ['ok' => true, 'player_id' => $playerId]);
     } catch (\PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        if (str_contains($e->getMessage(), 'Duplicate') || str_contains($e->getCode(), '23000')) {
-            jsonOut(409, ['error' => 'Mitglied existiert bereits']);
+        if (str_contains($e->getMessage(), 'Duplicate') || $e->getCode() === '23000') {
+            jsonOut(409, ['error' => 'Mitglied mit diesem Namen existiert bereits']);
         }
+        throw $e;
+    }
+}
+
+function handleTransferPlayer(PDO $pdo, string $fromAlliance, string $nameEncoded, array $body): never {
+    $name = rawurldecode($nameEncoded);
+    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+    requireR5($pdo, $discordId);
+
+    $toAlliance = trim($body['to_alliance'] ?? '');
+    if ($toAlliance === '') jsonOut(400, ['error' => 'Ziel-Allianz fehlt']);
+    if ($toAlliance === $fromAlliance) jsonOut(400, ['error' => 'Spieler ist bereits in dieser Allianz']);
+
+    // Check target alliance exists
+    $aStmt = $pdo->prepare("SELECT 1 FROM alliances WHERE alliance = ? LIMIT 1");
+    $aStmt->execute([$toAlliance]);
+    if (!$aStmt->fetch()) jsonOut(404, ['error' => 'Ziel-Allianz nicht gefunden']);
+
+    // Find player in source alliance
+    $stmt = $pdo->prepare("SELECT player_id, current_rank_code FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
+    $stmt->execute([$fromAlliance, $name]);
+    $player = $stmt->fetch();
+    if (!$player) jsonOut(404, ['error' => 'Spieler nicht gefunden']);
+
+    // Check name not already taken in target
+    $check = $pdo->prepare("SELECT 1 FROM players WHERE alliance = ? AND current_name = ? LIMIT 1");
+    $check->execute([$toAlliance, $name]);
+    if ($check->fetch()) jsonOut(409, ['error' => 'Name bereits in Ziel-Allianz vergeben']);
+
+    $playerId = $player['player_id'];
+
+    // Ensure ranks exist in target alliance
+    for ($r = 1; $r <= 5; $r++) {
+        $pdo->prepare("INSERT IGNORE INTO ranks (alliance, rank_code) VALUES (?, ?)")->execute([$toAlliance, $r]);
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->exec("SET FOREIGN_KEY_CHECKS=0");
+
+        // Migrate all tables (order doesn't matter with FK checks off)
+        foreach (['players', 'player_identities', 'player_name_history'] as $tbl) {
+            try {
+                $pdo->prepare("UPDATE `{$tbl}` SET alliance = ? WHERE alliance = ? AND player_id = ?")
+                    ->execute([$toAlliance, $fromAlliance, $playerId]);
+            } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+        }
+        // weekly_entry_flags references alliance+entry_id, must be migrated before weekly_entries
+        try {
+            $pdo->prepare("UPDATE weekly_entry_flags wef
+                JOIN weekly_entries we ON wef.alliance = we.alliance AND wef.entry_id = we.entry_id
+                SET wef.alliance = ?
+                WHERE wef.alliance = ? AND we.player_id = ?")
+                ->execute([$toAlliance, $fromAlliance, $playerId]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+        try {
+            $pdo->prepare("UPDATE weekly_entries SET alliance = ? WHERE alliance = ? AND player_id = ?")
+                ->execute([$toAlliance, $fromAlliance, $playerId]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+
+        $pdo->exec("SET FOREIGN_KEY_CHECKS=1");
+
+        $pdo->commit();
+        jsonOut(200, ['ok' => true, 'player_id' => $playerId, 'to_alliance' => $toAlliance]);
+    } catch (\PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
 }
@@ -944,7 +1056,7 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
         }
 
         if ($newName !== $row['current_name']) {
-            $stmt = $pdo->prepare("INSERT INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)");
+            $stmt = $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)");
             $stmt->execute([$alliance, uuid4(), $playerId, $newName]);
         }
 
@@ -953,12 +1065,7 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
                 $pdo->prepare("UPDATE player_identities SET discord_user_id = NULL WHERE alliance = ? AND player_id = ?")
                     ->execute([$alliance, $playerId]);
             } else {
-                $conflict = $pdo->prepare("SELECT 1 FROM player_identities WHERE alliance = ? AND discord_user_id = ? AND player_id <> ? LIMIT 1");
-                $conflict->execute([$alliance, $discordId, $playerId]);
-                if ($conflict->fetch()) {
-                    if ($pdo->inTransaction()) $pdo->rollBack();
-                    jsonOut(409, ['error' => 'Discord-ID ist bereits einem anderen Spieler zugeordnet']);
-                }
+                // A Discord account can own multiple chars – no uniqueness check needed.
 
                 $existing = $pdo->prepare("SELECT identity_id FROM player_identities WHERE alliance = ? AND player_id = ? ORDER BY created_at, identity_id LIMIT 1");
                 $existing->execute([$alliance, $playerId]);
@@ -978,29 +1085,85 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        if (str_contains($e->getMessage(), 'Duplicate') || $e->getCode() === '23000') {
+        if (str_contains($e->getMessage(), 'Duplicate entry')) {
             jsonOut(409, ['error' => 'Name existiert bereits']);
         }
         throw $e;
     }
 }
 
-function handleDeleteMember(PDO $pdo, string $alliance, string $nameEncoded): never {
+function handleDeleteMember(PDO $pdo, string $alliance, string $nameEncoded, array $body = []): never {
     $name = rawurldecode($nameEncoded);
-    $stmt = $pdo->prepare("SELECT player_id FROM players WHERE alliance = ? AND current_name = ?");
+    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code, created_at FROM players WHERE alliance = ? AND current_name = ?");
     $stmt->execute([$alliance, $name]);
     $row = $stmt->fetch();
     if (!$row) jsonOut(200, ['ok' => true]);
 
-    $playerId = $row['player_id'];
+    $playerId  = $row['player_id'];
+    $archiveId = uuid4();
+    $archivedBy = null;
+    try { $archivedBy = normalizeDiscordId($body['discord_id'] ?? ''); } catch (\InvalidArgumentException) {}
+    if ($archivedBy === '') $archivedBy = null;
+
+    ensureArchiveTables($pdo);
+
     $pdo->beginTransaction();
     try {
-        $pdo->prepare("DELETE wef FROM weekly_entry_flags wef JOIN weekly_entries we ON wef.alliance = we.alliance AND wef.entry_id = we.entry_id WHERE wef.alliance = ? AND we.player_id = ?")->execute([$alliance, $playerId]);
+        // Archive player record
+        $pdo->prepare("INSERT INTO archived_players (archive_id, archived_by, alliance, player_id, current_name, current_rank_code, player_created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+            ->execute([$archiveId, $archivedBy, $alliance, $playerId, $row['current_name'], $row['current_rank_code'], $row['created_at']]);
+
+        // Archive weekly entries + flags
+        try {
+            $entries = $pdo->prepare("SELECT * FROM weekly_entries WHERE alliance = ? AND player_id = ?");
+            $entries->execute([$alliance, $playerId]);
+            foreach ($entries->fetchAll() as $entry) {
+                $brc = $entry['base_rank_code'] ?? $entry['final_rank_code'];
+                $pdo->prepare("INSERT INTO archived_weekly_entries (archive_id, entry_id, year_week, player_id, alliance, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                    ->execute([$archiveId, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $alliance, $brc, $entry['final_rank_code'], $entry['afk'] ?? 0]);
+                $flags = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?");
+                $flags->execute([$alliance, $entry['entry_id']]);
+                foreach ($flags->fetchAll() as $flag) {
+                    $pdo->prepare("INSERT INTO archived_entry_flags (archive_id, entry_id, flag_key) VALUES (?, ?, ?)")
+                        ->execute([$archiveId, $entry['entry_id'], $flag['flag_key']]);
+                }
+            }
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+
+        // Archive name history
+        try {
+            $hist = $pdo->prepare("SELECT * FROM player_name_history WHERE alliance = ? AND player_id = ?");
+            $hist->execute([$alliance, $playerId]);
+            foreach ($hist->fetchAll() as $h) {
+                $pdo->prepare("INSERT INTO archived_name_history (archive_id, name_event_id, player_id, alliance, player_name, valid_from_yw) VALUES (?, ?, ?, ?, ?, ?)")
+                    ->execute([$archiveId, $h['name_event_id'], $playerId, $alliance, $h['player_name'], $h['valid_from_yw']]);
+            }
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+
+        // Archive identities
+        try {
+            $ids = $pdo->prepare("SELECT * FROM player_identities WHERE alliance = ? AND player_id = ?");
+            $ids->execute([$alliance, $playerId]);
+            foreach ($ids->fetchAll() as $id) {
+                $pdo->prepare("INSERT INTO archived_player_identities (archive_id, identity_id, player_id, alliance, discord_user_id) VALUES (?, ?, ?, ?, ?)")
+                    ->execute([$archiveId, $id['identity_id'], $playerId, $alliance, $id['discord_user_id']]);
+            }
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+
+        // Delete live data
+        try {
+            $pdo->prepare("DELETE wef FROM weekly_entry_flags wef JOIN weekly_entries we ON wef.alliance = we.alliance AND wef.entry_id = we.entry_id WHERE wef.alliance = ? AND we.player_id = ?")->execute([$alliance, $playerId]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
         $pdo->prepare("DELETE FROM weekly_entries WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
-        $pdo->prepare("DELETE FROM player_name_history WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
-        $pdo->prepare("DELETE FROM player_user_links WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
-        $pdo->prepare("DELETE FROM player_identities WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
+        try { $pdo->prepare("DELETE FROM player_name_history WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+        try { $pdo->prepare("DELETE FROM player_user_links WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+        try { $pdo->prepare("DELETE FROM player_identities WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
         $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
+        try {
+            ensureUserActiveCharTable($pdo);
+            $pdo->prepare("DELETE FROM user_active_char WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
+        } catch (\PDOException $e) {}
+
         $pdo->commit();
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {
@@ -1420,6 +1583,673 @@ function handleResolveAccessRequest(PDO $pdo, string $alliance, string $requestI
     jsonOut(200, ['ok' => true, 'updated' => $stmt->rowCount() > 0]);
 }
 
+// ─── Alliance / Archive / Char tables ─────────────────────────────────────────
+
+function ensureAlliancesTable(PDO $pdo): void {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS alliances (
+            alliance     VARCHAR(50)  NOT NULL,
+            alliance_name VARCHAR(200) NULL,
+            is_active    TINYINT(1)  NOT NULL DEFAULT 1,
+            created_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (alliance)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+function upsertAllianceFromConfig(PDO $pdo, string $alliance): void {
+    $pdo->prepare("INSERT IGNORE INTO alliances (alliance) VALUES (?)")->execute([$alliance]);
+    // Ensure ranks 1–5 exist for this alliance (required by FK players.fk_players_rank)
+    try {
+        for ($r = 1; $r <= 5; $r++) {
+            $pdo->prepare("INSERT IGNORE INTO ranks (alliance, rank_code) VALUES (?, ?)")->execute([$alliance, $r]);
+        }
+    } catch (\PDOException $e) {
+        // Ignore if ranks table doesn't exist or has different schema
+        if (!isOptionalTableError($e)) throw $e;
+    }
+}
+
+function ensureUserActiveCharTable(PDO $pdo): void {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS user_active_char (
+            discord_user_id VARCHAR(50) NOT NULL,
+            alliance VARCHAR(50) NOT NULL,
+            player_id CHAR(36) NOT NULL,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (discord_user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+function ensureArchiveTables(PDO $pdo): void {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS archived_players (
+            archive_id CHAR(36) NOT NULL,
+            archived_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            archived_by VARCHAR(50) NULL,
+            alliance VARCHAR(50) NOT NULL,
+            player_id CHAR(36) NOT NULL,
+            current_name VARCHAR(150) NOT NULL,
+            current_rank_code INT NOT NULL DEFAULT 3,
+            player_created_at DATETIME NULL,
+            PRIMARY KEY (archive_id),
+            KEY ix_arch_alliance (alliance),
+            KEY ix_arch_player_id (player_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS archived_weekly_entries (
+            archive_id CHAR(36) NOT NULL,
+            entry_id CHAR(36) NOT NULL,
+            year_week INT NOT NULL,
+            player_id CHAR(36) NOT NULL,
+            alliance VARCHAR(50) NOT NULL,
+            base_rank_code INT NOT NULL DEFAULT 3,
+            final_rank_code INT NOT NULL DEFAULT 3,
+            afk TINYINT(1) NOT NULL DEFAULT 0,
+            PRIMARY KEY (archive_id, entry_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS archived_entry_flags (
+            archive_id CHAR(36) NOT NULL,
+            entry_id CHAR(36) NOT NULL,
+            flag_key VARCHAR(60) NOT NULL,
+            PRIMARY KEY (archive_id, entry_id, flag_key)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS archived_name_history (
+            archive_id CHAR(36) NOT NULL,
+            name_event_id CHAR(36) NOT NULL,
+            player_id CHAR(36) NOT NULL,
+            alliance VARCHAR(50) NOT NULL,
+            player_name VARCHAR(150) NOT NULL,
+            valid_from_yw INT NOT NULL DEFAULT 0,
+            PRIMARY KEY (archive_id, name_event_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS archived_player_identities (
+            archive_id CHAR(36) NOT NULL,
+            identity_id CHAR(36) NOT NULL,
+            player_id CHAR(36) NOT NULL,
+            alliance VARCHAR(50) NOT NULL,
+            discord_user_id VARCHAR(50) NULL,
+            PRIMARY KEY (archive_id, identity_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+// ─── site_admins table ────────────────────────────────────────────────────────
+
+function ensureSiteAdminsTable(PDO $pdo): void {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS site_admins (
+            discord_user_id VARCHAR(30)  NOT NULL,
+            granted_by      VARCHAR(30)  NOT NULL DEFAULT 'system',
+            note            VARCHAR(255) NOT NULL DEFAULT '',
+            granted_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (discord_user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+/** Auto-seed players whose names are in $protectedR4Names as site-admins. */
+function seedProtectedAdmins(PDO $pdo, array $protectedNames): void {
+    $names = array_keys($protectedNames); // $protectedNames is ['Lion Tooth' => true, ...]
+    if (empty($names)) return;
+    try {
+        $placeholders = implode(',', array_fill(0, count($names), '?'));
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(pid.discord_user_id, uda.discord_user_id) AS discord_user_id
+            FROM players p
+            LEFT JOIN player_identities pid
+                ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+            LEFT JOIN player_user_links pul
+                ON pul.alliance = p.alliance AND pul.player_id = p.player_id
+            LEFT JOIN user_discord_accounts uda
+                ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+            WHERE p.current_name IN ($placeholders) AND p.is_active = 1
+              AND COALESCE(pid.discord_user_id, uda.discord_user_id) IS NOT NULL
+            GROUP BY COALESCE(pid.discord_user_id, uda.discord_user_id)
+        ");
+        $stmt->execute($names);
+        $ins = $pdo->prepare("
+            INSERT IGNORE INTO site_admins (discord_user_id, granted_by, note)
+            VALUES (?, 'system', 'Auto-seeded from protected R4 names config')
+        ");
+        foreach ($stmt->fetchAll() as $row) {
+            if (!empty($row['discord_user_id'])) {
+                $ins->execute([$row['discord_user_id']]);
+            }
+        }
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+    }
+}
+
+// ─── Admin auth helper ────────────────────────────────────────────────────────
+
+function isSiteAdmin(PDO $pdo, string $discordId): bool {
+    try {
+        $stmt = $pdo->prepare("SELECT 1 FROM site_admins WHERE discord_user_id = ? LIMIT 1");
+        $stmt->execute([$discordId]);
+        return (bool)$stmt->fetch();
+    } catch (\PDOException $e) {
+        return false; // table might not exist yet
+    }
+}
+
+function requireR5(PDO $pdo, string $discordId): array {
+    // Local dev-server: bypass auth entirely
+    if (isLocalRequest()) {
+        return ['player_id' => null, 'current_name' => 'Lokaler Admin', 'current_rank_code' => 5, 'alliance' => null];
+    }
+
+    // Site-admins have full access regardless of rank
+    if (isSiteAdmin($pdo, $discordId)) {
+        // Try to return their player row for context; fall back to stub if not found
+        $stmt = $pdo->prepare("
+            SELECT p.player_id, p.current_name, p.current_rank_code, p.alliance
+            FROM players p
+            LEFT JOIN player_identities pid
+                ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+            LEFT JOIN (
+                SELECT pul.alliance, pul.player_id, uda.discord_user_id
+                FROM player_user_links pul
+                JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+            ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
+            WHERE p.is_active = 1
+              AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$discordId]);
+        $row = $stmt->fetch();
+        if ($row) return $row;
+        return ['player_id' => null, 'current_name' => null, 'current_rank_code' => 5, 'alliance' => null];
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT p.player_id, p.current_name, p.current_rank_code, p.alliance
+        FROM players p
+        LEFT JOIN player_identities pid
+            ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+        LEFT JOIN (
+            SELECT pul.alliance, pul.player_id, uda.discord_user_id
+            FROM player_user_links pul
+            JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+        ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
+        WHERE p.is_active = 1 AND p.current_rank_code = 5
+          AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$discordId]);
+    $row = $stmt->fetch();
+    if (!$row) jsonOut(403, ['error' => 'Kein Zugriff – nur Admins dürfen diesen Bereich nutzen']);
+    return $row;
+}
+
+// ─── Alliance handlers ────────────────────────────────────────────────────────
+
+function handleGetAlliances(PDO $pdo): never {
+    ensureAlliancesTable($pdo);
+    $rows = $pdo->query("SELECT alliance AS short_name, alliance_name AS title, created_at FROM alliances ORDER BY alliance")->fetchAll();
+    jsonOut(200, ['ok' => true, 'alliances' => $rows]);
+}
+
+function handleCreateAlliance(PDO $pdo, array $body): never {
+    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+    requireR5($pdo, $discordId);
+
+    $shortName = trim($body['short_name'] ?? '');
+    if ($shortName === '' || strlen($shortName) > 50) jsonOut(400, ['error' => 'Kürzel fehlt oder zu lang (max 50)']);
+    $title = trim($body['title'] ?? '') ?: null;
+
+    ensureAlliancesTable($pdo);
+    try {
+        $pdo->prepare("INSERT INTO alliances (alliance, alliance_name) VALUES (?, ?)")->execute([$shortName, $title]);
+    } catch (\PDOException $e) {
+        if ($e->getCode() === '23000') jsonOut(409, ['error' => 'Allianz existiert bereits']);
+        throw $e;
+    }
+    // Seed ranks 1–5 for the new alliance
+    try {
+        for ($r = 1; $r <= 5; $r++) {
+            $pdo->prepare("INSERT IGNORE INTO ranks (alliance, rank_code) VALUES (?, ?)")->execute([$shortName, $r]);
+        }
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+    }
+    jsonOut(201, ['ok' => true, 'short_name' => $shortName]);
+}
+
+function handleUpdateAlliance(PDO $pdo, string $oldShortEncoded, array $body): never {
+    $oldShort = rawurldecode($oldShortEncoded);
+    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+    requireR5($pdo, $discordId);
+
+    ensureAlliancesTable($pdo);
+    $stmt = $pdo->prepare("SELECT alliance AS short_name, alliance_name AS title FROM alliances WHERE alliance = ?");
+    $stmt->execute([$oldShort]);
+    $existing = $stmt->fetch();
+    if (!$existing) jsonOut(404, ['error' => 'Allianz nicht gefunden']);
+
+    $newShort  = trim($body['short_name'] ?? $oldShort);
+    $titleSet  = array_key_exists('title', $body);
+    $newTitle  = $titleSet ? (trim($body['title'] ?? '') ?: null) : ($existing['title'] ?? null);
+
+    if ($newShort === $oldShort && !$titleSet) jsonOut(400, ['error' => 'Keine Änderungen angegeben']);
+
+    $pdo->beginTransaction();
+    try {
+        if ($newShort !== $oldShort) {
+            // Disable FK checks so we can migrate tables in any order
+            $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+            // Create new alliance entry
+            try {
+                $pdo->prepare("INSERT INTO alliances (alliance, alliance_name) VALUES (?, ?)")->execute([$newShort, $newTitle]);
+            } catch (\PDOException $e) {
+                $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+                if ($e->getCode() === '23000') {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    jsonOut(409, ['error' => 'Allianz-Kürzel bereits vergeben']);
+                }
+                throw $e;
+            }
+            // Migrate all tables
+            $tables = [
+                'players', 'weekly_entries', 'weekly_entry_flags', 'player_name_history',
+                'player_identities', 'player_user_links', 'user_discord_accounts',
+                'rank_change_log', 'access_requests', 'discord_profile_cache',
+                'member_presence', 'member_chat_messages', 'week_periods',
+                'archived_players', 'user_active_char',
+            ];
+            foreach ($tables as $tbl) {
+                try {
+                    $pdo->prepare("UPDATE `{$tbl}` SET alliance = ? WHERE alliance = ?")->execute([$newShort, $oldShort]);
+                } catch (\PDOException $e) {
+                    if (!isOptionalTableError($e)) throw $e;
+                }
+            }
+            $pdo->prepare("DELETE FROM alliances WHERE alliance = ?")->execute([$oldShort]);
+            $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+        } else {
+            $pdo->prepare("UPDATE alliances SET alliance_name = ? WHERE alliance = ?")->execute([$newTitle, $oldShort]);
+        }
+        $pdo->commit();
+        jsonOut(200, ['ok' => true, 'short_name' => $newShort, 'title' => $newTitle]);
+    } catch (\PDOException $e) {
+        try { $pdo->exec('SET FOREIGN_KEY_CHECKS=1'); } catch (\Throwable) {}
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
+// ─── Site-admin management handlers ──────────────────────────────────────────
+
+function handleGetAdmins(PDO $pdo, string $discordId): never {
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+    requireR5($pdo, $discordId);
+    ensureSiteAdminsTable($pdo);
+
+    $stmt = $pdo->query("
+        SELECT sa.discord_user_id, sa.granted_by, sa.note, sa.granted_at,
+               dpc.discord_username AS username, dpc.discord_avatar AS avatar
+        FROM site_admins sa
+        LEFT JOIN discord_profile_cache dpc ON dpc.discord_user_id = sa.discord_user_id
+        ORDER BY sa.granted_at
+    ");
+    $rows = $stmt->fetchAll();
+
+    // Also resolve each admin's player name if possible
+    $admins = [];
+    foreach ($rows as $r) {
+        $pStmt = $pdo->prepare("
+            SELECT p.current_name, p.alliance, p.current_rank_code
+            FROM players p
+            LEFT JOIN player_identities pid
+                ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+            LEFT JOIN (
+                SELECT pul.alliance, pul.player_id, uda.discord_user_id
+                FROM player_user_links pul
+                JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+            ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
+            WHERE p.is_active = 1
+              AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+            LIMIT 1
+        ");
+        $pStmt->execute([$r['discord_user_id']]);
+        $player = $pStmt->fetch() ?: null;
+        $admins[] = [
+            'discord_user_id' => $r['discord_user_id'],
+            'username'        => $r['username'],
+            'avatar'          => $r['avatar'],
+            'granted_by'      => $r['granted_by'],
+            'note'            => $r['note'],
+            'granted_at'      => $r['granted_at'],
+            'player_name'     => $player['current_name'] ?? null,
+            'alliance'        => $player['alliance'] ?? null,
+            'rank'            => $player ? (int)$player['current_rank_code'] : null,
+        ];
+    }
+
+    jsonOut(200, ['ok' => true, 'admins' => $admins]);
+}
+
+function handleGrantAdmin(PDO $pdo, array $body): never {
+    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+    requireR5($pdo, $discordId);
+    ensureSiteAdminsTable($pdo);
+
+    $note = trim($body['note'] ?? '');
+
+    // Accept either a direct discord_id or a player name
+    $targetDiscordId = '';
+    if (!empty($body['target_discord_id'])) {
+        try { $targetDiscordId = normalizeDiscordId($body['target_discord_id']); }
+        catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => 'Ungültige Ziel-Discord-ID: ' . $e->getMessage()]); }
+    } elseif (!empty($body['target_player_name'])) {
+        $name = trim($body['target_player_name']);
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(pid.discord_user_id, uda.discord_user_id) AS discord_user_id
+            FROM players p
+            LEFT JOIN player_identities pid
+                ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+            LEFT JOIN player_user_links pul
+                ON pul.alliance = p.alliance AND pul.player_id = p.player_id
+            LEFT JOIN user_discord_accounts uda
+                ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+            WHERE p.current_name = ? AND p.is_active = 1
+              AND COALESCE(pid.discord_user_id, uda.discord_user_id) IS NOT NULL
+            LIMIT 1
+        ");
+        $stmt->execute([$name]);
+        $row = $stmt->fetch();
+        if (!$row || empty($row['discord_user_id'])) {
+            jsonOut(404, ['error' => "Spieler \"$name\" nicht gefunden oder hat kein Discord-Konto verknüpft"]);
+        }
+        $targetDiscordId = $row['discord_user_id'];
+    } else {
+        jsonOut(400, ['error' => 'target_discord_id oder target_player_name erforderlich']);
+    }
+
+    $ins = $pdo->prepare("
+        INSERT INTO site_admins (discord_user_id, granted_by, note)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE granted_by = VALUES(granted_by), note = VALUES(note), granted_at = CURRENT_TIMESTAMP
+    ");
+    $ins->execute([$targetDiscordId, $discordId, $note]);
+
+    jsonOut(200, ['ok' => true, 'target_discord_id' => $targetDiscordId]);
+}
+
+function handleRevokeAdmin(PDO $pdo, string $targetEncoded, array $body): never {
+    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+    requireR5($pdo, $discordId);
+    ensureSiteAdminsTable($pdo);
+
+    $target = urldecode($targetEncoded);
+    try { $target = normalizeDiscordId($target); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => 'Ungültige Ziel-Discord-ID']); }
+
+    if ($target === $discordId) {
+        jsonOut(400, ['error' => 'Du kannst dir selbst nicht den Admin-Status entziehen']);
+    }
+
+    $stmt = $pdo->prepare("DELETE FROM site_admins WHERE discord_user_id = ?");
+    $stmt->execute([$target]);
+
+    jsonOut(200, ['ok' => true, 'revoked' => $target]);
+}
+
+// ─── Archive handlers ─────────────────────────────────────────────────────────
+
+function handleGetArchivedPlayers(PDO $pdo, string $discordId): never {
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+    requireR5($pdo, $discordId);
+    ensureArchiveTables($pdo);
+
+    $alliance = strtoupper(trim($_GET['alliance'] ?? ''));
+    if ($alliance !== '') {
+        $stmt = $pdo->prepare("SELECT * FROM archived_players WHERE alliance = ? ORDER BY archived_at DESC");
+        $stmt->execute([$alliance]);
+    } else {
+        $stmt = $pdo->query("SELECT * FROM archived_players ORDER BY archived_at DESC LIMIT 500");
+    }
+    jsonOut(200, ['ok' => true, 'players' => $stmt->fetchAll()]);
+}
+
+function handleRestorePlayer(PDO $pdo, string $archiveIdEncoded, array $body): never {
+    $archiveId = rawurldecode($archiveIdEncoded);
+    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+    requireR5($pdo, $discordId);
+
+    ensureArchiveTables($pdo);
+    $stmt = $pdo->prepare("SELECT * FROM archived_players WHERE archive_id = ?");
+    $stmt->execute([$archiveId]);
+    $archived = $stmt->fetch();
+    if (!$archived) jsonOut(404, ['error' => 'Archivierter Spieler nicht gefunden']);
+
+    $check = $pdo->prepare("SELECT 1 FROM players WHERE alliance = ? AND current_name = ? LIMIT 1");
+    $check->execute([$archived['alliance'], $archived['current_name']]);
+    if ($check->fetch()) jsonOut(409, ['error' => 'Name wird bereits von einem aktiven Spieler verwendet']);
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, created_at) VALUES (?, ?, ?, ?, 1, ?)")
+            ->execute([$archived['alliance'], $archived['player_id'], $archived['current_name'], $archived['current_rank_code'], $archived['player_created_at']]);
+
+        $entries = $pdo->prepare("SELECT * FROM archived_weekly_entries WHERE archive_id = ?");
+        $entries->execute([$archiveId]);
+        foreach ($entries->fetchAll() as $entry) {
+            try {
+                $pdo->prepare("INSERT IGNORE INTO weekly_entries (alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                    ->execute([$entry['alliance'], $entry['entry_id'], $entry['year_week'], $entry['player_id'], $entry['base_rank_code'], $entry['final_rank_code'], $entry['afk']]);
+                $flags = $pdo->prepare("SELECT flag_key FROM archived_entry_flags WHERE archive_id = ? AND entry_id = ?");
+                $flags->execute([$archiveId, $entry['entry_id']]);
+                foreach ($flags->fetchAll() as $flag) {
+                    $pdo->prepare("INSERT IGNORE INTO weekly_entry_flags (alliance, entry_id, flag_key) VALUES (?, ?, ?)")
+                        ->execute([$entry['alliance'], $entry['entry_id'], $flag['flag_key']]);
+                }
+            } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+        }
+
+        $history = $pdo->prepare("SELECT * FROM archived_name_history WHERE archive_id = ?");
+        $history->execute([$archiveId]);
+        foreach ($history->fetchAll() as $h) {
+            try {
+                $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, ?)")
+                    ->execute([$h['alliance'], $h['name_event_id'], $h['player_id'], $h['player_name'], $h['valid_from_yw']]);
+            } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+        }
+
+        $ids = $pdo->prepare("SELECT * FROM archived_player_identities WHERE archive_id = ?");
+        $ids->execute([$archiveId]);
+        foreach ($ids->fetchAll() as $id) {
+            try {
+                $pdo->prepare("INSERT IGNORE INTO player_identities (alliance, identity_id, player_id, discord_user_id) VALUES (?, ?, ?, ?)")
+                    ->execute([$id['alliance'], $id['identity_id'], $id['player_id'], $id['discord_user_id']]);
+            } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+        }
+
+        $pdo->prepare("DELETE FROM archived_entry_flags WHERE archive_id = ?")->execute([$archiveId]);
+        $pdo->prepare("DELETE FROM archived_weekly_entries WHERE archive_id = ?")->execute([$archiveId]);
+        $pdo->prepare("DELETE FROM archived_name_history WHERE archive_id = ?")->execute([$archiveId]);
+        $pdo->prepare("DELETE FROM archived_player_identities WHERE archive_id = ?")->execute([$archiveId]);
+        $pdo->prepare("DELETE FROM archived_players WHERE archive_id = ?")->execute([$archiveId]);
+
+        $pdo->commit();
+        jsonOut(200, ['ok' => true]);
+    } catch (\PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
+// ─── My-chars handlers ────────────────────────────────────────────────────────
+
+function handleGetMyChars(PDO $pdo, string $discordId): never {
+    if ($discordId === '') jsonOut(400, ['error' => 'Discord-ID fehlt']);
+
+    ensureUserActiveCharTable($pdo);
+    $activeStmt = $pdo->prepare("SELECT alliance, player_id FROM user_active_char WHERE discord_user_id = ?");
+    $activeStmt->execute([$discordId]);
+    $activeRow = $activeStmt->fetch() ?: null;
+
+    $chars = [];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code,
+                   pid.discord_user_id AS via_identity,
+                   puld.discord_user_id AS via_account
+            FROM players p
+            LEFT JOIN player_identities pid
+                ON pid.alliance = p.alliance AND pid.player_id = p.player_id AND pid.discord_user_id = ?
+            LEFT JOIN (
+                SELECT pul.alliance, pul.player_id, uda.discord_user_id
+                FROM player_user_links pul
+                JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+                WHERE uda.discord_user_id = ?
+            ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
+            WHERE p.is_active = 1
+              AND (pid.discord_user_id IS NOT NULL OR puld.discord_user_id IS NOT NULL)
+            ORDER BY p.alliance, p.current_name
+        ");
+        $stmt->execute([$discordId, $discordId]);
+        $rows = $stmt->fetchAll();
+        foreach ($rows as $p) {
+            $isActive = $activeRow
+                && $activeRow['player_id'] === $p['player_id']
+                && $activeRow['alliance']   === $p['alliance'];
+            $chars[] = [
+                'player_id' => $p['player_id'],
+                'alliance'  => $p['alliance'],
+                'name'      => $p['current_name'],
+                'rank'      => safeRank((int)$p['current_rank_code']),
+                'role'      => roleFromRank(safeRank((int)$p['current_rank_code'])),
+                'is_active' => $isActive,
+            ];
+        }
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+    }
+
+    jsonOut(200, ['ok' => true, 'chars' => $chars, 'active' => $activeRow, 'is_site_admin' => isSiteAdmin($pdo, $discordId)]);
+}
+
+function handleSetActiveChar(PDO $pdo, array $body): never {
+    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+
+    $alliance = trim($body['alliance'] ?? '');
+    $playerId = trim($body['player_id'] ?? '');
+    if ($alliance === '' || $playerId === '') jsonOut(400, ['error' => 'alliance und player_id erforderlich']);
+
+    $stmt = $pdo->prepare("
+        SELECT p.player_id FROM players p
+        LEFT JOIN player_identities pid ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+        LEFT JOIN (
+            SELECT pul.alliance, pul.player_id, uda.discord_user_id
+            FROM player_user_links pul
+            JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+        ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
+        WHERE p.alliance = ? AND p.player_id = ? AND p.is_active = 1
+          AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$alliance, $playerId, $discordId]);
+    if (!$stmt->fetch()) jsonOut(403, ['error' => 'Charakter nicht gefunden oder kein Zugriff']);
+
+    ensureUserActiveCharTable($pdo);
+    $pdo->prepare("
+        INSERT INTO user_active_char (discord_user_id, alliance, player_id)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE alliance = VALUES(alliance), player_id = VALUES(player_id)
+    ")->execute([$discordId, $alliance, $playerId]);
+
+    jsonOut(200, ['ok' => true]);
+}
+
+// ─── Self-rename / name-history handlers ─────────────────────────────────────
+
+function handleSelfRename(PDO $pdo, string $alliance, string $oldNameEncoded, array $body): never {
+    $oldName = rawurldecode($oldNameEncoded);
+    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+
+    $newName = trim($body['new_name'] ?? '');
+    if ($newName === '') jsonOut(400, ['error' => 'Neuer Name fehlt']);
+
+    // Find the player by name and verify the discord_id owns this char
+    $stmt = $pdo->prepare("
+        SELECT p.player_id, p.current_name, p.current_rank_code
+        FROM players p
+        JOIN player_identities pid ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+        WHERE p.alliance = ? AND LOWER(TRIM(p.current_name)) = LOWER(TRIM(?))
+          AND pid.discord_user_id = ? AND p.is_active = 1
+        LIMIT 1
+    ");
+    $stmt->execute([$alliance, $oldName, $discordId]);
+    $member = $stmt->fetch();
+    if (!$member) {
+        jsonOut(403, ['error' => 'Kein Zugriff auf diesen Charakter']);
+    }
+
+    $playerId = $member['player_id'];
+    $check = $pdo->prepare("SELECT 1 FROM players WHERE alliance = ? AND LOWER(TRIM(current_name)) = LOWER(TRIM(?)) AND player_id <> ? LIMIT 1");
+    $check->execute([$alliance, $newName, $playerId]);
+    if ($check->fetch()) jsonOut(409, ['error' => 'Name bereits vergeben']);
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare("UPDATE players SET current_name = ? WHERE alliance = ? AND player_id = ?")
+            ->execute([$newName, $alliance, $playerId]);
+        $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)")
+            ->execute([$alliance, uuid4(), $playerId, $newName]);
+        try {
+            $pdo->prepare("UPDATE member_presence SET member_name = ? WHERE alliance = ? AND member_name = ?")
+                ->execute([$newName, $alliance, $oldName]);
+        } catch (\PDOException $e) {}
+        $pdo->commit();
+        jsonOut(200, ['ok' => true, 'new_name' => $newName]);
+    } catch (\PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
+function handleGetNameHistory(PDO $pdo, string $alliance, string $nameEncoded): never {
+    $name = rawurldecode($nameEncoded);
+    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code FROM players WHERE alliance = ? AND current_name = ?");
+    $stmt->execute([$alliance, $name]);
+    $player = $stmt->fetch();
+    if (!$player) jsonOut(404, ['error' => 'Spieler nicht gefunden']);
+
+    $history = [];
+    try {
+        $hStmt = $pdo->prepare("SELECT player_name, valid_from_yw FROM player_name_history WHERE alliance = ? AND player_id = ? ORDER BY valid_from_yw DESC, player_name");
+        $hStmt->execute([$alliance, $player['player_id']]);
+        $history = $hStmt->fetchAll();
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+    }
+    jsonOut(200, ['ok' => true, 'name' => $player['current_name'], 'rank' => (int)$player['current_rank_code'], 'history' => $history]);
+}
+
 // ─── Main dispatch ────────────────────────────────────────────────────────────
 try {
     if (empty($DB_HOST) || empty($DB_NAME) || empty($DB_USER)) {
@@ -1428,7 +2258,20 @@ try {
 
     $pdo = openDb($DB_HOST, $DB_PORT, $DB_NAME, $DB_USER, $DB_PASS, $DB_SSL_CA);
     ensureRankChangeLogTable($pdo, $ALLIANCE);
+    ensureAlliancesTable($pdo);
+    upsertAllianceFromConfig($pdo, $ALLIANCE);
+    ensureSiteAdminsTable($pdo);
+    seedProtectedAdmins($pdo, $PROTECTED_R4_NAMES);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
+    // One-time migration: drop unique constraint that prevented multiple chars per Discord account
+    try {
+        $pdo->exec("ALTER TABLE player_identities DROP INDEX uq_player_discord");
+    } catch (\PDOException) { /* already dropped or doesn't exist */ }
+
+    // Allow the frontend to request a specific alliance context via ?alliance=
+    if (isset($_GET['alliance']) && trim($_GET['alliance']) !== '') {
+        $ALLIANCE = trim($_GET['alliance']);
+    }
 
     // GET /health
     if ($method === 'GET' && $path === '/health') {
@@ -1494,9 +2337,14 @@ try {
         handleUpdateMember($pdo, $ALLIANCE, $segments[1], $body, $PROTECTED_R4_NAMES);
     }
 
+    // POST /members/{name}/transfer  – move player to another alliance
+    if ($method === 'POST' && count($segments) === 3 && $segments[0] === 'members' && $segments[2] === 'transfer') {
+        handleTransferPlayer($pdo, $ALLIANCE, $segments[1], $body);
+    }
+
     // DELETE /members/{name}
     if ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'members') {
-        handleDeleteMember($pdo, $ALLIANCE, $segments[1]);
+        handleDeleteMember($pdo, $ALLIANCE, $segments[1], $body);
     }
 
     // access-requests
@@ -1530,6 +2378,65 @@ try {
     // POST /apply-rank-change  → Rang manuell anwenden (mit Bestätigung)
     if ($method === 'POST' && count($segments) === 1 && $segments[0] === 'apply-rank-change') {
         handleApplyRankChange($pdo, $ALLIANCE, $body, $PROTECTED_R4_NAMES);
+    }
+
+    // GET /alliances
+    if ($method === 'GET' && $path === '/alliances') {
+        handleGetAlliances($pdo);
+    }
+    // POST /alliances
+    if ($method === 'POST' && $path === '/alliances') {
+        handleCreateAlliance($pdo, $body);
+    }
+    // PUT /alliances/{short_name}
+    if ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'alliances') {
+        handleUpdateAlliance($pdo, $segments[1], $body);
+    }
+
+    // GET /archived-players
+    if ($method === 'GET' && $path === '/archived-players') {
+        $dId = '';
+        try { $dId = normalizeDiscordId($_GET['discord_id'] ?? ''); } catch (\InvalidArgumentException) {}
+        handleGetArchivedPlayers($pdo, $dId);
+    }
+    // POST /archived-players/{archive_id}/restore
+    if ($method === 'POST' && count($segments) === 3 && $segments[0] === 'archived-players' && $segments[2] === 'restore') {
+        handleRestorePlayer($pdo, $segments[1], $body);
+    }
+
+    // GET /admins
+    if ($method === 'GET' && $path === '/admins') {
+        $dId = '';
+        try { $dId = normalizeDiscordId($_GET['discord_id'] ?? ''); } catch (\InvalidArgumentException) {}
+        handleGetAdmins($pdo, $dId);
+    }
+    // POST /admins
+    if ($method === 'POST' && $path === '/admins') {
+        handleGrantAdmin($pdo, $body);
+    }
+    // DELETE /admins/{discord_id}
+    if ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'admins') {
+        handleRevokeAdmin($pdo, $segments[1], $body);
+    }
+
+    // GET /my-chars
+    if ($method === 'GET' && $path === '/my-chars') {
+        $dId = '';
+        try { $dId = normalizeDiscordId($_GET['discord_id'] ?? ''); } catch (\InvalidArgumentException) {}
+        handleGetMyChars($pdo, $dId);
+    }
+    // POST /my-chars/active
+    if ($method === 'POST' && $path === '/my-chars/active') {
+        handleSetActiveChar($pdo, $body);
+    }
+
+    // POST /members/{name}/self-rename
+    if ($method === 'POST' && count($segments) === 3 && $segments[0] === 'members' && $segments[2] === 'self-rename') {
+        handleSelfRename($pdo, $ALLIANCE, $segments[1], $body);
+    }
+    // GET /members/{name}/name-history
+    if ($method === 'GET' && count($segments) === 3 && $segments[0] === 'members' && $segments[2] === 'name-history') {
+        handleGetNameHistory($pdo, $ALLIANCE, $segments[1]);
     }
 
     jsonOut(404, ['error' => "Route not found: {$method} {$path}"]);

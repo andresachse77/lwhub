@@ -449,13 +449,12 @@ button, select { font-family: inherit; }
 <div class="topbar">
   <div class="topbar-left">
     <div class="eyebrow">Persönlicher Bereich</div>
-    <div class="title">INY</div>
+    <div class="title"><span class="js-alliance-short">INY</span><span class="js-alliance-title" style="font-size:14px;font-weight:400;color:var(--soft);margin-left:8px;letter-spacing:1px;"></span></div>
   </div>
   <div class="topbar-actions">
     <button class="ghost-btn" type="button" onclick="goToPointsGuide()">Punkte-Guide</button>
     <button class="secondary-btn" id="btn-admin" type="button" style="display:none" onclick="goToAdmin()">Zur R4 Ansicht</button>
     <button class="ghost-btn" type="button" style="background:rgba(74,158,255,0.07);color:#85bbff;border-color:rgba(74,158,255,0.2);" onclick="goToView('me2')">Neues Design →</button>
-    <button class="ghost-btn" type="button" onclick="discordLogout()">Logout</button>
   </div>
 </div>
 
@@ -766,6 +765,12 @@ function restoreLoginBoxMarkup() {
 
 async function fetchJson(path, options = {}) {
   if (!API_BASE_CANDIDATES.length) throw new Error('API nicht konfiguriert');
+  try {
+    const activeChar = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null');
+    if (activeChar?.alliance) {
+      path = path + (path.includes('?') ? '&' : '?') + 'alliance=' + encodeURIComponent(activeChar.alliance);
+    }
+  } catch (_) {}
 
   let lastError = null;
   for (let i = activeApiBaseIndex; i < API_BASE_CANDIDATES.length; i += 1) {
@@ -1134,19 +1139,25 @@ async function init() {
 
   if (IS_LOCAL_PREVIEW) {
     try {
+      // Prefer the active char from localStorage, fall back to LOCAL_DEV_MEMBER_NAME
+      let localDevName = LOCAL_DEV_MEMBER_NAME;
+      try {
+        const ac = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null');
+        if (ac?.name) localDevName = ac.name;
+      } catch (_) {}
+
       const needsLocalAdminSeed =
         !authMember ||
         !authMember.local_preview ||
-        !authMember.can_manage ||
-        String(authMember.member_name || '').toLowerCase() !== LOCAL_DEV_MEMBER_NAME.toLowerCase();
+        String(authMember.member_name || '').toLowerCase() !== localDevName.toLowerCase();
 
       if (needsLocalAdminSeed) {
-        const localAuthBundle = await loadMemberHistory({ name: LOCAL_DEV_MEMBER_NAME });
+        const localAuthBundle = await loadMemberHistory({ name: localDevName });
         authMember = {
           discord_id: localAuthBundle.member.discord_id || null,
           discord_username: localAuthBundle.member.discord_username || 'local-dev',
           member_id: localAuthBundle.member.member_id || localAuthBundle.member.id || null,
-          member_name: localAuthBundle.member.member_name || localAuthBundle.member.name || LOCAL_DEV_MEMBER_NAME,
+          member_name: localAuthBundle.member.member_name || localAuthBundle.member.name || localDevName,
           rank: localAuthBundle.member.rank,
           role: localAuthBundle.member.role,
           can_manage: !!localAuthBundle.member.can_manage,
@@ -1162,10 +1173,18 @@ async function init() {
         toast('Nur R4/R5 darf andere Mitglieder öffnen. Zeige deinen Bereich.');
       }
 
-      activeMemberName = MEMBER_QUERY && canViewOther ? MEMBER_QUERY : (authMember?.member_name || LOCAL_DEV_MEMBER_NAME);
+      activeMemberName = MEMBER_QUERY && canViewOther ? MEMBER_QUERY : (authMember?.member_name || localDevName);
       historyBundle = await loadMemberHistory({ name: activeMemberName });
       selectedWeekIndex = 0;
       renderOverview();
+      if (typeof window.initCharSwitcher === 'function') {
+        window.initCharSwitcher({ id: authMember?.discord_id || 'local-preview', username: authMember?.discord_username || 'Lokaler Admin', avatar: null }, authMember);
+      } else {
+        window.addEventListener('load', () => {
+          if (typeof window.initCharSwitcher === 'function')
+            window.initCharSwitcher({ id: authMember?.discord_id || 'local-preview', username: authMember?.discord_username || 'Lokaler Admin', avatar: null }, authMember);
+        });
+      };
       return;
     } catch (error) {
       toast(`Lokaler Test fehlgeschlagen: ${error.message}`);
@@ -1191,6 +1210,9 @@ async function init() {
     }
     selectedWeekIndex = 0;
     renderOverview();
+    if (typeof window.initCharSwitcher === 'function') {
+      window.initCharSwitcher(currentDiscordUser, authMember);
+    }
   } catch (error) {
     toast(`Laden fehlgeschlagen: ${error.message}`);
   }
@@ -1198,6 +1220,7 @@ async function init() {
 
 init();
 </script>
+<script src="char-switcher.js"></script>
 <script src="shared-bottom.js"></script>
 </body>
 </html>

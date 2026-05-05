@@ -513,7 +513,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 <button id="logout-btn" style="display:none" onclick="discordLogout()">Logout</button>
 
 <nav>
-  <div class="logo">INY <em>RANKING</em></div>
+  <div class="logo"><span class="js-alliance-short">INY</span> <em class="js-alliance-tagline">RANKING</em></div>
   <div class="tabs">
     <button class="tab active" id="tab-d" onclick="showPage('d')">Dashboard</button>
     <button class="tab" id="tab-e" onclick="showPage('e')">Eingabe</button>
@@ -523,6 +523,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   </div>
   <div class="nav-actions">
     <button class="nav-help-btn" id="btn-guide" type="button" onclick="goToPointsGuide()">Punkte-Guide</button>
+    <button class="nav-link-btn" id="btn-admin-nav" type="button" style="display:none" onclick="goToAdminPage()">Admin</button>
     <button class="nav-link-btn" id="btn-me" type="button" onclick="goToMe()">Mein Bereich</button>
     <button class="sync-btn" id="btn-sync" onclick="syncData()" title="Daten neu laden">🔄</button>
   </div>
@@ -752,6 +753,10 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
         <div>
           <div class="vlabel">Name</div>
           <input class="vinput" id="v-new-name" placeholder="Spielername..." type="text">
+        </div>
+        <div>
+          <div class="vlabel">Discord-ID <span style="color:var(--soft);font-size:11px;font-weight:400">(optional)</span></div>
+          <input class="vinput" id="v-new-discord" placeholder="z.B. 123456789012345678" type="text" inputmode="numeric">
         </div>
         <div>
           <div class="vlabel">Rang</div>
@@ -1009,7 +1014,16 @@ function buildLocalAuthState(name) {
 }
 
 function ensureLocalPreviewAuth() {
-  const targetName = members.find((memberName) => memberName.toLowerCase() === LOCAL_DEV_MEMBER_NAME.toLowerCase());
+  // Prefer the actively selected char from localStorage
+  let preferredName = LOCAL_DEV_MEMBER_NAME;
+  try {
+    const ac = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null');
+    if (ac?.name && members.some(m => m.toLowerCase() === ac.name.toLowerCase())) {
+      preferredName = members.find(m => m.toLowerCase() === ac.name.toLowerCase());
+    }
+  } catch (_) {}
+
+  const targetName = members.find((memberName) => memberName.toLowerCase() === preferredName.toLowerCase());
   if (!targetName) {
     clearAuthState();
     toast(`Lokaler Testnutzer nicht gefunden: ${LOCAL_DEV_MEMBER_NAME}`);
@@ -1172,7 +1186,12 @@ async function fetchJson(path, options = {}) {
   if (!API_BASE_CANDIDATES.length) {
     throw new Error('API nicht konfiguriert');
   }
-
+  try {
+    const activeChar = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null');
+    if (activeChar?.alliance) {
+      path = path + (path.includes('?') ? '&' : '?') + 'alliance=' + encodeURIComponent(activeChar.alliance);
+    }
+  } catch (_) {}
   let lastError = null;
 
   for (let i = activeApiBaseIndex; i < API_BASE_CANDIDATES.length; i += 1) {
@@ -1274,7 +1293,8 @@ async function apiPost(data) {
         body: JSON.stringify({
           name: data.name,
           default_rank: data.rank,
-          role: data.role
+          role: data.role,
+          discord_id: data.discord_id || undefined
         })
       });
     }
@@ -2685,9 +2705,15 @@ document.getElementById('v-add-btn').addEventListener('click',async function(){
   if(!name){toast('Bitte einen Namen eingeben!');return;}
   if(members.includes(name)){toast('Mitglied existiert bereits!');return;}
   const role = vNewRank===5?'r5':vNewRank===4?'r4':'normal';
-  await apiPost({ action: 'add_member', name, rank: vNewRank, role });
+  const discordId = (document.getElementById('v-new-discord')?.value || '').trim();
+  try {
+    await apiPost({ action: 'add_member', name, rank: vNewRank, role, discord_id: discordId || undefined });
+  } catch(e) {
+    toast(e.message || 'Fehler beim Hinzufügen'); return;
+  }
   await loadMembers();
   document.getElementById('v-new-name').value='';
+  if(document.getElementById('v-new-discord')) document.getElementById('v-new-discord').value='';
   renderVerwaltung();
   toast(name+' hinzugefügt!');
 });
@@ -3287,6 +3313,15 @@ async function initApp(){
       window.location.replace(getBaseInyUrl('me'));
       return;
     }
+    // Show Admin button for R5
+    if (authResult.rank >= 5) {
+      const adminBtn = document.getElementById('btn-admin-nav');
+      if (adminBtn) adminBtn.style.display = 'inline-flex';
+    }
+    // Init char switcher
+    if (typeof window.initCharSwitcher === 'function') {
+      window.initCharSwitcher(currentDiscordUser, authMember);
+    }
   }
 
   // Lokal (F5/file://localhost) ohne Discord-Login starten
@@ -3295,6 +3330,15 @@ async function initApp(){
     await loadMembers();
     autoRefreshAvatars(); // Avatar-Cache im Hintergrund auffrischen (max. 1x pro 7 Tage)
     const localAuth = ensureLocalPreviewAuth();
+    // Redirect non-R4/R5 chars immediately, before rendering any admin content
+    if (!localAuth) {
+      document.getElementById('login-screen').style.display = 'flex';
+      return;
+    }
+    if (!localAuth.can_manage) {
+      goToView('me');
+      return;
+    }
     renderAll();
     hydrateEntriesFromCache(kw, { allowStale: true });
     renderAll();
@@ -3304,17 +3348,30 @@ async function initApp(){
         renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
       }
     });
-    if (localAuth && !localAuth.can_manage) {
-      window.location.replace(getBaseInyUrl('me'));
-      return;
+    // Init char switcher for local preview
+    const _lpDiscordId = localAuth?.discord_id || 'local-preview';
+    if (typeof window.initCharSwitcher === 'function') {
+      window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
+    } else {
+      window.addEventListener('load', () => {
+        if (typeof window.initCharSwitcher === 'function')
+          window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
+      });
     }
   } catch(e) {
     toast('Fehler beim Laden: ' + e.message);
   }
 }
 
+function goToAdminPage() {
+  const url = new URL(window.location.href);
+  const base = url.pathname.endsWith('/') ? url.pathname : url.pathname.replace(/[^/]*$/, '');
+  window.location.href = url.origin + base + 'admin.html';
+}
+
 initApp();
 </script>
+<script src="char-switcher.js"></script>
 <script src="shared-bottom.js"></script>
 </body>
 </html>

@@ -1605,7 +1605,27 @@ function upsertAllianceFromConfig(PDO $pdo, string $alliance): void {
             $pdo->prepare("INSERT IGNORE INTO ranks (alliance, rank_code) VALUES (?, ?)")->execute([$alliance, $r]);
         }
     } catch (\PDOException $e) {
-        // Ignore if ranks table doesn't exist or has different schema
+        if (!isOptionalTableError($e)) throw $e;
+    }
+    // Ensure all known flag_keys exist in flags table (required by FK weekly_entry_flags.fk_weekly_entry_flags_flag)
+    seedFlagsForAlliance($pdo, $alliance);
+}
+
+function seedFlagsForAlliance(PDO $pdo, string $alliance): void {
+    $flagKeys = [
+        'wache1','wache1dmg','wache2','wache2dmg','wache3','wache3dmg',
+        'seTeilnahme','seTop50','seTop20',
+        'wuesteAnmeldung','wuesteTeilnahme','wuesteFehlen',
+        'spendeUnter35k','spendeTop20',
+        'inaktiv','schild','falschparken','nap','mails','verhIntern','verhExtern','afk',
+        'umfragen','support','feedback',
+    ];
+    try {
+        $stmt = $pdo->prepare("INSERT IGNORE INTO flags (alliance, flag_key) VALUES (?, ?)");
+        foreach ($flagKeys as $key) {
+            $stmt->execute([$alliance, $key]);
+        }
+    } catch (\PDOException $e) {
         if (!isOptionalTableError($e)) throw $e;
     }
 }
@@ -1824,6 +1844,8 @@ function handleCreateAlliance(PDO $pdo, array $body): never {
     } catch (\PDOException $e) {
         if (!isOptionalTableError($e)) throw $e;
     }
+    // Seed flag_keys for the new alliance
+    seedFlagsForAlliance($pdo, $shortName);
     jsonOut(201, ['ok' => true, 'short_name' => $shortName]);
 }
 

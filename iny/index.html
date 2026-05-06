@@ -55,7 +55,8 @@ nav {
 .sync-btn { background: var(--card2); border: 1px solid var(--line2); border-radius: 8px; padding: 5px 10px; font-size: 16px; cursor: pointer; color: var(--soft); transition: all 0.2s; }
 .sync-btn:hover { color: var(--gold); border-color: var(--gold); }
 .sync-btn.spinning { animation: spin 0.8s linear infinite; pointer-events: none; }
-.nav-actions { display: flex; align-items: center; gap: 8px; }
+.nav-actions { display: flex; align-items: center; gap: 6px; }
+@media (max-width: 600px) { .nav-actions .nav-link-btn, .nav-actions .nav-help-btn, .nav-actions .sync-btn { display: none !important; } }
 .nav-link-btn {
   display: none;
   align-items: center;
@@ -3318,6 +3319,14 @@ async function initApp(){
       const adminBtn = document.getElementById('btn-admin-nav');
       if (adminBtn) adminBtn.style.display = 'inline-flex';
     }
+    // Register nav actions for char-switcher dropdown (shown on mobile)
+    window.csNavActions = [
+      { label: '📊 Punkte-Guide', fn: () => goToPointsGuide() },
+      { label: '👤 Mein Bereich', fn: () => goToMe() },
+    ];
+    if (authResult.rank >= 5) {
+      window.csNavActions.push({ label: '⚙ Admin', fn: () => goToAdminPage() });
+    }
     // Init char switcher
     if (typeof window.initCharSwitcher === 'function') {
       window.initCharSwitcher(currentDiscordUser, authMember);
@@ -3350,6 +3359,13 @@ async function initApp(){
     });
     // Init char switcher for local preview
     const _lpDiscordId = localAuth?.discord_id || 'local-preview';
+    window.csNavActions = [
+      { label: '📊 Punkte-Guide', fn: () => goToPointsGuide() },
+      { label: '👤 Mein Bereich', fn: () => goToMe() },
+    ];
+    if (localAuth?.can_manage) {
+      window.csNavActions.push({ label: '⚙ Admin', fn: () => goToAdminPage() });
+    }
     if (typeof window.initCharSwitcher === 'function') {
       window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
     } else {

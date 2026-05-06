@@ -1612,19 +1612,22 @@ function upsertAllianceFromConfig(PDO $pdo, string $alliance): void {
 }
 
 function seedFlagsForAlliance(PDO $pdo, string $alliance): void {
-    $flagKeys = [
-        'wache1','wache1dmg','wache2','wache2dmg','wache3','wache3dmg',
-        'seTeilnahme','seTop50','seTop20',
-        'wuesteAnmeldung','wuesteTeilnahme','wuesteFehlen',
-        'spendeUnter35k','spendeTop20',
-        'inaktiv','schild','falschparken','nap','mails','verhIntern','verhExtern','afk',
-        'umfragen','support','feedback',
-    ];
     try {
-        $stmt = $pdo->prepare("INSERT IGNORE INTO flags (alliance, flag_key) VALUES (?, ?)");
-        foreach ($flagKeys as $key) {
-            $stmt->execute([$alliance, $key]);
-        }
+        // Copy flag_categories and flags from the first existing alliance that has them
+        $source = $pdo->query(
+            "SELECT DISTINCT alliance FROM flags WHERE alliance != " . $pdo->quote($alliance) . " LIMIT 1"
+        )->fetchColumn();
+        if (!$source) return; // nothing to copy from
+
+        $pdo->prepare(
+            "INSERT IGNORE INTO flag_categories (alliance, category_key, category_label, category_type, bg_color, border_color, label_color, sort_order)
+             SELECT ?, category_key, category_label, category_type, bg_color, border_color, label_color, sort_order FROM flag_categories WHERE alliance = ?"
+        )->execute([$alliance, $source]);
+
+        $pdo->prepare(
+            "INSERT IGNORE INTO flags (alliance, flag_key, category_key, flag_label, flag_type, points_weight, is_active, sort_order)
+             SELECT ?, flag_key, category_key, flag_label, flag_type, points_weight, is_active, sort_order FROM flags WHERE alliance = ?"
+        )->execute([$alliance, $source]);
     } catch (\PDOException $e) {
         if (!isOptionalTableError($e)) throw $e;
     }

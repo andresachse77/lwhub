@@ -131,6 +131,7 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+      @media (max-width: 600px) { #cs-char-name { max-width: 72px; } }
       #cs-caret {
         font-size: 10px;
         color: #7a8498;
@@ -229,6 +230,8 @@
       .cs-btn-confirm:hover { background: rgba(240,165,0,0.35); }
       .cs-btn-cancel { background: rgba(255,255,255,0.05); color: #7a8498; border: 1px solid rgba(255,255,255,0.1) !important; }
       .cs-btn-cancel:hover { background: rgba(255,255,255,0.1); color: #dde1ec; }
+      .cs-mobile-only { display: none !important; }
+      @media (max-width: 600px) { .cs-mobile-only { display: flex !important; } }
     `;
     document.head.appendChild(style);
   }
@@ -297,16 +300,20 @@
 
   // ── Inject into topbar ────────────────────────────────────────────────────────
   function injectIntoTopbar(widget) {
-    // Try common topbar selectors used across the pages
-    const selectors = ['.topbar-actions', '.nav-actions', '.nav-right', '.topbar', 'nav'];
+    // Prevent double-injection
+    if (document.getElementById('cs-wrap')) {
+      document.getElementById('cs-wrap').replaceWith(widget);
+      return true;
+    }
+    // Try common topbar selectors – always append (not prepend) to avoid fighting existing buttons
+    const selectors = ['.nav-actions', '.topbar-actions', '.nav-right', '.topbar', 'nav'];
     for (const sel of selectors) {
       const el = document.querySelector(sel);
       if (el) {
-        el.insertBefore(widget, el.firstChild);
+        el.appendChild(widget);
         return true;
       }
     }
-    // Fallback: append to body
     document.body.appendChild(widget);
     return false;
   }
@@ -373,6 +380,19 @@
       html += `<button class="cs-menu-item" id="cs-admin-btn" style="color:#f0a500">⚙ Allianz-Verwaltung</button>`;
     }
     html += `<button class="cs-menu-item" id="cs-logout-btn">⏻ Logout</button>`;
+
+    // Mobile-only nav actions (hidden in navbar via CSS on small screens)
+    const navActions = window.csNavActions || [];
+    if (navActions.length) {
+      html += `<div class="cs-divider cs-mobile-only"></div>`;
+      navActions.forEach((a, i) => {
+        html += `<button class="cs-menu-item cs-mobile-only" data-nav-action="${i}">${escHtml(a.label)}</button>`;
+      });
+      // Sync button if available
+      if (document.getElementById('btn-sync')) {
+        html += `<button class="cs-menu-item cs-mobile-only" id="cs-sync-btn">🔄 Daten aktualisieren</button>`;
+      }
+    }
 
     list.innerHTML = html;
 
@@ -487,6 +507,24 @@
         localStorage.removeItem(ACTIVE_CHAR_KEY);
         window.location.reload();
       }
+    });
+
+    // Mobile nav actions
+    list.querySelectorAll('[data-nav-action]').forEach(btn => {
+      const idx = parseInt(btn.dataset.navAction, 10);
+      btn.addEventListener('click', () => {
+        dropdown.classList.remove('open');
+        document.getElementById('cs-trigger')?.classList.remove('open');
+        const action = (window.csNavActions || [])[idx];
+        if (action?.fn) action.fn();
+      });
+    });
+
+    // Mobile sync
+    document.getElementById('cs-sync-btn')?.addEventListener('click', () => {
+      dropdown.classList.remove('open');
+      document.getElementById('cs-trigger')?.classList.remove('open');
+      document.getElementById('btn-sync')?.click();
     });
   }
 

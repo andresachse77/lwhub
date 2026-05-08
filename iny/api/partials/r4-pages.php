@@ -121,7 +121,7 @@
 
     <div class="event-section active" data-event="w">
       <div class="wache-legend">
-        <span><span style="color:var(--red);">⚠</span> wenig Schaden (&lt;2M, Strafe)</span>
+        <span><span style="color:var(--red);">⚠</span> wenig Schaden (&lt;2G)</span>
         <span><span style="color:var(--green);">⚔</span> guter Schaden</span>
         <span><span style="color:var(--softer);">○</span> nicht dabei</span>
         <span style="margin-left:auto;" class="wache-counter" id="w-counter">0 / 0</span>

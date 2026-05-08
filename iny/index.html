@@ -2976,7 +2976,7 @@ function renderWache() {
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
-    const btnBad = `<button class="wt-btn ${dmg?'on-bad':''}" onclick="wacheSet('${esc}','bad')" title="wenig Schaden < 2M (Strafe)">${dmg?'⚠ &lt;2M':'💤'}</button>`;
+    const btnBad = `<button class="wt-btn ${dmg?'on-bad':''}" onclick="wacheSet('${esc}','bad')" title="wenig Schaden < 2G">${dmg?'⚠ &lt;2G':'💤'}</button>`;
     const btnGood = `<button class="wt-btn ${(teil&&!dmg)?'on-good':''}" onclick="wacheSet('${esc}','good')" title="guter Schaden">${(teil&&!dmg)?'⚔ gut':'⚔'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';

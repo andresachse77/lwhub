@@ -151,7 +151,7 @@
 
     <div class="event-section" data-event="vs">
       <div class="wache-legend">
-        <span><span style="color:var(--red);">⚠</span> unter 50 Mio (Strafe)</span>
+        <span><span style="color:var(--red);">⚠</span> unter 43,2 Mio (Strafe)</span>
         <span><span style="color:var(--blue);">🥈</span> Top 30 (Bonus)</span>
         <span><span style="color:var(--gold);">🏆</span> Top 10 (Bonus)</span>
         <span style="margin-left:auto;" class="wache-counter" id="vs-counter">0 / 0</span>

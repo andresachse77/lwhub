@@ -1725,7 +1725,7 @@ const RL = {1:'Rookie',2:'Pro',3:'Elite',4:'Leader',5:'Chef'};
 
 const CATS = [
   { l:'⚔ VS', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
-    f:[{k:'vsUnter50',l:'unter 50 Mio',t:'r'},{k:'vsTop30',l:'Top 30',t:'b'},{k:'vsTop10',l:'Top 10',t:'b'}] },
+    f:[{k:'vsUnter50',l:'unter 43,2 Mio',t:'r'},{k:'vsTop30',l:'Top 30',t:'b'},{k:'vsTop10',l:'Top 10',t:'b'}] },
   { l:'💰 Spenden', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
     f:[{k:'spendeUnter35k',l:'unter 35K',t:'r'},{k:'spendeTop20',l:'Top 20',t:'b'}] },
   { l:'🛡 Wache', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
@@ -3228,7 +3228,7 @@ function renderVS() {
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
-    const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="vsSet('${esc}','unter')" title="unter 50 Mio Punkte (Strafe)">${unter?'⚠ &lt;50M':'🟥'}</button>`;
+    const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="vsSet('${esc}','unter')" title="unter 43,2 Mio Punkte (Strafe)">${unter?'⚠ &lt;43,2M':'🟥'}</button>`;
     const btnT30   = `<button class="wt-btn ${t30?'on-anm':''}" onclick="vsSet('${esc}','t30')" title="Top 30">${t30?'🥈 T30':'🥈'}</button>`;
     const btnT10   = `<button class="wt-btn ${t10?'on-gold':''}" onclick="vsSet('${esc}','t10')" title="Top 10">${t10?'🏆 T10':'🏆'}</button>`;
 

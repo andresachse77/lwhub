@@ -1,4 +1,7 @@
 (function () {
+  // DEAKTIVIERT – Chat/Online-Widget vorübergehend deaktiviert (zu fehlerhaft)
+  return;
+
   if (window.__inyBottomWidgetLoaded) return;
   window.__inyBottomWidgetLoaded = true;
 

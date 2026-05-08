@@ -57,6 +57,7 @@ nav {
 .sync-btn.spinning { animation: spin 0.8s linear infinite; pointer-events: none; }
 .nav-actions { display: flex; align-items: center; gap: 6px; }
 @media (max-width: 600px) { .nav-actions .nav-link-btn, .nav-actions .nav-help-btn, .nav-actions .sync-btn { display: none !important; } }
+@media (max-width: 600px) { #main-tabs { display: none !important; } }
 .nav-link-btn {
   display: none;
   align-items: center;
@@ -208,6 +209,7 @@ nav {
 .member-jump:hover { color: var(--gold2); }
 .tags { display: flex; gap: 4px; flex-wrap: wrap; }
 .tag { font-size: 10px; padding: 2px 7px; border-radius: 4px; }
+.tag.n { background: rgba(155,109,255,0.12); color: var(--purple); border: 1px solid rgba(155,109,255,0.3); }
 .tag.r { background: rgba(224,85,69,0.15); color: #f09080; border: 1px solid rgba(224,85,69,0.3); }
 .tag.g { background: rgba(46,203,122,0.12); color: #70e0a0; border: 1px solid rgba(46,203,122,0.25); }
 .tag.a { background: rgba(240,165,0,0.12); color: var(--gold); border: 1px solid rgba(240,165,0,0.3); }
@@ -493,6 +495,271 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   .wache-tab { padding: 8px 6px; font-size: 13px; text-align: center; }
   .wache-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
+
+/* ── MEIN BEREICH (me- prefix, scoped) ── */
+.me-shell { max-width: 1240px; margin: 0 auto; padding: 22px 0 48px; }
+.me-hero-card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 24px; box-shadow: 0 18px 44px rgba(0,0,0,0.18);
+  padding: 26px; position: relative; overflow: hidden;
+}
+.me-hero-card::after {
+  content: ''; position: absolute; inset: auto -80px -120px auto;
+  width: 240px; height: 240px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(240,165,0,0.16), transparent 68%);
+}
+#page-m .me-shell { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(300px,0.9fr); grid-template-rows: auto auto auto auto; gap: 18px; }
+#page-m .me-activities-section { grid-column: 1 / -1; }
+#page-m section.me-panel { grid-column: 1 / -1; }
+#page-m .me-changelog-details { grid-column: 1 / -1; }
+.me-member-head { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+#member-avatar-wrap img, #member-avatar-wrap .me-placeholder {
+  width: 76px; height: 76px; border-radius: 22px; object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(135deg, rgba(74,158,255,0.24), rgba(155,109,255,0.18));
+}
+#member-avatar-wrap .me-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 700;
+}
+.me-member-name { font-family: 'Rajdhani', sans-serif; font-size: 36px; line-height: 1; }
+.me-member-meta { color: var(--soft); font-size: 13px; margin-top: 8px; }
+.me-badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.me-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+}
+.me-stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.me-stat {
+  padding: 15px 16px; border-radius: 18px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+}
+.me-stat-label { font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--soft); margin-bottom: 6px; }
+.me-stat-value { font-family: 'Rajdhani', sans-serif; font-size: 34px; line-height: 1; }
+.me-big { font-size: 52px; }
+.me-stat-sub { color: var(--soft); font-size: 12px; margin-top: 6px; }
+.me-week-panel { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+.me-week-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.me-panel-title { font-family: 'Rajdhani', sans-serif; font-size: 19px; letter-spacing: 1px; }
+.me-panel-sub { color: var(--soft); font-size: 12px; }
+.me-week-switch {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px; border-radius: 18px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+}
+.me-kw-btn {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(255,255,255,0.04); color: var(--text);
+  border: 1px solid var(--line); cursor: pointer;
+}
+.me-kw-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.me-kw-btn:disabled { opacity: 0.28; cursor: default; }
+.me-week-select {
+  flex: 1; background: rgba(9,12,18,0.7); color: var(--text);
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+  font-family: inherit;
+}
+.me-delta-display {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-radius: 16px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+}
+.me-delta-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); }
+.me-delta-value { font-family: 'Rajdhani', sans-serif; font-size: 28px; }
+.me-delta-value.positive { color: var(--green); }
+.me-delta-value.negative { color: var(--red); }
+.me-delta-value.neutral { color: var(--soft); }
+.me-panel {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 24px; box-shadow: 0 18px 44px rgba(0,0,0,0.18);
+  padding: 22px;
+}
+.me-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.me-activities-panel { padding: 22px; }
+.me-activities-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.me-act-col-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.me-dot { width: 8px; height: 8px; border-radius: 50%; }
+.me-dot-green { background: var(--green); }
+.me-dot-red { background: var(--red); }
+.me-act-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-radius: 14px; margin-bottom: 6px; font-size: 13px;
+}
+.me-act-item.good { background: rgba(74,158,255,0.09); border: 1px solid rgba(74,158,255,0.18); }
+.me-act-item.neutral{ background: rgba(155,109,255,0.08); border: 1px solid rgba(155,109,255,0.2); }
+.me-act-item.bad  { background: rgba(224,85,69,0.1);   border: 1px solid rgba(224,85,69,0.22); }
+.me-act-item.bonus{ background: rgba(240,165,0,0.1);   border: 1px solid rgba(240,165,0,0.22); }
+.me-act-pts { font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; white-space: nowrap; margin-left: 8px; }
+.me-act-pts.pos { color: var(--green); }
+.me-act-pts.neg { color: var(--red); }
+.me-act-pts.bon { color: var(--gold); }
+.me-act-pts.neu { color: var(--purple); }
+.me-empty { padding: 16px; border-radius: 16px; border: 1px dashed rgba(255,255,255,0.12); color: var(--soft); font-size: 13px; }
+.me-potential-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.me-potential-card {
+  padding: 16px; border-radius: 18px;
+  background: rgba(240,165,0,0.07); border: 1px solid rgba(240,165,0,0.18);
+}
+.me-potential-card-label { font-size: 11px; color: var(--soft); margin-bottom: 6px; }
+.me-potential-card-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 8px; line-height: 1.3; }
+.me-potential-card-gain { font-family: 'Rajdhani', sans-serif; font-size: 22px; color: var(--gold2); }
+.me-timeline { display: flex; flex-direction: column; gap: 10px; }
+.me-timeline-row {
+  display: grid; grid-template-columns: 92px minmax(0,1fr) auto;
+  gap: 12px; align-items: center;
+  padding: 12px 14px; border-radius: 18px;
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer; transition: border-color 0.18s; text-align: left;
+  color: var(--text); width: 100%;
+  font-family: inherit;
+}
+.me-timeline-row:hover { border-color: rgba(255,255,255,0.15); }
+.me-timeline-row.active { border-color: rgba(240,165,0,0.34); background: rgba(240,165,0,0.07); }
+.me-timeline-week { font-family: 'Rajdhani', sans-serif; font-size: 22px; color: var(--text); }
+.me-timeline-meta { font-size: 12px; color: var(--soft); margin-top: 4px; }
+.me-bar-track { height: 9px; border-radius: 999px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.me-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), var(--gold2)); }
+.me-timeline-score { text-align: right; }
+.me-timeline-score strong { display: block; font-family: 'Rajdhani', sans-serif; font-size: 26px; line-height: 1; color: var(--text); }
+.me-timeline-score span { color: var(--soft); font-size: 11px; }
+.me-changelog-details {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 24px; overflow: hidden;
+}
+.me-changelog-details summary {
+  padding: 18px 22px; cursor: pointer;
+  font-family: 'Rajdhani', sans-serif; font-size: 17px; letter-spacing: 1px;
+  color: var(--soft); list-style: none; user-select: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.me-changelog-details summary::before { content: '▸'; font-size: 12px; }
+.me-changelog-details[open] summary::before { content: '▾'; }
+.me-changelog-body { padding: 0 22px 22px; }
+.me-change-log { display: flex; flex-direction: column; gap: 10px; }
+.me-change-row { padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+.me-change-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.me-change-source { font-size: 11px; color: var(--gold2); text-transform: uppercase; letter-spacing: 1px; }
+.me-change-when { font-size: 11px; color: var(--soft); }
+.me-change-body { margin-top: 8px; color: var(--soft); font-size: 12px; line-height: 1.5; }
+@media (max-width: 980px) {
+  #page-m .me-shell { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .me-activities-split { grid-template-columns: 1fr; }
+  .me-potential-grid { grid-template-columns: 1fr; }
+  .me-timeline-row { grid-template-columns: 1fr; }
+  .me-timeline-score { text-align: left; }
+}
+@media (max-width: 640px) {
+  .me-member-name { font-size: 30px; }
+  .me-stats-grid { grid-template-columns: 1fr; }
+}
+
+/* ── PUNKTE-GUIDE (pg- prefix, scoped) ── */
+.pg-shell { max-width: 1120px; margin: 0 auto; padding: 20px 0 44px; }
+.pg-hero { display: grid; gap: 14px; margin-bottom: 16px; }
+.pg-hero-card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 20px; padding: 22px; box-shadow: 0 18px 38px rgba(0,0,0,0.2);
+}
+.pg-eyebrow { font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--soft); }
+.pg-h1 { font-family: 'Rajdhani', sans-serif; font-size: 34px; letter-spacing: 1px; margin-top: 4px; }
+.pg-sub { color: var(--soft); line-height: 1.55; margin-top: 8px; }
+.pg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.pg-kpi { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; }
+.pg-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); }
+.pg-value { margin-top: 6px; font-family: 'Rajdhani', sans-serif; font-size: 30px; line-height: 1; }
+.pg-note { margin-top: 6px; color: var(--soft); font-size: 12px; }
+.pg-layout { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 14px; }
+.pg-panel { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 20px; }
+.pg-h2 { font-family: 'Rajdhani', sans-serif; font-size: 22px; letter-spacing: 1px; margin-bottom: 10px; }
+.pg-points-list { display: grid; gap: 8px; }
+.pg-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);
+}
+.pg-name { color: var(--text); font-size: 13px; }
+.pg-badge { font-family: 'Rajdhani', sans-serif; font-size: 20px; line-height: 1; font-weight: 700; }
+.pg-plus  { color: var(--green); }
+.pg-minus { color: var(--red); }
+.pg-mix   { color: var(--blue); }
+.pg-tip { margin-top: 12px; padding: 10px 12px; border-radius: 12px; border: 1px dashed rgba(255,255,255,0.2); color: var(--soft); font-size: 12px; line-height: 1.5; }
+.pg-example { display: grid; gap: 8px; }
+.pg-ex-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
+.pg-ex-total { margin-top: 6px; display: grid; grid-template-columns: 1fr auto; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(240,165,0,0.35); background: rgba(240,165,0,0.08); font-weight: 700; }
+.pg-footer-note { margin-top: 14px; color: var(--soft); font-size: 12px; line-height: 1.5; }
+@media (max-width: 930px) {
+  .pg-grid { grid-template-columns: 1fr; }
+  .pg-layout { grid-template-columns: 1fr; }
+}
+
+/* ── Admin sub-nav ── */
+.admin-nav { display: flex; gap: 4px; background: var(--card2); border-radius: 8px; padding: 3px; margin-bottom: 1.2rem; flex-wrap: wrap; }
+.admin-nav-tab { padding: 5px 16px; font-size: 12px; font-weight: 600; border: none; border-radius: 6px; background: none; color: var(--soft); cursor: pointer; transition: all 0.15s; }
+.admin-nav-tab.active { background: var(--card); color: var(--text); }
+.admin-page { display: none; }
+.admin-page.active { display: block; }
+
+/* ── Utility buttons ── */
+.btn { border: none; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-gold { background: linear-gradient(135deg, rgba(240,165,0,0.22), rgba(255,208,96,0.1)); color: var(--gold2); border: 1px solid rgba(240,165,0,0.3); }
+.btn-gold:hover { border-color: var(--gold); color: var(--gold); }
+.btn-ghost { background: rgba(255,255,255,0.04); color: var(--soft); border: 1px solid var(--line2); }
+.btn-ghost:hover { color: var(--text); }
+.btn-green { background: rgba(46,203,122,0.15); color: #4de896; border: 1px solid rgba(46,203,122,0.3); }
+.btn-green:hover { background: rgba(46,203,122,0.25); }
+.btn-red { background: rgba(224,85,69,0.15); color: #f39b8f; border: 1px solid rgba(224,85,69,0.28); }
+.btn-red:hover { background: rgba(224,85,69,0.25); }
+
+/* ── Section ── */
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 12px; }
+.section-title { font-family: 'Rajdhani', sans-serif; font-size: 18px; letter-spacing: 1px; font-weight: 700; }
+.section-sub { font-size: 12px; color: var(--soft); margin-top: 2px; }
+
+/* ── Card ── */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 10px; }
+
+/* ── Alliance list ── */
+.alliance-list { display: grid; gap: 8px; }
+.alliance-row { display: flex; align-items: center; gap: 12px; background: var(--card2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.alliance-short { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; color: var(--gold); min-width: 60px; }
+.alliance-title-text { flex: 1; font-size: 14px; color: var(--text); }
+.alliance-title-text small { display: block; font-size: 11px; color: var(--soft); margin-top: 2px; }
+.alliance-actions { display: flex; gap: 6px; }
+
+/* ── Archive ── */
+.archive-filter { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.archive-filter select { background: var(--card2); border: 1px solid var(--line2); border-radius: 8px; color: var(--text); padding: 7px 10px; font-size: 12px; }
+.archive-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.archive-table th { text-align: left; padding: 8px 10px; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); border-bottom: 1px solid var(--line2); font-weight: 600; }
+.archive-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.archive-table tr:last-child td { border-bottom: none; }
+.archive-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ── Modal ── */
+.modal-bg { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-bg.hidden { display: none; }
+.modal { background: var(--card); border: 1px solid var(--line2); border-radius: 14px; padding: 24px; width: min(460px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+.modal-title { font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* ── Form fields ── */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--soft); margin-bottom: 5px; }
+.field input, .field select, .field textarea { width: 100%; background: var(--card2); border: 1px solid var(--line2); border-radius: 8px; color: var(--text); font-size: 13px; padding: 9px 11px; outline: none; }
+.field input:focus, .field select:focus { border-color: var(--gold); }
+.field .hint { font-size: 11px; color: var(--soft); margin-top: 4px; }
+
+/* ── Toast types ── */
+.toast.ok { border-color: rgba(46,203,122,0.4); color: #4de896; }
+.toast.err { border-color: rgba(224,85,69,0.4); color: #f39b8f; }
 </style>
 </head>
 <body>
@@ -515,20 +782,16 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 
 <nav>
   <div class="logo"><span class="js-alliance-short">INY</span> <em class="js-alliance-tagline">RANKING</em></div>
-  <div class="tabs">
-    <button class="tab active" id="tab-d" onclick="showPage('d')">Dashboard</button>
-    <button class="tab" id="tab-e" onclick="showPage('e')">Eingabe</button>
-    <button class="tab" id="tab-w" onclick="showPage('w')">Events</button>
-    <button class="tab" id="tab-r" onclick="showPage('r')">Ergebnis</button>
-    <button class="tab" id="tab-v" onclick="showPage('v')">Verwaltung</button>
+  <div class="tabs" id="main-tabs">
+    <button class="tab active" id="tab-m" onclick="showPage('m')">Mein Bereich</button>
+    <button class="tab" id="tab-p" onclick="showPage('p')">Punkte-Guide</button>
+    <span id="r4-tab-btns"></span>
+    <span id="admin-tab-btns"></span>
   </div>
   <div class="nav-actions">
-    <button class="nav-help-btn" id="btn-guide" type="button" onclick="goToPointsGuide()">Punkte-Guide</button>
-    <button class="nav-link-btn" id="btn-admin-nav" type="button" style="display:none" onclick="goToAdminPage()">Admin</button>
-    <button class="nav-link-btn" id="btn-me" type="button" onclick="goToMe()">Mein Bereich</button>
     <button class="sync-btn" id="btn-sync" onclick="syncData()" title="Daten neu laden">🔄</button>
   </div>
-  <div class="kw-nav">
+  <div class="kw-nav" id="kw-nav-wrap" style="display:none">
     <button class="kw-btn" type="button" onclick="changeYearWeek(-1)" title="Vorherige Woche">‹</button>
     <div class="kw-wrap">
     <label>KW</label>
@@ -538,283 +801,339 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   </div>
 </nav>
 
-<!-- ═══ DASHBOARD ═══ -->
-<div class="page active" id="page-d">
+<!-- ═══ MEIN BEREICH ═══ -->
+<div class="page active" id="page-m">
+  <div class="me-shell">
 
-  <div class="stats">
-    <div class="stat"><div class="stat-label">Erfasst</div><div class="stat-num g" id="s-count">0</div><div class="stat-sub">von 100 Mitgliedern</div></div>
-    <div class="stat"><div class="stat-label">Warnungen</div><div class="stat-num r" id="s-warn">0</div><div class="stat-sub">Strafpunkte aktiv</div></div>
-    <div class="stat"><div class="stat-label">Aufsteiger</div><div class="stat-num gr" id="s-up">0</div><div class="stat-sub">Rank verbessert</div></div>
-    <div class="stat"><div class="stat-label">Absteiger</div><div class="stat-num b" id="s-down">0</div><div class="stat-sub">Rank verschlechtert</div></div>
-  </div>
-
-  <div class="prog">
-    <div class="prog-top"><span>Erfassungsfortschritt KW <span id="kw-d">15</span></span><span id="prog-pct">0%</span></div>
-    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-  </div>
-
-  <div class="grid2">
-    <div class="panel">
-      <div class="panel-head"><div class="panel-title">Warnliste</div><div class="panel-sub" id="warn-ct"></div></div>
-      <div id="warn-list"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><div class="panel-title">Top Performer</div><div class="panel-sub">beste Beteiligung</div></div>
-      <div id="top-list"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><div class="panel-title">Rank-Verteilung</div><div class="panel-sub">diese Woche</div></div>
-      <div class="rdist" id="rdist"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><div class="panel-title">Aktivste Felder</div><div class="panel-sub">Häufigkeit</div></div>
-      <div class="bars" id="field-bars"></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <div class="panel-title">Alle Mitglieder</div>
-      <div class="filter-row" id="filterBar">
-        <button class="flt on" data-f="all">Alle</button>
-        <button class="flt" data-f="warn">⚠ Warnungen</button>
-        <button class="flt" data-f="up">↑ Aufsteiger</button>
-        <button class="flt" data-f="down">↓ Absteiger</button>
-        <button class="flt" data-f="missing">○ Ausstehend</button>
+    <article class="me-hero-card">
+      <div class="me-member-head">
+        <div id="member-avatar-wrap"></div>
+        <div>
+          <div class="me-member-name" id="member-name">-</div>
+          <div class="me-member-meta" id="member-meta">-</div>
+          <div class="me-badge-row" id="member-badges"></div>
+        </div>
       </div>
-    </div>
-    <div style="overflow-x:auto;">
-      <table class="rtable">
-        <thead><tr><th>#</th><th>Mitglied</th><th>Rank</th><th>Tendenz</th><th>Flags</th><th>Status</th></tr></thead>
-        <tbody id="rankingBody"></tbody>
-      </table>
-    </div>
+      <div class="me-stats-grid">
+        <div class="me-stat">
+          <div class="me-stat-label">Punkte</div>
+          <div class="me-stat-value me-big" id="stat-points">0</div>
+          <div class="me-stat-sub" id="stat-rank-display">-</div>
+        </div>
+        <div class="me-stat">
+          <div class="me-stat-label">Aktuelle Woche</div>
+          <div class="me-stat-value" id="stat-week">-</div>
+          <div class="me-stat-sub" id="stat-week-sub">letzter gespeicherter Stand</div>
+        </div>
+      </div>
+    </article>
+
+    <aside class="me-hero-card me-week-panel">
+      <div class="me-week-panel-head">
+        <div>
+          <div class="me-panel-title">Wochenübersicht</div>
+          <div class="me-panel-sub" id="week-sub">Woche wählen und Details sehen</div>
+        </div>
+        <div id="rank-change-badge" style="display:none"></div>
+      </div>
+      <div class="me-week-switch">
+        <button class="me-kw-btn" type="button" id="week-prev" onclick="meStepWeek(-1)">‹</button>
+        <select class="me-week-select" id="week-select"></select>
+        <button class="me-kw-btn" type="button" id="week-next" onclick="meStepWeek(1)">›</button>
+      </div>
+      <div class="me-delta-display">
+        <div class="me-delta-label">Vergleich zur Vorwoche</div>
+        <div class="me-delta-value" id="week-delta">–</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="me-stat" style="padding:12px 14px;">
+          <div class="me-stat-label">Positive Einträge</div>
+          <div class="me-stat-value" style="font-size:26px;" id="week-good">0</div>
+        </div>
+        <div class="me-stat" style="padding:12px 14px;">
+          <div class="me-stat-label">Warnungen</div>
+          <div class="me-stat-value" style="font-size:26px;color:var(--red);" id="week-warn">0</div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="me-activities-section">
+      <div class="me-panel me-activities-panel">
+        <div class="me-panel-head">
+          <div>
+            <div class="me-panel-title" id="acts-title">Aktivitäten dieser Woche</div>
+            <div class="me-panel-sub" id="acts-sub">Was hat dir Punkte gebracht oder genommen?</div>
+          </div>
+        </div>
+        <div class="me-activities-split">
+          <div>
+            <div class="me-act-col-head" style="color:var(--green)">
+              <div class="me-dot me-dot-green"></div>Verdient
+            </div>
+            <div id="acts-positive"></div>
+          </div>
+          <div>
+            <div class="me-act-col-head" style="color:var(--red)">
+              <div class="me-dot me-dot-red"></div>Gekostet
+            </div>
+            <div id="acts-negative"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="me-panel" id="potential-section" style="display:none">
+      <div class="me-panel-head">
+        <div>
+          <div class="me-panel-title">Dein Potenzial</div>
+          <div class="me-panel-sub">Diese Aktivitäten würden dir die meisten Punkte bringen</div>
+        </div>
+      </div>
+      <div class="me-potential-grid" id="potential-grid"></div>
+    </section>
+
+    <section class="me-panel" style="margin-top:18px;">
+      <div class="me-panel-head">
+        <div>
+          <div class="me-panel-title">Historie</div>
+          <div class="me-panel-sub" id="timeline-sub">Punkteverlauf über alle gespeicherten Wochen</div>
+        </div>
+      </div>
+      <div class="me-timeline" id="timeline"></div>
+    </section>
+
+    <details class="me-changelog-details" id="changelog-details" style="display:none">
+      <summary>Rank-Änderungen</summary>
+      <div class="me-changelog-body">
+        <div class="me-change-log" id="change-log"></div>
+      </div>
+    </details>
+
   </div>
 </div>
 
-<!-- ═══ EINGABE ═══ -->
-<div class="page" id="page-e">
-
-  <div class="search-bar">
-    <div style="display:flex;align-items:center;">
-      <input type="text" class="search-input" id="searchInput" placeholder="🔍  Mitglied suchen...">
-      <span class="list-counter" id="listCounter"></span>
-    </div>
-    <div class="filter-row" style="width:100%;justify-content:space-between;align-items:center;">
-      <div style="display:flex;gap:5px;flex-wrap:wrap;">
-        <button class="flt on" data-lf="all">Alle</button>
-        <button class="flt" data-lf="missing">○ Ausstehend</button>
-        <button class="flt" data-lf="done">✓ Erfasst</button>
-      </div>
-      <button class="flt-toggle" id="btn-done-bottom" title="Erfasste Mitglieder ans Ende sortieren (nochmal klicken: ausblenden)" onclick="toggleDoneMode()">↓ Erfasste ans Ende</button>
-    </div>
+<!-- ═══ PUNKTE-GUIDE ═══ -->
+<div class="page" id="page-p">
+  <div class="pg-shell">
+    <section class="pg-hero">
+      <article class="pg-hero-card">
+        <div class="pg-eyebrow">Erklaerbaer</div>
+        <h1 class="pg-h1">Punkte und Abzuege einfach erklaert</h1>
+        <p class="pg-sub">Hier sieht jedes Mitglied transparent, wie die Punktzahl entsteht. Einige Bereiche haben eine Gewichtung, daher sind hohe Werte wie 300 in Einzelfaellen moeglich.</p>
+      </article>
+      <article class="pg-grid">
+        <div class="pg-kpi">
+          <div class="pg-label">Theoretisches Maximum</div>
+          <div class="pg-value" style="color:var(--gold2)">385</div>
+          <div class="pg-note">Bei idealer Kombination ohne Strafpunkte</div>
+        </div>
+        <div class="pg-kpi">
+          <div class="pg-label">Top VS-Gewichtung</div>
+          <div class="pg-value" style="color:var(--blue)">140</div>
+          <div class="pg-note">VS Gesamt wird mit Faktor 5 gerechnet (Deckel 140)</div>
+        </div>
+        <div class="pg-kpi">
+          <div class="pg-label">Strafpunkte</div>
+          <div class="pg-value" style="color:var(--red)">bis -140</div>
+          <div class="pg-note">Inaktiv + NAP + Verhalten extern etc.</div>
+        </div>
+      </article>
+    </section>
+    <section class="pg-layout">
+      <article class="pg-panel">
+        <h2 class="pg-h2">Pluspunkte</h2>
+        <div class="pg-points-list">
+          <div class="pg-row"><div class="pg-name">VS Top 30 / Top 10 (mit VS-Gewichtung)</div><div class="pg-badge pg-mix">+75 / +25</div></div>
+          <div class="pg-row"><div class="pg-name">Spenden Top 20 (mit Spenden-Gewichtung)</div><div class="pg-badge pg-mix">+35</div></div>
+          <div class="pg-row"><div class="pg-name">Wache Teilnahme je Slot</div><div class="pg-badge pg-plus">+10</div></div>
+          <div class="pg-row"><div class="pg-name">Wache Bonus (pro 2 Teilnahmen)</div><div class="pg-badge pg-plus">+15</div></div>
+          <div class="pg-row"><div class="pg-name">Spezialevent Teilnahme / Top 50 / Top 20</div><div class="pg-badge pg-mix">+20 / +30 / +20</div></div>
+          <div class="pg-row"><div class="pg-name">Wueste Anmeldung / Teilnahme</div><div class="pg-badge pg-plus">+10 / +25</div></div>
+          <div class="pg-row"><div class="pg-name">Bonus: Umfragen / Support / Feedback</div><div class="pg-badge pg-plus">+10 / +10 / +5</div></div>
+        </div>
+        <div class="pg-tip">Hinweis: VS und Spenden haben Basiswerte und werden im Regelwerk gewichtet. Deshalb entstehen dort groessere Spruenge als bei normalen Flags.</div>
+      </article>
+      <aside class="pg-panel">
+        <h2 class="pg-h2">Abzuege</h2>
+        <div class="pg-points-list">
+          <div class="pg-row"><div class="pg-name">VS unter Schwelle / Spende unter Schwelle</div><div class="pg-badge pg-minus">-25 / -35</div></div>
+          <div class="pg-row"><div class="pg-name">Wache kein DMG</div><div class="pg-badge pg-minus">-5</div></div>
+          <div class="pg-row"><div class="pg-name">Wueste unentschuldigt fehlen</div><div class="pg-badge pg-minus">-15</div></div>
+          <div class="pg-row"><div class="pg-name">Inaktiv / NAP / Verhalten extern</div><div class="pg-badge pg-minus">-30 / -30 / -30</div></div>
+          <div class="pg-row"><div class="pg-name">Schild / Falschparken</div><div class="pg-badge pg-minus">-10 / -10</div></div>
+          <div class="pg-row"><div class="pg-name">Ankuendigungs-Mails / Verhalten intern</div><div class="pg-badge pg-minus">-15 / -15</div></div>
+        </div>
+        <h2 class="pg-h2" style="margin-top:16px;">Beispielrechnung</h2>
+        <div class="pg-example">
+          <div class="pg-ex-row"><span>VS Gewichtung</span><strong>+125</strong></div>
+          <div class="pg-ex-row"><span>Spenden Gewichtung</span><strong>+35</strong></div>
+          <div class="pg-ex-row"><span>Wache Gesamt</span><strong>+35</strong></div>
+          <div class="pg-ex-row"><span>Spezialevents Gesamt</span><strong>+70</strong></div>
+          <div class="pg-ex-row"><span>Wueste Gesamt</span><strong>+35</strong></div>
+          <div class="pg-ex-row"><span>Strafpunkte</span><strong>0</strong></div>
+          <div class="pg-ex-total"><span>Gesamtpunkte</span><span>300</span></div>
+        </div>
+        <div class="pg-footer-note">Rank-Logik fuer R1-R3: bis 84 Punkte = R1, ab 85 Punkte = R2, ab 180 Punkte = R3. R4/R5 bleiben fix.</div>
+      </aside>
+    </section>
   </div>
-
-  <!-- EDITOR -->
-  <div class="editor-wrap" id="editor">
-    <div class="editor-header">
-      <div class="editor-name" id="editorName"></div>
-      <button class="editor-close" id="editorClose">✕</button>
-    </div>
-
-    <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--soft);margin-bottom:8px;">Rank</div>
-    <div class="rank-selector" id="rankRow">
-      <div class="rk-btn" data-r="1"><div class="rk-num">1</div><div class="rk-lbl">Rookie</div></div>
-      <div class="rk-btn" data-r="2"><div class="rk-num">2</div><div class="rk-lbl">Pro</div></div>
-      <div class="rk-btn on" data-r="3"><div class="rk-num">3</div><div class="rk-lbl">Elite</div></div>
-      <div class="rk-btn" data-r="4"><div class="rk-num">4</div><div class="rk-lbl">Leader</div></div>
-      <div class="rk-btn" data-r="5"><div class="rk-num">5</div><div class="rk-lbl">Chef</div></div>
-    </div>
-    <div class="fixed-note" id="fixedNote"></div>
-
-    <div class="flag-cats" id="flagCats"></div>
-    <button class="save-btn" id="saveBtn">✓ Speichern</button>
-  </div>
-
-  <div class="member-list" id="memberList"></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- ═══ WACHE ═══ -->
-<div class="page" id="page-w">
-  <div class="panel">
-    <div class="panel-head">
-      <div class="panel-title">🧩 Events</div>
-      <div class="panel-sub">Wache 1-3, Wüste und Spezialevents</div>
+<!-- ═══ R4 TABS (serverseitig injiziert) ═══ -->
+<div id="r4-pages-container"></div>
+
+<!-- ═══ ADMIN PAGE ═══ -->
+<div class="page" id="page-a">
+  <div style="max-width:1100px;margin:0 auto;padding:1.5rem 1.5rem 3rem">
+    <div class="admin-nav">
+      <button class="admin-nav-tab active" onclick="adminShowTab('alliances',this)">Allianzen</button>
+      <button class="admin-nav-tab" onclick="adminShowTab('archive',this)">Archiv</button>
+      <button class="admin-nav-tab" onclick="adminShowTab('transfer',this)">Transfer</button>
+      <button class="admin-nav-tab" onclick="adminShowTab('admins',this)">Admins</button>
     </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div class="wache-tabs">
-        <button class="wache-tab on" data-ev="w1" onclick="selectEventView('w1')">Wache 1</button>
-        <button class="wache-tab" data-ev="w2" onclick="selectEventView('w2')">Wache 2</button>
-        <button class="wache-tab" data-ev="w3" onclick="selectEventView('w3')">Wache 3</button>
-        <button class="wache-tab" data-ev="wu" onclick="selectEventView('wu')">Wüste</button>
-        <button class="wache-tab" data-ev="se" onclick="selectEventView('se')">Spezial</button>
-        <button class="wache-tab" data-ev="vs" onclick="selectEventView('vs')">VS</button>
-        <button class="wache-tab" data-ev="sp" onclick="selectEventView('sp')">Spenden</button>
+    <!-- Allianzen -->
+    <div class="admin-page active" id="admin-section-alliances">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Allianzen</div>
+          <div class="section-sub">Kurznamen und Titel verwalten. Beim Umbenennen des Kürzels werden alle Spieler-Daten migriert.</div>
+        </div>
+        <button class="btn btn-gold" onclick="openCreateAlliance()">+ Neue Allianz</button>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="flt-toggle" id="btn-event-done-bottom" title="Erfasste ans Ende sortieren (nochmal: ausblenden)" onclick="toggleEventDoneMode()">↓ Erfasste ans Ende</button>
-        <button class="flt-toggle" id="btn-event-contrast" title="Hoeherer Kontrast fuer Event-Erfassung" onclick="toggleEventContrast()">◐ High Contrast</button>
+      <div class="alliance-list" id="alliance-list"><div class="empty">Lade …</div></div>
+    </div>
+
+    <!-- Archiv -->
+    <div class="admin-page" id="admin-section-archive">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Spieler-Archiv</div>
+          <div class="section-sub">Gelöschte Spieler können hier wiederhergestellt werden (alle Daten inklusive).</div>
+        </div>
+      </div>
+      <div class="archive-filter">
+        <select id="archive-alliance-filter" onchange="loadArchive()">
+          <option value="">Alle Allianzen</option>
+        </select>
+        <button class="btn btn-ghost" onclick="loadArchive()">↻ Aktualisieren</button>
+      </div>
+      <div class="card" style="overflow-x:auto">
+        <table class="archive-table" id="archive-table">
+          <thead>
+            <tr><th>Spieler</th><th>Allianz</th><th>Rank</th><th>Archiviert</th><th></th></tr>
+          </thead>
+          <tbody id="archive-tbody"><tr><td colspan="5" class="empty">Lade …</td></tr></tbody>
+        </table>
       </div>
     </div>
 
-    <div class="event-section active" data-event="w">
-      <div class="wache-legend">
-        <span><span style="color:var(--red);">⚠</span> wenig Schaden (&lt;2M, Strafe)</span>
-        <span><span style="color:var(--green);">⚔</span> guter Schaden</span>
-        <span><span style="color:var(--softer);">○</span> nicht dabei</span>
-        <span style="margin-left:auto;" class="wache-counter" id="w-counter">0 / 0</span>
+    <!-- Transfer -->
+    <div class="admin-page" id="admin-section-transfer">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Spieler transferieren</div>
+          <div class="section-sub">Spieler in eine andere Allianz verschieben. Alle Daten (Einträge, Identitäten, Namenshistorie) werden mitgenommen.</div>
+        </div>
       </div>
-
-      <div class="wache-grid" id="wache-grid"></div>
+      <div class="card" style="max-width:480px">
+        <div class="field">
+          <label>Von Allianz</label>
+          <select id="transfer-from" onchange="loadTransferPlayers()"><option value="">– wählen –</option></select>
+        </div>
+        <div class="field">
+          <label>Spieler</label>
+          <select id="transfer-player"><option value="">Erst Allianz wählen</option></select>
+        </div>
+        <div class="field">
+          <label>Nach Allianz</label>
+          <select id="transfer-to"><option value="">Ziel-Allianz wählen …</option></select>
+        </div>
+        <div class="modal-footer" style="padding:0;margin-top:12px">
+          <button class="btn btn-gold" onclick="submitTransfer()">Transferieren</button>
+        </div>
+      </div>
     </div>
 
-    <div class="event-section" data-event="wu">
-      <div class="wache-legend">
-        <span><span style="color:var(--blue);">📋</span> Anmeldung</span>
-        <span><span style="color:var(--green);">⚔</span> Teilnahme</span>
-        <span><span style="color:var(--red);">⚠</span> Fehlen (Strafe)</span>
-        <span style="margin-left:auto;" class="wache-counter" id="wu-counter">0 / 0</span>
+    <!-- Admins -->
+    <div class="admin-page" id="admin-section-admins">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Admin-Verwaltung</div>
+          <div class="section-sub">Spieler mit Admin-Rechten ausstatten (unabhängig vom Rang). R5-Spieler haben automatisch Zugriff.</div>
+        </div>
+        <button class="btn btn-gold" onclick="openGrantAdmin()">+ Admin vergeben</button>
       </div>
-
-      <div class="wache-grid" id="wueste-grid"></div>
-    </div>
-
-    <div class="event-section" data-event="se">
-      <div class="wache-legend">
-        <span><span style="color:var(--blue);">⚔</span> Teilnahme</span>
-        <span><span style="color:var(--green);">🏅</span> Top 50</span>
-        <span><span style="color:var(--gold);">🏆</span> Top 20</span>
-        <span style="margin-left:auto;" class="wache-counter" id="se-counter">0 / 0</span>
+      <div class="card" style="overflow-x:auto">
+        <table class="archive-table" id="admins-table">
+          <thead>
+            <tr><th>Spieler</th><th>Discord</th><th>Allianz</th><th>Vergeben von</th><th>Notiz</th><th>Seit</th><th></th></tr>
+          </thead>
+          <tbody id="admins-tbody"><tr><td colspan="7" class="empty">Lade …</td></tr></tbody>
+        </table>
       </div>
-
-      <div class="wache-grid" id="spezial-grid"></div>
-    </div>
-
-    <div class="event-section" data-event="vs">
-      <div class="wache-legend">
-        <span><span style="color:var(--red);">⚠</span> unter 50 Mio (Strafe)</span>
-        <span><span style="color:var(--blue);">🥈</span> Top 30 (Bonus)</span>
-        <span><span style="color:var(--gold);">🏆</span> Top 10 (Bonus)</span>
-        <span style="margin-left:auto;" class="wache-counter" id="vs-counter">0 / 0</span>
-      </div>
-      <div class="wache-grid" id="vs-grid"></div>
-    </div>
-
-    <div class="event-section" data-event="sp">
-      <div class="wache-legend">
-        <span><span style="color:var(--red);">⚠</span> unter 35K (Strafe)</span>
-        <span><span style="color:var(--blue);">🏅</span> Top 20 (Bonus)</span>
-        <span style="margin-left:auto;" class="wache-counter" id="sp-counter">0 / 0</span>
-      </div>
-      <div class="wache-grid" id="spende-grid"></div>
     </div>
   </div>
 </div>
 
-<!-- ═══ ERGEBNIS ═══ -->
-<div class="page" id="page-r">
-  <div class="panel" style="max-width:100%;">
-    <div class="panel-head" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <div class="panel-title">📊 Rang-Empfehlungen</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
-        <label style="font-size:0.85rem;color:var(--muted);">Wochen:</label>
-        <select id="ergebnis-weeks" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.85rem;">
-          <option value="3">3</option>
-          <option value="4" selected>4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-        </select>
-        <button class="wt-btn" onclick="loadErgebnis()" style="padding:5px 14px;">🔄 Laden</button>
-      </div>
+<!-- ── Admin Modals ── -->
+<div class="modal-bg hidden" id="modal-grant-admin">
+  <div class="modal">
+    <div class="modal-title">Admin vergeben</div>
+    <div class="field">
+      <label>Spielername <em style="color:var(--soft);font-weight:400">(oder Discord-ID)</em></label>
+      <input type="text" id="grant-player-name" placeholder="z.B. Lion Tooth" autocomplete="off">
+      <div class="hint">Name muss exakt mit dem aktuellen Spielernamen übereinstimmen.</div>
     </div>
-    <div id="ergebnis-legend" style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.78rem;margin-bottom:12px;color:var(--muted);">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2ecb7a;margin-right:4px;vertical-align:middle;"></span>Beförderung empfohlen (≥2 Wochen stabil)</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e05545;margin-right:4px;vertical-align:middle;"></span>Herabstufung empfohlen (&gt;2 Wochen schlecht)</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f0a500;margin-right:4px;vertical-align:middle;"></span>AFK (sperrt Rang-Änderung)</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#888;margin-right:4px;vertical-align:middle;"></span>Keine Daten vorhanden</span>
+    <div class="field">
+      <label>Notiz (optional)</label>
+      <input type="text" id="grant-note" maxlength="255" placeholder="z.B. Allianz-Leitung">
     </div>
-    <div id="ergebnis-loading" style="display:none;color:var(--muted);text-align:center;padding:24px;">Lade Daten…</div>
-    <div id="ergebnis-info" style="display:none;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.3);border-radius:6px;padding:8px 14px;font-size:0.83rem;color:#f0a500;margin-bottom:10px;"></div>
-    <div id="ergebnis-empty" style="display:none;color:var(--muted);text-align:center;padding:24px;">Keine Daten vorhanden.</div>
-    <div id="ergebnis-table-wrap" style="overflow-x:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-grant-admin')">Abbrechen</button>
+      <button class="btn btn-gold" onclick="submitGrantAdmin()">Vergeben</button>
+    </div>
   </div>
 </div>
 
-<!-- ═══ VERWALTUNG ═══ -->
-<div class="page" id="page-v">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-
-    <!-- ADD MEMBER -->
-    <div class="panel">
-      <div class="panel-head"><div class="panel-title">➕ Mitglied hinzufügen</div></div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <div>
-          <div class="vlabel">Name</div>
-          <input class="vinput" id="v-new-name" placeholder="Spielername..." type="text">
-        </div>
-        <div>
-          <div class="vlabel">Discord-ID <span style="color:var(--soft);font-size:11px;font-weight:400">(optional)</span></div>
-          <input class="vinput" id="v-new-discord" placeholder="z.B. 123456789012345678" type="text" inputmode="numeric">
-        </div>
-        <div>
-          <div class="vlabel">Rang</div>
-          <div style="display:flex;gap:6px;">
-            <button class="vrank-btn" data-vr="1">1 · Rookie</button>
-            <button class="vrank-btn" data-vr="2">2 · Pro</button>
-            <button class="vrank-btn on" data-vr="3">3 · Elite</button>
-            <button class="vrank-btn" data-vr="4">4 · Leader</button>
-            <button class="vrank-btn" data-vr="5">5 · Chef</button>
-          </div>
-        </div>
-        <button class="save-btn" id="v-add-btn" style="margin-top:4px;">+ Hinzufügen</button>
-      </div>
+<div class="modal-bg hidden" id="modal-create-alliance">
+  <div class="modal">
+    <div class="modal-title">Neue Allianz anlegen</div>
+    <div class="field">
+      <label>Kürzel (z.B. INY)</label>
+      <input type="text" id="create-short" maxlength="50" placeholder="z.B. INY oder my-ally">
+      <div class="hint">Max. 50 Zeichen, wird automatisch in Großbuchstaben gespeichert</div>
     </div>
-
-    <!-- STATS -->
-    <div class="panel">
-      <div class="panel-head"><div class="panel-title">📊 Übersicht</div></div>
-      <div id="v-stats" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div class="field">
+      <label>Vollständiger Titel (optional)</label>
+      <input type="text" id="create-title" maxlength="255" placeholder="INY – It's Not Yellow">
     </div>
-
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-alliance')">Abbrechen</button>
+      <button class="btn btn-gold" onclick="submitCreate()">Anlegen</button>
+    </div>
   </div>
+</div>
 
-  <!-- MEMBER TABLE -->
-  <div class="panel" style="margin-top:1rem;">
-    <div class="panel-head">
-      <div class="panel-title">👥 Mitgliederliste</div>
-      <input class="search-input" id="v-search" placeholder="Suchen..." style="width:200px;">
+<div class="modal-bg hidden" id="modal-edit-alliance">
+  <div class="modal">
+    <div class="modal-title">Allianz bearbeiten</div>
+    <input type="hidden" id="edit-old-short">
+    <div class="field">
+      <label>Kürzel</label>
+      <input type="text" id="edit-short" maxlength="50">
+      <div class="hint">⚠️ Kürzel-Änderung migriert alle Spieler, Einträge und Logs!</div>
     </div>
-    <div id="v-list"></div>
-  </div>
-
-  <div class="panel" style="margin-top:1rem;">
-    <div class="panel-head">
-      <div class="panel-title">📝 Login-Anfragen</div>
-      <div class="panel-sub" id="v-access-count">0 offen</div>
+    <div class="field">
+      <label>Vollständiger Titel</label>
+      <input type="text" id="edit-title" maxlength="255" placeholder="INY – It's Not Yellow">
     </div>
-    <div id="v-access-requests" class="v-access-list"></div>
-  </div>
-
-  <!-- SE AUSWERTUNG -->
-  <div class="panel" style="margin-top:1rem;">
-    <div class="panel-head">
-      <div class="panel-title">🔍 Kein Spezialevent in letzten Wochen</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <label style="font-size:0.85em;color:var(--softer);">Wochen:</label>
-        <select id="se-weeks-select" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.85em;">
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4" selected>4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-        </select>
-        <button class="save-btn" onclick="loadSeInactive()" style="padding:4px 12px;font-size:0.85em;">Laden</button>
-      </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-alliance')">Abbrechen</button>
+      <button class="btn btn-gold" onclick="submitEdit()">Speichern</button>
     </div>
-    <div id="se-inactive-result" style="padding:8px 0;"></div>
   </div>
 </div>
 
@@ -952,20 +1271,12 @@ function clearAuthState() {
   localStorage.removeItem(AUTH_STATE_KEY);
 }
 
-function updateMeButton() {
-  const button = document.getElementById('btn-me');
-  if (!button) return;
-  button.style.display = authMember ? 'inline-flex' : 'none';
-}
+function updateMeButton() { /* no-op: btn-me removed */ }
 
-function goToMe() {
-  goToView('me');
-}
+function goToMe() { showPage('m'); }
 window.goToMe = goToMe;
 
-function goToPointsGuide() {
-  goToView('punkte');
-}
+function goToPointsGuide() { showPage('p'); }
 window.goToPointsGuide = goToPointsGuide;
 
 function openMemberMe(name) {
@@ -1424,15 +1735,18 @@ const CATS = [
   { l:'🏜 Wüste', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
     f:[{k:'wuesteAnmeldung',l:'Anmeldung',t:'b'},{k:'wuesteTeilnahme',l:'Teilnahme',t:'b'},{k:'wuesteFehlen',l:'Fehlen',t:'r'}] },
   { l:'❌ Strafpunkte', t:'r', bg:'rgba(224,85,69,0.06)', bc:'rgba(224,85,69,0.2)', lc:'#f09080',
-    f:[{k:'inaktiv',l:'Inaktiv',t:'r'},{k:'schild',l:'Schild',t:'r'},{k:'falschparken',l:'Falschparken',t:'r'},{k:'nap',l:'NAP',t:'r'},{k:'mails',l:'Ankündigung',t:'r'},{k:'verhIntern',l:'Verh. Intern',t:'r'},{k:'verhExtern',l:'Verh. Extern',t:'r'},{k:'afk',l:'AFK',t:'r'}] },
+    f:[{k:'inaktiv',l:'Inaktiv',t:'r'},{k:'schild',l:'Schild',t:'r'},{k:'falschparken',l:'Falschparken',t:'r'},{k:'nap',l:'NAP',t:'r'},{k:'mails',l:'Ankündigung',t:'r'},{k:'verhIntern',l:'Verh. Intern',t:'r'},{k:'verhExtern',l:'Verh. Extern',t:'r'}] },
   { l:'⭐ Bonus', t:'a', bg:'rgba(240,165,0,0.06)', bc:'rgba(240,165,0,0.2)', lc:'var(--gold)',
-    f:[{k:'umfragen',l:'Umfragen',t:'a'},{k:'support',l:'Support',t:'a'},{k:'feedback',l:'Feedback',t:'a'}] }
+    f:[{k:'umfragen',l:'Umfragen',t:'a'},{k:'support',l:'Support',t:'a'},{k:'feedback',l:'Feedback',t:'a'}] },
+  { l:'⏸ AFK', t:'n', bg:'rgba(155,109,255,0.06)', bc:'rgba(155,109,255,0.2)', lc:'var(--purple)',
+    f:[{k:'afk',l:'AFK',t:'n'}] }
 ];
 const FLAGS = CATS.flatMap(c=>c.f);
 const FLAG_KEYS = FLAGS.map(f=>f.k);
 const LBL = Object.fromEntries(FLAGS.map(f=>[f.k,f.l]));
-const DANGER = new Set(FLAGS.filter(f=>f.t==='r').map(f=>f.k));
-const AMBER = new Set(FLAGS.filter(f=>f.t==='a').map(f=>f.k));
+const DANGER  = new Set(FLAGS.filter(f=>f.t==='r').map(f=>f.k));
+const AMBER   = new Set(FLAGS.filter(f=>f.t==='a').map(f=>f.k));
+const NEUTRAL = new Set(FLAGS.filter(f=>f.t==='n').map(f=>f.k));
 
 let PREV = {};
 const R5 = new Set();
@@ -1718,17 +2032,99 @@ async function saveEntry(name, rank, flags) {
   await loadEntries();
 }
 
-document.getElementById('kwInput').value = formatYearWeek(kw);
+// Called after R4 pages are injected into the DOM
+function initR4Listeners() {
+  initFilterBars();
+
+  const kwInput = document.getElementById('kwInput');
+  if (kwInput) kwInput.value = formatYearWeek(kw);
+
+  const rankRow = document.getElementById('rankRow');
+  if (rankRow && !rankRow._listenerAttached) {
+    rankRow._listenerAttached = true;
+    rankRow.addEventListener('click', function(e) {
+      const btn = e.target.closest('.rk-btn');
+      if (!btn || btn.disabled) return;
+      edRank = parseInt(btn.dataset.r);
+      document.querySelectorAll('.rk-btn').forEach(b => b.classList.toggle('on', parseInt(b.dataset.r) === edRank));
+    });
+  }
+
+  const saveBtn = document.getElementById('saveBtn');
+  if (saveBtn && !saveBtn._listenerAttached) {
+    saveBtn._listenerAttached = true;
+    saveBtn.addEventListener('click', async function() {
+      if (!edName) return;
+      const rank = isFixed(edName) ? fixedRank(edName) : edRank;
+      const was = !!entries.find(x => x.name === edName);
+      await saveEntry(edName, rank, {...edFlags});
+      renderAll();
+      toast(edName + (was ? ' aktualisiert!' : ' gespeichert!'));
+      closeEditor();
+    });
+  }
+
+  const editorClose = document.getElementById('editorClose');
+  if (editorClose && !editorClose._listenerAttached) {
+    editorClose._listenerAttached = true;
+    editorClose.addEventListener('click', closeEditor);
+  }
+
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput && !searchInput._listenerAttached) {
+    searchInput._listenerAttached = true;
+    searchInput.addEventListener('input', function() { search = this.value.toLowerCase(); renderList(); });
+  }
+
+  document.querySelectorAll('[data-lf]').forEach(b => {
+    if (b._listenerAttached) return;
+    b._listenerAttached = true;
+    b.addEventListener('click', function() {
+      listFilter = this.dataset.lf;
+      document.querySelectorAll('[data-lf]').forEach(x => x.classList.toggle('on', x.dataset.lf === listFilter));
+      renderList();
+    });
+  });
+
+  document.querySelectorAll('.vrank-btn').forEach(btn => {
+    if (btn._listenerAttached) return;
+    btn._listenerAttached = true;
+    btn.addEventListener('click', function() {
+      vNewRank = parseInt(this.dataset.vr);
+      document.querySelectorAll('.vrank-btn').forEach(b => b.classList.toggle('on', b.dataset.vr === this.dataset.vr));
+    });
+  });
+
+  const vAddBtn = document.getElementById('v-add-btn');
+  if (vAddBtn && !vAddBtn._listenerAttached) {
+    vAddBtn._listenerAttached = true;
+    vAddBtn.addEventListener('click', async function() {
+      const name = document.getElementById('v-new-name').value.trim();
+      if (!name) { toast('Bitte einen Namen eingeben!'); return; }
+      if (members.includes(name)) { toast('Mitglied existiert bereits!'); return; }
+      const role = vNewRank === 5 ? 'r5' : vNewRank === 4 ? 'r4' : 'normal';
+      const discordId = (document.getElementById('v-new-discord')?.value || '').trim();
+      try {
+        await apiPost({ action: 'add_member', name, rank: vNewRank, role, discord_id: discordId || undefined });
+      } catch(e) {
+        toast(e.message || 'Fehler beim Hinzufügen'); return;
+      }
+      await loadMembers();
+      document.getElementById('v-new-name').value = '';
+      if (document.getElementById('v-new-discord')) document.getElementById('v-new-discord').value = '';
+      renderVerwaltung();
+      toast(name + ' hinzugefügt!');
+    });
+  }
+
+  const vSearch = document.getElementById('v-search');
+  if (vSearch && !vSearch._listenerAttached) {
+    vSearch._listenerAttached = true;
+    vSearch.addEventListener('input', function() { renderVerwaltung(this.value.toLowerCase()); });
+  }
+}
 
 // ── RANK BUTTONS ──
-document.getElementById('rankRow').addEventListener('click',function(e){
-  const btn=e.target.closest('.rk-btn');
-  if(!btn||btn.disabled) return;
-  edRank=parseInt(btn.dataset.r);
-  document.querySelectorAll('.rk-btn').forEach(b=>b.classList.toggle('on',parseInt(b.dataset.r)===edRank));
-});
-
-// ── EDITOR OPEN ──
 function openEditor(name){
   edName=name;
   const e=entries.find(x=>x.name===name);
@@ -1756,6 +2152,8 @@ function openEditor(name){
         ?'border-color:rgba(224,85,69,0.5);background:rgba(224,85,69,0.15);color:#f09080;'
         :f.t==='a'
         ?'border-color:rgba(240,165,0,0.4);background:rgba(240,165,0,0.12);color:var(--gold);'
+        :f.t==='n'
+        ?'border-color:rgba(155,109,255,0.5);background:rgba(155,109,255,0.15);color:var(--purple);'
         :'border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.12);color:#80b8ff;';
       return `<button class="flag-btn" data-fk="${f.k}" onclick="toggleFlag('${f.k}')" style="${on?onStyle:''}">${f.l}</button>`;
     }).join('');
@@ -1785,32 +2183,11 @@ function toggleFlag(k){
 }
 window.toggleFlag=toggleFlag;
 
-// ── SAVE ──
-document.getElementById('saveBtn').addEventListener('click',async function(){
-  if(!edName) return;
-  const rank=isFixed(edName)?fixedRank(edName):edRank;
-  const was=!!entries.find(x=>x.name===edName);
-  await saveEntry(edName, rank, {...edFlags});
-  renderAll();
-  toast(edName+(was?' aktualisiert!':' gespeichert!'));
-  closeEditor();
-});
-
-// ── CLOSE EDITOR ──
-document.getElementById('editorClose').addEventListener('click',closeEditor);
 function closeEditor(){
   document.getElementById('editor').style.display='none';
   document.querySelectorAll('.member-row').forEach(r=>r.classList.remove('is-open'));
   edName=null; edFlags={};
 }
-
-// ── SEARCH & FILTER ──
-document.getElementById('searchInput').addEventListener('input',function(){search=this.value.toLowerCase();renderList();});
-document.querySelectorAll('[data-lf]').forEach(b=>b.addEventListener('click',function(){
-  listFilter=this.dataset.lf;
-  document.querySelectorAll('[data-lf]').forEach(x=>x.classList.toggle('on',x.dataset.lf===listFilter));
-  renderList();
-}));
 
 // ── KW ──
 async function kwChanged(){
@@ -1846,29 +2223,303 @@ async function changeYearWeek(delta) {
 }
 window.changeYearWeek = changeYearWeek;
 
+// ── MEIN BEREICH ──
+let meHistoryBundle = null;
+let meSelectedWeekIndex = 0;
+let meActiveMemberName = '';
+let meHistoryLoaded = false;
+
+function me_buildAvatarMarkup() {
+  const avatarUrl = meHistoryBundle?.member?.discord_avatar_url || authMember?.discord_avatar_url || null;
+  if (avatarUrl) return `<img src="${escHtml(avatarUrl)}" alt="Discord Avatar" style="width:76px;height:76px;border-radius:22px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`;
+  const initials = String(meHistoryBundle?.member?.name || meHistoryBundle?.member?.member_name || meActiveMemberName || authMember?.member_name || '?').trim().slice(0, 2).toUpperCase();
+  return `<div class="me-placeholder">${escHtml(initials || '?')}</div>`;
+}
+function me_getSelectedWeek() { return meHistoryBundle?.weeks?.[meSelectedWeekIndex] || null; }
+function me_getPreviousWeek() { return meHistoryBundle?.weeks?.[meSelectedWeekIndex + 1] || null; }
+
+function computeFlagImpact(key, flags) {
+  const base = calcPoints(flags);
+  const without = { ...flags, [key]: false };
+  return base - calcPoints(without);
+}
+function computeFlagPotential(key, flags) {
+  const base = calcPoints(flags);
+  const with_ = { ...flags, [key]: true };
+  return calcPoints(with_) - base;
+}
+function formatWeek(yearWeek) {
+  if (!yearWeek) return '----';
+  const yy = String(Math.floor(yearWeek / 100)).padStart(2, '0');
+  const ww = String(yearWeek % 100).padStart(2, '0');
+  return `KW ${ww}/${yy}`;
+}
+function formatWhen(value) {
+  if (!value) return 'unbekannt';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('de-DE');
+}
+
+async function me_loadHistory(discordId, memberName) {
+  meActiveMemberName = memberName || authMember?.member_name || '';
+  try {
+    const params = new URLSearchParams({ limit: '18' });
+    if (discordId) params.set('discord_id', discordId);
+    if (meActiveMemberName) params.set('name', meActiveMemberName);
+    meHistoryBundle = await fetchJson(`/member-history?${params.toString()}`);
+    meHistoryLoaded = true;
+    me_renderOverview();
+  } catch(e) {
+    meHistoryLoaded = true; // don't retry on error
+  }
+}
+
+function me_renderOverview() {
+  if (!meHistoryBundle) return;
+  const member = meHistoryBundle.member;
+  const memberName = member.name || member.member_name || 'Unbekannt';
+  const weeks = meHistoryBundle.weeks || [];
+  const latest = weeks[0] || null;
+  const latestPoints = latest ? calcPoints(latest.flags || {}) : 0;
+
+  document.getElementById('member-avatar-wrap').innerHTML = me_buildAvatarMarkup();
+  document.getElementById('member-name').textContent = memberName;
+  document.getElementById('member-meta').textContent =
+    `${member.discord_username || authMember?.discord_username || 'Discord'} · letzter Abgleich ${formatWhen(authMember?.checked_at)}`;
+
+  const rankColor = RC[member.rank] || '#97a3bc';
+  document.getElementById('member-badges').innerHTML =
+    `<span class="me-badge" style="background:${rankColor}20;color:${rankColor};border:1px solid ${rankColor}40;">R${member.rank} · ${RL[member.rank] || 'Member'}</span>`;
+
+  document.getElementById('stat-points').textContent = String(latestPoints);
+  document.getElementById('stat-rank-display').textContent = `R${member.rank} · ${RL[member.rank] || 'Member'}`;
+  document.getElementById('stat-week').textContent = latest ? formatWeek(latest.year_week).replace('KW ', '') : '-';
+  document.getElementById('timeline-sub').textContent = `${weeks.length} Wochen gespeichert · Woche anklicken zum Wechsel`;
+
+  me_renderWeekPanel();
+  me_renderActivities();
+  me_renderPotential();
+  me_renderTimeline();
+  me_renderChanges();
+}
+
+function me_renderWeekPanel() {
+  const weeks = meHistoryBundle?.weeks || [];
+  const selected = me_getSelectedWeek();
+  const previous = me_getPreviousWeek();
+  const points = selected ? calcPoints(selected.flags || {}) : 0;
+  const prevPoints = previous ? calcPoints(previous.flags || {}) : null;
+  const delta = prevPoints == null ? null : points - prevPoints;
+  const flags = selected ? Object.keys(selected.flags || {}).filter(k => selected.flags[k]) : [];
+
+  const select = document.getElementById('week-select');
+  if (!select) return;
+  select.innerHTML = weeks.map((w, i) =>
+    `<option value="${i}"${i === meSelectedWeekIndex ? ' selected' : ''}>${escHtml(formatWeek(w.year_week))}</option>`
+  ).join('');
+  select.onchange = () => { meSelectedWeekIndex = Number.parseInt(select.value, 10) || 0; me_renderOverview(); };
+
+  const prevBtn = document.getElementById('week-prev');
+  const nextBtn = document.getElementById('week-next');
+  if (prevBtn) prevBtn.disabled = meSelectedWeekIndex >= weeks.length - 1;
+  if (nextBtn) nextBtn.disabled = meSelectedWeekIndex <= 0;
+
+  document.getElementById('week-sub').textContent = selected
+    ? `${formatWeek(selected.year_week)} · ${points} Punkte` : 'Noch keine Woche ausgewählt';
+
+  const rankChangeBadge = document.getElementById('rank-change-badge');
+  if (selected && previous && selected.final_rank !== previous.final_rank) {
+    const better = selected.final_rank < previous.final_rank;
+    rankChangeBadge.style.display = 'block';
+    rankChangeBadge.innerHTML = `<span class="me-badge" style="background:${better ? 'rgba(46,203,122,0.14)' : 'rgba(224,85,69,0.14)'};color:${better ? '#88ecb8' : '#f39b8f'};border:1px solid ${better ? 'rgba(46,203,122,0.24)' : 'rgba(224,85,69,0.24)'};">R${previous.final_rank} → R${selected.final_rank}</span>`;
+  } else {
+    rankChangeBadge.style.display = 'none';
+  }
+
+  const deltaEl = document.getElementById('week-delta');
+  if (delta === null) { deltaEl.textContent = '–'; deltaEl.className = 'me-delta-value neutral'; }
+  else if (delta >= 0) { deltaEl.textContent = `+${delta}`; deltaEl.className = 'me-delta-value positive'; }
+  else { deltaEl.textContent = String(delta); deltaEl.className = 'me-delta-value negative'; }
+
+  const good = flags.filter(k => !DANGER.has(k) && !NEUTRAL.has(k)).length;
+  const warn = flags.filter(k => DANGER.has(k)).length;
+  document.getElementById('week-good').textContent = String(good);
+  document.getElementById('week-warn').textContent = String(warn);
+}
+
+function me_renderActivities() {
+  const selected = me_getSelectedWeek();
+  const flags = selected ? selected.flags || {} : {};
+  const allSet = Object.keys(flags).filter(k => flags[k]);
+
+  document.getElementById('acts-title').textContent = selected
+    ? `Aktivitäten – ${formatWeek(selected.year_week)}` : 'Aktivitäten dieser Woche';
+  document.getElementById('acts-sub').textContent = selected
+    ? 'Was hat dir Punkte gebracht oder genommen?' : 'Keine Woche geladen';
+
+  const positives = allSet
+    .filter(k => !DANGER.has(k) && !NEUTRAL.has(k))
+    .map(k => ({ key: k, impact: computeFlagImpact(k, flags) }))
+    .filter(x => x.impact !== 0).sort((a, b) => b.impact - a.impact);
+  const negatives = allSet
+    .filter(k => DANGER.has(k))
+    .map(k => ({ key: k, impact: computeFlagImpact(k, flags) }))
+    .sort((a, b) => a.impact - b.impact);
+
+  const posEl = document.getElementById('acts-positive');
+  const negEl = document.getElementById('acts-negative');
+  posEl.innerHTML = positives.length
+    ? positives.map(({ key, impact }) => {
+        const cls = NEUTRAL.has(key) ? 'neutral' : AMBER.has(key) ? 'bonus' : 'good';
+        const ptsCls = NEUTRAL.has(key) ? 'neu' : AMBER.has(key) ? 'bon' : 'pos';
+        return `<div class="me-act-item ${cls}"><span>${escHtml(LBL[key] || key)}</span><span class="me-act-pts ${ptsCls}">+${impact}</span></div>`;
+      }).join('')
+    : '<div class="me-empty">Keine positiven Einträge diese Woche.</div>';
+  negEl.innerHTML = negatives.length
+    ? negatives.map(({ key, impact }) =>
+        `<div class="me-act-item bad"><span>${escHtml(LBL[key] || key)}</span><span class="me-act-pts neg">${impact}</span></div>`
+      ).join('')
+    : '<div class="me-empty" style="border-color:rgba(46,203,122,0.2);color:var(--green)">Keine Strafpunkte diese Woche 🎉</div>';
+}
+
+function me_renderPotential() {
+  const selected = me_getSelectedWeek();
+  const flags = selected ? selected.flags || {} : {};
+  const allKnownKeys = Object.keys(LBL);
+  const opportunities = allKnownKeys
+    .filter(k => !flags[k] && !DANGER.has(k) && !NEUTRAL.has(k))
+    .map(k => ({ key: k, gain: computeFlagPotential(k, flags) }))
+    .filter(o => o.gain > 0).sort((a, b) => b.gain - a.gain).slice(0, 3);
+
+  const section = document.getElementById('potential-section');
+  const grid = document.getElementById('potential-grid');
+  if (!selected || !opportunities.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  grid.innerHTML = opportunities.map(({ key, gain }) => `
+    <div class="me-potential-card">
+      <div class="me-potential-card-label">+${gain} Punkte möglich</div>
+      <div class="me-potential-card-name">${escHtml(LBL[key] || key)}</div>
+      <div class="me-potential-card-gain">+${gain}</div>
+    </div>`).join('');
+}
+
+function me_renderTimeline() {
+  const weeks = meHistoryBundle?.weeks || [];
+  const maxPoints = weeks.reduce((max, w) => Math.max(max, calcPoints(w.flags || {})), 1);
+  const timeline = document.getElementById('timeline');
+  if (!weeks.length) { timeline.innerHTML = '<div class="me-empty">Noch keine Wochenhistorie vorhanden.</div>'; return; }
+  timeline.innerHTML = weeks.map((week, index) => {
+    const points = calcPoints(week.flags || {});
+    const prev = weeks[index + 1] || null;
+    const delta = prev ? points - calcPoints(prev.flags || {}) : null;
+    return `<button class="me-timeline-row${index === meSelectedWeekIndex ? ' active' : ''}" type="button" onclick="meSelectWeek(${index})">
+      <div>
+        <div class="me-timeline-week">${escHtml(formatWeek(week.year_week))}</div>
+        <div class="me-timeline-meta">R${week.final_rank} · ${RL[week.final_rank] || 'Member'}</div>
+      </div>
+      <div>
+        <div class="me-bar-track"><div class="me-bar-fill" style="width:${Math.max(8, Math.round((points / maxPoints) * 100))}%;"></div></div>
+        <div class="me-timeline-meta">${Object.keys(week.flags || {}).filter(k => week.flags[k]).length} aktive Felder</div>
+      </div>
+      <div class="me-timeline-score">
+        <strong>${points}</strong>
+        <span>${delta == null ? 'erste Woche' : `${delta >= 0 ? '+' : ''}${delta} zur Vorwoche`}</span>
+      </div>
+    </button>`;
+  }).join('');
+}
+
+function me_renderChanges() {
+  const changes = meHistoryBundle?.rank_changes || [];
+  const details = document.getElementById('changelog-details');
+  const wrap = document.getElementById('change-log');
+  if (!changes.length) { details.style.display = 'none'; return; }
+  details.style.display = 'block';
+  wrap.innerHTML = changes.map(change => `
+    <div class="me-change-row">
+      <div class="me-change-top">
+        <div class="me-change-source">${escHtml(change.source || 'system')}</div>
+        <div class="me-change-when">${escHtml(formatWhen(change.created_at))}</div>
+      </div>
+      <div class="me-change-body">
+        ${change.old_rank ? `R${change.old_rank}` : 'neu'} → R${change.applied_rank}
+        ${change.requested_rank && change.requested_rank !== change.applied_rank ? `(angefragt: R${change.requested_rank})` : ''}
+        ${change.is_blocked ? ' · geschützt/blockiert' : ''}
+        ${change.reason ? ` · ${escHtml(change.reason)}` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function meSelectWeek(index) { meSelectedWeekIndex = index; me_renderOverview(); }
+window.meSelectWeek = meSelectWeek;
+
+function meStepWeek(delta) {
+  const next = meSelectedWeekIndex - delta;
+  if (!meHistoryBundle?.weeks?.[next]) return;
+  meSelectedWeekIndex = next; me_renderOverview();
+}
+window.meStepWeek = meStepWeek;
+
+// ── R4/ADMIN TAB INJECTION ──
+function buildNavActionsFromTabs() {
+  const actions = [];
+  document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(btn => {
+    const label = btn.textContent.trim();
+    if (label) {
+      const ref = btn; // capture
+      actions.push({ label, fn: () => ref.click() });
+    }
+  });
+  window.csNavActions = actions;
+}
+async function injectR4Tabs(discordId) {
+  try {
+    const data = await fetchJson(`/tab-html?section=r4&discord_id=${encodeURIComponent(discordId)}`);
+    if (!data.ok) return;
+    document.getElementById('r4-tab-btns').innerHTML = data.tabBtns;
+    document.getElementById('r4-pages-container').innerHTML = data.pages;
+    document.getElementById('kw-nav-wrap').style.display = '';
+    initR4Listeners();
+  } catch(e) { /* silent fail */ }
+}
+
+async function injectAdminTabs(discordId) {
+  try {
+    const data = await fetchJson(`/tab-html?section=admin&discord_id=${encodeURIComponent(discordId)}`);
+    if (!data.ok) return;
+    document.getElementById('admin-tab-btns').innerHTML = data.tabBtns;
+  } catch(e) { /* silent fail */ }
+}
+
 // ── NAV ──
-async function showPage(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
-  document.getElementById('tab-d').classList.toggle('active',id==='d');
-  document.getElementById('tab-e').classList.toggle('active',id==='e');
-  document.getElementById('tab-w').classList.toggle('active',id==='w');
-  document.getElementById('tab-r').classList.toggle('active',id==='r');
-  document.getElementById('tab-v').classList.toggle('active',id==='v');
-  if(id==='d') renderDashboard();
-  if(id==='e') renderList();
-  if(id==='w') selectEventView(activeEventView);
-  if(id==='r') loadErgebnis();
-  if(id==='v'){ await loadMembers(); renderVerwaltung(); }
-  if (id !== 'v') refreshEntriesIfNeeded({ background: true });
+async function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + id);
+  if (pageEl) pageEl.classList.add('active');
+  // Update active tab (search all tab containers since R4 ones are injected later)
+  document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById('tab-' + id);
+  if (tabEl) tabEl.classList.add('active');
+  // Lazy load Mein Bereich
+  if (id === 'm' && !meHistoryLoaded && authMember) {
+    await me_loadHistory(authMember.discord_id, authMember.member_name);
+  }
+  if (id === 'd') renderDashboard();
+  if (id === 'e') renderList();
+  if (id === 'w') selectEventView(activeEventView);
+  if (id === 'r') loadErgebnis();
+  if (id === 'v') { await loadMembers(); renderVerwaltung(); }
+  if (id === 'a') adminInitPage();
+  if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 'a') refreshEntriesIfNeeded({ background: true });
 }
 
 // ── RENDER ALL ──
 function renderAll(){
+  if (!document.getElementById('page-d')) return; // R4 pages not yet injected
   renderDashboard();
-  if(document.getElementById('page-e').classList.contains('active')) renderList();
-  if(document.getElementById('page-w').classList.contains('active')) selectEventView(activeEventView);
-  if(document.getElementById('page-v').classList.contains('active')) renderVerwaltung();
+  if(document.getElementById('page-e')?.classList.contains('active')) renderList();
+  if(document.getElementById('page-w')?.classList.contains('active')) selectEventView(activeEventView);
+  if(document.getElementById('page-v')?.classList.contains('active')) renderVerwaltung();
 }
 
 // ── MEMBER LIST ──
@@ -1919,7 +2570,7 @@ function renderList(){
     const rankBadge=`<span class="rank-badge ${rbClass(rank)}">${rank} · ${RL[rank]}</span>`;
     const fixedBadge=isFixed(name)?` <span style="font-size:10px;color:var(--gold);margin-left:3px;">${R5.has(name)?'R5':'R4'}</span>`:'';
     const tags=af.slice(0,3).map(k=>{
-      const cls=DANGER.has(k)?'r':AMBER.has(k)?'a':'b';
+      const cls=DANGER.has(k)?'r':AMBER.has(k)?'a':NEUTRAL.has(k)?'n':'b';
       return `<span class="tag ${cls}">${LBL[k]||k}</span>`;
     }).join('')+(af.length>3?`<span class="tag" style="color:var(--softer);border-color:var(--softer);">+${af.length-3}</span>`:'');
 
@@ -2156,17 +2807,27 @@ function renderTable(){
   }).join('');
 }
 
-document.getElementById('filterBar').addEventListener('click',function(e){
-  const btn=e.target.closest('.flt[data-f]');
-  if(!btn) return;
-  activeFilter=btn.dataset.f;
-  renderTable();
-});
+function initFilterBars() {
+  const filterBar = document.getElementById('filterBar');
+  if (filterBar && !filterBar._listenerAttached) {
+    filterBar._listenerAttached = true;
+    filterBar.addEventListener('click', function(e) {
+      const btn = e.target.closest('.flt[data-f]');
+      if (!btn) return;
+      activeFilter = btn.dataset.f;
+      renderTable();
+    });
+  }
+}
+// Also init any filter bars that exist at load (none until R4 inject, but safe to call)
+document.addEventListener('DOMContentLoaded', initFilterBars);
 
-function toast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2200);
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show${type ? ' ' + type : ''}`;
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
 // ══════════════════════════════════════════════════════
@@ -2694,33 +3355,6 @@ async function spendeSet(name, type) {
 window.spendeSet = spendeSet;
 let vNewRank=3;
 
-document.querySelectorAll('.vrank-btn').forEach(btn=>{
-  btn.addEventListener('click',function(){
-    vNewRank=parseInt(this.dataset.vr);
-    document.querySelectorAll('.vrank-btn').forEach(b=>b.classList.toggle('on',b.dataset.vr===this.dataset.vr));
-  });
-});
-
-document.getElementById('v-add-btn').addEventListener('click',async function(){
-  const name=document.getElementById('v-new-name').value.trim();
-  if(!name){toast('Bitte einen Namen eingeben!');return;}
-  if(members.includes(name)){toast('Mitglied existiert bereits!');return;}
-  const role = vNewRank===5?'r5':vNewRank===4?'r4':'normal';
-  const discordId = (document.getElementById('v-new-discord')?.value || '').trim();
-  try {
-    await apiPost({ action: 'add_member', name, rank: vNewRank, role, discord_id: discordId || undefined });
-  } catch(e) {
-    toast(e.message || 'Fehler beim Hinzufügen'); return;
-  }
-  await loadMembers();
-  document.getElementById('v-new-name').value='';
-  if(document.getElementById('v-new-discord')) document.getElementById('v-new-discord').value='';
-  renderVerwaltung();
-  toast(name+' hinzugefügt!');
-});
-
-document.getElementById('v-search').addEventListener('input',function(){ renderVerwaltung(this.value.toLowerCase()); });
-
 let editingMember=null;
 
 function renderVerwaltung(filter=''){
@@ -2753,9 +3387,7 @@ function renderVerwaltung(filter=''){
     const discordState = meta.discordConnected
       ? `<span class="v-state ok">Discord verknuepft</span>`
       : `<span class="v-state warn">Discord-Verbindung fehlt</span>`;
-    const swapButton = meta.discordConnected && meta.discordId && meta.id !== meta.discordId
-      ? `<button class="v-btn swap" onclick="swapMemberIdToDiscord('${esc}')">ID = Discord-ID</button>`
-      : '';
+    const swapButton = '';
     const avatarLoadButton = '';
 
     if(editingMember===name){
@@ -3261,7 +3893,7 @@ async function syncData(){
     await loadAccessRequests();
     await loadHistory();
     renderAll();
-    if(document.getElementById('page-w').classList.contains('active')) selectEventView(activeEventView);
+    if (document.getElementById('page-w')?.classList.contains('active')) selectEventView(activeEventView);
     toast('Daten synchronisiert!');
   } catch(e) {
     toast('Sync-Fehler: ' + e.message);
@@ -3310,62 +3942,52 @@ async function initApp(){
 
     document.getElementById('logout-btn').style.display = 'block';
 
-    if (!authResult.can_manage) {
-      window.location.replace(getBaseInyUrl('me'));
-      return;
+    // Inject R4/Admin tabs if user has the rank (R1-R3 see only m + p tabs)
+    if (authResult.can_manage) {
+      await injectR4Tabs(authMember.discord_id);
+      if (authResult.rank >= 5) await injectAdminTabs(authMember.discord_id);
     }
-    // Show Admin button for R5
-    if (authResult.rank >= 5) {
-      const adminBtn = document.getElementById('btn-admin-nav');
-      if (adminBtn) adminBtn.style.display = 'inline-flex';
-    }
-    // Register nav actions for char-switcher dropdown (shown on mobile)
-    window.csNavActions = [
-      { label: '📊 Punkte-Guide', fn: () => goToPointsGuide() },
-      { label: '👤 Mein Bereich', fn: () => goToMe() },
-    ];
-    if (authResult.rank >= 5) {
-      window.csNavActions.push({ label: '⚙ Admin', fn: () => goToAdminPage() });
-    }
+
+    // Nav actions for char-switcher dropdown (tabs hidden on mobile → show as menu items)
+    buildNavActionsFromTabs();
+
     // Init char switcher
     if (typeof window.initCharSwitcher === 'function') {
       window.initCharSwitcher(currentDiscordUser, authMember);
     }
+
+    document.getElementById('login-screen').style.display = 'none';
+    await me_loadHistory(authMember.discord_id, authMember.member_name);
+    showPage('m');
+    return;
   }
 
-  // Lokal (F5/file://localhost) ohne Discord-Login starten
+  // ── Lokal / Local Preview ──
   document.getElementById('login-screen').style.display = 'none';
   try {
     await loadMembers();
     autoRefreshAvatars(); // Avatar-Cache im Hintergrund auffrischen (max. 1x pro 7 Tage)
     const localAuth = ensureLocalPreviewAuth();
-    // Redirect non-R4/R5 chars immediately, before rendering any admin content
     if (!localAuth) {
       document.getElementById('login-screen').style.display = 'flex';
       return;
     }
-    if (!localAuth.can_manage) {
-      goToView('me');
-      return;
+    if (localAuth.can_manage) {
+      await injectR4Tabs(localAuth.discord_id || 'local-preview');
+      if (localAuth.rank >= 5) await injectAdminTabs(localAuth.discord_id || 'local-preview');
+      renderAll();
+      hydrateEntriesFromCache(kw, { allowStale: true });
+      renderAll();
+      refreshEntriesIfNeeded({ force: !entries.length, background: true });
+      loadAccessRequests().then(() => {
+        if (document.getElementById('page-v')?.classList.contains('active')) {
+          renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+        }
+      });
     }
-    renderAll();
-    hydrateEntriesFromCache(kw, { allowStale: true });
-    renderAll();
-    refreshEntriesIfNeeded({ force: !entries.length, background: true });
-    loadAccessRequests().then(() => {
-      if(document.getElementById('page-v').classList.contains('active')) {
-        renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
-      }
-    });
-    // Init char switcher for local preview
+    // Nav actions for char-switcher dropdown (tabs hidden on mobile → show as menu items)
+    buildNavActionsFromTabs();
     const _lpDiscordId = localAuth?.discord_id || 'local-preview';
-    window.csNavActions = [
-      { label: '📊 Punkte-Guide', fn: () => goToPointsGuide() },
-      { label: '👤 Mein Bereich', fn: () => goToMe() },
-    ];
-    if (localAuth?.can_manage) {
-      window.csNavActions.push({ label: '⚙ Admin', fn: () => goToAdminPage() });
-    }
     if (typeof window.initCharSwitcher === 'function') {
       window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
     } else {
@@ -3374,18 +3996,311 @@ async function initApp(){
           window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
       });
     }
+    await me_loadHistory(localAuth.discord_id || '', localAuth.member_name || LOCAL_DEV_MEMBER_NAME);
+    showPage('m');
   } catch(e) {
     toast('Fehler beim Laden: ' + e.message);
   }
 }
 
-function goToAdminPage() {
-  const url = new URL(window.location.href);
-  const base = url.pathname.endsWith('/') ? url.pathname : url.pathname.replace(/[^/]*$/, '');
-  window.location.href = url.origin + base + 'admin.html';
+// ══════════════════════════════════════════════════════
+//  ADMIN PAGE
+// ══════════════════════════════════════════════════════
+let adminLoaded = false;
+let _adminAlliances = [];
+
+function adminRankLabel(r) {
+  return { 1:'Rookie', 2:'Pro', 3:'Elite', 4:'Leader', 5:'Chef' }[r] || 'Unbekannt';
+}
+function adminRankColor(r) {
+  return { 1:'#f0a500', 2:'#2ecb7a', 3:'#4a9eff', 4:'#e05545', 5:'#9b6dff' }[r] || '#7a8498';
+}
+
+async function adminApi(path, options = {}) {
+  const override = (localStorage.getItem('iny_api_base') || '').replace(/\/$/, '');
+  const base = override || (() => {
+    const p = window.location.pathname;
+    const b = p.endsWith('/') ? p : p.replace(/[^/]*$/, '');
+    return `${window.location.origin}${b}api`;
+  })();
+  const res = await fetch(base + path, options);
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function adminInitPage() {
+  if (adminLoaded) return;
+  adminLoaded = true;
+  await loadAlliances();
+  loadArchive();
+  loadAdmins();
+}
+
+function adminShowTab(name, btn) {
+  document.querySelectorAll('#page-a .admin-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#page-a .admin-nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('admin-section-' + name)?.classList.add('active');
+  btn?.classList.add('active');
+  if (name === 'transfer') loadTransferAlliances();
+}
+
+function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
+function openModal(id)  { document.getElementById(id)?.classList.remove('hidden'); }
+
+// ── Alliances ──
+async function loadAlliances() {
+  try {
+    const data = await adminApi('/alliances');
+    _adminAlliances = data.alliances || [];
+    renderAllianceList();
+    const sel = document.getElementById('archive-alliance-filter');
+    if (sel) {
+      sel.innerHTML = '<option value="">Alle Allianzen</option>' +
+        _adminAlliances.map(a => `<option value="${escHtml(a.short_name)}">${escHtml(a.short_name)}</option>`).join('');
+    }
+  } catch (e) {
+    const el = document.getElementById('alliance-list');
+    if (el) el.innerHTML = `<div class="empty">Fehler: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderAllianceList() {
+  const el = document.getElementById('alliance-list');
+  if (!el) return;
+  if (!_adminAlliances.length) { el.innerHTML = '<div class="empty">Keine Allianzen gefunden.</div>'; return; }
+  el.innerHTML = _adminAlliances.map(a => `
+    <div class="alliance-row">
+      <div class="alliance-short">${escHtml(a.short_name)}</div>
+      <div class="alliance-title-text">
+        ${a.title ? escHtml(a.title) : '<em style="color:var(--soft)">Kein Titel</em>'}
+        <small>Erstellt: ${a.created_at ? a.created_at.slice(0,10) : '-'}</small>
+      </div>
+      <div class="alliance-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditAlliance(${escHtml(JSON.stringify(a.short_name))}, ${escHtml(JSON.stringify(a.title || ''))})">Bearbeiten</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openCreateAlliance() {
+  document.getElementById('create-short').value = '';
+  document.getElementById('create-title').value = '';
+  openModal('modal-create-alliance');
+}
+
+async function submitCreate() {
+  const short = document.getElementById('create-short').value.trim();
+  const title = document.getElementById('create-title').value.trim() || null;
+  if (!short) { toast('Kürzel darf nicht leer sein', 'err'); return; }
+  try {
+    await adminApi('/alliances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: authMember?.discord_id, short_name: short, title })
+    });
+    closeModal('modal-create-alliance');
+    toast('Allianz angelegt', 'ok');
+    await loadAlliances();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+function openEditAlliance(short, title) {
+  document.getElementById('edit-old-short').value = short;
+  document.getElementById('edit-short').value = short;
+  document.getElementById('edit-title').value = title;
+  openModal('modal-edit-alliance');
+}
+
+async function submitEdit() {
+  const oldShort = document.getElementById('edit-old-short').value;
+  const newShort = document.getElementById('edit-short').value.trim();
+  const title    = document.getElementById('edit-title').value.trim() || null;
+  if (!newShort) { toast('Kürzel darf nicht leer sein', 'err'); return; }
+  const doMigrate = newShort !== oldShort;
+  if (doMigrate && !confirm(`Kürzel von "${oldShort}" auf "${newShort}" ändern?\n\nAlle Spieler, Einträge und Logs werden migriert. Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
+  try {
+    await adminApi(`/alliances/${encodeURIComponent(oldShort)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: authMember?.discord_id, short_name: newShort, title })
+    });
+    closeModal('modal-edit-alliance');
+    toast(doMigrate ? 'Allianz umbenannt & Daten migriert' : 'Titel gespeichert', 'ok');
+    await loadAlliances();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+// ── Archive ──
+async function loadArchive() {
+  const alliance = document.getElementById('archive-alliance-filter')?.value || '';
+  const tbody = document.getElementById('archive-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" class="empty"><span class="spin">↻</span> Lade …</td></tr>';
+  try {
+    const discordId = authMember?.discord_id || '';
+    const params = alliance
+      ? `?discord_id=${encodeURIComponent(discordId)}&alliance=${encodeURIComponent(alliance)}`
+      : `?discord_id=${encodeURIComponent(discordId)}`;
+    const data = await adminApi('/archived-players' + params);
+    const players = data.players || [];
+    if (!players.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Keine archivierten Spieler gefunden.</td></tr>'; return; }
+    tbody.innerHTML = players.map(p => `
+      <tr>
+        <td><strong>${escHtml(p.current_name)}</strong></td>
+        <td>${escHtml(p.alliance)}</td>
+        <td><span class="rank-badge" style="background:${adminRankColor(p.current_rank_code)}22;color:${adminRankColor(p.current_rank_code)};border:1px solid ${adminRankColor(p.current_rank_code)}44">
+          R${p.current_rank_code} ${escHtml(adminRankLabel(p.current_rank_code))}
+        </span></td>
+        <td style="color:var(--soft);font-size:12px">${p.archived_at ? p.archived_at.slice(0,16).replace('T',' ') : '-'}</td>
+        <td><button class="btn btn-green btn-sm" onclick="restorePlayer(${escHtml(JSON.stringify(p.archive_id))}, ${escHtml(JSON.stringify(p.current_name))})">Wiederherstellen</button></td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">Fehler: ${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+async function restorePlayer(archiveId, name) {
+  if (!confirm(`Spieler "${name}" wiederherstellen?\n\nAlle Daten (Einträge, Namenshistorie, Identitäten) werden zurückgeholt.`)) return;
+  try {
+    await adminApi(`/archived-players/${encodeURIComponent(archiveId)}/restore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: authMember?.discord_id })
+    });
+    toast(`${name} wiederhergestellt`, 'ok');
+    await loadArchive();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+// ── Transfer ──
+async function loadTransferAlliances() {
+  try {
+    const data = await adminApi('/alliances');
+    const alliances = data.alliances || [];
+    ['transfer-from', 'transfer-to'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const current = el.value;
+      el.innerHTML = '<option value="">– wählen –</option>';
+      alliances.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.short_name; opt.textContent = a.short_name;
+        el.appendChild(opt);
+      });
+      if (current) el.value = current;
+    });
+  } catch (_) {}
+}
+
+async function loadTransferPlayers() {
+  const fromEl = document.getElementById('transfer-from');
+  const playerEl = document.getElementById('transfer-player');
+  const fromAlliance = fromEl?.value;
+  if (!fromAlliance) { playerEl.innerHTML = '<option value="">Erst Allianz wählen</option>'; return; }
+  playerEl.innerHTML = '<option value="">Lade …</option>';
+  try {
+    const data = await adminApi(`/members?alliance=${encodeURIComponent(fromAlliance)}&discord_id=${encodeURIComponent(authMember?.discord_id || '')}`);
+    const members = Array.isArray(data) ? data : (data.members || []);
+    if (!members.length) { playerEl.innerHTML = '<option value="">Keine Spieler</option>'; return; }
+    playerEl.innerHTML = '<option value="">Spieler wählen …</option>' +
+      members.map(m => `<option value="${escHtml(m.name)}">${escHtml(m.name)} (R${m.default_rank ?? m.rank})</option>`).join('');
+  } catch (_) { playerEl.innerHTML = '<option value="">Fehler beim Laden</option>'; }
+}
+
+async function submitTransfer() {
+  const fromAlliance = document.getElementById('transfer-from')?.value?.trim();
+  const playerName   = document.getElementById('transfer-player')?.value?.trim();
+  const toAlliance   = document.getElementById('transfer-to')?.value?.trim();
+  if (!fromAlliance || !playerName || !toAlliance) { toast('Bitte alle Felder ausfüllen', 'err'); return; }
+  if (fromAlliance === toAlliance) { toast('Quell- und Ziel-Allianz sind identisch', 'err'); return; }
+  if (!confirm(`Spieler "${playerName}" von ${fromAlliance} nach ${toAlliance} transferieren?\n\nAlle Daten werden mitgenommen.`)) return;
+  try {
+    await adminApi(`/members/${encodeURIComponent(playerName)}/transfer?alliance=${encodeURIComponent(fromAlliance)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: authMember?.discord_id, to_alliance: toAlliance })
+    });
+    toast(`${playerName} nach ${toAlliance} transferiert`, 'ok');
+    document.getElementById('transfer-player').innerHTML = '<option value="">Spieler wählen …</option>';
+    await loadTransferPlayers();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+// ── Admins ──
+async function loadAdmins() {
+  const tbody = document.getElementById('admins-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" class="empty"><span class="spin">↻</span> Lade …</td></tr>';
+  try {
+    const data = await adminApi(`/admins?discord_id=${encodeURIComponent(authMember?.discord_id || '')}`);
+    const admins = data.admins || [];
+    if (!admins.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Keine Admins gefunden.</td></tr>'; return; }
+    const selfId = authMember?.discord_id || '';
+    tbody.innerHTML = admins.map(a => {
+      const avatarHtml = a.avatar
+        ? `<img src="https://cdn.discordapp.com/avatars/${escHtml(a.discord_user_id)}/${escHtml(a.avatar)}.png?size=32" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;">` : '';
+      const displayName = a.player_name || a.username || a.discord_user_id;
+      const isSelf = a.discord_user_id === selfId;
+      return `<tr>
+        <td><strong>${escHtml(displayName)}</strong></td>
+        <td style="color:var(--soft);font-size:12px">${avatarHtml}${escHtml(a.username || a.discord_user_id)}</td>
+        <td>${a.alliance ? escHtml(a.alliance) : '<em style="color:var(--softer)">-</em>'}</td>
+        <td style="color:var(--soft);font-size:12px">${escHtml(a.granted_by === 'system' ? 'System' : (a.granted_by || '-'))}</td>
+        <td style="color:var(--soft);font-size:12px">${escHtml(a.note || '')}</td>
+        <td style="color:var(--soft);font-size:12px">${a.granted_at ? a.granted_at.slice(0,10) : '-'}</td>
+        <td>${isSelf ? '' : `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" onclick="revokeAdmin(${escHtml(JSON.stringify(a.discord_user_id))}, ${escHtml(JSON.stringify(displayName))})">Entziehen</button>`}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">Fehler: ${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+function openGrantAdmin() {
+  document.getElementById('grant-player-name').value = '';
+  document.getElementById('grant-note').value = '';
+  openModal('modal-grant-admin');
+}
+
+async function submitGrantAdmin() {
+  const input = document.getElementById('grant-player-name').value.trim();
+  const note  = document.getElementById('grant-note').value.trim();
+  if (!input) { toast('Name oder Discord-ID eingeben', 'err'); return; }
+  const isDiscordId = /^\d{15,25}$/.test(input);
+  const payload = {
+    discord_id: authMember?.discord_id,
+    note,
+    ...(isDiscordId ? { target_discord_id: input } : { target_player_name: input })
+  };
+  try {
+    await adminApi('/admins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    closeModal('modal-grant-admin');
+    toast('Admin-Recht vergeben', 'ok');
+    await loadAdmins();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+}
+
+async function revokeAdmin(targetDiscordId, displayName) {
+  if (!confirm(`Admin-Recht von "${displayName}" entziehen?`)) return;
+  try {
+    await adminApi(`/admins/${encodeURIComponent(targetDiscordId)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: authMember?.discord_id })
+    });
+    toast(`Admin-Recht von ${displayName} entzogen`, 'ok');
+    await loadAdmins();
+  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
 }
 
 initApp();
+
 </script>
 <script src="char-switcher.js"></script>
 <script src="shared-bottom.js"></script>

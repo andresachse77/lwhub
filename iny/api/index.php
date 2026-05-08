@@ -598,6 +598,45 @@ function handleHealth(PDO $pdo, string $alliance): never {
     ]);
 }
 
+function handleTabHtml(PDO $pdo, string $alliance): never {
+    $section    = trim($_GET['section']    ?? '');
+    $discordIdRaw = $_GET['discord_id'] ?? '';
+    try {
+        $discordId = normalizeDiscordId($discordIdRaw);
+    } catch (\InvalidArgumentException) {
+        jsonOut(403, ['ok' => false, 'error' => 'Nicht autorisiert']);
+    }
+    if (!in_array($section, ['r4', 'admin'], true)) {
+        jsonOut(400, ['ok' => false, 'error' => 'Ungültiger Abschnitt']);
+    }
+    if ($discordId === '') {
+        jsonOut(403, ['ok' => false, 'error' => 'Nicht autorisiert']);
+    }
+
+    $member = getDiscordMember($pdo, $alliance, $discordId);
+    if (!$member) {
+        jsonOut(403, ['ok' => false, 'error' => 'Nicht berechtigt']);
+    }
+
+    $rank = safeRank((int)$member['current_rank_code']);
+
+    if ($section === 'r4'    && $rank < 4) jsonOut(403, ['ok' => false, 'error' => 'Rang 4 oder höher erforderlich']);
+    if ($section === 'admin' && $rank < 5) jsonOut(403, ['ok' => false, 'error' => 'Rang 5 erforderlich']);
+
+    $partialsDir = __DIR__ . '/partials/';
+
+    ob_start();
+    include $partialsDir . $section . '-tab-btns.php';
+    $tabBtns = (string)ob_get_clean();
+
+    ob_start();
+    $pagesFile = $partialsDir . $section . '-pages.php';
+    if (file_exists($pagesFile)) include $pagesFile;
+    $pages = (string)ob_get_clean();
+
+    jsonOut(200, ['ok' => true, 'tabBtns' => $tabBtns, 'pages' => $pages]);
+}
+
 function handleVerifyDiscord(PDO $pdo, string $alliance): never {
     $discordIdRaw = $_GET['discord_id'] ?? '';
     try {
@@ -2311,6 +2350,11 @@ try {
     // GET /member-history
     if ($method === 'GET' && $path === '/member-history') {
         handleMemberHistory($pdo, $ALLIANCE);
+    }
+
+    // GET /tab-html – liefert R4/Admin-Tab-HTML nach DB-Rank-Check zurück
+    if ($method === 'GET' && $path === '/tab-html') {
+        handleTabHtml($pdo, $ALLIANCE);
     }
 
     // POST /discord-profile-cache

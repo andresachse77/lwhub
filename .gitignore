@@ -7,3 +7,5 @@ scripte/
 *.log
 .DS_Store
 Thumbs.db
+
+_archiv/

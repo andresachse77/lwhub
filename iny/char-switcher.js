@@ -489,13 +489,11 @@
 
     // Admin button
     document.getElementById('cs-admin-btn')?.addEventListener('click', () => {
-      const url = new URL(window.location.href);
-      url.search = '';
-      url.hash = '';
-      url.pathname = url.pathname.endsWith('/')
-        ? url.pathname + 'admin.html'
-        : url.pathname.replace(/[^/]*$/, 'admin.html');
-      window.location.href = url.toString();
+      dropdown.classList.remove('open');
+      document.getElementById('cs-trigger')?.classList.remove('open');
+      if (typeof window.showPage === 'function') {
+        window.showPage('a');
+      }
     });
 
     // Logout

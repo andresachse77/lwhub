@@ -43,9 +43,14 @@ nav {
   background: var(--card);
   border-bottom: 1px solid var(--line);
   height: 56px;
+  position: sticky; top: 0; z-index: 100;
+}
+.nav-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  height: 100%;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 1.5rem;
-  position: sticky; top: 0; z-index: 100;
 }
 .logo { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 4px; color: var(--gold); }
 .logo em { color: var(--text); font-style: normal; }
@@ -781,6 +786,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 <button id="logout-btn" style="display:none" onclick="discordLogout()">Logout</button>
 
 <nav>
+  <div class="nav-inner">
   <div class="logo"><span class="js-alliance-short">INY</span> <em class="js-alliance-tagline">RANKING</em></div>
   <div class="tabs" id="main-tabs">
     <button class="tab active" id="tab-m" onclick="showPage('m')">Mein Bereich</button>
@@ -798,6 +804,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <input type="number" id="kwInput" min="1" max="9953" value="2616" onchange="kwChanged()">
     </div>
     <button class="kw-btn" type="button" onclick="changeYearWeek(1)" title="Nächste Woche">›</button>
+  </div>
   </div>
 </nav>
 

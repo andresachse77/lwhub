@@ -3903,6 +3903,21 @@ async function syncData(){
 }
 window.syncData = syncData;
 
+// ── PRESENCE PING (unabhängig vom Chat-Widget) ──
+function startPresencePing(memberName, discordId, discordUsername) {
+  async function ping() {
+    try {
+      await fetchJson('/presence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_name: memberName, discord_id: discordId, discord_username: discordUsername || '' })
+      });
+    } catch (_) {}
+  }
+  ping();
+  setInterval(ping, 5 * 60 * 1000);
+}
+
 // ── INIT ──
 async function initApp(){
   const loginBox = document.getElementById('login-box');
@@ -3957,6 +3972,7 @@ async function initApp(){
     }
 
     document.getElementById('login-screen').style.display = 'none';
+    startPresencePing(authMember.member_name, authMember.discord_id, authMember.discord_username);
     await me_loadHistory(authMember.discord_id, authMember.member_name);
     showPage('m');
     return;
@@ -3996,6 +4012,7 @@ async function initApp(){
           window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
       });
     }
+    startPresencePing(localAuth.member_name || LOCAL_DEV_MEMBER_NAME, localAuth.discord_id || '', localAuth.discord_username || '');
     await me_loadHistory(localAuth.discord_id || '', localAuth.member_name || LOCAL_DEV_MEMBER_NAME);
     showPage('m');
   } catch(e) {

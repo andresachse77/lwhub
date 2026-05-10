@@ -1109,13 +1109,20 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   <div class="modal">
     <div class="modal-title">Neue Allianz anlegen</div>
     <div class="field">
-      <label>Kürzel (z.B. INY)</label>
-      <input type="text" id="create-short" maxlength="50" placeholder="z.B. INY oder my-ally">
-      <div class="hint">Max. 50 Zeichen, wird automatisch in Großbuchstaben gespeichert</div>
+      <label>Kürzel (z.B. NxU1)</label>
+      <input type="text" id="create-short" maxlength="50" placeholder="z.B. NxU1 oder my-ally">
+      <div class="hint">Max. 50 Zeichen</div>
     </div>
     <div class="field">
       <label>Vollständiger Titel (optional)</label>
-      <input type="text" id="create-title" maxlength="255" placeholder="INY – It's Not Yellow">
+      <input type="text" id="create-title" maxlength="255" placeholder="NxU1 – Next Unit 1">
+    </div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;">
+        <input type="checkbox" id="create-accepts-requests">
+        Login-Anfragen akzeptieren
+      </label>
+      <div class="hint">Spieler können über das Login-Formular eine Beitrittsanfrage senden.</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-create-alliance')">Abbrechen</button>
@@ -1135,7 +1142,14 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     </div>
     <div class="field">
       <label>Vollständiger Titel</label>
-      <input type="text" id="edit-title" maxlength="255" placeholder="INY – It's Not Yellow">
+      <input type="text" id="edit-title" maxlength="255" placeholder="NxU1 – Next Unit 1">
+    </div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;">
+        <input type="checkbox" id="edit-accepts-requests">
+        Login-Anfragen akzeptieren
+      </label>
+      <div class="hint">Spieler können über das Login-Formular eine Beitrittsanfrage senden.</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-edit-alliance')">Abbrechen</button>
@@ -1365,23 +1379,37 @@ function discordLogout() {
   window.location.href = getBaseInyUrl();
 }
 
-function renderAccessDenied(user, reason = 'Kein Zugriff') {
+async function renderAccessDenied(user, reason = 'Kein Zugriff') {
   const safeUsername = escHtml(user.username || user.global_name || 'Discord User');
   const avatarUrl = user.avatar
     ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
     : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+  // Load alliances that currently accept login requests
+  let allianceSelectHtml = '<input id="req-alliance" placeholder="Allianz">';
+  try {
+    const data = await adminApi('/alliances/open');
+    const opts = data.alliances || [];
+    if (opts.length > 0) {
+      allianceSelectHtml = `<select id="req-alliance" style="width:100%;background:var(--card2);border:1px solid var(--line2);border-radius:8px;color:var(--text);font-size:13px;padding:8px 10px;outline:none;font-family:'Inter',sans-serif;">`
+        + opts.map(a => `<option value="${escHtml(a.short_name)}">${escHtml(a.short_name)}${a.title ? ' \u2013 ' + escHtml(a.title) : ''}</option>`).join('')
+        + '</select>';
+    } else {
+      allianceSelectHtml = '<div style="color:var(--soft);font-size:12px;padding:4px 0;">Aktuell nimmt keine Allianz Login-Anfragen an.</div>';
+    }
+  } catch (_) {}
 
   document.getElementById('login-box').innerHTML = `
     <div class="login-user">
       <img src="${avatarUrl}" alt="">
       <span>${safeUsername}</span>
     </div>
-    <div style="color:var(--red);font-size:13px;margin-bottom:1rem;">${escHtml(reason)} – dein Discord ist aktuell noch keinem aktiven Mitglied zugeordnet.</div>
+    <div style="color:var(--red);font-size:13px;margin-bottom:1rem;">${escHtml(reason)} \u2013 dein Discord ist aktuell noch keinem aktiven Mitglied zugeordnet.</div>
     <button class="discord-btn" style="background:var(--card2);font-size:13px;padding:8px 20px;" onclick="discordLogout()">Anderer Account</button>
     <div class="login-request" id="login-request-box">
       <div class="title">Keinen Zugriff? Anfrage senden</div>
       <div class="hint">Schick uns Allianz + Spielername. Das landet direkt in der Verwaltung als Vorschlag.</div>
-      <div class="row"><input id="req-alliance" placeholder="Allianz (z. B. INY)" value="INY"></div>
+      <div class="row">${allianceSelectHtml}</div>
       <div class="row"><input id="req-player" placeholder="Dein Spielername" value="${escHtml(user.global_name || user.username || '')}"></div>
       <div class="row"><textarea id="req-note" placeholder="Optional: kurzer Hinweis (z. B. alter Name)"></textarea></div>
       <button class="send" onclick="submitAccessRequest()">Anfrage senden</button>
@@ -1396,9 +1424,13 @@ async function submitAccessRequest() {
     return;
   }
 
-  const alliance = document.getElementById('req-alliance')?.value.trim() || 'INY';
+  const alliance = document.getElementById('req-alliance')?.value.trim() || '';
   const playerName = document.getElementById('req-player')?.value.trim() || '';
   const note = document.getElementById('req-note')?.value.trim() || '';
+  if (!alliance) {
+    toast('Bitte eine Allianz auswählen.');
+    return;
+  }
   if (!playerName) {
     toast('Bitte deinen Spielernamen eingeben.');
     return;
@@ -4100,8 +4132,13 @@ function renderAllianceList() {
         ${a.title ? escHtml(a.title) : '<em style="color:var(--soft)">Kein Titel</em>'}
         <small>Erstellt: ${a.created_at ? a.created_at.slice(0,10) : '-'}</small>
       </div>
-      <div class="alliance-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openEditAlliance(${escHtml(JSON.stringify(a.short_name))}, ${escHtml(JSON.stringify(a.title || ''))})">Bearbeiten</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        ${a.accepts_requests
+          ? '<span style="font-size:11px;background:rgba(46,203,122,0.15);color:var(--green);border:1px solid rgba(46,203,122,0.3);border-radius:6px;padding:2px 8px;">Anfragen offen</span>'
+          : '<span style="font-size:11px;color:var(--soft);">Anfragen geschlossen</span>'}
+        <div class="alliance-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEditAlliance(${escHtml(JSON.stringify(a.short_name))}, ${escHtml(JSON.stringify(a.title || ''))}, ${a.accepts_requests ? 1 : 0})">Bearbeiten</button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -4110,6 +4147,7 @@ function renderAllianceList() {
 function openCreateAlliance() {
   document.getElementById('create-short').value = '';
   document.getElementById('create-title').value = '';
+  document.getElementById('create-accepts-requests').checked = false;
   openModal('modal-create-alliance');
 }
 
@@ -4121,7 +4159,7 @@ async function submitCreate() {
     await adminApi('/alliances', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discord_id: authMember?.discord_id, short_name: short, title })
+      body: JSON.stringify({ discord_id: authMember?.discord_id, short_name: short, title, accepts_requests: document.getElementById('create-accepts-requests').checked })
     });
     closeModal('modal-create-alliance');
     toast('Allianz angelegt', 'ok');
@@ -4129,10 +4167,11 @@ async function submitCreate() {
   } catch (e) { toast('Fehler: ' + e.message, 'err'); }
 }
 
-function openEditAlliance(short, title) {
+function openEditAlliance(short, title, acceptsRequests = 0) {
   document.getElementById('edit-old-short').value = short;
   document.getElementById('edit-short').value = short;
   document.getElementById('edit-title').value = title;
+  document.getElementById('edit-accepts-requests').checked = !!acceptsRequests;
   openModal('modal-edit-alliance');
 }
 
@@ -4147,7 +4186,7 @@ async function submitEdit() {
     await adminApi(`/alliances/${encodeURIComponent(oldShort)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discord_id: authMember?.discord_id, short_name: newShort, title })
+      body: JSON.stringify({ discord_id: authMember?.discord_id, short_name: newShort, title, accepts_requests: document.getElementById('edit-accepts-requests').checked })
     });
     closeModal('modal-edit-alliance');
     toast(doMigrate ? 'Allianz umbenannt & Daten migriert' : 'Titel gespeichert', 'ok');

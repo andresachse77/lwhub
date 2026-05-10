@@ -1588,11 +1588,19 @@ function handleSubmitAccessRequest(PDO $pdo, string $alliance, array $body): nev
     $playerName  = trim($body['player_name'] ?? '');
     if ($playerName === '') jsonOut(400, ['error' => 'Spielername fehlt']);
 
-    $reqAlliance = strtoupper(trim($body['alliance'] ?? $alliance));
+    $reqAlliance = trim($body['alliance'] ?? '');
+    if ($reqAlliance === '') jsonOut(400, ['error' => 'Allianz fehlt']);
     $username    = trim($body['discord_username'] ?? '') ?: null;
     $avatar      = trim($body['discord_avatar'] ?? '') ?: null;
     $note        = trim($body['note'] ?? '') ?: null;
 
+    // Validate: only alliances with accepts_requests=1 may receive login requests
+    ensureAlliancesTable($pdo);
+    $check = $pdo->prepare("SELECT 1 FROM alliances WHERE alliance = ? AND accepts_requests = 1");
+    $check->execute([$reqAlliance]);
+    if (!$check->fetch()) jsonOut(400, ['error' => 'Diese Allianz nimmt aktuell keine Login-Anfragen an']);
+
+    // Store under the requested alliance so it appears in their admin queue
     ensureAccessRequestsTable($pdo);
     $pdo->prepare("
         INSERT INTO access_requests (alliance, request_id, discord_user_id, discord_username, discord_avatar,
@@ -1606,7 +1614,7 @@ function handleSubmitAccessRequest(PDO $pdo, string $alliance, array $body): nev
             note             = VALUES(note),
             created_at       = CURRENT_TIMESTAMP,
             reviewed_at      = NULL
-    ")->execute([$alliance, uuid4(), $discordId, $username, $avatar, $reqAlliance, $playerName, $note]);
+    ")->execute([$reqAlliance, uuid4(), $discordId, $username, $avatar, $reqAlliance, $playerName, $note]);
     jsonOut(200, ['ok' => true]);
 }
 
@@ -1627,13 +1635,18 @@ function handleResolveAccessRequest(PDO $pdo, string $alliance, string $requestI
 function ensureAlliancesTable(PDO $pdo): void {
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS alliances (
-            alliance     VARCHAR(50)  NOT NULL,
-            alliance_name VARCHAR(200) NULL,
-            is_active    TINYINT(1)  NOT NULL DEFAULT 1,
-            created_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            alliance          VARCHAR(50)  NOT NULL,
+            alliance_name     VARCHAR(200) NULL,
+            is_active         TINYINT(1)  NOT NULL DEFAULT 1,
+            accepts_requests  TINYINT(1)  NOT NULL DEFAULT 0,
+            created_at        DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (alliance)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
+    // One-time migration: add column if table already existed
+    try {
+        $pdo->exec("ALTER TABLE alliances ADD COLUMN accepts_requests TINYINT(1) NOT NULL DEFAULT 0");
+    } catch (\PDOException) { /* column already exists */ }
 }
 
 function upsertAllianceFromConfig(PDO $pdo, string $alliance): void {
@@ -1857,7 +1870,13 @@ function requireR5(PDO $pdo, string $discordId): array {
 
 function handleGetAlliances(PDO $pdo): never {
     ensureAlliancesTable($pdo);
-    $rows = $pdo->query("SELECT alliance AS short_name, alliance_name AS title, created_at FROM alliances ORDER BY alliance")->fetchAll();
+    $rows = $pdo->query("SELECT alliance AS short_name, alliance_name AS title, accepts_requests, created_at FROM alliances ORDER BY alliance")->fetchAll();
+    jsonOut(200, ['ok' => true, 'alliances' => $rows]);
+}
+
+function handleGetOpenAlliances(PDO $pdo): never {
+    ensureAlliancesTable($pdo);
+    $rows = $pdo->query("SELECT alliance AS short_name, alliance_name AS title FROM alliances WHERE accepts_requests = 1 ORDER BY alliance")->fetchAll();
     jsonOut(200, ['ok' => true, 'alliances' => $rows]);
 }
 
@@ -1869,11 +1888,12 @@ function handleCreateAlliance(PDO $pdo, array $body): never {
 
     $shortName = trim($body['short_name'] ?? '');
     if ($shortName === '' || strlen($shortName) > 50) jsonOut(400, ['error' => 'Kürzel fehlt oder zu lang (max 50)']);
-    $title = trim($body['title'] ?? '') ?: null;
+    $title           = trim($body['title'] ?? '') ?: null;
+    $acceptsRequests = !empty($body['accepts_requests']) ? 1 : 0;
 
     ensureAlliancesTable($pdo);
     try {
-        $pdo->prepare("INSERT INTO alliances (alliance, alliance_name) VALUES (?, ?)")->execute([$shortName, $title]);
+        $pdo->prepare("INSERT INTO alliances (alliance, alliance_name, accepts_requests) VALUES (?, ?, ?)")->execute([$shortName, $title, $acceptsRequests]);
     } catch (\PDOException $e) {
         if ($e->getCode() === '23000') jsonOut(409, ['error' => 'Allianz existiert bereits']);
         throw $e;
@@ -1899,16 +1919,18 @@ function handleUpdateAlliance(PDO $pdo, string $oldShortEncoded, array $body): n
     requireR5($pdo, $discordId);
 
     ensureAlliancesTable($pdo);
-    $stmt = $pdo->prepare("SELECT alliance AS short_name, alliance_name AS title FROM alliances WHERE alliance = ?");
+    $stmt = $pdo->prepare("SELECT alliance AS short_name, alliance_name AS title, accepts_requests FROM alliances WHERE alliance = ?");
     $stmt->execute([$oldShort]);
     $existing = $stmt->fetch();
     if (!$existing) jsonOut(404, ['error' => 'Allianz nicht gefunden']);
 
-    $newShort  = trim($body['short_name'] ?? $oldShort);
-    $titleSet  = array_key_exists('title', $body);
-    $newTitle  = $titleSet ? (trim($body['title'] ?? '') ?: null) : ($existing['title'] ?? null);
+    $newShort           = trim($body['short_name'] ?? $oldShort);
+    $titleSet           = array_key_exists('title', $body);
+    $acceptsRequestsSet = array_key_exists('accepts_requests', $body);
+    $newTitle           = $titleSet ? (trim($body['title'] ?? '') ?: null) : ($existing['title'] ?? null);
+    $newAcceptsRequests = $acceptsRequestsSet ? (!empty($body['accepts_requests']) ? 1 : 0) : (int)($existing['accepts_requests'] ?? 0);
 
-    if ($newShort === $oldShort && !$titleSet) jsonOut(400, ['error' => 'Keine Änderungen angegeben']);
+    if ($newShort === $oldShort && !$titleSet && !$acceptsRequestsSet) jsonOut(400, ['error' => 'Keine Änderungen angegeben']);
 
     $pdo->beginTransaction();
     try {
@@ -1917,7 +1939,7 @@ function handleUpdateAlliance(PDO $pdo, string $oldShortEncoded, array $body): n
             $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
             // Create new alliance entry
             try {
-                $pdo->prepare("INSERT INTO alliances (alliance, alliance_name) VALUES (?, ?)")->execute([$newShort, $newTitle]);
+                $pdo->prepare("INSERT INTO alliances (alliance, alliance_name, accepts_requests) VALUES (?, ?, ?)")->execute([$newShort, $newTitle, $newAcceptsRequests]);
             } catch (\PDOException $e) {
                 $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
                 if ($e->getCode() === '23000') {
@@ -1944,10 +1966,10 @@ function handleUpdateAlliance(PDO $pdo, string $oldShortEncoded, array $body): n
             $pdo->prepare("DELETE FROM alliances WHERE alliance = ?")->execute([$oldShort]);
             $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
         } else {
-            $pdo->prepare("UPDATE alliances SET alliance_name = ? WHERE alliance = ?")->execute([$newTitle, $oldShort]);
+            $pdo->prepare("UPDATE alliances SET alliance_name = ?, accepts_requests = ? WHERE alliance = ?")->execute([$newTitle, $newAcceptsRequests, $oldShort]);
         }
         $pdo->commit();
-        jsonOut(200, ['ok' => true, 'short_name' => $newShort, 'title' => $newTitle]);
+        jsonOut(200, ['ok' => true, 'short_name' => $newShort, 'title' => $newTitle, 'accepts_requests' => $newAcceptsRequests]);
     } catch (\PDOException $e) {
         try { $pdo->exec('SET FOREIGN_KEY_CHECKS=1'); } catch (\Throwable) {}
         if ($pdo->inTransaction()) $pdo->rollBack();
@@ -2452,6 +2474,10 @@ try {
     // GET /alliances
     if ($method === 'GET' && $path === '/alliances') {
         handleGetAlliances($pdo);
+    }
+    // GET /alliances/open – public list of alliances accepting login requests
+    if ($method === 'GET' && $path === '/alliances/open') {
+        handleGetOpenAlliances($pdo);
     }
     // POST /alliances
     if ($method === 'POST' && $path === '/alliances') {

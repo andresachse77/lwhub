@@ -574,6 +574,33 @@ button, select { font-family: inherit; }
     </div>
     <div class="timeline" id="timeline"></div>
   </section>
+
+  <section class="panel" style="margin-top:18px;" id="zug-section">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">🚂 Zugplan</div>
+        <div class="panel-sub" id="zug-section-sub">Deine Schaffner- und VIP-Einsätze</div>
+      </div>
+    </div>
+
+    <!-- Upcoming turns -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--soft);margin-bottom:8px;">Nächste Einsätze</div>
+      <div id="zug-upcoming" class="empty">Keine bevorstehenden Einsätze geplant.</div>
+    </div>
+
+    <!-- Queue positions -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--soft);margin-bottom:8px;">Position in der Warteschlange</div>
+      <div id="zug-queue-pos"></div>
+    </div>
+
+    <!-- Past turns -->
+    <div>
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--soft);margin-bottom:8px;">Letzte Einsätze</div>
+      <div id="zug-past" class="empty">Noch keine Einsätze vorhanden.</div>
+    </div>
+  </section>
 </main>
 
 <div class="toast" id="toast"></div>
@@ -1177,6 +1204,7 @@ async function init() {
       historyBundle = await loadMemberHistory({ name: activeMemberName });
       selectedWeekIndex = 0;
       renderOverview();
+      if (authMember?.discord_id) zugLoadMyTurns(authMember.discord_id);
       if (typeof window.initCharSwitcher === 'function') {
         window.initCharSwitcher({ id: authMember?.discord_id || 'local-preview', username: authMember?.discord_username || 'Lokaler Admin', avatar: null }, authMember);
       } else {
@@ -1213,8 +1241,85 @@ async function init() {
     if (typeof window.initCharSwitcher === 'function') {
       window.initCharSwitcher(currentDiscordUser, authMember);
     }
+    // Load Zug turns (fire and forget - non-critical)
+    if (verify?.discord_id) zugLoadMyTurns(verify.discord_id);
   } catch (error) {
     toast(`Laden fehlgeschlagen: ${error.message}`);
+  }
+}
+
+// ── Zug-Planer (me page) ────────────────────────────────────────────────────
+async function zugLoadMyTurns(discordId) {
+  try {
+    const d = await fetchJson(`/zug/my-turns?discord_id=${encodeURIComponent(discordId)}`);
+    if (d && d.ok) zugRenderMyTurns(d);
+  } catch(e) { /* silent – Zug tables may not exist yet */ }
+}
+
+function zugRenderMyTurns(data) {
+  const STATUS_COLOR = { planned:'rgba(74,158,255,0.55)', completed:'rgba(46,203,122,0.65)', noshow:'rgba(224,85,69,0.65)', cancelled:'rgba(100,100,100,0.45)' };
+  const STATUS_LABEL = { planned:'Geplant', completed:'Abgeschlossen', noshow:'No-Show', cancelled:'Abgesagt' };
+
+  // upcoming
+  const upEl = document.getElementById('zug-upcoming');
+  if (upEl) {
+    if (!data.upcoming || !data.upcoming.length) {
+      upEl.className = 'empty'; upEl.textContent = 'Keine bevorstehenden Einsätze geplant.';
+    } else {
+      upEl.className = '';
+      upEl.innerHTML = data.upcoming.map(e => {
+        const role = e.schaffner_name === data.member_name ? '🚂 Schaffner' : '⭐ VIP';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(74,158,255,0.07);border:1px solid rgba(74,158,255,0.2);margin-bottom:6px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:13px;">${escHtml(e.event_date)} <span style="font-size:11px;color:var(--blue);font-weight:700;">${role}</span></div>
+            <div style="font-size:11px;color:var(--soft-2);">${escHtml(e.ruleset_key)}</div>
+          </div>
+          <span style="padding:3px 9px;border-radius:99px;font-size:10px;font-weight:700;background:${STATUS_COLOR[e.status]};color:var(--text);">${STATUS_LABEL[e.status]||e.status}</span>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // queue positions
+  const qEl = document.getElementById('zug-queue-pos');
+  if (qEl) {
+    const pos = data.queue_positions || {};
+    const keys = Object.keys(pos);
+    if (!keys.length) {
+      qEl.innerHTML = '<div class="empty" style="font-size:12px;">Noch keiner Warteschlange zugeordnet.</div>';
+    } else {
+      qEl.innerHTML = keys.map(key => {
+        const p = pos[key];
+        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);margin-bottom:6px;">
+          <span style="font-family:'Rajdhani',sans-serif;font-size:22px;color:var(--gold);min-width:28px;text-align:center;">${p.position}</span>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:600;">${escHtml(key)}</div>
+            <div style="font-size:10px;color:var(--soft-2);">${p.last_turn_date ? `Zuletzt: ${p.last_turn_date}` : 'Noch nicht gefahren'} · ${p.turn_count}× gesamt</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // past turns
+  const pastEl = document.getElementById('zug-past');
+  if (pastEl) {
+    if (!data.past || !data.past.length) {
+      pastEl.className = 'empty'; pastEl.textContent = 'Noch keine Einsätze vorhanden.';
+    } else {
+      pastEl.className = '';
+      pastEl.innerHTML = data.past.map(e => {
+        const role = e.schaffner_name === data.member_name ? '🚂 Schaffner' : '⭐ VIP';
+        const subNote = e.is_substitute && e.original_schaffner_name ? ` <span style="color:var(--soft-2);font-size:10px;">(Einspringer für ${escHtml(e.original_schaffner_name)})</span>` : '';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);margin-bottom:6px;opacity:${e.status==='noshow'?'0.6':'1'}">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:13px;">${escHtml(e.event_date)} <span style="font-size:11px;color:var(--blue);font-weight:700;">${role}</span>${subNote}</div>
+            <div style="font-size:11px;color:var(--soft-2);">${escHtml(e.ruleset_key)}</div>
+          </div>
+          <span style="padding:3px 9px;border-radius:99px;font-size:10px;font-weight:700;background:${STATUS_COLOR[e.status]};color:var(--text);">${STATUS_LABEL[e.status]||e.status}</span>
+        </div>`;
+      }).join('');
+    }
   }
 }
 

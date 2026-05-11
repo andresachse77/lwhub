@@ -1,4 +1,177 @@
 <?php // R4 Pages – nur nach verifiziertem Rank ≥4 ausgeliefert ?>
+
+<!-- ═══ ZUGPLAN ═══ -->
+<div class="page" id="page-z">
+
+  <!-- Top controls -->
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
+      <div class="panel-title">🚂 Zugplan</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">
+        <label style="font-size:0.82rem;color:var(--soft);">Regelwerk:</label>
+        <select id="zug-ruleset-select" style="background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:0.82rem;" onchange="zugOnRulesetChange()"></select>
+        <button class="flt-toggle" id="zug-sync-btn" onclick="zugSyncQueue()" title="Mitgliederliste mit Warteschlange abgleichen">⟳ Queue sync</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar + Queue side by side -->
+  <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:1rem;align-items:start;">
+
+    <!-- Calendar panel -->
+    <div class="panel" id="zug-cal-panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title" id="zug-cal-title">Kalender</div>
+          <div class="panel-sub">Monat wählen, Termin planen oder bearbeiten</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="wt-btn" onclick="zugNavMonth(-1)">‹</button>
+          <button class="wt-btn" onclick="zugNavMonth(1)">›</button>
+          <button class="wt-btn" onclick="zugNavToday()" style="padding:4px 10px;font-size:11px;">Heute</button>
+        </div>
+      </div>
+      <!-- Legend -->
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;margin-bottom:12px;color:var(--soft);">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(74,158,255,0.6);margin-right:4px;vertical-align:middle;"></span>Geplant</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(46,203,122,0.7);margin-right:4px;vertical-align:middle;"></span>Abgeschlossen</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(224,85,69,0.7);margin-right:4px;vertical-align:middle;"></span>No-Show</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(100,100,100,0.5);margin-right:4px;vertical-align:middle;"></span>Abgesagt</span>
+      </div>
+      <!-- Day-of-week headers -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;">
+        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Mo</div>
+        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Di</div>
+        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Mi</div>
+        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Do</div>
+        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Fr</div>
+        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Sa</div>
+        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">So</div>
+      </div>
+      <div id="zug-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+    </div>
+
+    <!-- Queue panel -->
+    <div class="panel" id="zug-queue-panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Warteschlange</div>
+          <div class="panel-sub">Nächster oben</div>
+        </div>
+      </div>
+      <div id="zug-queue-list" style="display:flex;flex-direction:column;gap:4px;min-height:40px;"></div>
+    </div>
+  </div>
+
+  <!-- Ruleset management -->
+  <div class="panel" style="margin-top:1rem;">
+    <div class="panel-head">
+      <div class="panel-title">Regelwerke</div>
+      <button class="save-btn" onclick="zugShowRulesetForm(null)" style="padding:5px 14px;font-size:12px;">+ Neu</button>
+    </div>
+    <div id="zug-rulesets-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
+  <!-- Ruleset form (hidden by default) -->
+  <div class="panel" id="zug-ruleset-form-wrap" style="margin-top:1rem;display:none;">
+    <div class="panel-head">
+      <div class="panel-title" id="zug-ruleset-form-title">Regelwerk</div>
+      <button class="editor-close" onclick="zugHideRulesetForm()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>
+        <div class="vlabel">Schlüssel (a-z, 0-9, _,-)</div>
+        <input class="vinput" id="zug-rs-key" placeholder="z.B. wochenmitte">
+      </div>
+      <div>
+        <div class="vlabel">Name</div>
+        <input class="vinput" id="zug-rs-name" placeholder="z.B. Mittwoch-Regel">
+      </div>
+      <div style="grid-column:1/-1;">
+        <div class="vlabel">Beschreibung <span style="color:var(--soft-2);font-size:11px;">(optional)</span></div>
+        <input class="vinput" id="zug-rs-desc" placeholder="Kurze Erklärung...">
+      </div>
+      <div>
+        <div class="vlabel">Erlaubte Wochentage <span style="color:var(--soft-2);font-size:11px;">(1=Mo … 7=So, kommasepariert, leer=alle)</span></div>
+        <input class="vinput" id="zug-rs-weekdays" placeholder="z.B. 3,6">
+      </div>
+      <div>
+        <div class="vlabel">Reihenfolge</div>
+        <input class="vinput" id="zug-rs-order" type="number" value="0">
+      </div>
+    </div>
+    <button class="save-btn" onclick="zugSaveRuleset()" style="margin-top:10px;">Speichern</button>
+  </div>
+
+  <!-- Event form dialog (shown on day click) -->
+  <div id="zug-event-overlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
+    <div style="background:var(--card);border:1px solid var(--line2);border-radius:16px;padding:22px;min-width:320px;max-width:440px;width:90%;position:relative;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:19px;letter-spacing:1px;" id="zug-ev-title">Termin</div>
+        <button class="editor-close" onclick="zugCloseEventForm()">✕</button>
+      </div>
+      <div id="zug-ev-date-display" style="font-size:13px;color:var(--gold);margin-bottom:14px;"></div>
+
+      <!-- existing entry controls -->
+      <div id="zug-ev-existing" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <div class="vlabel">Schaffner</div>
+          <div id="zug-ev-info-schaffner" style="font-size:13px;font-weight:600;margin:4px 0 2px;"></div>
+          <div class="vlabel" style="margin-top:8px;">VIP</div>
+          <div id="zug-ev-info-vip" style="font-size:13px;margin:4px 0 2px;color:var(--soft);"></div>
+          <div class="vlabel" style="margin-top:8px;">Status</div>
+          <div id="zug-ev-info-status" style="margin:4px 0;"></div>
+          <div id="zug-ev-info-notes" style="font-size:11px;color:var(--soft-2);margin-top:4px;"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="save-btn" onclick="zugMarkCompleted()" style="background:rgba(46,203,122,0.2);color:#2ecb7a;border:1px solid rgba(46,203,122,0.35);padding:6px 14px;">✓ Abgeschlossen</button>
+          <button class="save-btn" onclick="zugOpenNoShowForm()" style="background:rgba(224,85,69,0.2);color:#e05545;border:1px solid rgba(224,85,69,0.35);padding:6px 14px;">✗ No-Show</button>
+          <button class="save-btn" onclick="zugEditExisting()" style="background:rgba(74,158,255,0.15);color:#4a9eff;border:1px solid rgba(74,158,255,0.3);padding:6px 14px;">✏ Bearbeiten</button>
+          <button class="save-btn" onclick="zugDeleteEntry()" style="background:rgba(100,100,100,0.15);color:var(--soft);border:1px solid var(--line2);padding:6px 14px;">🗑 Löschen</button>
+        </div>
+      </div>
+
+      <!-- no-show sub-form -->
+      <div id="zug-ev-noshow" style="display:none;border-top:1px solid var(--line);padding-top:12px;margin-top:4px;">
+        <div class="vlabel">Einspringer <span style="color:var(--soft-2);font-size:11px;">(optional)</span></div>
+        <select class="vinput" id="zug-ev-sub-select" style="margin-bottom:8px;"></select>
+        <div class="vlabel">Notiz</div>
+        <input class="vinput" id="zug-ev-noshow-notes" placeholder="Begründung...">
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="save-btn" onclick="zugConfirmNoShow()" style="flex:1;">Bestätigen</button>
+          <button class="save-btn" onclick="zugCancelNoShow()" style="flex:0 0 auto;background:var(--card2);color:var(--soft);border:1px solid var(--line2);">Abbrechen</button>
+        </div>
+      </div>
+
+      <!-- create/edit form -->
+      <div id="zug-ev-form" style="display:none;">
+        <div style="margin-bottom:10px;">
+          <div class="vlabel">Schaffner</div>
+          <select class="vinput" id="zug-ev-schaffner"></select>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div class="vlabel">VIP <span style="color:var(--soft-2);font-size:11px;">(optional)</span></div>
+          <select class="vinput" id="zug-ev-vip"></select>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div class="vlabel">Notiz <span style="color:var(--soft-2);font-size:11px;">(optional)</span></div>
+          <input class="vinput" id="zug-ev-notes" placeholder="Kurze Notiz...">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="save-btn" onclick="zugSaveEntry()" style="flex:1;" id="zug-ev-save-btn">Speichern</button>
+          <button class="save-btn" onclick="zugCancelEditForm()" style="flex:0 0 auto;background:var(--card2);color:var(--soft);border:1px solid var(--line2);">Abbrechen</button>
+        </div>
+      </div>
+
+      <!-- new entry trigger -->
+      <div id="zug-ev-new-trigger">
+        <button class="save-btn" onclick="zugOpenCreateForm()" style="width:100%;" id="zug-ev-new-btn">+ Termin anlegen</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <!-- ═══ DASHBOARD ═══ -->
 <div class="page" id="page-d">
 
@@ -272,4 +445,14 @@
     </div>
     <div id="se-inactive-result" style="padding:8px 0;"></div>
   </div>
+
+  <!-- FLAG CONFIG -->
+  <div class="panel" style="margin-top:1rem;">
+    <div class="panel-head">
+      <div class="panel-title">🚩 Flag-Konfiguration</div>
+      <div class="panel-sub">Legt fest welche Flags erfasst und ausgewertet werden</div>
+    </div>
+    <div id="v-flag-config"><div class="empty">Lade …</div></div>
+  </div>
+
 </div>

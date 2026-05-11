@@ -49,20 +49,21 @@ nav {
   max-width: 1400px;
   margin: 0 auto;
   height: 100%;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; gap: 10px;
   padding: 0 1.5rem;
 }
 .logo { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 4px; color: var(--gold); }
 .logo em { color: var(--text); font-style: normal; }
 .tabs { display: flex; gap: 4px; background: var(--card2); border-radius: 8px; padding: 3px; }
-.tab { padding: 5px 18px; font-size: 13px; font-weight: 500; border: none; border-radius: 6px; background: none; color: var(--soft); cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+#r4-tab-btns, #admin-tab-btns { display: contents; }
+.nav-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.tab { padding: 5px 18px; font-size: 13px; font-weight: 500; border: none; border-radius: 6px; background: none; color: var(--soft); cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; white-space: nowrap; }
 .tab.active { background: var(--card); color: var(--text); }
 .sync-btn { background: var(--card2); border: 1px solid var(--line2); border-radius: 8px; padding: 5px 10px; font-size: 16px; cursor: pointer; color: var(--soft); transition: all 0.2s; }
 .sync-btn:hover { color: var(--gold); border-color: var(--gold); }
 .sync-btn.spinning { animation: spin 0.8s linear infinite; pointer-events: none; }
-.nav-actions { display: flex; align-items: center; gap: 6px; }
-@media (max-width: 600px) { .nav-actions .nav-link-btn, .nav-actions .nav-help-btn, .nav-actions .sync-btn { display: none !important; } }
-@media (max-width: 600px) { #main-tabs { display: none !important; } }
+.nav-actions { display: flex; align-items: center; gap: 10px; }
+@media (max-width: 1100px) { .nav-actions .nav-link-btn, .nav-actions .nav-help-btn, .nav-actions .sync-btn { display: none !important; } }
 .nav-link-btn {
   display: none;
   align-items: center;
@@ -424,10 +425,10 @@ nav {
 
 /* ── WACHE TILES ── */
 .wache-tabs { display:flex; gap:6px; margin-bottom:1rem; }
-.wache-tab { padding:8px 20px; border-radius:8px; border:1px solid var(--line2); background:var(--card2); color:var(--text); cursor:pointer; font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; transition:all 0.15s; }
+.wache-tab { padding:8px 20px; border-radius:8px; border:1px solid var(--line2); background:var(--card2); color:var(--text); cursor:pointer; font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; transition:all 0.15s; white-space:nowrap; }
 .wache-tab.on { background:rgba(74,158,255,0.12); color:#80b8ff; border-color:rgba(74,158,255,0.4); }
 .wache-tab:hover:not(.on) { border-color:var(--line2); color:var(--text); }
-.wache-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+.wache-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
 .wache-tile { position:relative; border-radius:8px; border:1px solid var(--line); background:var(--card); overflow:hidden; transition:all 0.15s; }
 .wache-tile .wt-top { padding:8px 10px 4px; text-align:center; }
 .wache-tile .wt-name { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -765,6 +766,20 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 /* ── Toast types ── */
 .toast.ok { border-color: rgba(46,203,122,0.4); color: #4de896; }
 .toast.err { border-color: rgba(224,85,69,0.4); color: #f39b8f; }
+
+/* ── Verwaltung collapsible rows ── */
+.v-row-wrap { border-bottom: 1px solid var(--line); }
+.v-row-wrap:last-child { border-bottom: none; }
+.v-row-wrap .v-row { border-bottom: none; cursor: pointer; }
+.v-row-wrap:hover .v-row { background: var(--card2); border-radius: 6px 6px 0 0; }
+.v-row-wrap.is-open { background: var(--card2); border-radius: 8px; margin-bottom: 4px; border-bottom: none; }
+.v-row-wrap.is-open .v-row { border-radius: 8px 8px 0 0; background: none; }
+.v-row-wrap.is-open:hover .v-row { background: rgba(255,255,255,0.025); }
+.v-detail {
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--line);
+}
+.v-detail .flag-cats { display: flex; flex-direction: column; gap: 6px; }
 </style>
 </head>
 <body>
@@ -999,6 +1014,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <button class="admin-nav-tab" onclick="adminShowTab('archive',this)">Archiv</button>
       <button class="admin-nav-tab" onclick="adminShowTab('transfer',this)">Transfer</button>
       <button class="admin-nav-tab" onclick="adminShowTab('admins',this)">Admins</button>
+      <button class="admin-nav-tab" onclick="adminShowTab('flags',this)">🚩 Flags</button>
     </div>
 
     <!-- Allianzen -->
@@ -1082,6 +1098,24 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
         </table>
       </div>
     </div>
+
+    <!-- Flags -->
+    <div class="admin-page" id="admin-section-flags">
+      <div class="section-head">
+        <div>
+          <div class="section-title">🚩 Flag-Konfiguration</div>
+          <div class="section-sub">Legt fest welche Flags je Allianz erfasst und ausgewertet werden. Gilt global für alle Geräte.</div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;">
+        <label style="font-size:13px;color:var(--soft);">Allianz:</label>
+        <select id="admin-flags-alliance" onchange="adminLoadFlagConfig()" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:13px;">
+          <option value="">Lade …</option>
+        </select>
+      </div>
+      <div id="admin-flags-body"><div class="empty">Allianz wählen</div></div>
+    </div>
+
   </div>
 </div>
 
@@ -1308,6 +1342,20 @@ function openMemberMe(name) {
   window.location.href = targetUrl.toString();
 }
 window.openMemberMe = openMemberMe;
+
+async function openMemberMeInApp(name) {
+  const targetName = String(name || '').trim();
+  if (!targetName) return;
+  meViewingOther = true;
+  meHistoryLoaded = false;
+  await me_loadHistory('', targetName);
+  // Activate page-m directly – bypass showPage() to avoid triggering own-data reload
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-m')?.classList.add('active');
+  document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-m')?.classList.add('active');
+}
+window.openMemberMeInApp = openMemberMeInApp;
 
 function renderLoginPending(cachedState) {
   const memberName = cachedState?.member_name || cachedState?.discord_username || 'dein Account';
@@ -1782,6 +1830,8 @@ const CATS = [
 ];
 const FLAGS = CATS.flatMap(c=>c.f);
 const FLAG_KEYS = FLAGS.map(f=>f.k);
+// Config keys per category (matches CATS indices 0–7)
+const CAT_KEYS = ['vs','spende','wache','spezial','wueste','strafe','bonus','afk'];
 const LBL = Object.fromEntries(FLAGS.map(f=>[f.k,f.l]));
 const DANGER  = new Set(FLAGS.filter(f=>f.t==='r').map(f=>f.k));
 const AMBER   = new Set(FLAGS.filter(f=>f.t==='a').map(f=>f.k));
@@ -2252,6 +2302,19 @@ async function changeYearWeek(delta) {
   const prevKw = kw;
   kw = shiftYearWeek(kw, delta);
   document.getElementById('kwInput').value = formatYearWeek(kw);
+
+  // If Me page is active, navigate Me history to matching week instead of loading entries
+  if (document.getElementById('page-m')?.classList.contains('active')) {
+    const weeks = meHistoryBundle?.weeks || [];
+    const target = formatYearWeek(kw);
+    const idx = weeks.findIndex(w => formatYearWeek(w.year_week) === target);
+    if (idx !== -1) {
+      meSelectedWeekIndex = idx;
+      me_renderOverview();
+    }
+    return;
+  }
+
   try { await loadEntries(); } catch(e) {}
   if (entries.length === 0 && !confirm(`KW ${formatYearWeek(kw)} hat noch keine Einträge.\nWoche anlegen und wechseln?`)) {
     kw = prevKw;
@@ -2267,11 +2330,12 @@ let meHistoryBundle = null;
 let meSelectedWeekIndex = 0;
 let meActiveMemberName = '';
 let meHistoryLoaded = false;
+let meViewingOther = false; // true when viewing another member via Verwaltung
 
 function me_buildAvatarMarkup() {
-  const avatarUrl = meHistoryBundle?.member?.discord_avatar_url || authMember?.discord_avatar_url || null;
+  const avatarUrl = meHistoryBundle?.member?.discord_avatar_url || null;
   if (avatarUrl) return `<img src="${escHtml(avatarUrl)}" alt="Discord Avatar" style="width:76px;height:76px;border-radius:22px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`;
-  const initials = String(meHistoryBundle?.member?.name || meHistoryBundle?.member?.member_name || meActiveMemberName || authMember?.member_name || '?').trim().slice(0, 2).toUpperCase();
+  const initials = String(meHistoryBundle?.member?.name || meHistoryBundle?.member?.member_name || meActiveMemberName || '?').trim().slice(0, 2).toUpperCase();
   return `<div class="me-placeholder">${escHtml(initials || '?')}</div>`;
 }
 function me_getSelectedWeek() { return meHistoryBundle?.weeks?.[meSelectedWeekIndex] || null; }
@@ -2318,22 +2382,29 @@ function me_renderOverview() {
   const member = meHistoryBundle.member;
   const memberName = member.name || member.member_name || 'Unbekannt';
   const weeks = meHistoryBundle.weeks || [];
+  const selected = me_getSelectedWeek();
   const latest = weeks[0] || null;
-  const latestPoints = latest ? calcPoints(latest.flags || {}) : 0;
+  const selectedPoints = selected ? calcPoints(selected.flags || {}) : 0;
 
   document.getElementById('member-avatar-wrap').innerHTML = me_buildAvatarMarkup();
   document.getElementById('member-name').textContent = memberName;
+  const discordName = member.discord_username || (meViewingOther ? null : authMember?.discord_username) || null;
+  const checkedAt = meViewingOther ? (meHistoryBundle?.weeks?.[0]?.updated_at || null) : authMember?.checked_at;
   document.getElementById('member-meta').textContent =
-    `${member.discord_username || authMember?.discord_username || 'Discord'} · letzter Abgleich ${formatWhen(authMember?.checked_at)}`;
+    (discordName ? discordName + ' · ' : '') + 'letzter Abgleich ' + formatWhen(checkedAt);
 
   const rankColor = RC[member.rank] || '#97a3bc';
   document.getElementById('member-badges').innerHTML =
     `<span class="me-badge" style="background:${rankColor}20;color:${rankColor};border:1px solid ${rankColor}40;">R${member.rank} · ${RL[member.rank] || 'Member'}</span>`;
 
-  document.getElementById('stat-points').textContent = String(latestPoints);
+  document.getElementById('stat-points').textContent = String(selectedPoints);
   document.getElementById('stat-rank-display').textContent = `R${member.rank} · ${RL[member.rank] || 'Member'}`;
-  document.getElementById('stat-week').textContent = latest ? formatWeek(latest.year_week).replace('KW ', '') : '-';
+  document.getElementById('stat-week').textContent = selected ? formatWeek(selected.year_week).replace('KW ', '') : '-';
   document.getElementById('timeline-sub').textContent = `${weeks.length} Wochen gespeichert · Woche anklicken zum Wechsel`;
+
+  // Sync top KW input to selected week
+  const kwInput = document.getElementById('kwInput');
+  if (kwInput && selected) kwInput.value = formatYearWeek(selected.year_week);
 
   me_renderWeekPanel();
   me_renderActivities();
@@ -2505,12 +2576,78 @@ function buildNavActionsFromTabs() {
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(btn => {
     const label = btn.textContent.trim();
     if (label) {
-      const ref = btn; // capture
-      actions.push({ label, fn: () => ref.click() });
+      const ref = btn;
+      // always register all tabs; dropdown filters by cs-mobile-only + nav-compact visibility
+      actions.push({ label, fn: () => ref.click(), btnRef: ref });
     }
   });
   window.csNavActions = actions;
 }
+
+function updateNavCompact() {
+  const inner = document.querySelector('.nav-inner');
+  const tabs  = document.getElementById('main-tabs');
+  if (!inner || !tabs) return;
+
+  // On mobile the nav wraps naturally — skip priority nav
+  if (window.innerWidth <= 720) {
+    tabs.style.display = '';
+    inner.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab')
+      .forEach(b => { b.style.display = ''; });
+    document.body.classList.remove('nav-compact');
+    return;
+  }
+
+  const allBtns = Array.from(
+    inner.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab')
+  );
+  if (!allBtns.length) return;
+
+  // Step 1: Hide tabs so fixed elements report their true widths
+  tabs.style.display = 'none';
+
+  const logo    = inner.querySelector('.logo');
+  const actions = inner.querySelector('.nav-actions');
+  const kwWrap  = document.getElementById('kw-nav-wrap');
+
+  // inner.clientWidth includes nav-inner's own padding (2 × 24px = 48px)
+  // Gaps: 10px between logo/tabs, tabs/actions, actions/kw = 3 × 10 = 30px
+  // .tabs has padding: 3px each side = 6px internal
+  const fixedW = 48 + 30 + 6
+    + (logo    ? logo.offsetWidth    : 0)
+    + (actions ? actions.offsetWidth : 0)
+    + (kwWrap && kwWrap.offsetParent ? kwWrap.offsetWidth : 0);
+
+  const availW = inner.clientWidth - fixedW;
+
+  // Step 2: Show tabs + all buttons to measure
+  tabs.style.display = 'flex';
+  allBtns.forEach(b => { b.style.display = ''; });
+
+  // Step 3: Greedy — show as many as fit left-to-right
+  let used = 0;
+  let anyHidden = false;
+  allBtns.forEach(btn => {
+    const w = btn.offsetWidth + 4; // +4px for gap between buttons
+    if (used + w <= availW) {
+      used += w;
+    } else {
+      btn.style.display = 'none';
+      anyHidden = true;
+    }
+  });
+
+  const anyVisible = allBtns.some(b => b.style.display !== 'none');
+  if (!anyVisible) tabs.style.display = 'none';
+  document.body.classList.toggle('nav-compact', anyHidden);
+}
+
+(function initNavResize() {
+  const ro = new ResizeObserver(() => updateNavCompact());
+  function attach() { const n = document.querySelector('nav'); if (n) ro.observe(n); updateNavCompact(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();
 async function injectR4Tabs(discordId) {
   try {
     const data = await fetchJson(`/tab-html?section=r4&discord_id=${encodeURIComponent(discordId)}`);
@@ -2519,6 +2656,7 @@ async function injectR4Tabs(discordId) {
     document.getElementById('r4-pages-container').innerHTML = data.pages;
     document.getElementById('kw-nav-wrap').style.display = '';
     initR4Listeners();
+    updateNavCompact();
   } catch(e) { /* silent fail */ }
 }
 
@@ -2539,15 +2677,20 @@ async function showPage(id) {
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(t => t.classList.remove('active'));
   const tabEl = document.getElementById('tab-' + id);
   if (tabEl) tabEl.classList.add('active');
-  // Lazy load Mein Bereich
-  if (id === 'm' && !meHistoryLoaded && authMember) {
-    await me_loadHistory(authMember.discord_id, authMember.member_name);
+  // Lazy load Mein Bereich – always reload own data when navigating to tab directly
+  if (id === 'm' && authMember) {
+    if (!meHistoryLoaded || meViewingOther) {
+      meViewingOther = false;
+      meHistoryLoaded = false;
+      await me_loadHistory(authMember.discord_id, authMember.member_name);
+    }
   }
   if (id === 'd') renderDashboard();
   if (id === 'e') renderList();
   if (id === 'w') selectEventView(activeEventView);
+  if (id === 'z') zugLoadPage();
   if (id === 'r') loadErgebnis();
-  if (id === 'v') { await loadMembers(); renderVerwaltung(); }
+  if (id === 'v') { await loadMembers(); await refreshEntriesIfNeeded({background:true}); renderVerwaltung(); renderFlagsAdmin(); }
   if (id === 'a') adminInitPage();
   if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 'a') refreshEntriesIfNeeded({ background: true });
 }
@@ -2976,6 +3119,7 @@ function selectWache(n) {
 
 function selectEventView(view) {
   activeEventView = view;
+  updateEventTabVisibility();
   document.querySelectorAll('.wache-tab').forEach(b => b.classList.toggle('on', b.dataset.ev === view));
 
   const mode = view === 'wu' ? 'wu' : (view === 'se' ? 'se' : view === 'vs' ? 'vs' : view === 'sp' ? 'sp' : 'w');
@@ -3395,6 +3539,143 @@ window.spendeSet = spendeSet;
 let vNewRank=3;
 
 let editingMember=null;
+let vDetailOpen=null; // name of member with expanded detail in Verwaltung
+
+// ── FLAG CONFIG (per alliance, stored server-side) ──
+let flagConfig = {}; // in-memory cache populated by loadFlagConfig()
+
+async function loadFlagConfig(allianceOverride) {
+  try {
+    if (allianceOverride) {
+      // admin page: fetch for a specific alliance without active-char interference
+      const data = await adminApi(`/alliance-config?alliance=${encodeURIComponent(allianceOverride)}`);
+      return data.config || {};
+    }
+    const data = await fetchJson('/alliance-config');
+    flagConfig = data.config || {};
+    updateEventTabVisibility();
+  } catch (_) {
+    if (allianceOverride) return {};
+    // keep current flagConfig (all enabled by default = empty object)
+  }
+}
+window.loadFlagConfig = loadFlagConfig;
+
+function isCatEnabled(catKey) {
+  return flagConfig[catKey] !== false;
+}
+async function toggleCatConfig(key, allianceOverride) {
+  const targetAlliance = allianceOverride || null;
+  const discordId = authMember?.discord_id || '';
+  const newVal = targetAlliance
+    ? !(adminFlagConfigCache[targetAlliance]?.[key] !== false)
+    : !isCatEnabled(key);
+  // optimistic update
+  if (targetAlliance) {
+    if (!adminFlagConfigCache[targetAlliance]) adminFlagConfigCache[targetAlliance] = {};
+    adminFlagConfigCache[targetAlliance][key] = newVal;
+    renderAdminFlagConfig();
+  } else {
+    flagConfig[key] = newVal;
+    renderFlagsAdmin();
+    updateEventTabVisibility();
+    if (document.getElementById('page-v')?.classList.contains('active'))
+      renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+  }
+  try {
+    const qs = `?alliance=${encodeURIComponent(targetAlliance || '')}`;
+    if (targetAlliance) {
+      // admin page: use adminApi to avoid active-char alliance interference
+      await adminApi(`/alliance-config${qs}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ discord_id: discordId, key, value: newVal })
+      });
+      adminFlagConfigCache[targetAlliance] = await loadFlagConfig(targetAlliance);
+      renderAdminFlagConfig();
+    } else {
+      await fetchJson('/alliance-config', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ discord_id: discordId, key, value: newVal })
+      });
+      await loadFlagConfig();
+      renderFlagsAdmin();
+    }
+  } catch(err) {
+    toast('Fehler: ' + err.message);
+    // revert
+    if (targetAlliance) {
+      adminFlagConfigCache[targetAlliance] = await loadFlagConfig(targetAlliance);
+      renderAdminFlagConfig();
+    } else {
+      await loadFlagConfig();
+      renderFlagsAdmin();
+    }
+  }
+}
+window.toggleCatConfig = toggleCatConfig;
+
+function renderFlagsAdmin() {
+  const el = document.getElementById('v-flag-config');
+  if (!el) return;
+  el.innerHTML = `<div style="display:flex;flex-direction:column;">` +
+    FLAG_CAT_DEFS.map(({ key, label, sub }) => {
+      const on = isCatEnabled(key);
+      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);">
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${label}</div><div style="font-size:11px;color:var(--soft);">${sub}</div></div>
+        <span class="rank-badge ${on?'r4':'r3'}" style="min-width:80px;text-align:center;">${on?'✓ Aktiv':'✗ Inaktiv'}</span>
+      </div>`;
+    }).join('') +
+    `</div><div style="font-size:11px;color:var(--softer);margin-top:8px;">Editierbar in <strong>Admin → 🚩 Flags</strong> (nur R5).</div>`;
+}
+window.renderFlagsAdmin = renderFlagsAdmin;
+
+// ── VERWALTUNG DETAIL / FLAG TOGGLE ──
+function toggleVerwaltungRow(name) {
+  if (vDetailOpen === name) {
+    vDetailOpen = null;
+    editingMember = null;
+  } else {
+    vDetailOpen = name;
+  }
+  renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+}
+window.toggleVerwaltungRow = toggleVerwaltungRow;
+
+async function toggleVerwaltungFlag(name, flagKey) {
+  let e = entries.find(x => x.name === name);
+  const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
+  if (!e) { e = { name, rank, baseRank: rank, flags: {}, points: 0, afk: false }; entries.push(e); }
+  const flags = e.flags;
+  if (flags[flagKey]) delete flags[flagKey]; else flags[flagKey] = true;
+  e.points = calcPoints(flags); e.rank = calcRanking(e.points, e.baseRank || PREV[name] || 3);
+  renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+  try {
+    if (!Object.values(flags).some(Boolean)) {
+      entries = entries.filter(x => x.name !== name);
+      await apiPost({ action: 'delete_entry', name });
+    } else {
+      await apiPost({ action: 'save_entry', name, rank, flags: {...flags} });
+    }
+    await loadEntries();
+    renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+  } catch (err) {
+    toast('Fehler: ' + err.message);
+    await loadEntries();
+    renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+  }
+}
+window.toggleVerwaltungFlag = toggleVerwaltungFlag;
+
+function updateEventTabVisibility() {
+  const catMap = { w1:'wache',w2:'wache',w3:'wache',wu:'wueste',se:'spezial',vs:'vs',sp:'spende' };
+  document.querySelectorAll('.wache-tab').forEach(btn => {
+    const key = catMap[btn.dataset.ev];
+    if (key) btn.style.display = isCatEnabled(key) ? '' : 'none';
+  });
+}
+window.updateEventTabVisibility = updateEventTabVisibility;
 
 function renderVerwaltung(filter=''){
   const missingDiscord = members.filter((n) => !memberMeta[n]?.discordConnected).length;
@@ -3421,62 +3702,107 @@ function renderVerwaltung(filter=''){
     const esc = name.replace(/'/g,"\\'");
     const effectiveAvatar = getEffectiveAvatarUrl(meta);
     const avatar = effectiveAvatar
-      ? `<img class="v-avatar" src="${escHtml(effectiveAvatar)}" alt="Discord Avatar">`
-      : `<div class="v-avatar placeholder">DC</div>`;
+      ? `<img class="v-avatar" src="${escHtml(effectiveAvatar)}" alt="">`
+      : `<div class="v-avatar placeholder">${escHtml((name||'?').slice(0,2).toUpperCase())}</div>`;
     const discordState = meta.discordConnected
-      ? `<span class="v-state ok">Discord verknuepft</span>`
-      : `<span class="v-state warn">Discord-Verbindung fehlt</span>`;
-    const swapButton = '';
-    const avatarLoadButton = '';
+      ? `<span class="v-state ok">Discord ✓</span>`
+      : `<span class="v-state warn">kein Discord</span>`;
 
-    if(editingMember===name){
-      return `<div class="v-row">
-        <div class="v-member">
-          ${avatar}
-          <div style="flex:1;min-width:0;">
-            <div class="v-name"><button class="member-jump" type="button" onclick="event.stopPropagation();openMemberMe('${esc}')">${escHtml(name)}</button></div>
-            <div class="v-meta">Allianz: ${escHtml(meta.alliance || 'INY')}</div>
-            <div class="v-meta">Spieler-ID: ${escHtml(meta.id || 'unbekannt')}</div>
-            <div class="v-meta">Discord-ID: ${escHtml(meta.discordId || 'nicht verbunden')}</div>
+    const isOpen = vDetailOpen === name;
+    const isEditing = editingMember === name && isOpen;
+
+    let detailHtml = '';
+    if (isOpen) {
+      const entry = entries.find(x => x.name === name);
+      const currentFlags = entry ? {...entry.flags} : {};
+
+      let memberInfoHtml = '';
+      if (isEditing) {
+        memberInfoHtml = `
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <div style="flex:1;min-width:150px;">
+              <div class="vlabel">Name</div>
+              <input class="vinput" id="v-edit-input" value="${name.replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter')saveMemberEdit('${esc}')">
+            </div>
+            <div style="flex:1;min-width:150px;">
+              <div class="vlabel">Discord-ID</div>
+              <input class="vinput" id="v-edit-discord" value="${(meta.discordId||'').replace(/"/g,'&quot;')}" placeholder="numerisch oder leer">
+            </div>
           </div>
-        </div>
-        ${discordState}
-        ${swapButton}
-        ${avatarLoadButton}
-        <input class="v-name-input" id="v-edit-input" value="${name.replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter')saveMemberEdit('${esc}')">
-        <input class="v-name-input v-discord-input" id="v-edit-discord" placeholder="Discord-ID oder leer" value="${(meta.discordId || '').replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter')saveMemberEdit('${esc}')">
-        <select class="v-rank-sel" id="v-edit-rank">
-          <option value="1" ${role===1?'selected':''}>1 · Rookie</option>
-          <option value="2" ${role===2?'selected':''}>2 · Pro</option>
-          <option value="3" ${role===3?'selected':''}>3 · Elite</option>
-          <option value="4" ${role===4?'selected':''}>4 · Leader (R4)</option>
-          <option value="5" ${role===5?'selected':''}>5 · Chef (R5)</option>
-        </select>
-        <button class="v-btn save" onclick="saveMemberEdit('${esc}')">✓ Speichern</button>
-        <button class="v-btn cancel" onclick="cancelEdit()">✕</button>
+          <div style="margin-bottom:10px;">
+            <div class="vlabel">Rang</div>
+            <select class="v-rank-sel" id="v-edit-rank">
+              <option value="1" ${role===1?'selected':''}>1 · Rookie</option>
+              <option value="2" ${role===2?'selected':''}>2 · Pro</option>
+              <option value="3" ${role===3?'selected':''}>3 · Elite</option>
+              <option value="4" ${role===4?'selected':''}>4 · Leader (R4)</option>
+              <option value="5" ${role===5?'selected':''}>5 · Chef (R5)</option>
+            </select>
+          </div>`;
+      } else {
+        const lastVisitStr = meta.lastVisitAt
+          ? (() => { const d = new Date(meta.lastVisitAt.replace(' ','T')+'Z'); return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); })()
+          : null;
+        memberInfoHtml = `
+          <div style="font-size:11px;color:var(--soft);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px;">
+            <span>Discord-ID: ${escHtml(meta.discordId||'–')}${meta.discordUsername?` (${escHtml(meta.discordUsername)})`:''}</span>
+            <span>·</span><span>Spieler-ID: ${escHtml(meta.id||'–')}</span>
+            ${lastVisitStr?`<span style="color:#6aabff;">· 🕐 ${lastVisitStr}</span>`:'<span style="color:var(--softer);">· Noch nie eingeloggt</span>'}
+          </div>`;
+      }
+
+      // Non-event flags: Strafpunkte (5), Bonus (6), AFK (7)
+      const flagsHtml = [
+        { cat: CATS[5], key: 'strafe' },
+        { cat: CATS[6], key: 'bonus' },
+        { cat: CATS[7], key: 'afk' }
+      ].map(({ cat, key }) => {
+        if (!isCatEnabled(key)) return '';
+        const btns = cat.f.map(f => {
+          const on = !!currentFlags[f.k];
+          const onStyle = f.t==='r'?'border-color:rgba(224,85,69,0.5);background:rgba(224,85,69,0.15);color:#f09080;'
+            :f.t==='a'?'border-color:rgba(240,165,0,0.4);background:rgba(240,165,0,0.12);color:var(--gold);'
+            :f.t==='n'?'border-color:rgba(155,109,255,0.5);background:rgba(155,109,255,0.15);color:var(--purple);'
+            :'border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.12);color:#80b8ff;';
+          return `<button class="flag-btn" onclick="event.stopPropagation();toggleVerwaltungFlag('${esc}','${f.k}')" style="${on?onStyle:''}">${f.l}</button>`;
+        }).join('');
+        return `<div class="flag-cat" style="background:${cat.bg};border:1px solid ${cat.bc};">
+          <div class="flag-cat-title" style="color:${cat.lc};">${cat.l} <small style="font-weight:400;text-transform:none;letter-spacing:0;opacity:0.7;">KW ${formatYearWeek(kw)}</small></div>
+          <div class="flag-btns">${btns}</div>
+        </div>`;
+      }).join('');
+
+      const actionBtns = isEditing
+        ? `<div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="v-btn save" onclick="event.stopPropagation();saveMemberEdit('${esc}')">✓ Speichern</button>
+            <button class="v-btn cancel" onclick="event.stopPropagation();cancelEdit()">✕ Abbrechen</button>
+          </div>`
+        : `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <button class="v-btn edit" onclick="event.stopPropagation();startEdit('${esc}')">✏ Bearbeiten</button>
+            <button class="v-btn del" onclick="event.stopPropagation();removeMember('${esc}')">🗑 Entfernen</button>
+            <button class="v-btn" onclick="event.stopPropagation();openMemberMeInApp('${esc}')" style="background:rgba(100,160,255,0.1);border-color:rgba(100,160,255,0.3);color:#80b8ff;">👁 Me-Ansicht</button>
+          </div>`;
+
+      detailHtml = `<div class="v-detail" onclick="event.stopPropagation()">
+        ${memberInfoHtml}
+        <div class="flag-cats">${flagsHtml}</div>
+        ${actionBtns}
       </div>`;
     }
 
-    const lastVisitStr = meta.lastVisitAt
-      ? (() => { const d = new Date(meta.lastVisitAt.replace(' ','T')+'Z'); return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); })()
-      : null;
-
-    return `<div class="v-row">
-      <div class="v-member">
-        ${avatar}
-        <div style="flex:1;min-width:0;">
-          <div class="v-name"><button class="member-jump" type="button" onclick="event.stopPropagation();openMemberMe('${esc}')">${escHtml(name)}</button></div>
-          <div class="v-meta">Allianz: ${escHtml(meta.alliance || 'INY')} | Spieler-ID: ${escHtml(meta.id || 'unbekannt')}</div>
-          <div class="v-meta">Discord-ID: ${escHtml(meta.discordId || 'nicht verbunden')} ${meta.discordUsername ? `(${escHtml(meta.discordUsername)})` : ''}</div>
-          ${lastVisitStr ? `<div class="v-meta" style="color:#6aabff;">🕐 Zuletzt online: ${lastVisitStr}</div>` : `<div class="v-meta" style="color:#555;">🕐 Noch nie eingeloggt</div>`}
+    return `<div class="v-row-wrap${isOpen?' is-open':''}" onclick="toggleVerwaltungRow('${esc}')">
+      <div class="v-row" style="border-bottom:none;cursor:pointer;">
+        <div class="v-member">
+          ${avatar}
+          <div style="flex:1;min-width:0;">
+            <div class="v-name">${escHtml(name)}</div>
+          </div>
         </div>
+        ${discordState}
+        <span class="rank-badge ${rbClass(role)}">${role} · ${RL[role]||''}</span>
+        <span style="color:var(--softer);font-size:13px;padding:0 4px;">${isOpen?'▲':'▼'}</span>
       </div>
-      ${discordState}
-      ${swapButton}
-      ${avatarLoadButton}
-      <span class="rank-badge ${rbClass(role)}">R${role} · ${RL[role]||''}</span>
-      <button class="v-btn edit" onclick="startEdit('${esc}')">✏ Bearbeiten</button>
-      <button class="v-btn del" onclick="removeMember('${esc}')">🗑</button>
+      ${detailHtml}
     </div>`;
   }).join('');
 
@@ -3598,7 +3924,7 @@ async function rejectAccessRequest(requestId) {
 }
 window.rejectAccessRequest = rejectAccessRequest;
 
-function startEdit(name){ editingMember=name; renderVerwaltung(document.getElementById('v-search').value.toLowerCase()); setTimeout(()=>document.getElementById('v-edit-input')?.focus(),50); }
+function startEdit(name){ vDetailOpen=name; editingMember=name; renderVerwaltung(document.getElementById('v-search').value.toLowerCase()); setTimeout(()=>document.getElementById('v-edit-input')?.focus(),50); }
 function cancelEdit(){ editingMember=null; renderVerwaltung(document.getElementById('v-search').value.toLowerCase()); }
 window.startEdit=startEdit; window.cancelEdit=cancelEdit;
 
@@ -3615,6 +3941,7 @@ async function saveMemberEdit(oldName){
   await apiPost({ action: 'edit_member', oldName, newName, rank: newRank, role, discordId: discordIdRaw });
   await loadMembers();
   await loadEntries();
+  if (vDetailOpen === oldName) vDetailOpen = newName;
   editingMember=null;
   renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
   toast(newName+' gespeichert!');
@@ -3649,6 +3976,8 @@ async function removeMember(name){
   await apiPost({ action: 'delete_member', name });
   await loadMembers();
   await loadEntries();
+  if (vDetailOpen === name) vDetailOpen = null;
+  if (editingMember === name) editingMember = null;
   renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
   renderDashboard(); toast(name+' entfernt!');
 }
@@ -4012,7 +4341,8 @@ async function initApp(){
 
     document.getElementById('login-screen').style.display = 'none';
     startPresencePing(authMember.member_name, authMember.discord_id, authMember.discord_username);
-    await me_loadHistory(authMember.discord_id, authMember.member_name);
+    await Promise.all([me_loadHistory(authMember.discord_id, authMember.member_name), loadFlagConfig()]);
+    updateEventTabVisibility();
     showPage('m');
     return;
   }
@@ -4020,6 +4350,7 @@ async function initApp(){
   // ── Lokal / Local Preview ──
   document.getElementById('login-screen').style.display = 'none';
   try {
+    await loadFlagConfig();
     await loadMembers();
     autoRefreshAvatars(); // Avatar-Cache im Hintergrund auffrischen (max. 1x pro 7 Tage)
     const localAuth = ensureLocalPreviewAuth();
@@ -4030,6 +4361,7 @@ async function initApp(){
     if (localAuth.can_manage) {
       await injectR4Tabs(localAuth.discord_id || 'local-preview');
       if (localAuth.rank >= 5) await injectAdminTabs(localAuth.discord_id || 'local-preview');
+      updateEventTabVisibility();
       renderAll();
       hydrateEntriesFromCache(kw, { allowStale: true });
       renderAll();
@@ -4099,7 +4431,69 @@ function adminShowTab(name, btn) {
   document.getElementById('admin-section-' + name)?.classList.add('active');
   btn?.classList.add('active');
   if (name === 'transfer') loadTransferAlliances();
+  if (name === 'flags') adminInitFlagsTab();
 }
+
+// ── Admin Flag Config ──
+let adminFlagConfigCache = {}; // { allianceName: {key: bool, ...} }
+
+const FLAG_CAT_DEFS = [
+  { key:'wache',   label:'🛡 Wache',        sub:'Events W1–W3 – Kacheln & Tabs' },
+  { key:'wueste',  label:'🏜 Wüste',         sub:'Wüsten-Event – Tab & Kacheln' },
+  { key:'spezial', label:'🎯 Spezialevents', sub:'Spezial-Event – Tab & Kacheln' },
+  { key:'vs',      label:'⚔ VS',             sub:'VS-Event – Tab & Kacheln' },
+  { key:'spende',  label:'💰 Spenden',        sub:'Spenden-Event – Tab & Kacheln' },
+  { key:'strafe',  label:'❌ Strafpunkte',    sub:'Flags in Verwaltung pflegbar' },
+  { key:'bonus',   label:'⭐ Bonus',          sub:'Flags in Verwaltung pflegbar' },
+  { key:'afk',     label:'⏸ AFK',            sub:'Flag in Verwaltung pflegbar' },
+];
+
+async function adminInitFlagsTab() {
+  // Populate alliance selector from already-loaded alliances
+  const sel = document.getElementById('admin-flags-alliance');
+  if (!sel) return;
+  if (_adminAlliances.length === 0) await loadAlliances();
+  const prev = sel.value;
+  sel.innerHTML = _adminAlliances.map(a =>
+    `<option value="${escHtml(a.short_name)}" ${a.short_name === prev ? 'selected' : ''}>${escHtml(a.short_name)}</option>`
+  ).join('');
+  if (!sel.value && _adminAlliances.length) sel.value = _adminAlliances[0].short_name;
+  await adminLoadFlagConfig();
+}
+
+async function adminLoadFlagConfig() {
+  const sel = document.getElementById('admin-flags-alliance');
+  const alliance = sel?.value || '';
+  if (!alliance) return;
+  const body = document.getElementById('admin-flags-body');
+  if (body) body.innerHTML = '<div class="empty">Lade …</div>';
+  try {
+    const config = await loadFlagConfig(alliance);
+    adminFlagConfigCache[alliance] = config;
+    renderAdminFlagConfig();
+  } catch(e) {
+    if (body) body.innerHTML = `<div class="empty">Fehler: ${escHtml(e.message)}</div>`;
+  }
+}
+window.adminLoadFlagConfig = adminLoadFlagConfig;
+
+function renderAdminFlagConfig() {
+  const sel = document.getElementById('admin-flags-alliance');
+  const alliance = sel?.value || '';
+  const body = document.getElementById('admin-flags-body');
+  if (!body || !alliance) return;
+  const config = adminFlagConfigCache[alliance] || {};
+  body.innerHTML = `<div style="display:flex;flex-direction:column;max-width:600px;">` +
+    FLAG_CAT_DEFS.map(({ key, label, sub }) => {
+      const on = config[key] !== false;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);">
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${label}</div><div style="font-size:11px;color:var(--soft);">${sub}</div></div>
+        <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on?'save':'del'}" style="min-width:88px;">${on?'✓ Aktiv':'✗ Inaktiv'}</button>
+      </div>`;
+    }).join('') +
+    `</div><div style="font-size:11px;color:var(--softer);margin-top:8px;">Änderungen gelten sofort für alle Nutzer der Allianz <strong>${escHtml(alliance)}</strong>.</div>`;
+}
+window.renderAdminFlagConfig = renderAdminFlagConfig;
 
 function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
 function openModal(id)  { document.getElementById(id)?.classList.remove('hidden'); }
@@ -4361,6 +4755,433 @@ async function revokeAdmin(targetDiscordId, displayName) {
     await loadAdmins();
   } catch (e) { toast('Fehler: ' + e.message, 'err'); }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ZUG-PLANER
+// ══════════════════════════════════════════════════════════════════════════════
+(function(){
+  let zugCurrentMonth = null;   // 'YYYY-MM'
+  let zugSchedule     = [];     // entries for current month
+  let zugQueue        = [];     // queue rows
+  let zugRulesets     = [];     // ruleset definitions
+  let zugActiveRuleset= 'standard';
+  let zugOpenEntry    = null;   // the schedule entry being edited
+  let zugOpenDate     = null;   // the date string being acted on
+
+  const STATUS_COLOR = {
+    planned:   'rgba(74,158,255,0.55)',
+    completed: 'rgba(46,203,122,0.65)',
+    noshow:    'rgba(224,85,69,0.65)',
+    cancelled: 'rgba(100,100,100,0.45)',
+  };
+  const STATUS_LABEL = { planned:'Geplant', completed:'Abgeschlossen', noshow:'No-Show', cancelled:'Abgesagt' };
+
+  // ── helpers ────────────────────────────────────────────────────────────────
+  function zugMonthStart(ym) {
+    const [y,m] = ym.split('-').map(Number);
+    return new Date(y, m-1, 1);
+  }
+  function zugMonthLabel(ym) {
+    const d = zugMonthStart(ym);
+    return d.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+  }
+  function isoWeek(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const day = d.getDay() || 7;
+    d.setDate(d.getDate() + 4 - day);
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  }
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function getDiscordId() { return authMember?.discord_id || ''; }
+
+  // ── API calls ──────────────────────────────────────────────────────────────
+  async function zugApiFetch(path, opts={}) {
+    return fetchJson(path, opts);
+  }
+
+  async function zugLoadRulesets() {
+    try {
+      const d = await zugApiFetch('/zug/rulesets');
+      if (d.ok) zugRulesets = d.rulesets || [];
+    } catch(e) { console.warn('zugLoadRulesets', e); }
+  }
+
+  async function zugLoadQueue() {
+    try {
+      const d = await zugApiFetch(`/zug/queue?ruleset=${encodeURIComponent(zugActiveRuleset)}`);
+      if (d.ok) zugQueue = d.queue || [];
+    } catch(e) { console.warn('zugLoadQueue', e); }
+  }
+
+  async function zugLoadSchedule(month) {
+    try {
+      const d = await zugApiFetch(`/zug/schedule?month=${encodeURIComponent(month)}`);
+      if (d.ok) zugSchedule = d.entries || [];
+    } catch(e) { console.warn('zugLoadSchedule', e); }
+  }
+
+  // ── main entry point ───────────────────────────────────────────────────────
+  window.zugLoadPage = async function() {
+    if (!zugCurrentMonth) zugCurrentMonth = todayStr().slice(0,7);
+    await Promise.all([zugLoadRulesets(), zugLoadQueue(), zugLoadSchedule(zugCurrentMonth)]);
+    zugRenderRulesetSelect();
+    zugRenderCalendar();
+    zugRenderQueue();
+    zugRenderRulesetList();
+  };
+
+  window.zugOnRulesetChange = async function() {
+    const sel = document.getElementById('zug-ruleset-select');
+    if (sel) zugActiveRuleset = sel.value;
+    await zugLoadQueue();
+    zugRenderQueue();
+    zugRenderCalendar();
+  };
+
+  window.zugNavMonth = async function(delta) {
+    const [y,m] = zugCurrentMonth.split('-').map(Number);
+    const d = new Date(y, m-1+delta, 1);
+    zugCurrentMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    await zugLoadSchedule(zugCurrentMonth);
+    zugRenderCalendar();
+  };
+
+  window.zugNavToday = async function() {
+    zugCurrentMonth = todayStr().slice(0,7);
+    await zugLoadSchedule(zugCurrentMonth);
+    zugRenderCalendar();
+  };
+
+  window.zugSyncQueue = async function() {
+    const btn = document.getElementById('zug-sync-btn');
+    if (btn) btn.textContent = '…';
+    try {
+      const d = await zugApiFetch('/zug/queue/sync', {
+        method: 'POST',
+        headers: {'content-type':'application/json'},
+        body: JSON.stringify({ discord_id: getDiscordId(), ruleset: zugActiveRuleset })
+      });
+      if (d.ok) { zugQueue = d.queue || []; zugRenderQueue(); toast('Queue synchronisiert'); }
+      else toast(d.error || 'Fehler', 'err');
+    } catch(e) { toast('Fehler: '+e.message,'err'); }
+    if (btn) btn.textContent = '⟳ Queue sync';
+  };
+
+  // ── render: ruleset select ─────────────────────────────────────────────────
+  function zugRenderRulesetSelect() {
+    const sel = document.getElementById('zug-ruleset-select');
+    if (!sel) return;
+    sel.innerHTML = zugRulesets.map(r =>
+      `<option value="${escHtml(r.ruleset_key)}"${r.ruleset_key===zugActiveRuleset?' selected':''}>${escHtml(r.ruleset_name)}</option>`
+    ).join('') || '<option value="standard">Standard</option>';
+  }
+
+  // ── render: calendar ───────────────────────────────────────────────────────
+  function zugRenderCalendar() {
+    const titleEl = document.getElementById('zug-cal-title');
+    const grid    = document.getElementById('zug-cal-grid');
+    if (!titleEl || !grid) return;
+    titleEl.textContent = '🚂 ' + zugMonthLabel(zugCurrentMonth);
+
+    const [y, m] = zugCurrentMonth.split('-').map(Number);
+    const first  = new Date(y, m-1, 1);
+    const last   = new Date(y, m, 0);
+    const today  = todayStr();
+
+    // Index entries by date
+    const byDate = {};
+    for (const e of zugSchedule) {
+      if (e.ruleset_key === zugActiveRuleset || zugActiveRuleset === 'all') byDate[e.event_date] = e;
+    }
+    // All entries (any ruleset) for multi-ruleset indicators
+    const byDateAll = {};
+    for (const e of zugSchedule) { (byDateAll[e.event_date] = byDateAll[e.event_date] || []).push(e); }
+
+    // First weekday offset (Mon=1..Sun=7 → offset 0..6)
+    let startOffset = (first.getDay() + 6) % 7; // Mon=0
+    const cells = [];
+    for (let i = 0; i < startOffset; i++) cells.push(null);
+    for (let day = 1; day <= last.getDate(); day++) {
+      cells.push(`${zugCurrentMonth}-${String(day).padStart(2,'0')}`);
+    }
+    // Pad to full weeks
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    grid.innerHTML = cells.map(dateStr => {
+      if (!dateStr) return `<div style="min-height:64px;background:rgba(255,255,255,0.01);border-radius:8px;"></div>`;
+      const day  = parseInt(dateStr.slice(8));
+      const isToday = dateStr === today;
+      const entry = byDate[dateStr];
+      const allEntries = byDateAll[dateStr] || [];
+      const bgColor = entry ? STATUS_COLOR[entry.status] || STATUS_COLOR.planned : 'transparent';
+      const border  = isToday ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.06)';
+      let inner = `<div style="font-size:11px;font-weight:600;color:${isToday?'var(--gold)':'var(--soft)'};">${day}</div>`;
+      if (entry) {
+        inner += `<div style="font-size:10px;line-height:1.3;margin-top:3px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(entry.schaffner_name)}">🚂 ${escHtml(entry.schaffner_name)}</div>`;
+        if (entry.vip_name) inner += `<div style="font-size:9px;color:var(--gold-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(entry.vip_name)}">⭐ ${escHtml(entry.vip_name)}</div>`;
+      } else if (allEntries.length) {
+        // Another ruleset has an entry on this day
+        inner += `<div style="font-size:9px;color:var(--soft-2);margin-top:3px;">${allEntries.length} anderes RW</div>`;
+      }
+      return `<div onclick="zugDayClick('${dateStr}')" style="min-height:64px;background:${bgColor};border:${border};border-radius:8px;padding:6px 5px;cursor:pointer;transition:0.15s;overflow:hidden;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='${isToday?'var(--gold)':'rgba(255,255,255,0.06)'}'">
+        ${inner}
+      </div>`;
+    }).join('');
+  }
+
+  // ── render: queue ──────────────────────────────────────────────────────────
+  function zugRenderQueue() {
+    const el = document.getElementById('zug-queue-list');
+    if (!el) return;
+    if (!zugQueue.length) {
+      el.innerHTML = '<div style="color:var(--soft);font-size:12px;padding:8px;">Noch keine Mitglieder in der Queue. Bitte Queue-Sync ausführen.</div>';
+      return;
+    }
+    el.innerHTML = zugQueue.map((row, i) => {
+      const isFirst = i === 0;
+      const last = row.last_turn_date ? `Letzter Einsatz: ${row.last_turn_date}` : 'Noch nie';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:${isFirst?'rgba(240,165,0,0.1)':'rgba(255,255,255,0.025)'};border:1px solid ${isFirst?'rgba(240,165,0,0.3)':'rgba(255,255,255,0.05)'};">
+        <span style="font-family:'Rajdhani',sans-serif;font-size:18px;color:${isFirst?'var(--gold)':'var(--soft-2)'};width:22px;text-align:center;">${i+1}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(row.member_name)}</div>
+          <div style="font-size:10px;color:var(--soft-2);">${last} · ${row.turn_count}× gefahren</div>
+        </div>
+        ${isFirst?'<span style="font-size:14px;">🚂</span>':''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── render: ruleset list ───────────────────────────────────────────────────
+  function zugRenderRulesetList() {
+    const el = document.getElementById('zug-rulesets-list');
+    if (!el) return;
+    if (!zugRulesets.length) { el.innerHTML = '<div style="color:var(--soft);font-size:12px;padding:8px;">Keine Regelwerke gefunden.</div>'; return; }
+    el.innerHTML = zugRulesets.map(r => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:13px;">${escHtml(r.ruleset_name)} <span style="font-family:monospace;font-size:10px;color:var(--soft-2);">[${escHtml(r.ruleset_key)}]</span></div>
+          ${r.description ? `<div style="font-size:11px;color:var(--soft);">${escHtml(r.description)}</div>` : ''}
+          ${r.allowed_weekdays ? `<div style="font-size:10px;color:var(--soft-2);">Wochentage: ${escHtml(r.allowed_weekdays)}</div>` : ''}
+        </div>
+        <button class="wt-btn" onclick="zugShowRulesetForm('${escHtml(r.ruleset_key)}')" style="font-size:11px;padding:4px 10px;">✏</button>
+        ${r.ruleset_key !== 'standard' ? `<button class="wt-btn" onclick="zugDeleteRuleset('${escHtml(r.ruleset_key)}')" style="font-size:11px;padding:4px 10px;color:var(--red);">🗑</button>` : ''}
+      </div>`
+    ).join('');
+  }
+
+  // ── ruleset form ───────────────────────────────────────────────────────────
+  window.zugShowRulesetForm = function(key) {
+    const wrap = document.getElementById('zug-ruleset-form-wrap');
+    const rs = key ? zugRulesets.find(r => r.ruleset_key === key) : null;
+    document.getElementById('zug-ruleset-form-title').textContent = rs ? 'Regelwerk bearbeiten' : 'Neues Regelwerk';
+    document.getElementById('zug-rs-key').value      = rs ? rs.ruleset_key      : '';
+    document.getElementById('zug-rs-key').disabled   = !!rs;
+    document.getElementById('zug-rs-name').value     = rs ? rs.ruleset_name     : '';
+    document.getElementById('zug-rs-desc').value     = rs ? (rs.description||''):'';
+    document.getElementById('zug-rs-weekdays').value = rs ? (rs.allowed_weekdays||''):'';
+    document.getElementById('zug-rs-order').value    = rs ? rs.sort_order       : 0;
+    wrap.style.display = '';
+    wrap.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  };
+  window.zugHideRulesetForm = function() {
+    document.getElementById('zug-ruleset-form-wrap').style.display = 'none';
+  };
+  window.zugSaveRuleset = async function() {
+    const key      = document.getElementById('zug-rs-key').value.trim();
+    const name     = document.getElementById('zug-rs-name').value.trim();
+    const desc     = document.getElementById('zug-rs-desc').value.trim();
+    const weekdays = document.getElementById('zug-rs-weekdays').value.trim();
+    const order    = parseInt(document.getElementById('zug-rs-order').value)||0;
+    if (!key || !name) { toast('Schlüssel und Name erforderlich','err'); return; }
+    try {
+      const d = await zugApiFetch('/zug/rulesets', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ discord_id:getDiscordId(), ruleset_key:key, ruleset_name:name, description:desc||null, allowed_weekdays:weekdays||null, sort_order:order })
+      });
+      if (d.ok) { zugRulesets = d.rulesets; zugHideRulesetForm(); zugRenderRulesetList(); zugRenderRulesetSelect(); toast('Regelwerk gespeichert'); }
+      else toast(d.error||'Fehler','err');
+    } catch(e) { toast('Fehler: '+e.message,'err'); }
+  };
+  window.zugDeleteRuleset = async function(key) {
+    if (!confirm(`Regelwerk "${key}" wirklich löschen?`)) return;
+    try {
+      const d = await zugApiFetch(`/zug/rulesets/${encodeURIComponent(key)}`, {
+        method:'DELETE', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ discord_id:getDiscordId() })
+      });
+      if (d.ok) { zugRulesets = d.rulesets; zugRenderRulesetList(); zugRenderRulesetSelect(); toast('Regelwerk gelöscht'); }
+      else toast(d.error||'Fehler','err');
+    } catch(e) { toast('Fehler: '+e.message,'err'); }
+  };
+
+  // ── day click & event form ─────────────────────────────────────────────────
+  window.zugDayClick = async function(dateStr) {
+    zugOpenDate  = dateStr;
+    zugOpenEntry = zugSchedule.find(e => e.event_date === dateStr && e.ruleset_key === zugActiveRuleset) || null;
+
+    const overlay = document.getElementById('zug-event-overlay');
+    document.getElementById('zug-ev-date-display').textContent =
+      `${new Date(dateStr+'T00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · KW ${isoWeek(dateStr)}`;
+
+    // reset sub-sections
+    document.getElementById('zug-ev-existing').style.display    = 'none';
+    document.getElementById('zug-ev-noshow').style.display      = 'none';
+    document.getElementById('zug-ev-form').style.display        = 'none';
+    document.getElementById('zug-ev-new-trigger').style.display = '';
+
+    if (zugOpenEntry) {
+      const e = zugOpenEntry;
+      document.getElementById('zug-ev-info-schaffner').textContent = e.schaffner_name + (e.is_substitute && e.original_schaffner_name ? ` (Einspringer für ${e.original_schaffner_name})` : '');
+      document.getElementById('zug-ev-info-vip').textContent = e.vip_name || '—';
+      const statusEl = document.getElementById('zug-ev-info-status');
+      statusEl.innerHTML = `<span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;background:${STATUS_COLOR[e.status]};color:var(--text);">${STATUS_LABEL[e.status]||e.status}</span>`;
+      document.getElementById('zug-ev-info-notes').textContent = e.notes || '';
+      document.getElementById('zug-ev-existing').style.display = '';
+      document.getElementById('zug-ev-new-trigger').style.display = 'none';
+      document.getElementById('zug-ev-title').textContent = 'Termin bearbeiten';
+    } else {
+      document.getElementById('zug-ev-title').textContent = 'Termin planen';
+    }
+    overlay.style.display = 'flex';
+  };
+
+  window.zugCloseEventForm = function() {
+    document.getElementById('zug-event-overlay').style.display = 'none';
+    zugOpenEntry = null; zugOpenDate = null;
+  };
+
+  window.zugMarkCompleted = async function() {
+    if (!zugOpenEntry) return;
+    try {
+      const d = await zugApiFetch(`/zug/schedule/${encodeURIComponent(zugOpenEntry.id)}`, {
+        method:'PUT', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ discord_id:getDiscordId(), status:'completed' })
+      });
+      if (d.ok) { await zugReloadAndClose(); toast('Als abgeschlossen markiert'); }
+      else toast(d.error||'Fehler','err');
+    } catch(e) { toast('Fehler: '+e.message,'err'); }
+  };
+
+  window.zugOpenNoShowForm = function() {
+    // Build substitute select
+    const sel = document.getElementById('zug-ev-sub-select');
+    sel.innerHTML = '<option value="">— kein Einspringer —</option>' +
+      members.filter(m => m !== zugOpenEntry?.schaffner_name)
+             .map(m => `<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('');
+    document.getElementById('zug-ev-noshow-notes').value = '';
+    document.getElementById('zug-ev-noshow').style.display = '';
+  };
+
+  window.zugCancelNoShow = function() {
+    document.getElementById('zug-ev-noshow').style.display = 'none';
+  };
+
+  window.zugConfirmNoShow = async function() {
+    if (!zugOpenEntry) return;
+    const sub   = document.getElementById('zug-ev-sub-select').value.trim();
+    const notes = document.getElementById('zug-ev-noshow-notes').value.trim();
+    try {
+      const d = await zugApiFetch(`/zug/schedule/${encodeURIComponent(zugOpenEntry.id)}/noshow`, {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ discord_id:getDiscordId(), substitute_name:sub||null, notes:notes||null })
+      });
+      if (d.ok) { await zugReloadAndClose(); toast(sub ? `No-Show. Einspringer: ${sub}` : 'No-Show eingetragen'); }
+      else toast(d.error||'Fehler','err');
+    } catch(e) { toast('Fehler: '+e.message,'err'); }
+  };
+
+  window.zugEditExisting = async function() {
+    await zugOpenCreateForm(true);
+  };
+
+  window.zugCancelEditForm = function() {
+    if (zugOpenEntry) {
+      document.getElementById('zug-ev-form').style.display = 'none';
+      document.getElementById('zug-ev-existing').style.display = '';
+      document.getElementById('zug-ev-new-trigger').style.display = 'none';
+    } else {
+      document.getElementById('zug-ev-form').style.display = 'none';
+      document.getElementById('zug-ev-new-trigger').style.display = '';
+    }
+  };
+
+  window.zugDeleteEntry = async function() {
+    if (!zugOpenEntry || !confirm('Termin wirklich löschen?')) return;
+    try {
+      const d = await zugApiFetch(`/zug/schedule/${encodeURIComponent(zugOpenEntry.id)}`, {
+        method:'DELETE', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ discord_id:getDiscordId() })
+      });
+      if (d.ok) { await zugReloadAndClose(); toast('Termin gelöscht'); }
+      else toast(d.error||'Fehler','err');
+    } catch(e) { toast('Fehler: '+e.message,'err'); }
+  };
+
+  window.zugOpenCreateForm = async function(editing=false) {
+    // Build member selects
+    const mOpts = '<option value="">— keiner —</option>' +
+      members.map(m => `<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('');
+    document.getElementById('zug-ev-schaffner').innerHTML = mOpts;
+    document.getElementById('zug-ev-vip').innerHTML       = mOpts;
+    document.getElementById('zug-ev-notes').value         = '';
+
+    if (editing && zugOpenEntry) {
+      document.getElementById('zug-ev-schaffner').value = zugOpenEntry.schaffner_name || '';
+      document.getElementById('zug-ev-vip').value       = zugOpenEntry.vip_name || '';
+      document.getElementById('zug-ev-notes').value     = zugOpenEntry.notes || '';
+      document.getElementById('zug-ev-save-btn').textContent = 'Aktualisieren';
+    } else {
+      // Pre-fill suggestion from queue
+      try {
+        const sug = await zugApiFetch(`/zug/suggest?ruleset=${encodeURIComponent(zugActiveRuleset)}&date=${encodeURIComponent(zugOpenDate)}`);
+        if (sug.ok) {
+          if (sug.suggested_schaffner) document.getElementById('zug-ev-schaffner').value = sug.suggested_schaffner;
+          if (sug.suggested_vip)       document.getElementById('zug-ev-vip').value       = sug.suggested_vip;
+        }
+      } catch(e) { /* ignore */ }
+      document.getElementById('zug-ev-save-btn').textContent = 'Anlegen';
+    }
+
+    document.getElementById('zug-ev-existing').style.display    = 'none';
+    document.getElementById('zug-ev-new-trigger').style.display = 'none';
+    document.getElementById('zug-ev-form').style.display        = '';
+  };
+
+  window.zugSaveEntry = async function() {
+    const schaffner = document.getElementById('zug-ev-schaffner').value;
+    const vip       = document.getElementById('zug-ev-vip').value;
+    const notes     = document.getElementById('zug-ev-notes').value.trim();
+    if (!schaffner) { toast('Schaffner auswählen','err'); return; }
+    try {
+      if (zugOpenEntry) {
+        const d = await zugApiFetch(`/zug/schedule/${encodeURIComponent(zugOpenEntry.id)}`, {
+          method:'PUT', headers:{'content-type':'application/json'},
+          body: JSON.stringify({ discord_id:getDiscordId(), schaffner_name:schaffner, vip_name:vip||null, notes:notes||null })
+        });
+        if (d.ok) { await zugReloadAndClose(); toast('Termin aktualisiert'); }
+        else toast(d.error||'Fehler','err');
+      } else {
+        const d = await zugApiFetch('/zug/schedule', {
+          method:'POST', headers:{'content-type':'application/json'},
+          body: JSON.stringify({ discord_id:getDiscordId(), event_date:zugOpenDate, ruleset_key:zugActiveRuleset, schaffner_name:schaffner, vip_name:vip||null, notes:notes||null, auto_advance:true, created_by:authMember?.member_name||'' })
+        });
+        if (d.ok) { await zugReloadAndClose(); toast('Termin angelegt'); }
+        else toast(d.error||'Fehler','err');
+      }
+    } catch(e) { toast('Fehler: '+e.message,'err'); }
+  };
+
+  async function zugReloadAndClose() {
+    await Promise.all([zugLoadQueue(), zugLoadSchedule(zugCurrentMonth)]);
+    zugRenderCalendar();
+    zugRenderQueue();
+    zugCloseEventForm();
+  }
+})(); // end Zug module
 
 initApp();
 

@@ -231,7 +231,7 @@
       .cs-btn-cancel { background: rgba(255,255,255,0.05); color: #7a8498; border: 1px solid rgba(255,255,255,0.1) !important; }
       .cs-btn-cancel:hover { background: rgba(255,255,255,0.1); color: #dde1ec; }
       .cs-mobile-only { display: none !important; }
-      @media (max-width: 600px) { .cs-mobile-only { display: flex !important; } }
+      body.nav-compact .cs-mobile-only { display: flex !important; }
     `;
     document.head.appendChild(style);
   }
@@ -381,12 +381,17 @@
     }
     html += `<button class="cs-menu-item" id="cs-logout-btn">⏻ Logout</button>`;
 
-    // Mobile-only nav actions (hidden in navbar via CSS on small screens)
+    // Nav actions: show ALL in compact mode, only hidden tabs in partial mode
     const navActions = window.csNavActions || [];
-    if (navActions.length) {
+    const isCompact = document.body.classList.contains('nav-compact');
+    const visibleActions = navActions.filter(a =>
+      !a.btnRef || a.btnRef.style.display === 'none'
+    );
+    if (isCompact && visibleActions.length) {
       html += `<div class="cs-divider cs-mobile-only"></div>`;
-      navActions.forEach((a, i) => {
-        html += `<button class="cs-menu-item cs-mobile-only" data-nav-action="${i}">${escHtml(a.label)}</button>`;
+      visibleActions.forEach((a, i) => {
+        const origIdx = navActions.indexOf(a);
+        html += `<button class="cs-menu-item cs-mobile-only" data-nav-action="${origIdx}">${escHtml(a.label)}</button>`;
       });
       // Sync button if available
       if (document.getElementById('btn-sync')) {

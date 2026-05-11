@@ -2607,14 +2607,23 @@ function handleReorderZugQueue(PDO $pdo, string $alliance, array $body): never {
 function handleGetZugSchedule(PDO $pdo, string $alliance): never {
     $month = trim($_GET['month'] ?? '');
     if (!preg_match('/^\d{4}-\d{2}$/', $month)) $month = date('Y-m');
+    // Extend range to cover full ISO weeks at month boundaries
+    // First day of month → go back to previous Monday
+    $firstOfMonth = new \DateTime($month . '-01');
+    $dow = (int)$firstOfMonth->format('N'); // 1=Mon,7=Sun
+    $rangeStart = (clone $firstOfMonth)->modify('-' . ($dow - 1) . ' days');
+    // Last day of month → go forward to next Sunday
+    $lastOfMonth = new \DateTime($month . '-' . $firstOfMonth->format('t'));
+    $dow2 = (int)$lastOfMonth->format('N');
+    $rangeEnd = (clone $lastOfMonth)->modify('+' . (7 - $dow2) . ' days');
     $stmt = $pdo->prepare("
         SELECT id,event_date,ruleset_key,schaffner_name,vip_name,status,
                is_substitute,original_schaffner_name,notes,created_by
         FROM zug_schedule
-        WHERE alliance=? AND DATE_FORMAT(event_date,'%Y-%m')=?
+        WHERE alliance=? AND event_date BETWEEN ? AND ?
         ORDER BY event_date ASC
     ");
-    $stmt->execute([$alliance, $month]);
+    $stmt->execute([$alliance, $rangeStart->format('Y-m-d'), $rangeEnd->format('Y-m-d')]);
     jsonOut(200, ['ok' => true, 'month' => $month, 'entries' => $stmt->fetchAll()]);
 }
 
@@ -2705,6 +2714,50 @@ function handleNoShowZugSchedule(PDO $pdo, string $alliance, string $id, array $
         resetZugQueueToFront($pdo, $alliance, $entry['ruleset_key'], $entry['schaffner_name']);
     }
     jsonOut(200, ['ok' => true]);
+}
+
+function handleSwapZugSchedule(PDO $pdo, string $alliance, array $body): never {
+    $date1   = trim((string)($body['date1']       ?? ''));
+    $date2   = trim((string)($body['date2']       ?? ''));
+    $ruleset = trim((string)($body['ruleset_key'] ?? 'standard'));
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date1) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date2)) {
+        jsonOut(400, ['error' => 'Ungültige Datumsangaben']);
+    }
+    if ($date1 === $date2) jsonOut(400, ['error' => 'Quell- und Zieldatum sind identisch']);
+    $stmt = $pdo->prepare('SELECT * FROM zug_schedule WHERE alliance=? AND event_date=? AND ruleset_key=?');
+    $stmt->execute([$alliance, $date1, $ruleset]);
+    $e1 = $stmt->fetch();
+    $stmt->execute([$alliance, $date2, $ruleset]);
+    $e2 = $stmt->fetch();
+    if (!$e1 && !$e2) jsonOut(404, ['error' => 'Keine Einträge gefunden']);
+    // Only allow moving/swapping planned entries
+    if ($e1 && $e1['status'] !== 'planned') jsonOut(409, ['error' => "Eintrag am {$date1} ist nicht mehr planbar (Status: {$e1['status']})"]);
+    if ($e2 && $e2['status'] !== 'planned') jsonOut(409, ['error' => "Eintrag am {$date2} ist nicht mehr planbar (Status: {$e2['status']})"]);
+    $pdo->beginTransaction();
+    try {
+        if ($e1 && $e2) {
+            // Swap schaffner + vip between the two entries
+            $pdo->prepare('UPDATE zug_schedule SET schaffner_name=?,vip_name=? WHERE id=? AND alliance=?')
+                ->execute([$e2['schaffner_name'], $e2['vip_name'], $e1['id'], $alliance]);
+            $pdo->prepare('UPDATE zug_schedule SET schaffner_name=?,vip_name=? WHERE id=? AND alliance=?')
+                ->execute([$e1['schaffner_name'], $e1['vip_name'], $e2['id'], $alliance]);
+            $pdo->commit();
+            jsonOut(200, ['ok' => true, 'action' => 'swapped',
+                'msg' => "{$e1['schaffner_name']} ({$date1}) ↔ {$e2['schaffner_name']} ({$date2}) getauscht"]);
+        } else {
+            // Move: one entry to the empty date
+            $entry   = $e1 ?: $e2;
+            $newDate = $e1 ? $date2 : $date1;
+            $pdo->prepare('UPDATE zug_schedule SET event_date=? WHERE id=? AND alliance=?')
+                ->execute([$newDate, $entry['id'], $alliance]);
+            $pdo->commit();
+            jsonOut(200, ['ok' => true, 'action' => 'moved',
+                'msg' => "{$entry['schaffner_name']} verschoben nach {$newDate}"]);
+        }
+    } catch (\Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
 }
 
 function handleDeleteZugSchedule(PDO $pdo, string $alliance, string $id): never {
@@ -3001,6 +3054,11 @@ try {
         // GET /zug/schedule
         if ($method === 'GET' && $zugSub === 'schedule' && $zugId === '') {
             handleGetZugSchedule($pdo, $ALLIANCE);
+        }
+        // POST /zug/schedule/swap
+        if ($method === 'POST' && $zugSub === 'schedule' && $zugId === 'swap') {
+            requireZugR4($pdo, $ALLIANCE, $body);
+            handleSwapZugSchedule($pdo, $ALLIANCE, $body);
         }
         // POST /zug/schedule
         if ($method === 'POST' && $zugSub === 'schedule' && $zugId === '') {

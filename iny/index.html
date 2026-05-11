@@ -4765,8 +4765,10 @@ async function revokeAdmin(targetDiscordId, displayName) {
   let zugQueue        = [];     // queue rows
   let zugRulesets     = [];     // ruleset definitions
   let zugActiveRuleset= 'standard';
-  let zugOpenEntry    = null;   // the schedule entry being edited
-  let zugOpenDate     = null;   // the date string being acted on
+  let zugOpenEntry      = null;   // the schedule entry being edited
+  let zugOpenDate       = null;   // the date string being acted on
+  let zugDragMember     = null;   // member name being dragged from queue
+  let zugDragSourceDate = null;   // date string of calendar cell being dragged
 
   const STATUS_COLOR = {
     planned:   'rgba(74,158,255,0.55)',
@@ -4791,6 +4793,47 @@ async function revokeAdmin(targetDiscordId, displayName) {
     d.setDate(d.getDate() + 4 - day);
     const yearStart = new Date(d.getFullYear(), 0, 1);
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  }
+
+  // ── golden train SVG icon ──────────────────────────────────────────────────
+  function zugSvg(size) {
+    size = size || 16;
+    const w = Math.round(size * 1.9);
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${size}" viewBox="0 0 38 20" style="vertical-align:middle;display:inline-block;">`
+      // smoke puffs
+      + `<circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/>`
+      + `<circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/>`
+      // chimney
+      + `<rect x="6.5" y="3" width="4" height="4.5" rx="0.8" fill="#B87300"/>`
+      // boiler (main cylinder)
+      + `<rect x="1" y="6.5" width="22" height="9" rx="4" fill="#F0A500"/>`
+      // boiler shine
+      + `<rect x="2" y="7.2" width="19" height="3.2" rx="2" fill="rgba(255,230,90,0.38)"/>`
+      // cab body
+      + `<rect x="19" y="3.5" width="10" height="12" rx="1.5" fill="#D4890A"/>`
+      // cab roof
+      + `<rect x="18" y="2.2" width="12" height="2.5" rx="1" fill="#B87300"/>`
+      // window
+      + `<rect x="21" y="5" width="5" height="4" rx="1" fill="#87CEEB" opacity="0.88"/>`
+      // window glare
+      + `<rect x="21.5" y="5.3" width="1.5" height="1" rx="0.5" fill="rgba(255,255,255,0.6)"/>`
+      // front coupler
+      + `<rect x="0" y="10.8" width="2" height="2.5" rx="0.4" fill="#9A6200"/>`
+      // big drive wheel
+      + `<circle cx="8.5" cy="17" r="3.4" fill="#9A6200" stroke="#F0C040" stroke-width="1.1"/>`
+      + `<circle cx="8.5" cy="17" r="1.3" fill="#C8820A"/>`
+      // spokes
+      + `<line x1="8.5" y1="13.6" x2="8.5" y2="20.4" stroke="#C8820A" stroke-width="0.7"/>`
+      + `<line x1="5.1" y1="15" x2="11.9" y2="19" stroke="#C8820A" stroke-width="0.7"/>`
+      + `<line x1="5.1" y1="19" x2="11.9" y2="15" stroke="#C8820A" stroke-width="0.7"/>`
+      // small front wheel
+      + `<circle cx="3" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/>`
+      // rear wheels
+      + `<circle cx="21" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/>`
+      + `<circle cx="27" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/>`
+      // connecting rod
+      + `<rect x="3" y="16.3" width="25" height="1.5" rx="0.5" fill="#9A6200" opacity="0.6"/>`
+      + `</svg>`;
   }
   function todayStr() {
     const d = new Date();
@@ -4885,14 +4928,12 @@ async function revokeAdmin(targetDiscordId, displayName) {
     const titleEl = document.getElementById('zug-cal-title');
     const grid    = document.getElementById('zug-cal-grid');
     if (!titleEl || !grid) return;
-    titleEl.textContent = '🚂 ' + zugMonthLabel(zugCurrentMonth);
+    titleEl.innerHTML = zugSvg(16) + ' ' + zugMonthLabel(zugCurrentMonth);
 
     const [y, m] = zugCurrentMonth.split('-').map(Number);
-    const first  = new Date(y, m-1, 1);
-    const last   = new Date(y, m, 0);
     const today  = todayStr();
 
-    // Index entries by date
+    // Index entries by date (active ruleset)
     const byDate = {};
     for (const e of zugSchedule) {
       if (e.ruleset_key === zugActiveRuleset || zugActiveRuleset === 'all') byDate[e.event_date] = e;
@@ -4901,36 +4942,105 @@ async function revokeAdmin(targetDiscordId, displayName) {
     const byDateAll = {};
     for (const e of zugSchedule) { (byDateAll[e.event_date] = byDateAll[e.event_date] || []).push(e); }
 
-    // First weekday offset (Mon=1..Sun=7 → offset 0..6)
-    let startOffset = (first.getDay() + 6) % 7; // Mon=0
-    const cells = [];
-    for (let i = 0; i < startOffset; i++) cells.push(null);
-    for (let day = 1; day <= last.getDate(); day++) {
-      cells.push(`${zugCurrentMonth}-${String(day).padStart(2,'0')}`);
-    }
-    // Pad to full weeks
-    while (cells.length % 7 !== 0) cells.push(null);
+    // Build full calendar weeks covering the month
+    const firstOfMonth = new Date(y, m-1, 1);
+    const lastOfMonth  = new Date(y, m, 0);
+    const startDow = (firstOfMonth.getDay() + 6) % 7; // Mon=0
+    const calStart = new Date(firstOfMonth); calStart.setDate(calStart.getDate() - startDow);
+    const endDow   = (lastOfMonth.getDay() + 6) % 7;
+    const calEnd   = new Date(lastOfMonth); calEnd.setDate(calEnd.getDate() + (6 - endDow));
 
-    grid.innerHTML = cells.map(dateStr => {
-      if (!dateStr) return `<div style="min-height:64px;background:rgba(255,255,255,0.01);border-radius:8px;"></div>`;
-      const day  = parseInt(dateStr.slice(8));
-      const isToday = dateStr === today;
-      const entry = byDate[dateStr];
-      const allEntries = byDateAll[dateStr] || [];
-      const bgColor = entry ? STATUS_COLOR[entry.status] || STATUS_COLOR.planned : 'transparent';
-      const border  = isToday ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.06)';
-      let inner = `<div style="font-size:11px;font-weight:600;color:${isToday?'var(--gold)':'var(--soft)'};">${day}</div>`;
-      if (entry) {
-        inner += `<div style="font-size:10px;line-height:1.3;margin-top:3px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(entry.schaffner_name)}">🚂 ${escHtml(entry.schaffner_name)}</div>`;
-        if (entry.vip_name) inner += `<div style="font-size:9px;color:var(--gold-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(entry.vip_name)}">⭐ ${escHtml(entry.vip_name)}</div>`;
-      } else if (allEntries.length) {
-        // Another ruleset has an entry on this day
-        inner += `<div style="font-size:9px;color:var(--soft-2);margin-top:3px;">${allEntries.length} anderes RW</div>`;
+    const allDates = [];
+    const _pad = n => String(n).padStart(2,'0');
+    for (let d = new Date(calStart); d <= calEnd; d.setDate(d.getDate()+1)) {
+      allDates.push(d.getFullYear() + '-' + _pad(d.getMonth()+1) + '-' + _pad(d.getDate()));
+    }
+    const weeks = [];
+    for (let i = 0; i < allDates.length; i += 7) weeks.push(allDates.slice(i, i+7));
+
+    let html = '';
+    for (const week of weeks) {
+      const kw = isoWeek(week[0]);
+      const kwYear = new Date(week[3] + 'T00:00').getFullYear(); // Thu = ISO week year
+
+      // Build copyable mail text for this week
+      const mailLines = ['KW' + kw + ' (' + kwYear + ') – Wöchentliche Schaffner-Bestimmung', ''];
+      for (const ds of week) {
+        const e = byDate[ds];
+        const d = new Date(ds + 'T00:00');
+        const dayName = d.toLocaleDateString('de-DE', {weekday:'long'});
+        const dayNum  = d.toLocaleDateString('de-DE', {day:'numeric', month:'numeric'});
+        if (e) {
+          let line = dayName + ' (' + dayNum + '): ' + e.schaffner_name;
+          if (e.vip_name) line += '  |  VIP: ' + e.vip_name;
+          mailLines.push(line);
+        } else {
+          mailLines.push(dayName + ' (' + dayNum + '): —');
+        }
       }
-      return `<div onclick="zugDayClick('${dateStr}')" style="min-height:64px;background:${bgColor};border:${border};border-radius:8px;padding:6px 5px;cursor:pointer;transition:0.15s;overflow:hidden;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='${isToday?'var(--gold)':'rgba(255,255,255,0.06)'}'">
-        ${inner}
-      </div>`;
-    }).join('');
+      const mailText = mailLines.join('\n');
+
+      // Week header row
+      html += '<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:4px;padding:2px 0;">'
+        + '<span style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--soft);text-transform:uppercase;white-space:nowrap;">KW ' + kw + '</span>'
+        + '<button data-mailtext="' + mailText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '" onclick="zugCopyMail(this)" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--soft);cursor:pointer;transition:all 0.15s;" title="Mail-Text für KW ' + kw + ' kopieren">✉ Mail</button>'
+        + '<div style="flex:1;height:1px;background:rgba(255,255,255,0.05);"></div>'
+        + '</div>';
+
+      // Day cells
+      for (const dateStr of week) {
+        const dayNum = parseInt(dateStr.slice(8));
+        const isCurrentMonth = dateStr.slice(0,7) === zugCurrentMonth;
+        const isToday = dateStr === today;
+        const entry = byDate[dateStr];
+        const allEntries = byDateAll[dateStr] || [];
+        const bgColor = entry ? STATUS_COLOR[entry.status] || STATUS_COLOR.planned : 'transparent';
+        const border  = isToday ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.06)';
+        const dimStyle = isCurrentMonth ? '' : 'opacity:0.4;';
+        const isPlanned = entry && entry.status === 'planned';
+        let inner = '<div style="font-size:11px;font-weight:600;color:' + (isToday?'var(--gold)':(isCurrentMonth?'var(--soft)':'var(--soft-2)')) + ';display:flex;justify-content:space-between;">'
+          + '<span>' + dayNum + '</span>'
+          + (isPlanned ? '<span style="opacity:0.35;font-size:9px;">⠿</span>' : '')
+          + '</div>';
+        if (entry) {
+          inner += '<div style="font-size:10px;line-height:1.3;margin-top:3px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
+          if (entry.vip_name) inner += '<div style="font-size:9px;color:var(--gold-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(entry.vip_name) + '">⭐ ' + escHtml(entry.vip_name) + '</div>';
+        } else if (allEntries.length) {
+          inner += '<div style="font-size:9px;color:var(--soft-2);margin-top:3px;">' + allEntries.length + ' and. RW</div>';
+        }
+        const draggable = isPlanned ? 'draggable="true" ondragstart="zugCalDragStart(event,\'' + dateStr + '\')"' : '';
+        html += '<div ' + draggable + ' onclick="zugDayClick(\'' + dateStr + '\')" ondragover="zugDragOver(event,this)" ondragleave="zugDragLeave(this,\'' + isToday + '\')" ondrop="zugHandleDrop(event,\'' + dateStr + '\',this,\'' + isToday + '\')" data-date="' + dateStr + '" style="' + dimStyle + 'min-height:64px;background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:6px 5px;cursor:' + (isPlanned?'grab':'pointer') + ';transition:0.15s;overflow:hidden;" onmouseover="this.style.borderColor=\'var(--gold)\'" onmouseout="this.style.borderColor=\'' + (isToday?'var(--gold)':'rgba(255,255,255,0.06)') + '\'">'
+          + inner
+          + '</div>';
+      }
+    }
+    grid.innerHTML = html;
+  }
+
+  // ── mail copy ──────────────────────────────────────────────────────────────
+  window.zugCopyMail = function(btn) {
+    const text = btn.dataset.mailtext || '';
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✓ Kopiert';
+        btn.style.color = 'var(--green)';
+        setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1800);
+      }).catch(() => zugShowMailFallback(text));
+    } else {
+      zugShowMailFallback(text);
+    }
+  };
+
+  function zugShowMailFallback(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:480px;height:200px;z-index:9999;background:var(--card2);color:var(--text);border:1px solid var(--gold);border-radius:8px;padding:12px;font-size:13px;resize:none;';
+    ta.setAttribute('readonly','');
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    ta.addEventListener('blur', () => ta.remove());
   }
 
   // ── render: queue ──────────────────────────────────────────────────────────
@@ -4941,19 +5051,138 @@ async function revokeAdmin(targetDiscordId, displayName) {
       el.innerHTML = '<div style="color:var(--soft);font-size:12px;padding:8px;">Noch keine Mitglieder in der Queue. Bitte Queue-Sync ausführen.</div>';
       return;
     }
-    el.innerHTML = zugQueue.map((row, i) => {
-      const isFirst = i === 0;
-      const last = row.last_turn_date ? `Letzter Einsatz: ${row.last_turn_date}` : 'Noch nie';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:${isFirst?'rgba(240,165,0,0.1)':'rgba(255,255,255,0.025)'};border:1px solid ${isFirst?'rgba(240,165,0,0.3)':'rgba(255,255,255,0.05)'};">
-        <span style="font-family:'Rajdhani',sans-serif;font-size:18px;color:${isFirst?'var(--gold)':'var(--soft-2)'};width:22px;text-align:center;">${i+1}</span>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(row.member_name)}</div>
-          <div style="font-size:10px;color:var(--soft-2);">${last} · ${row.turn_count}× gefahren</div>
-        </div>
-        ${isFirst?'<span style="font-size:14px;">🚂</span>':''}
-      </div>`;
-    }).join('');
+    // Wer hat bereits einen geplanten Termin in der Zukunft?
+    const _pad = n => String(n).padStart(2,'0');
+    const _nd = new Date();
+    const todayStr = _nd.getFullYear() + '-' + _pad(_nd.getMonth()+1) + '-' + _pad(_nd.getDate());
+    const plannedNames = new Set(
+      zugSchedule
+        .filter(e => e.status === 'planned' && e.event_date >= todayStr)
+        .map(e => e.schaffner_name)
+    );
+
+    const free     = zugQueue.filter(r => !plannedNames.has(r.member_name));
+    const assigned = zugQueue.filter(r =>  plannedNames.has(r.member_name));
+
+    const renderRow = (row, rank, isFirst, isAssigned) => {
+      const last = row.last_turn_date ? 'Letzter Einsatz: ' + row.last_turn_date : 'Noch nie';
+      const bg     = isAssigned ? 'rgba(46,203,122,0.07)'  : isFirst ? 'rgba(240,165,0,0.1)'       : 'rgba(255,255,255,0.025)';
+      const border = isAssigned ? 'rgba(46,203,122,0.25)'  : isFirst ? 'rgba(240,165,0,0.3)'        : 'rgba(255,255,255,0.05)';
+      const numCol = isAssigned ? 'var(--green)'            : isFirst ? 'var(--gold)'                : 'var(--soft-2)';
+      const badge  = isAssigned ? '<span style="font-size:10px;color:var(--green);white-space:nowrap;">✓ geplant</span>' :
+                     isFirst    ? '<span>' + zugSvg(15) + '</span>' :
+                                  '<span style="font-size:11px;color:var(--soft-2);opacity:0.5;">⠿</span>';
+      return '<div draggable="true" data-member="' + escHtml(row.member_name) + '" ondragstart="zugDragStart(event,this.dataset.member)" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:' + bg + ';border:1px solid ' + border + ';cursor:grab;' + (isAssigned ? 'opacity:0.6;' : '') + '">' +
+        '<span style="font-family:\'Rajdhani\',sans-serif;font-size:18px;color:' + numCol + ';width:22px;text-align:center;">' + rank + '</span>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(row.member_name) + '</div>' +
+          '<div style="font-size:10px;color:var(--soft-2);">' + last + ' · ' + row.turn_count + '× gefahren</div>' +
+        '</div>' + badge + '</div>';
+    };
+
+    let html = free.map((row, i) => renderRow(row, i + 1, i === 0, false)).join('');
+    if (assigned.length) {
+      html += '<div style="font-size:10px;color:var(--soft);padding:6px 2px 2px;letter-spacing:0.05em;">BEREITS GEPLANT</div>';
+      html += assigned.map((row, i) => renderRow(row, '–', false, true)).join('');
+    }
+    el.innerHTML = html;
   }
+
+  // ── drag & drop ────────────────────────────────────────────────────────────
+  window.zugDragStart = function(event, memberName) {
+    zugDragMember     = memberName;
+    zugDragSourceDate = null;
+    event.dataTransfer.setData('text/plain', memberName);
+    event.dataTransfer.effectAllowed = 'copy';
+  };
+
+  window.zugCalDragStart = function(event, dateStr) {
+    const todayStr = (function(){ const n=new Date(); const p=n=>String(n).padStart(2,'0'); return n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate()); })();
+    if (dateStr < todayStr) { event.preventDefault(); return; }
+    zugDragSourceDate = dateStr;
+    zugDragMember     = null;
+    event.dataTransfer.setData('text/plain', dateStr);
+    event.dataTransfer.effectAllowed = 'copy';
+    event.stopPropagation();
+  };
+
+  window.zugDragOver = function(event, cell) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    cell.style.borderColor = 'var(--gold)';
+    cell.style.boxShadow   = '0 0 0 2px rgba(240,165,0,0.4)';
+  };
+
+  window.zugDragLeave = function(cell, isToday) {
+    cell.style.borderColor = isToday === 'true' ? 'var(--gold)' : 'rgba(255,255,255,0.06)';
+    cell.style.boxShadow   = '';
+  };
+
+  window.zugHandleDrop = async function(event, dateStr, cell, isToday) {
+    event.preventDefault();
+    cell.style.borderColor = isToday === 'true' ? 'var(--gold)' : 'rgba(255,255,255,0.06)';
+    cell.style.boxShadow   = '';
+
+    // ── Calendar-to-calendar drag (swap / move) ──────────────────────────────
+    if (zugDragSourceDate !== null) {
+      const srcDate = zugDragSourceDate;
+      zugDragSourceDate = null;
+      if (srcDate === dateStr) return;
+      const todayStr = (function(){ const n=new Date(); const p=n=>String(n).padStart(2,'0'); return n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate()); })();
+      if (dateStr < todayStr) { toast('Vergangene Tage können nicht bearbeitet werden', 'err'); return; }
+      try {
+        const d = await zugApiFetch('/zug/schedule/swap', {
+          method: 'POST', headers: {'content-type': 'application/json'},
+          body: JSON.stringify({ discord_id: getDiscordId(), date1: srcDate, date2: dateStr, ruleset_key: zugActiveRuleset })
+        });
+        if (d.ok) {
+          await Promise.all([zugLoadQueue(), zugLoadSchedule(zugCurrentMonth)]);
+          zugRenderCalendar(); zugRenderQueue();
+          toast(d.msg || (d.action === 'swapped' ? 'Tausch durchgeführt' : 'Eintrag verschoben'));
+        } else {
+          toast(d.error || 'Fehler beim Tauschen', 'err');
+        }
+      } catch(e) { toast('Fehler: ' + e.message, 'err'); }
+      return;
+    }
+
+    // ── Queue-to-calendar drag ───────────────────────────────────────────────
+    const memberName = zugDragMember || event.dataTransfer.getData('text/plain');
+    zugDragMember = null;
+    if (!memberName) return;
+
+    zugOpenDate  = dateStr;
+    zugOpenEntry = zugSchedule.find(e => e.event_date === dateStr && e.ruleset_key === zugActiveRuleset) || null;
+
+    const overlay = document.getElementById('zug-event-overlay');
+    document.getElementById('zug-ev-date-display').textContent =
+      `${new Date(dateStr+'T00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · KW ${isoWeek(dateStr)}`;
+
+    // Reset sub-sections
+    document.getElementById('zug-ev-existing').style.display    = 'none';
+    document.getElementById('zug-ev-noshow').style.display      = 'none';
+    document.getElementById('zug-ev-new-trigger').style.display = 'none';
+
+    if (zugOpenEntry) {
+      // Date already has entry – show it, but swap Schaffner directly via form
+      document.getElementById('zug-ev-title').textContent = 'Termin bearbeiten';
+      await zugOpenCreateForm(true);
+      // Override with the dragged member
+      document.getElementById('zug-ev-schaffner').value = memberName;
+    } else {
+      // New entry – open form pre-filled with dragged member
+      document.getElementById('zug-ev-title').textContent = 'Termin planen';
+      const mOpts = '<option value="">— keiner —</option>' +
+        members.map(m => `<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('');
+      document.getElementById('zug-ev-schaffner').innerHTML = mOpts;
+      document.getElementById('zug-ev-vip').innerHTML       = mOpts;
+      document.getElementById('zug-ev-notes').value         = '';
+      document.getElementById('zug-ev-schaffner').value     = memberName;
+      document.getElementById('zug-ev-save-btn').textContent = 'Anlegen';
+      document.getElementById('zug-ev-form').style.display = '';
+    }
+    overlay.style.display = 'flex';
+  };
 
   // ── render: ruleset list ───────────────────────────────────────────────────
   function zugRenderRulesetList() {

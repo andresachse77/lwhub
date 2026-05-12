@@ -5086,8 +5086,8 @@ async function revokeAdmin(targetDiscordId, displayName) {
   window.zugDragStart = function(event, memberName) {
     zugDragMember     = memberName;
     zugDragSourceDate = null;
-    // prefix 'member:' so drop handler can identify queue drags without relying on closure vars
-    event.dataTransfer.setData('text/plain', 'member:' + memberName);
+    window._zugDragPayload = 'member:' + memberName; // most reliable cross-env transfer
+    try { event.dataTransfer.setData('text/plain', 'member:' + memberName); } catch(e){}
     event.dataTransfer.effectAllowed = 'copy';
   };
 
@@ -5096,7 +5096,8 @@ async function revokeAdmin(targetDiscordId, displayName) {
     if (dateStr < todayStr) { event.preventDefault(); return; }
     zugDragSourceDate = dateStr;
     zugDragMember     = null;
-    event.dataTransfer.setData('text/plain', 'date:' + dateStr);
+    window._zugDragPayload = 'date:' + dateStr;
+    try { event.dataTransfer.setData('text/plain', 'date:' + dateStr); } catch(e){}
     event.dataTransfer.effectAllowed = 'copy';
     event.stopPropagation();
   };
@@ -5121,13 +5122,19 @@ async function revokeAdmin(targetDiscordId, displayName) {
     cell.style.borderColor = isToday === 'true' ? 'var(--gold)' : 'rgba(255,255,255,0.06)';
     cell.style.boxShadow   = '';
 
-    const rawData = event.dataTransfer.getData('text/plain') || '';
-    const isCalDrag    = rawData.startsWith('date:')   || zugDragSourceDate !== null;
-    const isQueueDrag  = rawData.startsWith('member:') || zugDragMember    !== null;
+    // read payload: window global (most reliable) → module var → dataTransfer
+    let rawData = window._zugDragPayload || '';
+    window._zugDragPayload = null;
+    if (!rawData) { try { rawData = event.dataTransfer.getData('text/plain') || ''; } catch(e){} }
+    if (!rawData && zugDragSourceDate) rawData = 'date:'   + zugDragSourceDate;
+    if (!rawData && zugDragMember)     rawData = 'member:' + zugDragMember;
+
+    const isCalDrag   = rawData.startsWith('date:');
+    const isQueueDrag = rawData.startsWith('member:');
 
     // ── Calendar-to-calendar drag (swap / move) ──────────────────────────────
     if (isCalDrag) {
-      const srcDate = rawData.startsWith('date:') ? rawData.slice(5) : zugDragSourceDate;
+      const srcDate = rawData.slice(5);
       zugDragSourceDate = null;
       if (!srcDate || srcDate === dateStr) return;
       const todayStr = (function(){ const n=new Date(); const p=n=>String(n).padStart(2,'0'); return n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate()); })();
@@ -5150,7 +5157,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
 
     // ── Queue-to-calendar drag ───────────────────────────────────────────────
     if (!isQueueDrag) return;
-    const memberName = rawData.startsWith('member:') ? rawData.slice(7) : (zugDragMember || '');
+    const memberName = rawData.slice(7); // strip 'member:' prefix
     zugDragMember = null;
     if (!memberName) return;
 

@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 $configFile = __DIR__ . '/../config.php';
+if (!file_exists($configFile)) {
+    // Fallback: altes Server-Layout (config lag in iny/)
+    $configFile = __DIR__ . '/../iny/config.php';
+}
 if (file_exists($configFile)) {
     require $configFile;
 }

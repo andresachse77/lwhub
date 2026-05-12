@@ -138,8 +138,8 @@
         <div class="vlabel">Notiz</div>
         <input class="vinput" id="zug-ev-noshow-notes" placeholder="Begründung...">
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <button class="save-btn" onclick="zugConfirmNoShow()" style="flex:1;">Bestätigen</button>
-          <button class="save-btn" onclick="zugCancelNoShow()" style="flex:0 0 auto;background:var(--card2);color:var(--soft);border:1px solid var(--line2);">Abbrechen</button>
+          <button class="save-btn" onclick="zugConfirmNoShow()" style="flex:1;width:auto;">Bestätigen</button>
+          <button class="save-btn" onclick="zugCancelNoShow()" style="flex:0 0 auto;width:auto;padding-left:14px;padding-right:14px;background:var(--card2);color:var(--soft);border:1px solid var(--line2);">Abbrechen</button>
         </div>
       </div>
 
@@ -158,8 +158,8 @@
           <input class="vinput" id="zug-ev-notes" placeholder="Kurze Notiz...">
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="save-btn" onclick="zugSaveEntry()" style="flex:1;" id="zug-ev-save-btn">Speichern</button>
-          <button class="save-btn" onclick="zugCancelEditForm()" style="flex:0 0 auto;background:var(--card2);color:var(--soft);border:1px solid var(--line2);">Abbrechen</button>
+          <button class="save-btn" onclick="zugSaveEntry()" style="flex:1;width:auto;" id="zug-ev-save-btn">Speichern</button>
+          <button class="save-btn" onclick="zugCancelEditForm()" style="flex:0 0 auto;width:auto;padding-left:14px;padding-right:14px;background:var(--card2);color:var(--soft);border:1px solid var(--line2);">Abbrechen</button>
         </div>
       </div>
 

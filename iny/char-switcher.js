@@ -381,15 +381,17 @@
     }
     html += `<button class="cs-menu-item" id="cs-logout-btn">⏻ Logout</button>`;
 
-    // Nav actions: show ALL in compact mode, only hidden tabs in partial mode
+    // Nav actions: only show tabs that are not visible in the navbar
     const navActions = window.csNavActions || [];
     const isCompact = document.body.classList.contains('nav-compact');
-    const visibleActions = navActions.filter(a =>
-      !a.btnRef || a.btnRef.style.display === 'none'
+    const isMobile = window.innerWidth <= 720;
+    // A tab is "hidden" if: on mobile (all hidden via CSS), OR its JS display is 'none'
+    const hiddenActions = navActions.filter(a =>
+      isMobile || !a.btnRef || a.btnRef.style.display === 'none'
     );
-    if (isCompact && visibleActions.length) {
+    if (isCompact && hiddenActions.length) {
       html += `<div class="cs-divider cs-mobile-only"></div>`;
-      visibleActions.forEach((a, i) => {
+      hiddenActions.forEach((a) => {
         const origIdx = navActions.indexOf(a);
         html += `<button class="cs-menu-item cs-mobile-only" data-nav-action="${origIdx}">${escHtml(a.label)}</button>`;
       });

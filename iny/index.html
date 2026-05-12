@@ -474,19 +474,14 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     background-position: center 140px;
   }
   nav {
-    height: auto;
-    padding: 10px 12px;
+    height: 52px;
+    padding: 0 12px;
+  }
+  .nav-inner {
     gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
   }
   .logo { font-size: 18px; letter-spacing: 3px; }
-  .tabs {
-    order: 3;
-    width: 100%;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
+  #main-tabs { display: none !important; }
   .nav-actions { margin-left: auto; }
   .tab { padding: 6px 12px; }
 }
@@ -2589,12 +2584,9 @@ function updateNavCompact() {
   const tabs  = document.getElementById('main-tabs');
   if (!inner || !tabs) return;
 
-  // On mobile the nav wraps naturally — skip priority nav
+  // On mobile the nav is single-row — tabs always hidden via CSS, skip
   if (window.innerWidth <= 720) {
-    tabs.style.display = '';
-    inner.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab')
-      .forEach(b => { b.style.display = ''; });
-    document.body.classList.remove('nav-compact');
+    document.body.classList.add('nav-compact');
     return;
   }
 
@@ -5089,10 +5081,13 @@ async function revokeAdmin(targetDiscordId, displayName) {
   }
 
   // ── drag & drop ────────────────────────────────────────────────────────────
+  let zugDropHandled = false; // suppress click-after-drop
+
   window.zugDragStart = function(event, memberName) {
     zugDragMember     = memberName;
     zugDragSourceDate = null;
-    event.dataTransfer.setData('text/plain', memberName);
+    // prefix 'member:' so drop handler can identify queue drags without relying on closure vars
+    event.dataTransfer.setData('text/plain', 'member:' + memberName);
     event.dataTransfer.effectAllowed = 'copy';
   };
 
@@ -5101,7 +5096,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
     if (dateStr < todayStr) { event.preventDefault(); return; }
     zugDragSourceDate = dateStr;
     zugDragMember     = null;
-    event.dataTransfer.setData('text/plain', dateStr);
+    event.dataTransfer.setData('text/plain', 'date:' + dateStr);
     event.dataTransfer.effectAllowed = 'copy';
     event.stopPropagation();
   };
@@ -5120,14 +5115,21 @@ async function revokeAdmin(targetDiscordId, displayName) {
 
   window.zugHandleDrop = async function(event, dateStr, cell, isToday) {
     event.preventDefault();
+    event.stopPropagation();
+    zugDropHandled = true;
+    setTimeout(() => { zugDropHandled = false; }, 300);
     cell.style.borderColor = isToday === 'true' ? 'var(--gold)' : 'rgba(255,255,255,0.06)';
     cell.style.boxShadow   = '';
 
+    const rawData = event.dataTransfer.getData('text/plain') || '';
+    const isCalDrag    = rawData.startsWith('date:')   || zugDragSourceDate !== null;
+    const isQueueDrag  = rawData.startsWith('member:') || zugDragMember    !== null;
+
     // ── Calendar-to-calendar drag (swap / move) ──────────────────────────────
-    if (zugDragSourceDate !== null) {
-      const srcDate = zugDragSourceDate;
+    if (isCalDrag) {
+      const srcDate = rawData.startsWith('date:') ? rawData.slice(5) : zugDragSourceDate;
       zugDragSourceDate = null;
-      if (srcDate === dateStr) return;
+      if (!srcDate || srcDate === dateStr) return;
       const todayStr = (function(){ const n=new Date(); const p=n=>String(n).padStart(2,'0'); return n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate()); })();
       if (dateStr < todayStr) { toast('Vergangene Tage können nicht bearbeitet werden', 'err'); return; }
       try {
@@ -5147,7 +5149,8 @@ async function revokeAdmin(targetDiscordId, displayName) {
     }
 
     // ── Queue-to-calendar drag ───────────────────────────────────────────────
-    const memberName = zugDragMember || event.dataTransfer.getData('text/plain');
+    if (!isQueueDrag) return;
+    const memberName = rawData.startsWith('member:') ? rawData.slice(7) : (zugDragMember || '');
     zugDragMember = null;
     if (!memberName) return;
 
@@ -5249,6 +5252,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
 
   // ── day click & event form ─────────────────────────────────────────────────
   window.zugDayClick = async function(dateStr) {
+    if (zugDropHandled) return; // suppress click-after-drop
     zugOpenDate  = dateStr;
     zugOpenEntry = zugSchedule.find(e => e.event_date === dateStr && e.ruleset_key === zugActiveRuleset) || null;
 

@@ -488,7 +488,51 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
     ";
 }
 
+function getDiscordMemberByActiveChar(PDO $pdo, string $alliance, string $discordId, bool $leadershipOnly = false): ?array {
+    $rankFilter = $leadershipOnly ? 'AND p.current_rank_code IN (4, 5)' : '';
+    try {
+        $stmt = $pdo->prepare(" 
+            SELECT p.player_id, p.current_name, p.current_rank_code,
+                   uac.discord_user_id AS discord_user_id,
+                   COALESCE(uda.discord_username, dpc.discord_username) AS discord_username,
+                   COALESCE(uda.discord_avatar, dpc.discord_avatar) AS discord_avatar
+            FROM user_active_char uac
+            JOIN players p
+              ON p.alliance = uac.alliance
+             AND p.player_id = uac.player_id
+             AND p.is_active = 1
+            LEFT JOIN (
+                SELECT pul.alliance, pul.player_id,
+                       MIN(uda.discord_username) AS discord_username,
+                       MIN(uda.discord_avatar) AS discord_avatar
+                FROM player_user_links pul
+                JOIN user_discord_accounts uda
+                  ON uda.alliance = pul.alliance
+                 AND uda.user_id = pul.user_id
+                GROUP BY pul.alliance, pul.player_id
+            ) uda ON uda.alliance = p.alliance AND uda.player_id = p.player_id
+            LEFT JOIN discord_profile_cache dpc
+              ON dpc.alliance = p.alliance
+             AND dpc.discord_user_id = uac.discord_user_id
+            WHERE uac.discord_user_id = ?
+              AND uac.alliance = ?
+              {$rankFilter}
+            LIMIT 1
+        ");
+        $stmt->execute([$discordId, $alliance]);
+        return $stmt->fetch() ?: null;
+    } catch (
+        PDOException $e
+    ) {
+        if (!isOptionalTableError($e)) throw $e;
+        return null;
+    }
+}
+
 function getDiscordMember(PDO $pdo, string $alliance, string $discordId, bool $leadershipOnly = false): ?array {
+    $activeMember = getDiscordMemberByActiveChar($pdo, $alliance, $discordId, $leadershipOnly);
+    if ($activeMember) return $activeMember;
+
     try {
         $stmt = $pdo->prepare(getDiscordMemberSql(true, $leadershipOnly));
         $stmt->execute([$alliance, $discordId]);

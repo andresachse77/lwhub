@@ -601,6 +601,7 @@
       if (discordId) {
         const charsData = await apiGet(`/my-chars?discord_id=${encodeURIComponent(discordId)}`);
         const chars = charsData.chars || [];
+        let effectiveActiveChar = chars.find(c => c.is_active) || null;
 
         // If no active char set, set to authMember's
         const hasActive = chars.some(c => c.is_active);
@@ -613,23 +614,48 @@
               localStorage.setItem(ACTIVE_CHAR_KEY, JSON.stringify({ alliance: mine.alliance, player_id: mine.player_id, name: mine.name }));
               currentActiveAlliance = mine.alliance;
               window.getActiveAlliance = () => currentActiveAlliance;
+              effectiveActiveChar = mine;
             } catch (e) { /* ignore */ }
           }
         } else if (!hasActive && chars.length) {
-          // Just use first char as active context
+          // Persist first char as active context so future verify calls are deterministic.
           const first = chars[0];
+          try {
+            await apiPost('/my-chars/active', { discord_id: discordId, alliance: first.alliance, player_id: first.player_id });
+            first.is_active = true;
+          } catch (e) { /* ignore */ }
           localStorage.setItem(ACTIVE_CHAR_KEY, JSON.stringify({ alliance: first.alliance, player_id: first.player_id, name: first.name }));
           currentActiveAlliance = first.alliance;
           window.getActiveAlliance = () => currentActiveAlliance;
+          effectiveActiveChar = first;
         } else {
           const activeChar = chars.find(c => c.is_active);
           if (activeChar) {
             currentActiveAlliance = activeChar.alliance;
             window.getActiveAlliance = () => currentActiveAlliance;
+            localStorage.setItem(ACTIVE_CHAR_KEY, JSON.stringify({
+              alliance: activeChar.alliance,
+              player_id: activeChar.player_id,
+              name: activeChar.name,
+            }));
+            effectiveActiveChar = activeChar;
           }
         }
 
-        renderChars(chars, discordId, short);
+        if (effectiveActiveChar) {
+          const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
+          if (auth && typeof auth === 'object') {
+            auth.member_name = effectiveActiveChar.name;
+            auth.active_alliance = effectiveActiveChar.alliance;
+            auth.active_player_id = effectiveActiveChar.player_id;
+            auth.rank = effectiveActiveChar.rank;
+            auth.role = effectiveActiveChar.role || (effectiveActiveChar.rank >= 5 ? 'r5' : effectiveActiveChar.rank >= 4 ? 'r4' : 'normal');
+            auth.can_manage = (effectiveActiveChar.rank >= 4);
+            localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+          }
+        }
+
+        renderChars(chars, discordId, currentActiveAlliance || short);
       }
     } catch (e) {
       console.warn('[char-switcher] Init error:', e);

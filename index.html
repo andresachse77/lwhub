@@ -1454,6 +1454,7 @@ function discordLogin() {
 function discordLogout() {
   localStorage.removeItem('discord_token');
   localStorage.removeItem('discord_user');
+  localStorage.removeItem('iny_active_char_v1');
   clearAuthState();
   window.location.href = getBaseInyUrl();
 }
@@ -1617,9 +1618,12 @@ async function fetchJson(path, options = {}) {
     throw new Error('API nicht konfiguriert');
   }
   try {
-    const activeChar = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null');
-    if (activeChar?.alliance) {
-      path = path + (path.includes('?') ? '&' : '?') + 'alliance=' + encodeURIComponent(activeChar.alliance);
+    const normalizedPath = String(path || '').toLowerCase();
+    if (!normalizedPath.startsWith('/verify-discord')) {
+      const activeChar = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null');
+      if (activeChar?.alliance) {
+        path = path + (path.includes('?') ? '&' : '?') + 'alliance=' + encodeURIComponent(activeChar.alliance);
+      }
     }
   } catch (_) {}
   let lastError = null;
@@ -4355,7 +4359,8 @@ async function initApp(){
 
     // Init char switcher
     if (typeof window.initCharSwitcher === 'function') {
-      window.initCharSwitcher(currentDiscordUser, authMember);
+      await window.initCharSwitcher(currentDiscordUser, authMember);
+      authMember = readAuthState() || authMember;
     }
 
     document.getElementById('login-screen').style.display = 'none';
@@ -4395,7 +4400,8 @@ async function initApp(){
     buildNavActionsFromTabs();
     const _lpDiscordId = localAuth?.discord_id || 'local-preview';
     if (typeof window.initCharSwitcher === 'function') {
-      window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
+      await window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
+      authMember = readAuthState() || localAuth;
     } else {
       window.addEventListener('load', () => {
         if (typeof window.initCharSwitcher === 'function')

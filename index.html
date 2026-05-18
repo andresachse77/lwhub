@@ -2863,8 +2863,6 @@ let meBerufPending = null; // { beruf, medHilfe, winwin }
 function renderMeBerufe() {
   const section = document.getElementById('me-berufe-section');
   if (!section) return;
-  if (!isFeatureEnabled('berufe')) { section.style.display = 'none'; return; }
-  section.style.display = '';
 
   const content = document.getElementById('me-berufe-content');
   if (!content) return;
@@ -2872,6 +2870,16 @@ function renderMeBerufe() {
   const targetName = meActiveMemberName || authMember?.member_name || '';
   const meta = memberMeta[targetName] || {};
   const member = meHistoryBundle?.member || {};
+  const hasBerufData = !!(
+    meta.beruf || member.beruf ||
+    meta.berufMedHilfe || member.beruf_med_hilfe ||
+    meta.berufWinwin || member.beruf_winwin
+  );
+  if (!isFeatureEnabled('berufe') && !hasBerufData) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
 
   const beruf    = meBerufPending?.beruf    !== undefined ? meBerufPending.beruf    : (meta.beruf ?? member.beruf ?? null);
   const medHilfe = meBerufPending?.medHilfe !== undefined ? meBerufPending.medHilfe : !!(meta.berufMedHilfe ?? member.beruf_med_hilfe);

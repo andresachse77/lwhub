@@ -1,0 +1,10 @@
+Place your two screenshot files here:
+assets/loader-kim.png
+assets/loader-dva.png
+
+Notes:
+- PNG or JPG works (name/path in index.html must match)
+- The loader crops them automatically via CSS
+- Recommended source size: at least 700px height per image
+- If PNG files are missing, built-in SVG placeholders are shown automatically:
+	assets/loader-kim.svg and assets/loader-dva.svg

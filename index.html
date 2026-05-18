@@ -364,6 +364,150 @@ nav {
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #000; padding: 9px 22px; border-radius: 99px; font-size: 13px; font-weight: 600; transition: transform 0.25s; z-index: 999; pointer-events: none; }
 .toast.show { transform: translateX(-50%) translateY(0); }
 
+.battle-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 12, 22, 0.68);
+  backdrop-filter: blur(3px);
+  padding: 18px;
+}
+.battle-loader.show { display: flex; }
+.battle-loader-card {
+  width: min(900px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(165deg, rgba(18,25,42,0.96), rgba(23,32,54,0.95));
+  box-shadow: 0 16px 44px rgba(0,0,0,0.45);
+  padding: 20px;
+}
+.battle-loader-frame {
+  position: relative;
+  min-height: 300px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(74,158,255,0.1), rgba(224,85,69,0.08));
+  overflow: hidden;
+}
+.battle-loader-stage {
+  position: relative;
+  width: 100%;
+  height: min(62vh, 560px);
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06), rgba(255,255,255,0.01));
+}
+.battle-loader-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06), rgba(0,0,0,0.2) 62%),
+    linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.38));
+}
+.battle-loader-main-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.58) saturate(1.04) contrast(1.08);
+  animation: battleMainPulse 1.15s ease-in-out infinite;
+}
+.battle-loader-side {
+  position: absolute;
+  bottom: 0;
+  width: min(46%, 430px);
+  height: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.45);
+  overflow: hidden;
+}
+.battle-loader-side.left {
+  left: 3%;
+  background: linear-gradient(180deg, rgba(240,165,0,0.28), rgba(240,165,0,0.06));
+  animation: battleSideLeft 2.6s ease-in-out infinite;
+}
+.battle-loader-side.right {
+  right: 3%;
+  background: linear-gradient(180deg, rgba(74,158,255,0.28), rgba(74,158,255,0.06));
+  animation: battleSideRight 2.6s ease-in-out infinite;
+}
+.battle-loader-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.14);
+  filter: saturate(1.04) contrast(1.04);
+}
+.battle-loader-side.left .battle-loader-portrait-img { object-position: 50% 36%; }
+.battle-loader-side.right .battle-loader-portrait-img { object-position: 52% 36%; }
+.battle-loader-fallback {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+}
+.battle-loader.img-missing .battle-loader-fallback { display: flex; }
+.battle-loader-fallback::before,
+.battle-loader-fallback::after {
+  content: '';
+  position: absolute;
+  width: clamp(90px, 14vw, 180px);
+  height: clamp(90px, 14vw, 180px);
+  border-radius: 18px;
+  border: 2px solid rgba(255,255,255,0.22);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.battle-loader-fallback::before {
+  left: 12%;
+  background: linear-gradient(135deg, rgba(240,165,0,0.6), rgba(240,165,0,0.2));
+  animation: fallbackLeft 2.1s ease-in-out infinite;
+}
+.battle-loader-fallback::after {
+  right: 12%;
+  background: linear-gradient(135deg, rgba(74,158,255,0.6), rgba(74,158,255,0.2));
+  animation: fallbackRight 2.1s ease-in-out infinite;
+}
+.battle-loader-fallback span {
+  width: clamp(26px, 5vw, 52px);
+  height: clamp(26px, 5vw, 52px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff, #ffb35c);
+  box-shadow: 0 0 18px rgba(255,184,92,0.75);
+  animation: fallbackCenter 1.1s ease-in-out infinite;
+}
+@keyframes battleMainPulse {
+  0%, 100% { filter: brightness(0.52) saturate(1.03) contrast(1.06); }
+  50% { filter: brightness(1.0) saturate(1.08) contrast(1.12); }
+}
+@keyframes battleSideLeft {
+  0% { transform: translateX(0) scale(1); }
+  50% { transform: translateX(7%) scale(1.035); }
+  100% { transform: translateX(0) scale(1); }
+}
+@keyframes battleSideRight {
+  0% { transform: translateX(0) scale(1); }
+  50% { transform: translateX(-7%) scale(1.035); }
+  100% { transform: translateX(0) scale(1); }
+}
+@keyframes fallbackLeft {
+  0% { transform: translateX(0) scale(1); }
+  50% { transform: translateX(34%) scale(1.08); }
+  100% { transform: translateX(0) scale(1); }
+}
+@keyframes fallbackRight {
+  0% { transform: translateX(0) scale(1); }
+  50% { transform: translateX(-34%) scale(1.08); }
+  100% { transform: translateX(0) scale(1); }
+}
+@keyframes fallbackCenter {
+  0%, 100% { transform: scale(0.9); opacity: 0.75; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
 @media (max-width: 800px) {
   .stats { grid-template-columns: repeat(2,1fr); }
   .grid2 { grid-template-columns: 1fr; }
@@ -662,6 +806,42 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   .me-stats-grid { grid-template-columns: 1fr; }
 }
 
+/* ── BERUFE (me-beruf- prefix) ── */
+.me-beruf-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.me-beruf-btn {
+  padding: 8px 16px; border-radius: 12px; border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03); color: var(--soft);
+  font-family: inherit; font-size: 13px; cursor: pointer; transition: all 0.15s;
+}
+.me-beruf-btn:hover { border-color: rgba(74,158,255,0.4); color: var(--text); }
+.me-beruf-btn.active {
+  border-color: rgba(74,158,255,0.55); background: rgba(74,158,255,0.12);
+  color: #80b8ff; font-weight: 600;
+}
+.me-beruf-btn.active.kriegsherr {
+  border-color: rgba(224,85,69,0.5); background: rgba(224,85,69,0.1); color: #f09080;
+}
+.me-beruf-sub { margin-bottom: 12px; }
+.me-beruf-sub-label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--soft); margin-bottom: 6px; }
+.me-beruf-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text); }
+.me-beruf-select {
+  width: 100%; background: rgba(9,12,18,0.7); color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 8px 12px; font-family: inherit; font-size: 13px;
+}
+.me-beruf-info {
+  padding: 10px 14px; border-radius: 12px; font-size: 12px; color: var(--soft);
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 12px;
+}
+.me-beruf-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.me-beruf-badge.ingenieur { background: rgba(74,158,255,0.14); color: #80b8ff; border: 1px solid rgba(74,158,255,0.3); }
+.me-beruf-badge.kriegsherr { background: rgba(224,85,69,0.12); color: #f09080; border: 1px solid rgba(224,85,69,0.3); }
+
 /* ── PUNKTE-GUIDE (pg- prefix, scoped) ── */
 .pg-shell { max-width: 1400px; margin: 0 auto; padding: 20px 0 44px; }
 .pg-hero { display: grid; gap: 14px; margin-bottom: 16px; }
@@ -920,6 +1100,16 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       </div>
     </details>
 
+    <section class="me-panel" id="me-berufe-section" style="display:none;margin-top:18px;">
+      <div class="me-panel-head">
+        <div>
+          <div class="me-panel-title">⚗ Beruf</div>
+          <div class="me-panel-sub">Dein Beruf in der Allianz – von dir selbst oder R4 pflegbar</div>
+        </div>
+      </div>
+      <div id="me-berufe-content"></div>
+    </section>
+
   </div>
 </div>
 
@@ -943,7 +1133,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <div class="pg-value" style="color:var(--blue)">140</div>
           <div class="pg-note">VS Gesamt wird mit Faktor 5 gerechnet (Deckel 140)</div>
         </div>
-        <div class="pg-kpi">
+        <div class="pg-kpi" data-guide-features="strafe">
           <div class="pg-label">Strafpunkte</div>
           <div class="pg-value" style="color:var(--red)">bis -140</div>
           <div class="pg-note">Inaktiv + NAP + Verhalten extern etc.</div>
@@ -954,35 +1144,39 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <article class="pg-panel">
         <h2 class="pg-h2">Pluspunkte</h2>
         <div class="pg-points-list">
-          <div class="pg-row"><div class="pg-name">VS Top 30 / Top 10 (mit VS-Gewichtung)</div><div class="pg-badge pg-mix">+75 / +25</div></div>
-          <div class="pg-row"><div class="pg-name">Spenden Top 20 (mit Spenden-Gewichtung)</div><div class="pg-badge pg-mix">+35</div></div>
-          <div class="pg-row"><div class="pg-name">Wache Teilnahme je Slot</div><div class="pg-badge pg-plus">+10</div></div>
-          <div class="pg-row"><div class="pg-name">Wache Bonus (pro 2 Teilnahmen)</div><div class="pg-badge pg-plus">+15</div></div>
-          <div class="pg-row"><div class="pg-name">Spezialevent Teilnahme / Top 50 / Top 20</div><div class="pg-badge pg-mix">+20 / +30 / +20</div></div>
-          <div class="pg-row"><div class="pg-name">Wueste Anmeldung / Teilnahme</div><div class="pg-badge pg-plus">+10 / +25</div></div>
-          <div class="pg-row"><div class="pg-name">Bonus: Umfragen / Support / Feedback</div><div class="pg-badge pg-plus">+10 / +10 / +5</div></div>
+          <div class="pg-row" data-guide-features="vs"><div class="pg-name">VS Top 30 / Top 10 (mit VS-Gewichtung)</div><div class="pg-badge pg-mix">+75 / +25</div></div>
+          <div class="pg-row" data-guide-features="spende"><div class="pg-name">Spenden Top 20 (mit Spenden-Gewichtung)</div><div class="pg-badge pg-mix">+35</div></div>
+          <div class="pg-row" data-guide-features="wache"><div class="pg-name">Wache Teilnahme je Slot</div><div class="pg-badge pg-plus">+10</div></div>
+          <div class="pg-row" data-guide-features="wache"><div class="pg-name">Wache Bonus (pro 2 Teilnahmen)</div><div class="pg-badge pg-plus">+15</div></div>
+          <div class="pg-row" data-guide-features="spezial"><div class="pg-name">Spezialevent Teilnahme / Top 50 / Top 20</div><div class="pg-badge pg-mix">+20 / +30 / +20</div></div>
+          <div class="pg-row" data-guide-features="wueste"><div class="pg-name">Wueste Anmeldung / Teilnahme</div><div class="pg-badge pg-plus">+10 / +25</div></div>
+          <div class="pg-row" data-guide-features="bonus"><div class="pg-name">Bonus: Umfragen / Support / Feedback</div><div class="pg-badge pg-plus">+10 / +10 / +5</div></div>
         </div>
-        <div class="pg-tip">Hinweis: VS und Spenden haben Basiswerte und werden im Regelwerk gewichtet. Deshalb entstehen dort groessere Spruenge als bei normalen Flags.</div>
+        <div class="pg-tip">Hinweis: VS und Spenden haben Basiswerte und werden im Regelwerk gewichtet. Deshalb entstehen dort groessere Spruenge als bei normalen Features.</div>
       </article>
       <aside class="pg-panel">
-        <h2 class="pg-h2">Abzuege</h2>
-        <div class="pg-points-list">
-          <div class="pg-row"><div class="pg-name">VS unter Schwelle / Spende unter Schwelle</div><div class="pg-badge pg-minus">-25 / -35</div></div>
-          <div class="pg-row"><div class="pg-name">Wache kein DMG</div><div class="pg-badge pg-minus">-5</div></div>
-          <div class="pg-row"><div class="pg-name">Wueste unentschuldigt fehlen</div><div class="pg-badge pg-minus">-15</div></div>
-          <div class="pg-row"><div class="pg-name">Inaktiv / NAP / Verhalten extern</div><div class="pg-badge pg-minus">-30 / -30 / -30</div></div>
-          <div class="pg-row"><div class="pg-name">Schild / Falschparken</div><div class="pg-badge pg-minus">-10 / -10</div></div>
-          <div class="pg-row"><div class="pg-name">Ankuendigungs-Mails / Verhalten intern</div><div class="pg-badge pg-minus">-15 / -15</div></div>
+        <div id="pg-abzuege-section">
+          <h2 class="pg-h2">Abzuege</h2>
+          <div class="pg-points-list">
+            <div class="pg-row" data-guide-features="vs,spende" data-guide-requires="strafe"><div class="pg-name">VS unter Schwelle / Spende unter Schwelle</div><div class="pg-badge pg-minus">-25 / -35</div></div>
+            <div class="pg-row" data-guide-features="wache" data-guide-requires="strafe"><div class="pg-name">Wache kein DMG</div><div class="pg-badge pg-minus">-5</div></div>
+            <div class="pg-row" data-guide-features="wueste" data-guide-requires="strafe"><div class="pg-name">Wueste unentschuldigt fehlen</div><div class="pg-badge pg-minus">-15</div></div>
+            <div class="pg-row" data-guide-features="strafe"><div class="pg-name">Inaktiv / NAP / Verhalten extern</div><div class="pg-badge pg-minus">-30 / -30 / -30</div></div>
+            <div class="pg-row" data-guide-features="strafe"><div class="pg-name">Schild / Falschparken</div><div class="pg-badge pg-minus">-10 / -10</div></div>
+            <div class="pg-row" data-guide-features="strafe"><div class="pg-name">Ankuendigungs-Mails / Verhalten intern</div><div class="pg-badge pg-minus">-15 / -15</div></div>
+          </div>
         </div>
-        <h2 class="pg-h2" style="margin-top:16px;">Beispielrechnung</h2>
-        <div class="pg-example">
-          <div class="pg-ex-row"><span>VS Gewichtung</span><strong>+125</strong></div>
-          <div class="pg-ex-row"><span>Spenden Gewichtung</span><strong>+35</strong></div>
-          <div class="pg-ex-row"><span>Wache Gesamt</span><strong>+35</strong></div>
-          <div class="pg-ex-row"><span>Spezialevents Gesamt</span><strong>+70</strong></div>
-          <div class="pg-ex-row"><span>Wueste Gesamt</span><strong>+35</strong></div>
-          <div class="pg-ex-row"><span>Strafpunkte</span><strong>0</strong></div>
-          <div class="pg-ex-total"><span>Gesamtpunkte</span><span>300</span></div>
+        <div id="pg-beispiel-section" style="margin-top:16px;">
+          <h2 class="pg-h2">Beispielrechnung</h2>
+          <div class="pg-example">
+            <div class="pg-ex-row" data-guide-features="vs"><span>VS Gewichtung</span><strong>+125</strong></div>
+            <div class="pg-ex-row" data-guide-features="spende"><span>Spenden Gewichtung</span><strong>+35</strong></div>
+            <div class="pg-ex-row" data-guide-features="wache"><span>Wache Gesamt</span><strong>+35</strong></div>
+            <div class="pg-ex-row" data-guide-features="spezial"><span>Spezialevents Gesamt</span><strong>+70</strong></div>
+            <div class="pg-ex-row" data-guide-features="wueste"><span>Wueste Gesamt</span><strong>+35</strong></div>
+            <div class="pg-ex-row" data-guide-features="strafe"><span>Strafpunkte</span><strong>0</strong></div>
+            <div class="pg-ex-total"><span>Gesamtpunkte</span><span>300</span></div>
+          </div>
         </div>
         <div class="pg-footer-note">Rank-Logik fuer R1-R3: bis 84 Punkte = R1, ab 85 Punkte = R2, ab 180 Punkte = R3. R4/R5 bleiben fix.</div>
       </aside>
@@ -991,6 +1185,18 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="battle-loader" id="battle-loader" aria-hidden="true">
+  <div class="battle-loader-card">
+    <div class="battle-loader-frame">
+      <div class="battle-loader-stage">
+        <img class="battle-loader-main-img battle-loader-media" src="img/load.png" alt="" loading="eager"
+             onload="window.updateBattleLoaderMediaState?.()"
+             onerror="window.updateBattleLoaderMediaState?.()">
+      </div>
+      <div class="battle-loader-fallback" aria-hidden="true"><span></span></div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ ZUGPLAN LESEANSICHT (alle Mitglieder) ═══ -->
 <div class="page" id="page-zv">
@@ -1045,7 +1251,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <button class="admin-nav-tab" onclick="adminShowTab('archive',this)">Archiv</button>
       <button class="admin-nav-tab" onclick="adminShowTab('transfer',this)">Transfer</button>
       <button class="admin-nav-tab" onclick="adminShowTab('admins',this)">Admins</button>
-      <button class="admin-nav-tab" onclick="adminShowTab('flags',this)">🚩 Flags</button>
+      <button class="admin-nav-tab" onclick="adminShowTab('flags',this)">✨ Features</button>
     </div>
 
     <!-- Allianzen -->
@@ -1130,12 +1336,12 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       </div>
     </div>
 
-    <!-- Flags -->
+    <!-- Features -->
     <div class="admin-page" id="admin-section-flags">
       <div class="section-head">
         <div>
-          <div class="section-title">🚩 Flag-Konfiguration</div>
-          <div class="section-sub">Legt fest welche Flags je Allianz erfasst und ausgewertet werden. Gilt global für alle Geräte.</div>
+          <div class="section-title">✨ Feature-Konfiguration</div>
+          <div class="section-sub">Legt fest welche Features je Allianz sichtbar und nutzbar sind. Gilt global für alle Geräte.</div>
         </div>
       </div>
       <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;">
@@ -1219,6 +1425,17 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-edit-alliance')">Abbrechen</button>
       <button class="btn btn-gold" onclick="submitEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg hidden" id="modal-alliance-features">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-title" id="alliance-features-title">Features</div>
+    <div class="modal-sub" id="alliance-features-sub" style="margin-bottom:12px;color:var(--soft);font-size:12px;">Steuere hier, welche Bereiche diese Allianz nutzen darf.</div>
+    <div id="alliance-features-body"><div class="empty">Lade …</div></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-alliance-features')">Schließen</button>
     </div>
   </div>
 </div>
@@ -1677,7 +1894,10 @@ async function api(action, params = {}) {
         discord_avatar: m.discord_avatar || null,
         discord_connected: !!m.discord_connected,
         discord_avatar_url: m.discord_avatar_url || null,
-        last_visit_at: m.last_visit_at || null
+        last_visit_at: m.last_visit_at || null,
+        beruf: m.beruf || null,
+        beruf_med_hilfe: !!m.beruf_med_hilfe,
+        beruf_winwin: m.beruf_winwin || null,
       }));
     }
     case 'entries': {
@@ -1797,6 +2017,19 @@ async function apiPost(data) {
     case 'delete_entry': {
       const name = encodeURIComponent(data.name || '');
       return fetchJson(`/entries/${kw}/${name}`, { method: 'DELETE' });
+    }
+    case 'save_beruf': {
+      const name = encodeURIComponent(data.name || '');
+      return fetchJson(`/members/${name}/beruf`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discord_id: authMember?.discord_id || '',
+          beruf: data.beruf ?? null,
+          med_hilfe: data.med_hilfe ? 1 : 0,
+          winwin: data.winwin || null
+        })
+      });
     }
     default:
       return { error: `Unknown action: ${action}` };
@@ -1954,6 +2187,7 @@ let historyData = [];
 let accessRequests = [];
 let entriesLoading = false;
 let entriesLoadedAt = 0;
+let coreDataInitPromise = null;
 let avatarCache = {};
 const AVATAR_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 Tage
 try {
@@ -2093,7 +2327,10 @@ async function loadMembers() {
       discordUsername: m.discord_username || null,
       discordAvatarUrl: m.discord_avatar_url || null,
       discordConnected: !!m.discord_connected,
-      lastVisitAt: m.last_visit_at || null
+      lastVisitAt: m.last_visit_at || null,
+      beruf: m.beruf || null,
+      berufMedHilfe: !!m.beruf_med_hilfe,
+      berufWinwin: m.beruf_winwin || null,
     };
     if (m.role === 'r4' || m.rank === 4) R4.add(m.name);
     if (m.role === 'r5' || m.rank === 5) R5.add(m.name);
@@ -2135,6 +2372,24 @@ async function refreshEntriesIfNeeded({ force = false, background = false } = {}
   } finally {
     entriesLoading = false;
     if (!background) renderAll();
+  }
+}
+
+async function ensureCoreDataLoaded({ forceEntries = false } = {}) {
+  if (coreDataInitPromise) return coreDataInitPromise;
+
+  coreDataInitPromise = (async () => {
+    await loadMembers();
+    // Show cached entries immediately when available, then refresh in background.
+    hydrateEntriesFromCache(kw, { allowStale: true });
+    await refreshEntriesIfNeeded({ force: forceEntries || !entries.length, background: true });
+    renderAll();
+  })();
+
+  try {
+    return await coreDataInitPromise;
+  } finally {
+    coreDataInitPromise = null;
   }
 }
 
@@ -2330,29 +2585,33 @@ async function kwChanged(){
     toast('Bitte JahrWoche im Format YYWW eingeben, z. B. 2616.');
     return;
   }
-  const prevKw = kw;
-  kw = parsed;
-  updateKwDisplays();
-  try { await loadEntries(); } catch(e) {}
-  if (entries.length === 0 && !confirm(`KW ${formatYearWeek(kw)} hat noch keine Einträge.\nWoche anlegen und wechseln?`)) {
-    kw = prevKw;
+  await runWithBattleLoader(async () => {
+    const prevKw = kw;
+    kw = parsed;
     updateKwDisplays();
     try { await loadEntries(); } catch(e) {}
-  }
-  renderAll();
+    if (entries.length === 0 && !confirm(`KW ${formatYearWeek(kw)} hat noch keine Einträge.\nWoche anlegen und wechseln?`)) {
+      kw = prevKw;
+      updateKwDisplays();
+      try { await loadEntries(); } catch(e) {}
+    }
+    renderAll();
+  }, 0);
 }
 
 async function changeYearWeek(delta) {
-  const prevKw = kw;
-  kw = shiftYearWeek(kw, delta);
-  updateKwDisplays();
-  try { await loadEntries(); } catch(e) {}
-  if (entries.length === 0 && !confirm(`KW ${formatYearWeek(kw)} hat noch keine Einträge.\nWoche anlegen und wechseln?`)) {
-    kw = prevKw;
+  await runWithBattleLoader(async () => {
+    const prevKw = kw;
+    kw = shiftYearWeek(kw, delta);
     updateKwDisplays();
     try { await loadEntries(); } catch(e) {}
-  }
-  renderAll();
+    if (entries.length === 0 && !confirm(`KW ${formatYearWeek(kw)} hat noch keine Einträge.\nWoche anlegen und wechseln?`)) {
+      kw = prevKw;
+      updateKwDisplays();
+      try { await loadEntries(); } catch(e) {}
+    }
+    renderAll();
+  }, 0);
 }
 window.changeYearWeek = changeYearWeek;
 
@@ -2438,6 +2697,7 @@ function me_renderOverview() {
   me_renderPotential();
   me_renderTimeline();
   me_renderChanges();
+  renderMeBerufe();
 }
 
 function me_renderWeekPanel() {
@@ -2597,7 +2857,102 @@ function meStepWeek(delta) {
 }
 window.meStepWeek = meStepWeek;
 
-// ── R4/ADMIN TAB INJECTION ──
+// ── BERUFE (Mein Bereich) ──
+let meBerufPending = null; // { beruf, medHilfe, winwin }
+
+function renderMeBerufe() {
+  const section = document.getElementById('me-berufe-section');
+  if (!section) return;
+  if (!isFeatureEnabled('berufe')) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const content = document.getElementById('me-berufe-content');
+  if (!content) return;
+
+  const targetName = meActiveMemberName || authMember?.member_name || '';
+  const meta = memberMeta[targetName] || {};
+
+  const beruf    = meBerufPending?.beruf    !== undefined ? meBerufPending.beruf    : (meta.beruf    ?? null);
+  const medHilfe = meBerufPending?.medHilfe !== undefined ? meBerufPending.medHilfe : !!meta.berufMedHilfe;
+  const winwin   = meBerufPending?.winwin   !== undefined ? meBerufPending.winwin   : (meta.berufWinwin ?? null);
+
+  const kriegsherren = members.filter(n => memberMeta[n]?.beruf === 'kriegsherr' && n !== targetName).sort();
+
+  const opts = [
+    { value: null,         label: 'Kein Beruf',  icon: '—',  cls: '' },
+    { value: 'ingenieur',  label: 'Ingenieur',   icon: '⚗',  cls: '' },
+    { value: 'kriegsherr', label: 'Kriegsherr',  icon: '⚔',  cls: 'kriegsherr' },
+  ];
+
+  let html = `<div class="me-beruf-picker">`;
+  for (const opt of opts) {
+    const active = beruf === opt.value;
+    const val = opt.value === null ? 'null' : `'${opt.value}'`;
+    html += `<button class="me-beruf-btn${active ? ` active ${opt.cls}` : ''}" onclick="meBerufSelect(${val})">${escHtml(opt.icon)} ${escHtml(opt.label)}</button>`;
+  }
+  html += `</div>`;
+
+  if (beruf === 'ingenieur') {
+    html += `<div class="me-beruf-sub">
+      <label class="me-beruf-toggle">
+        <input type="checkbox" id="me-medhilfe-cb" ${medHilfe ? 'checked' : ''}>
+        <span>🏥 Medizinische Hilfe</span>
+      </label>
+    </div>
+    <div class="me-beruf-sub">
+      <div class="me-beruf-sub-label">⚡ Win-Win Kriegsherr</div>
+      ${kriegsherren.length
+        ? `<select class="me-beruf-select" id="me-winwin-sel">
+            <option value="">— keiner —</option>
+            ${kriegsherren.map(n => `<option value="${escHtml(n)}"${n === winwin ? ' selected' : ''}>${escHtml(n)}</option>`).join('')}
+          </select>`
+        : `<div class="me-beruf-info">Noch keine Kriegsherren in der Allianz vorhanden.</div>`
+      }
+    </div>`;
+  } else if (beruf === 'kriegsherr') {
+    const myIngenieure = members.filter(n => memberMeta[n]?.berufWinwin === targetName);
+    if (myIngenieure.length) {
+      html += `<div class="me-beruf-info">Ingenieure im Win-Win: ${myIngenieure.map(n => escHtml(n)).join(', ')} (${myIngenieure.length}/3)</div>`;
+    } else {
+      html += `<div class="me-beruf-info">Noch keine Ingenieure haben dich als Win-Win gewählt.</div>`;
+    }
+  }
+
+  html += `<button class="v-btn save" style="margin-top:14px;" onclick="saveMeBeruf()">✓ Speichern</button>`;
+  content.innerHTML = html;
+}
+window.renderMeBerufe = renderMeBerufe;
+
+function meBerufSelect(beruf) {
+  if (!meBerufPending) {
+    const targetName = meActiveMemberName || authMember?.member_name || '';
+    const meta = memberMeta[targetName] || {};
+    meBerufPending = { beruf: meta.beruf ?? null, medHilfe: !!meta.berufMedHilfe, winwin: meta.berufWinwin ?? null };
+  }
+  meBerufPending.beruf = beruf;
+  if (beruf !== 'ingenieur') { meBerufPending.medHilfe = false; meBerufPending.winwin = null; }
+  renderMeBerufe();
+}
+window.meBerufSelect = meBerufSelect;
+
+async function saveMeBeruf() {
+  const targetName = meActiveMemberName || authMember?.member_name || '';
+  const meta = memberMeta[targetName] || {};
+  const beruf    = meBerufPending?.beruf !== undefined ? meBerufPending.beruf : (meta.beruf ?? null);
+  const medHilfe = beruf === 'ingenieur' ? (document.getElementById('me-medhilfe-cb')?.checked ? 1 : 0) : 0;
+  const winwin   = beruf === 'ingenieur' ? (document.getElementById('me-winwin-sel')?.value || null) : null;
+  try {
+    await apiPost({ action: 'save_beruf', name: targetName, beruf, med_hilfe: medHilfe, winwin });
+    meBerufPending = null;
+    await loadMembers();
+    renderMeBerufe();
+    if (document.getElementById('page-v')?.classList.contains('active')) {
+      renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+    }
+    toast('Beruf gespeichert!');
+  } catch(err) { toast('Fehler: ' + err.message); }
+}
+window.saveMeBeruf = saveMeBeruf;
 function buildNavActionsFromTabs() {
   const actions = [];
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(btn => {
@@ -2642,12 +2997,18 @@ function updateNavCompact() {
 
   // Step 2: Show tabs + all buttons to measure
   tabs.style.display = 'flex';
-  allBtns.forEach(b => { b.style.display = ''; });
+  allBtns.forEach(b => {
+    const hiddenByFeature = b.dataset.featureHidden === '1';
+    const hiddenByRole = b.dataset.forceHide === 'r4';
+    b.style.display = (hiddenByFeature || hiddenByRole) ? 'none' : '';
+  });
+
+  const candidateBtns = allBtns.filter(b => b.style.display !== 'none');
 
   // Step 3: Greedy — show as many as fit left-to-right
   let used = 0;
   let anyHidden = false;
-  allBtns.forEach(btn => {
+  candidateBtns.forEach(btn => {
     const w = btn.offsetWidth + 4; // +4px for gap between buttons
     if (used + w <= availW) {
       used += w;
@@ -2674,10 +3035,10 @@ async function injectR4Tabs(discordId) {
     if (!data.ok) return;
     document.getElementById('r4-tab-btns').innerHTML = data.tabBtns;
     document.getElementById('r4-pages-container').innerHTML = data.pages;
-    // R4 has full Zugplan edit view – hide the read-only tab
-    const tabZv = document.getElementById('tab-zv');
-    if (tabZv) tabZv.style.display = 'none';
+    // R4 tabs injected
     initR4Listeners();
+    updateFeatureTabVisibility();
+    updatePointsGuideVisibility();
     updateNavCompact();
   } catch(e) { /* silent fail */ }
 }
@@ -2692,13 +3053,39 @@ async function injectAdminTabs(discordId) {
 
 // ── NAV ──
 async function showPage(id) {
+  const safeId = (() => {
+    if (id === 'w' && !isEventPageVisible()) return 'm';
+    if (id === 'z' && !isFeatureEnabled('zug')) return 'm';
+    if (id === 'zv' && !isFeatureEnabled('zug')) return 'm';
+    if (id === 'p' && !isPointsGuideVisible()) return 'm';
+    return id;
+  })();
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const pageEl = document.getElementById('page-' + id);
+  const pageEl = document.getElementById('page-' + safeId);
   if (pageEl) pageEl.classList.add('active');
   // Update active tab (search all tab containers since R4 ones are injected later)
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(t => t.classList.remove('active'));
-  const tabEl = document.getElementById('tab-' + id);
+  const tabEl = document.getElementById('tab-' + safeId);
   if (tabEl) tabEl.classList.add('active');
+
+  const isBattleView = safeId === 'w' || safeId === 'z' || safeId === 'zv';
+
+  if (isBattleView) {
+    await runWithBattleLoader(async () => {
+      await ensureCoreDataLoaded({ forceEntries: !entries.length });
+      if (safeId === 'w') selectEventView(activeEventView);
+      if (safeId === 'z') await zugLoadPage();
+      if (safeId === 'zv') await window.zugRoLoadPage?.();
+    }, 0);
+    return;
+  }
+
+  // Ensure base member/entry data exists before rendering data-heavy views.
+  if (id === 'd' || id === 'e') {
+    await ensureCoreDataLoaded({ forceEntries: !entries.length });
+  }
+
   // Lazy load Mein Bereich – always reload own data when navigating to tab directly
   if (id === 'm' && authMember) {
     if (!meHistoryLoaded || meViewingOther) {
@@ -2709,13 +3096,12 @@ async function showPage(id) {
   }
   if (id === 'd') renderDashboard();
   if (id === 'e') renderList();
-  if (id === 'w') selectEventView(activeEventView);
-  if (id === 'z') zugLoadPage();
-  if (id === 'zv') window.zugRoLoadPage?.();
   if (id === 'r') loadErgebnis();
   if (id === 'v') { await loadMembers(); await refreshEntriesIfNeeded({background:true}); renderVerwaltung(); renderFlagsAdmin(); }
   if (id === 'a') adminInitPage();
-  if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 'a') refreshEntriesIfNeeded({ background: true });
+  if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 'a' && id !== 'w' && id !== 'z' && id !== 'zv') {
+    refreshEntriesIfNeeded({ background: true });
+  }
 }
 
 // ── RENDER ALL ──
@@ -3033,6 +3419,69 @@ function toast(msg, type = '') {
   t.className = `toast show${type ? ' ' + type : ''}`;
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+let battleLoaderDepth = 0;
+let battleLoaderShowTimer = null;
+let battleLoaderShownAt = 0;
+
+function updateBattleLoaderMediaState() {
+  const loader = document.getElementById('battle-loader');
+  if (!loader) return;
+  const imgs = Array.from(loader.querySelectorAll('.battle-loader-media, .battle-loader-portrait-img'));
+  if (!imgs.length) {
+    loader.classList.add('img-missing');
+    return;
+  }
+  const anyReady = imgs.some((img) => img.complete && img.naturalWidth > 0);
+  loader.classList.toggle('img-missing', !anyReady);
+}
+window.updateBattleLoaderMediaState = updateBattleLoaderMediaState;
+
+function showBattleLoader() {
+  const el = document.getElementById('battle-loader');
+  if (!el) return;
+  updateBattleLoaderMediaState();
+  el.classList.add('show');
+  el.setAttribute('aria-hidden', 'false');
+  battleLoaderShownAt = Date.now();
+}
+
+function hideBattleLoader() {
+  const el = document.getElementById('battle-loader');
+  if (!el) return;
+  el.classList.remove('show');
+  el.setAttribute('aria-hidden', 'true');
+  battleLoaderShownAt = 0;
+}
+
+async function runWithBattleLoader(task, minVisibleMs = 1800, showDelayMs = 120) {
+  battleLoaderDepth += 1;
+  let loaderShown = false;
+  let loaderTimer = null;
+  if (battleLoaderDepth === 1) {
+    loaderTimer = setTimeout(() => {
+      loaderShown = true;
+      showBattleLoader();
+    }, showDelayMs);
+    battleLoaderShowTimer = loaderTimer;
+  }
+  try {
+    return await task();
+  } finally {
+    if (loaderTimer) {
+      clearTimeout(loaderTimer);
+      if (battleLoaderShowTimer === loaderTimer) battleLoaderShowTimer = null;
+    }
+    if (loaderShown && battleLoaderShownAt) {
+      const elapsed = Date.now() - battleLoaderShownAt;
+      if (elapsed < minVisibleMs) {
+        await new Promise((resolve) => setTimeout(resolve, minVisibleMs - elapsed));
+      }
+    }
+    battleLoaderDepth = Math.max(0, battleLoaderDepth - 1);
+    if (battleLoaderDepth === 0) hideBattleLoader();
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -3564,44 +4013,154 @@ let vNewRank=3;
 let editingMember=null;
 let vDetailOpen=null; // name of member with expanded detail in Verwaltung
 
-// ── FLAG CONFIG (per alliance, stored server-side) ──
+// ── FEATURE CONFIG (per alliance, stored server-side) ──
 let flagConfig = {}; // in-memory cache populated by loadFlagConfig()
+let allianceFeatureModalAlliance = '';
+
+const FEATURE_CAT_DEFS = [
+  { key:'events',  label:'🎉 Events',       sub:'Hauptschalter für den Events-Bereich' },
+  { key:'wache',   label:'🛡 Wache',        sub:'Events W1–W3 – Kacheln & Tabs' },
+  { key:'wueste',  label:'🏜 Wüste',         sub:'Wüsten-Event – Tab & Kacheln' },
+  { key:'spezial', label:'🎯 Spezialevents', sub:'Spezial-Event – Tab & Kacheln' },
+  { key:'vs',      label:'⚔ VS',             sub:'VS-Event – Tab & Kacheln' },
+  { key:'spende',  label:'💰 Spenden',        sub:'Spenden-Event – Tab & Kacheln' },
+  { key:'zug',     label:'🚂 Zug',            sub:'Zug-Planer + Zugplan – Bearbeiten und Leseansicht' },
+  { key:'strafe',  label:'❌ Strafpunkte',    sub:'In der Verwaltung pflegbar' },
+  { key:'bonus',   label:'⭐ Bonus',          sub:'In der Verwaltung pflegbar' },
+  { key:'afk',     label:'⏸ AFK',            sub:'In der Verwaltung pflegbar' },
+  { key:'berufe',  label:'⚗ Berufe',          sub:'Ingenieur / Kriegsherr – von Mitgliedern und R4 pflegbar' },
+];
+
+function isFeatureEnabled(key) {
+  return flagConfig[key] === true || (key === 'zug' && flagConfig.zugplan === true);
+}
+
+function hasEventFeaturesEnabled(config = flagConfig) {
+  return ['wache', 'wueste', 'spezial', 'vs', 'spende'].some(key => config[key] === true);
+}
+
+function isEventPageVisible() {
+  return flagConfig.events === true || hasEventFeaturesEnabled();
+}
+
+function setElementVisible(id, visible) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = visible ? '' : 'none';
+}
+
+function setTabVisible(id, visible) {
+  const tab = document.getElementById(id);
+  if (!tab) return;
+  tab.dataset.featureHidden = visible ? '0' : '1';
+  tab.style.display = visible ? '' : 'none';
+}
+
+function renderFeatureToggles(containerId, alliance, config) {
+  const el = document.getElementById(containerId);
+  if (!el || !alliance) return;
+  el.innerHTML = `<div style="display:flex;flex-direction:column;">` +
+    FEATURE_CAT_DEFS.map(({ key, label, sub }) => {
+      const on = config[key] === true;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);">
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${label}</div><div style="font-size:11px;color:var(--soft);">${sub}</div></div>
+        <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on ? 'save' : 'del'}" style="min-width:88px;">${on ? '✓ Aktiv' : '✗ Inaktiv'}</button>
+      </div>`;
+    }).join('') +
+    `</div>`;
+}
+
+async function loadAllianceFeatureConfig(alliance) {
+  if (!alliance) return {};
+  const config = await loadFlagConfig(alliance);
+  adminFlagConfigCache[alliance] = config;
+  return config;
+}
+
+async function openAllianceFeatures(alliance) {
+  allianceFeatureModalAlliance = alliance;
+  const title = document.getElementById('alliance-features-title');
+  const sub = document.getElementById('alliance-features-sub');
+  if (title) title.textContent = `Features: ${alliance}`;
+  if (sub) sub.textContent = 'Steuere hier direkt, welche Bereiche diese Allianz nutzen darf.';
+  const body = document.getElementById('alliance-features-body');
+  if (body) body.innerHTML = '<div class="empty">Lade …</div>';
+  openModal('modal-alliance-features');
+  try {
+    const config = await loadAllianceFeatureConfig(alliance);
+    renderFeatureToggles('alliance-features-body', alliance, config);
+  } catch (e) {
+    if (body) body.innerHTML = `<div class="empty">Fehler: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderAllianceFeaturesModal() {
+  if (!allianceFeatureModalAlliance) return;
+  const config = adminFlagConfigCache[allianceFeatureModalAlliance] || {};
+  renderFeatureToggles('alliance-features-body', allianceFeatureModalAlliance, config);
+}
+
+window.openAllianceFeatures = openAllianceFeatures;
 
 async function loadFlagConfig(allianceOverride) {
   try {
     if (allianceOverride) {
       // admin page: fetch for a specific alliance without active-char interference
       const data = await adminApi(`/alliance-config?alliance=${encodeURIComponent(allianceOverride)}`);
-      return data.config || {};
+      const config = data.config || {};
+      if (config.zugplan === true && config.zug !== true) config.zug = true;
+      return config;
     }
     const data = await fetchJson('/alliance-config');
     flagConfig = data.config || {};
+    if (flagConfig.zugplan === true && flagConfig.zug !== true) flagConfig.zug = true;
     updateEventTabVisibility();
+    updateFeatureTabVisibility();
+    updatePointsGuideVisibility();
   } catch (_) {
     if (allianceOverride) return {};
-    // keep current flagConfig (all enabled by default = empty object)
+    // keep current feature config (empty object means everything is disabled)
   }
 }
 window.loadFlagConfig = loadFlagConfig;
 
 function isCatEnabled(catKey) {
-  return flagConfig[catKey] !== false;
+  return flagConfig[catKey] === true;
 }
+
+function isCurrentAllianceTarget(targetAlliance) {
+  const currentAlliance = String(authMember?.alliance || '').trim().toLowerCase();
+  const target = String(targetAlliance || '').trim().toLowerCase();
+  return !!currentAlliance && !!target && currentAlliance === target;
+}
+
 async function toggleCatConfig(key, allianceOverride) {
   const targetAlliance = allianceOverride || null;
   const discordId = authMember?.discord_id || '';
   const newVal = targetAlliance
-    ? !(adminFlagConfigCache[targetAlliance]?.[key] !== false)
+    ? !(adminFlagConfigCache[targetAlliance]?.[key] === true)
     : !isCatEnabled(key);
+  const payloadConfig = key === 'zug' ? { zug: newVal, zugplan: newVal } : { [key]: newVal };
   // optimistic update
   if (targetAlliance) {
     if (!adminFlagConfigCache[targetAlliance]) adminFlagConfigCache[targetAlliance] = {};
     adminFlagConfigCache[targetAlliance][key] = newVal;
+    if (key === 'zug') adminFlagConfigCache[targetAlliance].zugplan = newVal;
+    if (isCurrentAllianceTarget(targetAlliance)) {
+      flagConfig = { ...adminFlagConfigCache[targetAlliance] };
+      updateEventTabVisibility();
+      updateFeatureTabVisibility();
+      updatePointsGuideVisibility();
+      renderFlagsAdmin();
+    }
     renderAdminFlagConfig();
+    renderAllianceFeaturesModal();
   } else {
     flagConfig[key] = newVal;
+    if (key === 'zug') flagConfig.zugplan = newVal;
     renderFlagsAdmin();
     updateEventTabVisibility();
+    updateFeatureTabVisibility();
+    updatePointsGuideVisibility();
     if (document.getElementById('page-v')?.classList.contains('active'))
       renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
   }
@@ -3612,15 +4171,23 @@ async function toggleCatConfig(key, allianceOverride) {
       await adminApi(`/alliance-config${qs}`, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ discord_id: discordId, key, value: newVal })
+        body: JSON.stringify({ discord_id: discordId, config: payloadConfig })
       });
       adminFlagConfigCache[targetAlliance] = await loadFlagConfig(targetAlliance);
+      if (isCurrentAllianceTarget(targetAlliance)) {
+        flagConfig = { ...adminFlagConfigCache[targetAlliance] };
+        updateEventTabVisibility();
+        updateFeatureTabVisibility();
+        updatePointsGuideVisibility();
+        renderFlagsAdmin();
+      }
       renderAdminFlagConfig();
+      renderAllianceFeaturesModal();
     } else {
       await fetchJson('/alliance-config', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ discord_id: discordId, key, value: newVal })
+        body: JSON.stringify({ discord_id: discordId, config: payloadConfig })
       });
       await loadFlagConfig();
       renderFlagsAdmin();
@@ -3630,7 +4197,15 @@ async function toggleCatConfig(key, allianceOverride) {
     // revert
     if (targetAlliance) {
       adminFlagConfigCache[targetAlliance] = await loadFlagConfig(targetAlliance);
+      if (isCurrentAllianceTarget(targetAlliance)) {
+        flagConfig = { ...adminFlagConfigCache[targetAlliance] };
+        updateEventTabVisibility();
+        updateFeatureTabVisibility();
+        updatePointsGuideVisibility();
+        renderFlagsAdmin();
+      }
       renderAdminFlagConfig();
+      renderAllianceFeaturesModal();
     } else {
       await loadFlagConfig();
       renderFlagsAdmin();
@@ -3643,14 +4218,14 @@ function renderFlagsAdmin() {
   const el = document.getElementById('v-flag-config');
   if (!el) return;
   el.innerHTML = `<div style="display:flex;flex-direction:column;">` +
-    FLAG_CAT_DEFS.map(({ key, label, sub }) => {
+    FEATURE_CAT_DEFS.map(({ key, label, sub }) => {
       const on = isCatEnabled(key);
       return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);">
         <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${label}</div><div style="font-size:11px;color:var(--soft);">${sub}</div></div>
         <span class="rank-badge ${on?'r4':'r3'}" style="min-width:80px;text-align:center;">${on?'✓ Aktiv':'✗ Inaktiv'}</span>
       </div>`;
     }).join('') +
-    `</div><div style="font-size:11px;color:var(--softer);margin-top:8px;">Editierbar in <strong>Admin → 🚩 Flags</strong> (nur R5).</div>`;
+    `</div><div style="font-size:11px;color:var(--softer);margin-top:8px;">Editierbar in <strong>Admin → ✨ Features</strong> (nur R5).</div>`;
 }
 window.renderFlagsAdmin = renderFlagsAdmin;
 
@@ -3693,12 +4268,161 @@ window.toggleVerwaltungFlag = toggleVerwaltungFlag;
 
 function updateEventTabVisibility() {
   const catMap = { w1:'wache',w2:'wache',w3:'wache',wu:'wueste',se:'spezial',vs:'vs',sp:'spende' };
+  const eventVisible = isEventPageVisible();
   document.querySelectorAll('.wache-tab').forEach(btn => {
     const key = catMap[btn.dataset.ev];
-    if (key) btn.style.display = isCatEnabled(key) ? '' : 'none';
+    if (key) btn.style.display = eventVisible && isFeatureEnabled(key) ? '' : 'none';
   });
+  setTabVisible('tab-w', eventVisible);
+  setElementVisible('page-w', eventVisible);
+  if (!eventVisible && document.getElementById('page-w')?.classList.contains('active')) {
+    showPage('m');
+  }
 }
 window.updateEventTabVisibility = updateEventTabVisibility;
+
+function updateFeatureTabVisibility() {
+  const zugTab = document.getElementById('tab-z');
+  if (zugTab) setTabVisible('tab-z', isFeatureEnabled('zug'));
+
+  const zugPlanTab = document.getElementById('tab-zv');
+  if (zugPlanTab) {
+    setTabVisible('tab-zv', isFeatureEnabled('zug'));
+  }
+
+  setElementVisible('page-z', isFeatureEnabled('zug'));
+  setElementVisible('page-zv', isFeatureEnabled('zug'));
+  if ((!isFeatureEnabled('zug') && document.getElementById('page-z')?.classList.contains('active')) ||
+      (!isFeatureEnabled('zug') && document.getElementById('page-zv')?.classList.contains('active'))) {
+    showPage('m');
+  }
+}
+window.updateFeatureTabVisibility = updateFeatureTabVisibility;
+
+function isPointsGuideVisible() {
+  return ['vs', 'spende', 'wache', 'spezial', 'wueste', 'bonus', 'strafe']
+    .some(feature => isFeatureEnabled(feature));
+}
+
+function updatePointsGuideVisibility() {
+  const guideEl = document.getElementById('page-p');
+  if (!guideEl) return;
+
+  // non-row, non-ex-row elements with feature gates (e.g. KPI cards)
+  guideEl.querySelectorAll('[data-guide-features]:not(.pg-row):not(.pg-ex-row)').forEach(el => {
+    const features = (el.dataset.guideFeatures || '').split(',').map(s => s.trim()).filter(Boolean);
+    const required = (el.dataset.guideRequires || '').split(',').map(s => s.trim()).filter(Boolean);
+    const visibleByFeatures = features.length ? features.some(feature => isFeatureEnabled(feature)) : true;
+    const visibleByRequired = required.every(feature => isFeatureEnabled(feature));
+    const visible = visibleByFeatures && visibleByRequired;
+    el.style.display = visible ? '' : 'none';
+  });
+
+  let anyVisible = false;
+
+  // Abzüge rows
+  const rows = guideEl.querySelectorAll('.pg-row[data-guide-features]');
+  rows.forEach(row => {
+    const features = (row.dataset.guideFeatures || '').split(',').map(s => s.trim()).filter(Boolean);
+    const required = (row.dataset.guideRequires || '').split(',').map(s => s.trim()).filter(Boolean);
+    const visibleByFeatures = features.length ? features.some(feature => isFeatureEnabled(feature)) : true;
+    const visibleByRequired = required.every(feature => isFeatureEnabled(feature));
+    const visible = visibleByFeatures && visibleByRequired;
+    row.style.display = visible ? '' : 'none';
+    if (visible) anyVisible = true;
+  });
+
+  // Abzüge section wrapper
+  const abzuegeSection = guideEl.querySelector('#pg-abzuege-section');
+  if (abzuegeSection) {
+    const hasVisible = Array.from(abzuegeSection.querySelectorAll('.pg-row')).some(r => r.style.display !== 'none');
+    abzuegeSection.style.display = hasVisible ? '' : 'none';
+  }
+
+  // Beispielrechnung ex-rows
+  guideEl.querySelectorAll('.pg-ex-row[data-guide-features]').forEach(row => {
+    const features = (row.dataset.guideFeatures || '').split(',').map(s => s.trim()).filter(Boolean);
+    const visible = features.some(feature => isFeatureEnabled(feature));
+    row.style.display = visible ? '' : 'none';
+  });
+
+  // Beispielrechnung section wrapper
+  const beispielSection = guideEl.querySelector('#pg-beispiel-section');
+  if (beispielSection) {
+    const hasVisibleEx = Array.from(beispielSection.querySelectorAll('.pg-ex-row')).some(r => r.style.display !== 'none');
+    beispielSection.style.display = hasVisibleEx ? '' : 'none';
+    if (hasVisibleEx) anyVisible = true;
+    // pg-ex-total only if at least one ex-row is visible
+    const total = beispielSection.querySelector('.pg-ex-total');
+    if (total) total.style.display = hasVisibleEx ? '' : 'none';
+  }
+
+  // Panel-level visibility: visible if either Abzüge or Beispiel has content
+  guideEl.querySelectorAll('.pg-panel').forEach(panel => {
+    const visibleRows = Array.from(panel.querySelectorAll('.pg-row')).filter(r => r.style.display !== 'none').length;
+    const visibleExRows = Array.from(panel.querySelectorAll('.pg-ex-row')).filter(r => r.style.display !== 'none').length;
+    if (panel.querySelector('.pg-row[data-guide-features]') || panel.querySelector('.pg-ex-row[data-guide-features]')) {
+      const panelVisible = visibleRows > 0 || visibleExRows > 0;
+      panel.style.display = panelVisible ? '' : 'none';
+      if (panelVisible) anyVisible = true;
+    }
+  });
+
+  guideEl.style.display = anyVisible ? '' : 'none';
+  setTabVisible('tab-p', anyVisible);
+  if (!anyVisible && document.getElementById('page-p')?.classList.contains('active')) {
+    showPage('m');
+  }
+}
+window.updatePointsGuideVisibility = updatePointsGuideVisibility;
+
+function buildVerwaltungBerufHtml(name, esc, meta) {
+  if (!isFeatureEnabled('berufe')) return '';
+  const currentBeruf = meta.beruf || null;
+  const currentMedHilfe = !!meta.berufMedHilfe;
+  const currentWinwin = meta.berufWinwin || null;
+  const kriegsherren = members.filter(function(n) { return memberMeta[n] && memberMeta[n].beruf === 'kriegsherr' && n !== name; }).sort();
+
+  const berufDefs = [
+    { v: null,         l: '— Kein' },
+    { v: 'ingenieur',  l: '⚗ Ingenieur' },
+    { v: 'kriegsherr', l: '⚔ Kriegsherr' },
+  ];
+  let berufBtns = '';
+  for (let i = 0; i < berufDefs.length; i++) {
+    const o = berufDefs[i];
+    const active = currentBeruf === o.v;
+    const val = o.v === null ? 'null' : "'" + o.v + "'";
+    const style = active ? 'border-color:rgba(74,158,255,0.5);background:rgba(74,158,255,0.15);color:#80b8ff;' : '';
+    berufBtns += '<button class="flag-btn" onclick="event.stopPropagation();setVerwaltungBeruf(\'' + esc + '\',' + val + ')" style="' + style + '">' + o.l + '</button>';
+  }
+
+  let subHtml = '';
+  if (currentBeruf === 'ingenieur') {
+    let winwinEl;
+    if (kriegsherren.length) {
+      let opts = '<option value="">— kein Win-Win —</option>';
+      for (let i = 0; i < kriegsherren.length; i++) {
+        const n = kriegsherren[i];
+        opts += '<option value="' + escHtml(n) + '"' + (n === currentWinwin ? ' selected' : '') + '>' + escHtml(n) + '</option>';
+      }
+      winwinEl = '<select class="v-rank-sel" id="v-beruf-winwin" style="flex:1;min-width:120px;" onclick="event.stopPropagation()">' + opts + '</select>';
+    } else {
+      winwinEl = '<span style="font-size:12px;color:var(--soft);">Keine Kriegsherren vorhanden</span>';
+    }
+    subHtml = '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">'
+      + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'
+      + '<input type="checkbox" id="v-beruf-medhilfe"' + (currentMedHilfe ? ' checked' : '') + '> 🏥 Med. Hilfe'
+      + '</label>' + winwinEl + '</div>'
+      + '<button class="v-btn save" style="margin-top:8px;" onclick="event.stopPropagation();saveVerwaltungBerufSub(\'' + esc + '\')">✓ Beruf speichern</button>';
+  }
+
+  return '<div class="flag-cat" style="background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.18);margin-top:10px;">'
+    + '<div class="flag-cat-title" style="color:#6aabff;">⚗ Beruf</div>'
+    + '<div class="flag-btns">' + berufBtns + '</div>'
+    + subHtml
+    + '</div>';
+}
 
 function renderVerwaltung(filter=''){
   const missingDiscord = members.filter((n) => !memberMeta[n]?.discordConnected).length;
@@ -3806,11 +4530,12 @@ function renderVerwaltung(filter=''){
             <button class="v-btn" onclick="event.stopPropagation();openMemberMeInApp('${esc}')" style="background:rgba(100,160,255,0.1);border-color:rgba(100,160,255,0.3);color:#80b8ff;">👁 Me-Ansicht</button>
           </div>`;
 
-      detailHtml = `<div class="v-detail" onclick="event.stopPropagation()">
-        ${memberInfoHtml}
-        <div class="flag-cats">${flagsHtml}</div>
-        ${actionBtns}
-      </div>`;
+      detailHtml = '<div class="v-detail" onclick="event.stopPropagation()">'
+        + memberInfoHtml
+        + '<div class="flag-cats">' + flagsHtml + '</div>'
+        + buildVerwaltungBerufHtml(name, esc, meta)
+        + actionBtns
+        + '</div>';
     }
 
     return `<div class="v-row-wrap${isOpen?' is-open':''}" onclick="toggleVerwaltungRow('${esc}')">
@@ -3971,6 +4696,28 @@ async function saveMemberEdit(oldName){
 }
 window.saveMemberEdit=saveMemberEdit;
 
+async function setVerwaltungBeruf(name, beruf) {
+  beruf = beruf || null;
+  try {
+    await apiPost({ action: 'save_beruf', name, beruf, med_hilfe: 0, winwin: null });
+    await loadMembers();
+    renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+  } catch(err) { toast('Fehler: ' + err.message); }
+}
+window.setVerwaltungBeruf = setVerwaltungBeruf;
+
+async function saveVerwaltungBerufSub(name) {
+  const medHilfe = document.getElementById('v-beruf-medhilfe')?.checked ? 1 : 0;
+  const winwin = document.getElementById('v-beruf-winwin')?.value || null;
+  try {
+    await apiPost({ action: 'save_beruf', name, beruf: 'ingenieur', med_hilfe: medHilfe, winwin });
+    await loadMembers();
+    renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+    toast('Beruf gespeichert!');
+  } catch(err) { toast('Fehler: ' + err.message); }
+}
+window.saveVerwaltungBerufSub = saveVerwaltungBerufSub;
+
 async function swapMemberIdToDiscord(name){
   const meta = memberMeta[name] || {};
   if(!meta.discordConnected || !meta.discordId){
@@ -4004,8 +4751,6 @@ async function removeMember(name){
   renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
   renderDashboard(); toast(name+' entfernt!');
 }
-window.removeMember=removeMember;
-
 window.removeMember=removeMember;
 
 // ── SE INAKTIV AUSWERTUNG ──
@@ -4366,6 +5111,10 @@ async function initApp(){
     document.getElementById('login-screen').style.display = 'none';
     startPresencePing(authMember.member_name, authMember.discord_id, authMember.discord_username);
     await Promise.all([me_loadHistory(authMember.discord_id, authMember.member_name), loadFlagConfig()]);
+
+    // Warm up core datasets right after login so Events/Zug are ready without manual sync.
+    ensureCoreDataLoaded({ forceEntries: true }).catch(() => {});
+
     updateEventTabVisibility();
     showPage('m');
     return;
@@ -4459,19 +5208,8 @@ function adminShowTab(name, btn) {
   if (name === 'flags') adminInitFlagsTab();
 }
 
-// ── Admin Flag Config ──
+// ── Admin Feature Config ──
 let adminFlagConfigCache = {}; // { allianceName: {key: bool, ...} }
-
-const FLAG_CAT_DEFS = [
-  { key:'wache',   label:'🛡 Wache',        sub:'Events W1–W3 – Kacheln & Tabs' },
-  { key:'wueste',  label:'🏜 Wüste',         sub:'Wüsten-Event – Tab & Kacheln' },
-  { key:'spezial', label:'🎯 Spezialevents', sub:'Spezial-Event – Tab & Kacheln' },
-  { key:'vs',      label:'⚔ VS',             sub:'VS-Event – Tab & Kacheln' },
-  { key:'spende',  label:'💰 Spenden',        sub:'Spenden-Event – Tab & Kacheln' },
-  { key:'strafe',  label:'❌ Strafpunkte',    sub:'Flags in Verwaltung pflegbar' },
-  { key:'bonus',   label:'⭐ Bonus',          sub:'Flags in Verwaltung pflegbar' },
-  { key:'afk',     label:'⏸ AFK',            sub:'Flag in Verwaltung pflegbar' },
-];
 
 async function adminInitFlagsTab() {
   // Populate alliance selector from already-loaded alliances
@@ -4509,8 +5247,8 @@ function renderAdminFlagConfig() {
   if (!body || !alliance) return;
   const config = adminFlagConfigCache[alliance] || {};
   body.innerHTML = `<div style="display:flex;flex-direction:column;max-width:600px;">` +
-    FLAG_CAT_DEFS.map(({ key, label, sub }) => {
-      const on = config[key] !== false;
+    FEATURE_CAT_DEFS.map(({ key, label, sub }) => {
+      const on = config[key] === true;
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);">
         <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${label}</div><div style="font-size:11px;color:var(--soft);">${sub}</div></div>
         <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on?'save':'del'}" style="min-width:88px;">${on?'✓ Aktiv':'✗ Inaktiv'}</button>
@@ -4545,7 +5283,7 @@ function renderAllianceList() {
   if (!el) return;
   if (!_adminAlliances.length) { el.innerHTML = '<div class="empty">Keine Allianzen gefunden.</div>'; return; }
   el.innerHTML = _adminAlliances.map(a => `
-    <div class="alliance-row">
+    <div class="alliance-row" style="cursor:pointer;" onclick="if (event.target.closest('button')) return; openAllianceFeatures(${escHtml(JSON.stringify(a.short_name))})">
       <div class="alliance-short">${escHtml(a.short_name)}</div>
       <div class="alliance-title-text">
         ${a.title ? escHtml(a.title) : '<em style="color:var(--soft)">Kein Titel</em>'}
@@ -4556,6 +5294,7 @@ function renderAllianceList() {
           ? '<span style="font-size:11px;background:rgba(46,203,122,0.15);color:var(--green);border:1px solid rgba(46,203,122,0.3);border-radius:6px;padding:2px 8px;">Anfragen offen</span>'
           : '<span style="font-size:11px;color:var(--soft);">Anfragen geschlossen</span>'}
         <div class="alliance-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openAllianceFeatures(${escHtml(JSON.stringify(a.short_name))})">Features</button>
           <button class="btn btn-ghost btn-sm" onclick="openEditAlliance(${escHtml(JSON.stringify(a.short_name))}, ${escHtml(JSON.stringify(a.title || ''))}, ${a.accepts_requests ? 1 : 0})">Bearbeiten</button>
         </div>
       </div>

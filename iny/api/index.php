@@ -222,6 +222,19 @@ function ensureLastVisitColumn(PDO $pdo): void {
     }
 }
 
+function ensureBerufColumns(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+    foreach ([
+        "ALTER TABLE players ADD COLUMN beruf VARCHAR(20) NULL DEFAULT NULL",
+        "ALTER TABLE players ADD COLUMN beruf_med_hilfe TINYINT(1) NOT NULL DEFAULT 0",
+        "ALTER TABLE players ADD COLUMN beruf_winwin VARCHAR(150) NULL DEFAULT NULL",
+    ] as $sql) {
+        try { $pdo->exec($sql); } catch (\PDOException) {}
+    }
+}
+
 function ensureChatTable(PDO $pdo): void {
     $pdo->exec(" 
         CREATE TABLE IF NOT EXISTS member_chat_messages (
@@ -907,8 +920,10 @@ function handleListRankChangeLog(PDO $pdo, string $alliance): never {
 function handleGetMembers(PDO $pdo, string $alliance): never {
     ensureDiscordProfileCacheTable($pdo);
     ensureLastVisitColumn($pdo);
+    ensureBerufColumns($pdo);
     $stmt = $pdo->prepare("
         SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.last_visit_at,
+               p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
                COALESCE(puld.discord_avatar, dpc.discord_avatar) AS discord_avatar
@@ -948,9 +963,76 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
         'discord_connected'  => !empty($r['discord_user_id']),
         'discord_avatar_url' => memberToDiscordAvatarUrl($r['discord_user_id'] ?? null, $r['discord_avatar'] ?? null, 64),
         'last_visit_at'      => $r['last_visit_at'] ?? null,
+        'beruf'              => $r['beruf'] ?? null,
+        'beruf_med_hilfe'    => (bool)($r['beruf_med_hilfe'] ?? false),
+        'beruf_winwin'       => $r['beruf_winwin'] ?? null,
     ], $rows);
 
     jsonOut(200, $result);
+}
+
+function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, array $body): never {
+    ensureBerufColumns($pdo);
+
+    $targetName = rawurldecode($nameEncoded);
+    $discordId = trim((string)($body['discord_id'] ?? ''));
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+
+    $requester = null;
+    try {
+        $requester = requireR5($pdo, normalizeDiscordId($discordId));
+    } catch (\Throwable $e) {
+        jsonOut(403, ['error' => 'Kein Zugriff']);
+    }
+
+    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code FROM players WHERE alliance = ? AND current_name = ?");
+    $stmt->execute([$alliance, $targetName]);
+    $target = $stmt->fetch();
+    if (!$target) jsonOut(404, ['error' => 'Mitglied nicht gefunden']);
+
+    if ((int)($requester['current_rank_code'] ?? 0) < 4 && normalizeMemberName((string)($requester['current_name'] ?? '')) !== normalizeMemberName($targetName)) {
+        jsonOut(403, ['error' => 'Nur das eigene Profil darf geändert werden']);
+    }
+
+    $beruf = strtolower(trim((string)($body['beruf'] ?? '')));
+    if ($beruf !== '' && !in_array($beruf, ['ingenieur', 'kriegsherr'], true)) {
+        jsonOut(400, ['error' => 'Ungueltiger Beruf']);
+    }
+    $beruf = $beruf === '' ? null : $beruf;
+
+    $medHilfe = !empty($body['med_hilfe']) ? 1 : 0;
+    $winwin = trim((string)($body['winwin'] ?? ''));
+    $winwin = $winwin === '' ? null : $winwin;
+
+    if ($beruf !== 'ingenieur') {
+        $medHilfe = 0;
+        $winwin = null;
+    }
+
+    if ($beruf === 'ingenieur' && $winwin !== null) {
+        $check = $pdo->prepare("SELECT player_id, current_name, beruf FROM players WHERE alliance = ? AND current_name = ? LIMIT 1");
+        $check->execute([$alliance, $winwin]);
+        $winwinTarget = $check->fetch();
+        if (!$winwinTarget || ($winwinTarget['beruf'] ?? null) !== 'kriegsherr') {
+            jsonOut(400, ['error' => 'Win-Win muss ein Kriegsherr sein']);
+        }
+
+        $cntStmt = $pdo->prepare("SELECT COUNT(*) AS cnt FROM players WHERE alliance = ? AND beruf = 'ingenieur' AND beruf_winwin = ? AND player_id <> ?");
+        $cntStmt->execute([$alliance, $winwin, $target['player_id']]);
+        if ((int)($cntStmt->fetch()['cnt'] ?? 0) >= 3) {
+            jsonOut(409, ['error' => 'Dieser Kriegsherr hat bereits 3 Ingenieure']);
+        }
+    }
+
+    $pdo->prepare("UPDATE players SET beruf = ?, beruf_med_hilfe = ?, beruf_winwin = ? WHERE alliance = ? AND player_id = ?")
+        ->execute([$beruf, $medHilfe, $winwin, $alliance, $target['player_id']]);
+
+    if ($beruf !== 'kriegsherr') {
+        $pdo->prepare("UPDATE players SET beruf_winwin = NULL WHERE alliance = ? AND beruf_winwin = ?")
+            ->execute([$alliance, $targetName]);
+    }
+
+    jsonOut(200, ['ok' => true]);
 }
 
 function handleAddMember(PDO $pdo, string $alliance, array $body, array $protectedNames): never {
@@ -2938,6 +3020,11 @@ try {
     // POST /members/{name}/swap-id-to-discord
     if ($method === 'POST' && count($segments) === 3 && $segments[0] === 'members' && $segments[2] === 'swap-id-to-discord') {
         handleSwapIdToDiscord($pdo, $ALLIANCE, $segments[1]);
+    }
+
+    // PUT /members/{name}/beruf
+    if ($method === 'PUT' && count($segments) === 3 && $segments[0] === 'members' && $segments[2] === 'beruf') {
+        handleSaveMemberBeruf($pdo, $ALLIANCE, $segments[1], $body);
     }
 
     // PUT /members/{name}

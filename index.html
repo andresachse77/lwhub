@@ -2871,10 +2871,11 @@ function renderMeBerufe() {
 
   const targetName = meActiveMemberName || authMember?.member_name || '';
   const meta = memberMeta[targetName] || {};
+  const member = meHistoryBundle?.member || {};
 
-  const beruf    = meBerufPending?.beruf    !== undefined ? meBerufPending.beruf    : (meta.beruf    ?? null);
-  const medHilfe = meBerufPending?.medHilfe !== undefined ? meBerufPending.medHilfe : !!meta.berufMedHilfe;
-  const winwin   = meBerufPending?.winwin   !== undefined ? meBerufPending.winwin   : (meta.berufWinwin ?? null);
+  const beruf    = meBerufPending?.beruf    !== undefined ? meBerufPending.beruf    : (meta.beruf ?? member.beruf ?? null);
+  const medHilfe = meBerufPending?.medHilfe !== undefined ? meBerufPending.medHilfe : !!(meta.berufMedHilfe ?? member.beruf_med_hilfe);
+  const winwin   = meBerufPending?.winwin   !== undefined ? meBerufPending.winwin   : (meta.berufWinwin ?? member.beruf_winwin ?? null);
 
   const kriegsherren = members.filter(n => memberMeta[n]?.beruf === 'kriegsherr' && n !== targetName).sort();
 
@@ -2927,7 +2928,12 @@ function meBerufSelect(beruf) {
   if (!meBerufPending) {
     const targetName = meActiveMemberName || authMember?.member_name || '';
     const meta = memberMeta[targetName] || {};
-    meBerufPending = { beruf: meta.beruf ?? null, medHilfe: !!meta.berufMedHilfe, winwin: meta.berufWinwin ?? null };
+    const member = meHistoryBundle?.member || {};
+    meBerufPending = {
+      beruf: meta.beruf ?? member.beruf ?? null,
+      medHilfe: !!(meta.berufMedHilfe ?? member.beruf_med_hilfe),
+      winwin: meta.berufWinwin ?? member.beruf_winwin ?? null,
+    };
   }
   meBerufPending.beruf = beruf;
   if (beruf !== 'ingenieur') { meBerufPending.medHilfe = false; meBerufPending.winwin = null; }

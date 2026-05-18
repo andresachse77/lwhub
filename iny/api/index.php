@@ -449,7 +449,8 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
     $rankFilter = $leadershipOnly ? 'AND p.current_rank_code IN (4, 5)' : '';
     if ($withCache) {
         return "
-            SELECT p.player_id, p.current_name, p.current_rank_code,
+                 SELECT p.player_id, p.current_name, p.current_rank_code,
+                     p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
                    COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                    COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
                    COALESCE(puld.discord_avatar, dpc.discord_avatar) AS discord_avatar
@@ -477,7 +478,8 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
         ";
     }
     return "
-        SELECT p.player_id, p.current_name, p.current_rank_code,
+         SELECT p.player_id, p.current_name, p.current_rank_code,
+             p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                puld.discord_username, puld.discord_avatar
         FROM players p
@@ -505,7 +507,8 @@ function getDiscordMemberByActiveChar(PDO $pdo, string $alliance, string $discor
     $rankFilter = $leadershipOnly ? 'AND p.current_rank_code IN (4, 5)' : '';
     try {
         $stmt = $pdo->prepare(" 
-            SELECT p.player_id, p.current_name, p.current_rank_code,
+                 SELECT p.player_id, p.current_name, p.current_rank_code,
+                     p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
                    uac.discord_user_id AS discord_user_id,
                    COALESCE(uda.discord_username, dpc.discord_username) AS discord_username,
                    COALESCE(uda.discord_avatar, dpc.discord_avatar) AS discord_avatar
@@ -848,6 +851,9 @@ function handleMemberHistory(PDO $pdo, string $alliance): never {
             'discord_username' => $member['discord_username'] ?? null,
             'discord_avatar'   => $member['discord_avatar'] ?? null,
             'discord_avatar_url' => memberToDiscordAvatarUrl($member['discord_user_id'] ?? null, $member['discord_avatar'] ?? null, 128),
+            'beruf'            => $member['beruf'] ?? null,
+            'beruf_med_hilfe'  => (bool)($member['beruf_med_hilfe'] ?? false),
+            'beruf_winwin'     => $member['beruf_winwin'] ?? null,
         ],
         'weeks'        => $weeks,
         'rank_changes' => array_map(fn($row) => [

@@ -2655,7 +2655,9 @@ function formatWhen(value) {
 
 async function me_loadHistory(discordId, memberName) {
   meActiveMemberName = memberName || authMember?.member_name || '';
+  meBerufPending = null;
   try {
+    await ensureCoreDataLoaded({ forceEntries: !entries.length });
     const params = new URLSearchParams({ limit: '18' });
     if (discordId) params.set('discord_id', discordId);
     if (meActiveMemberName) params.set('name', meActiveMemberName);

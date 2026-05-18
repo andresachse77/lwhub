@@ -365,6 +365,17 @@
     return false;
   }
 
+  function syncTriggerCharName(activeChar, fallbackName) {
+    const charNameEl = document.getElementById('cs-char-name');
+    if (!charNameEl) return;
+    const nextName = (activeChar && activeChar.name) || fallbackName || charNameEl.textContent || '–';
+    charNameEl.textContent = nextName;
+
+    if (activeChar && window.authMember && typeof window.authMember === 'object') {
+      window.authMember.member_name = activeChar.name;
+    }
+  }
+
   // ── Render chars ──────────────────────────────────────────────────────────────
   function renderChars(chars, discordId, currentAllianceShort) {
     const list = document.getElementById('cs-chars-list');
@@ -406,6 +417,7 @@
 
     // Find current char (active one)
     const activeChar = chars.find(c => c.is_active) || chars[0];
+    syncTriggerCharName(activeChar, null);
 
     // Rename option (only for current alliance char)
     const myCurrentChar = chars.find(c => c.is_active && c.alliance === currentAllianceShort)
@@ -653,6 +665,7 @@
             auth.can_manage = (effectiveActiveChar.rank >= 4);
             localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
           }
+          syncTriggerCharName(effectiveActiveChar, authMember?.member_name || discordUser?.username || null);
         }
 
         renderChars(chars, discordId, currentActiveAlliance || short);

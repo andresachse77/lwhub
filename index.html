@@ -1774,6 +1774,18 @@ async function submitAccessRequest() {
 }
 window.submitAccessRequest = submitAccessRequest;
 
+function renderAuthError(message) {
+  const loginBox = document.getElementById('login-box');
+  if (!loginBox) return;
+  loginBox.innerHTML = `
+    <div class="login-pending" style="gap:16px">
+      <div class="logo">Alli<em>App</em></div>
+      <div style="color:var(--red);font-size:14px;max-width:320px;text-align:center;line-height:1.5;">${escHtml(message)}</div>
+      <button class="discord-btn" style="font-size:13px;padding:8px 20px;" onclick="location.reload()">Neu laden</button>
+    </div>
+  `;
+}
+
 async function checkDiscordAuth() {
   const startedAt = Date.now();
   // 1. Token aus URL-Hash lesen (nach Redirect von Discord)
@@ -1793,63 +1805,84 @@ async function checkDiscordAuth() {
   }
 
   // 2. Discord User-Info holen
+  let res;
   try {
-    const res = await fetch('https://discord.com/api/users/@me', {
+    res = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${token}` }
     });
-    if (!res.ok) {
-      localStorage.removeItem('discord_token');
-      clearAuthState();
-      restoreLoginBoxMarkup();
-      return false;
-    }
-    const user = await res.json();
-    currentDiscordUser = user;
-    localStorage.setItem('discord_user', JSON.stringify(user));
-
-    // 3. Serverseitig pruefen, ob Discord-ID einem aktiven Mitglied zugewiesen ist
-    const verify = await api('verify_discord', { discord_id: user.id });
-    if (!verify || !verify.ok) {
-      clearAuthState();
-      renderAccessDenied(user, verify?.error || 'Kein Zugriff');
-      return false;
-    }
-
-    const elapsed = Date.now() - startedAt;
-    if (elapsed < AUTH_WAIT_MIN_MS) {
-      await new Promise((resolve) => setTimeout(resolve, AUTH_WAIT_MIN_MS - elapsed));
-    }
-
-    writeAuthState({
-      discord_id: user.id,
-      discord_username: user.username || user.global_name || null,
-      member_id: verify.member_id || null,
-      member_name: verify.member_name || null,
-      rank: verify.rank || null,
-      role: verify.role || 'normal',
-      can_manage: !!verify.can_manage,
-      preferred_language: verify.preferred_language || 'de',
-      discord_avatar: verify.discord_avatar || user.avatar || null,
-      discord_avatar_url: verify.discord_avatar_url || null,
-      checked_at: new Date().toISOString()
-    });
-    updateMeButton();
-
-    // Avatar/Profil-Cache asynchron nachziehen, ohne den Login zu verzoegern.
-    apiPost({
-      action: 'cache_discord_profile',
-      discordId: user.id,
-      discordUsername: user.username || user.global_name || null,
-      discordAvatar: user.avatar || null
-    }).catch(() => {});
-
-    return verify;
   } catch (e) {
+    // Netzwerkfehler beim Erreichen von Discord – Token behalten, Fehlermeldung zeigen
+    console.error('[Auth] Discord API nicht erreichbar:', e);
+    renderAuthError('Discord nicht erreichbar. Bitte Internetverbindung prüfen und Seite neu laden.');
+    return false;
+  }
+
+  if (!res.ok) {
+    // Token ungültig (z. B. 401) – Token entfernen, Login-Button zeigen
     localStorage.removeItem('discord_token');
     clearAuthState();
     restoreLoginBoxMarkup();
     return false;
   }
+
+  let user;
+  try {
+    user = await res.json();
+  } catch (e) {
+    console.error('[Auth] Discord Antwort ungültig:', e);
+    renderAuthError('Fehler beim Lesen der Discord-Daten. Bitte Seite neu laden.');
+    return false;
+  }
+
+  currentDiscordUser = user;
+  localStorage.setItem('discord_user', JSON.stringify(user));
+
+  // 3. Serverseitig pruefen, ob Discord-ID einem aktiven Mitglied zugewiesen ist
+  let verify;
+  try {
+    verify = await api('verify_discord', { discord_id: user.id });
+  } catch (e) {
+    // Serverfehler – Discord-Token ist gültig, daher NICHT entfernen
+    console.error('[Auth] verify-discord Fehler:', e);
+    renderAuthError('Server nicht erreichbar (' + e.message + '). Bitte kurz warten und Seite neu laden.');
+    return false;
+  }
+
+  if (!verify || !verify.ok) {
+    clearAuthState();
+    renderAccessDenied(user, verify?.error || 'Kein Zugriff');
+    return false;
+  }
+
+  const elapsed = Date.now() - startedAt;
+  if (elapsed < AUTH_WAIT_MIN_MS) {
+    await new Promise((resolve) => setTimeout(resolve, AUTH_WAIT_MIN_MS - elapsed));
+  }
+
+  writeAuthState({
+    discord_id: user.id,
+    discord_username: user.username || user.global_name || null,
+    member_id: verify.member_id || null,
+    member_name: verify.member_name || null,
+    rank: verify.rank || null,
+    role: verify.role || 'normal',
+    can_manage: !!verify.can_manage,
+    preferred_language: verify.preferred_language || 'de',
+    discord_avatar: verify.discord_avatar || user.avatar || null,
+    discord_avatar_url: verify.discord_avatar_url || null,
+    checked_at: new Date().toISOString()
+  });
+  updateMeButton();
+
+  // Avatar/Profil-Cache asynchron nachziehen, ohne den Login zu verzoegern.
+  apiPost({
+    action: 'cache_discord_profile',
+    discordId: user.id,
+    discordUsername: user.username || user.global_name || null,
+    discordAvatar: user.avatar || null
+  }).catch(() => {});
+
+  return verify;
 }
 
 async function fetchJson(path, options = {}) {

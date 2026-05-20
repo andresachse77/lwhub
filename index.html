@@ -2877,7 +2877,7 @@ function me_renderChanges() {
       <div class="me-change-body">
         ${change.old_rank ? `R${change.old_rank}` : 'neu'} → R${change.applied_rank}
         ${change.requested_rank && change.requested_rank !== change.applied_rank ? `(angefragt: R${change.requested_rank})` : ''}
-        ${change.is_blocked ? ' · gesch�tzt/blockiert' : ''}
+        ${change.is_blocked ? ' · ' + escHtml(tr('s_geschuetzt_blockiert')) : ''}
         ${change.reason ? ` · ${escHtml(change.reason)}` : ''}
       </div>
     </div>`).join('');
@@ -3153,7 +3153,7 @@ async function showPage(id) {
   if (id === 'd') renderDashboard();
   if (id === 'e') renderList();
   if (id === 'r') await runWithBattleLoader(async () => { await loadErgebnis(); });
-  if (id === 'v') { await loadMembers(); await refreshEntriesIfNeeded({background:true}); renderVerwaltung(); renderFlagsAdmin(); }
+  if (id === 'v') { await loadMembers(); await refreshEntriesIfNeeded({background:true}); await loadAccessRequests(); renderVerwaltung(); renderFlagsAdmin(); }
   if (id === 'a') adminInitPage();
   if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 'a' && id !== 'w' && id !== 'z' && id !== 'zv') {
     refreshEntriesIfNeeded({ background: true });
@@ -4281,8 +4281,8 @@ function renderFlagsAdmin() {
     FEATURE_CAT_DEFS.map(({ key, label, sub }) => {
       const on = isCatEnabled(key);
       return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);">
-        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${label}</div><div style="font-size:11px;color:var(--soft);">${sub}</div></div>
-        <span class="rank-badge ${on?'r4':'r3'}" style="min-width:80px;text-align:center;">${on?'✓ Aktiv':'✗ Inaktiv'}</span>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(tr(label))}</div><div style="font-size:11px;color:var(--soft);">${escHtml(tr(sub))}</div></div>
+        <span class="rank-badge ${on?'r4':'r3'}" style="min-width:80px;text-align:center;">${on?'✓ '+escHtml(tr('s_aktiv')):'✗ '+escHtml(tr('s_inaktiv'))}</span>
       </div>`;
     }).join('') +
     `</div><div style="font-size:11px;color:var(--softer);margin-top:8px;">Editierbar in <strong>Admin → ✨ Features</strong> (nur R5).</div>`;
@@ -4305,6 +4305,9 @@ document.addEventListener('i18n:language-changed', () => {
   }
   if (typeof renderAccessRequests === 'function' && typeof accessRequests !== 'undefined') {
     renderAccessRequests();
+  }
+  if (typeof renderFlagsAdmin === 'function') {
+    renderFlagsAdmin();
   }
 });
 
@@ -5364,8 +5367,8 @@ function renderAdminFlagConfig() {
     FEATURE_CAT_DEFS.map(({ key, label, sub }) => {
       const on = config[key] === true;
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);">
-        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${label}</div><div style="font-size:11px;color:var(--soft);">${sub}</div></div>
-        <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on?'save':'del'}" style="min-width:88px;">${on?'✓ Aktiv':'✗ Inaktiv'}</button>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(tr(label))}</div><div style="font-size:11px;color:var(--soft);">${escHtml(tr(sub))}</div></div>
+        <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on?'save':'del'}" style="min-width:88px;">${on?'✓ '+escHtml(tr('s_aktiv')):'✗ '+escHtml(tr('s_inaktiv'))}</button>
       </div>`;
     }).join('') +
     `</div><div style="font-size:11px;color:var(--softer);margin-top:8px;">Änderungen gelten sofort für alle Nutzer der Allianz <strong>${escHtml(alliance)}</strong>.</div>`;

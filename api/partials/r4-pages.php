@@ -427,6 +427,14 @@
 
   </div>
 
+  <div class="panel" style="margin-top:1rem;">
+    <div class="panel-head">
+      <div class="panel-title">📝 <span data-i18n="s_login_anfragen">Login-Anfragen</span></div>
+      <div class="panel-sub" id="v-access-count">0 offen</div>
+    </div>
+    <div id="v-access-requests" class="v-access-list"></div>
+  </div>
+
   <!-- MEMBER TABLE -->
   <div class="panel" style="margin-top:1rem;">
     <div class="panel-head">
@@ -439,14 +447,6 @@
       <input class="search-input" id="v-search" placeholder="Suchen..." style="width:200px;">
     </div>
     <div id="v-list"></div>
-  </div>
-
-  <div class="panel" style="margin-top:1rem;">
-    <div class="panel-head">
-      <div class="panel-title">📝 <span data-i18n="s_login_anfragen">Login-Anfragen</span></div>
-      <div class="panel-sub" id="v-access-count">0 offen</div>
-    </div>
-    <div id="v-access-requests" class="v-access-list"></div>
   </div>
 
   <!-- SE AUSWERTUNG -->

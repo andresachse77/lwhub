@@ -567,7 +567,7 @@
     }
 
     // Update page <title>
-    document.title = shortName + (title ? ` – ${title}` : '') + ' · Tool';
+    document.title = 'Alli App';
 
     // Update any element with class js-alliance-short / js-alliance-title
     document.querySelectorAll('.js-alliance-short').forEach(el => { el.textContent = shortName; });

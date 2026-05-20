@@ -92,6 +92,15 @@ function roleFromRank(int $rank): string {
     return 'normal';
 }
 
+function normalizePreferredLanguage(mixed $value): string {
+    $lang = strtolower(trim((string)($value ?? '')));
+    if ($lang === '') return 'de';
+    if (!in_array($lang, ['de', 'en', 'it'], true)) {
+        throw new InvalidArgumentException('Ungueltige Sprache. Erlaubt: de, en, it');
+    }
+    return $lang;
+}
+
 /** True when the PHP dev-server is serving a local request (127.0.0.1). */
 function isLocalRequest(): bool {
     $remote = $_SERVER['REMOTE_ADDR'] ?? '';
@@ -236,6 +245,17 @@ function ensureBerufColumns(PDO $pdo): void {
         "ALTER TABLE players ADD COLUMN beruf_winwin VARCHAR(150) NULL DEFAULT NULL",
     ] as $sql) {
         try { $pdo->exec($sql); } catch (\PDOException) {}
+    }
+}
+
+function ensurePreferredLanguageColumn(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+    try {
+        $pdo->exec("ALTER TABLE players ADD COLUMN preferred_language VARCHAR(8) NOT NULL DEFAULT 'de'");
+    } catch (\PDOException) {
+        // Spalte existiert bereits – ignorieren
     }
 }
 
@@ -455,6 +475,7 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
         return "
                  SELECT p.player_id, p.current_name, p.current_rank_code,
                      p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+                                         p.preferred_language,
                    COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                    COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
                    COALESCE(puld.discord_avatar, dpc.discord_avatar) AS discord_avatar
@@ -484,6 +505,7 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
     return "
          SELECT p.player_id, p.current_name, p.current_rank_code,
              p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+                         p.preferred_language,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                puld.discord_username, puld.discord_avatar
         FROM players p
@@ -513,6 +535,7 @@ function getDiscordMemberByActiveChar(PDO $pdo, string $alliance, string $discor
         $stmt = $pdo->prepare(" 
                  SELECT p.player_id, p.current_name, p.current_rank_code,
                      p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+                                         p.preferred_language,
                    uac.discord_user_id AS discord_user_id,
                    COALESCE(uda.discord_username, dpc.discord_username) AS discord_username,
                    COALESCE(uda.discord_avatar, dpc.discord_avatar) AS discord_avatar
@@ -725,6 +748,7 @@ function handleVerifyDiscord(PDO $pdo, string $alliance): never {
         'discord_username'  => $member['discord_username'] ?? null,
         'discord_avatar'    => $member['discord_avatar'] ?? null,
         'discord_avatar_url'=> memberToDiscordAvatarUrl($member['discord_user_id'] ?? null, $member['discord_avatar'] ?? null, 128),
+        'preferred_language'=> normalizePreferredLanguage($member['preferred_language'] ?? 'de'),
     ]);
 }
 
@@ -858,6 +882,7 @@ function handleMemberHistory(PDO $pdo, string $alliance): never {
             'beruf'            => $member['beruf'] ?? null,
             'beruf_med_hilfe'  => (bool)($member['beruf_med_hilfe'] ?? false),
             'beruf_winwin'     => $member['beruf_winwin'] ?? null,
+            'preferred_language'=> normalizePreferredLanguage($member['preferred_language'] ?? 'de'),
         ],
         'weeks'        => $weeks,
         'rank_changes' => array_map(fn($row) => [
@@ -931,8 +956,9 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
     ensureDiscordProfileCacheTable($pdo);
     ensureLastVisitColumn($pdo);
     ensureBerufColumns($pdo);
+    ensurePreferredLanguageColumn($pdo);
     $stmt = $pdo->prepare("
-        SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.last_visit_at,
+        SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.last_visit_at, p.preferred_language,
                p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
@@ -976,12 +1002,14 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
         'beruf'              => $r['beruf'] ?? null,
         'beruf_med_hilfe'    => (bool)($r['beruf_med_hilfe'] ?? false),
         'beruf_winwin'       => $r['beruf_winwin'] ?? null,
+        'preferred_language' => normalizePreferredLanguage($r['preferred_language'] ?? 'de'),
     ], $rows);
 
     jsonOut(200, $result);
 }
 
 function handleAddMember(PDO $pdo, string $alliance, array $body, array $protectedNames): never {
+    ensurePreferredLanguageColumn($pdo);
     $name = trim($body['name'] ?? '');
     if ($name === '') jsonOut(400, ['error' => 'Name fehlt']);
 
@@ -1004,6 +1032,11 @@ function handleAddMember(PDO $pdo, string $alliance, array $body, array $protect
     }
 
     $requestedRank = safeRank((int)($body['default_rank'] ?? $body['rank'] ?? 3));
+    try {
+        $preferredLanguage = normalizePreferredLanguage($body['preferred_language'] ?? 'de');
+    } catch (\InvalidArgumentException $e) {
+        jsonOut(400, ['error' => $e->getMessage()]);
+    }
     $protection    = applyProtectedRankRule($name, $requestedRank, $protectedNames);
     $rank          = $protection['effectiveRank'];
     $playerId      = uuid4();
@@ -1011,8 +1044,8 @@ function handleAddMember(PDO $pdo, string $alliance, array $body, array $protect
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active) VALUES (?, ?, ?, ?, 1)");
-        $stmt->execute([$alliance, $playerId, $name, $rank]);
+        $stmt = $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, preferred_language, is_active) VALUES (?, ?, ?, ?, ?, 1)");
+        $stmt->execute([$alliance, $playerId, $name, $rank, $preferredLanguage]);
 
         if ($requestedRank !== $rank || isProtectedR4Member($name, $protectedNames)) {
             logRankChange($pdo, $alliance, [
@@ -1119,6 +1152,7 @@ function handleTransferPlayer(PDO $pdo, string $fromAlliance, string $nameEncode
 }
 
 function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, array $body, array $protectedNames): never {
+    ensurePreferredLanguageColumn($pdo);
     $oldName = rawurldecode($oldNameEncoded);
     $newName = trim($body['name'] ?? $oldName);
     if ($newName === '') jsonOut(400, ['error' => 'Name fehlt']);
@@ -1130,6 +1164,16 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
     if ($discordIdSet) {
         try {
             $discordId = normalizeDiscordId($body['discord_id'] ?? '');
+        } catch (\InvalidArgumentException $e) {
+            jsonOut(400, ['error' => $e->getMessage()]);
+        }
+    }
+
+    $preferredLanguage = 'de';
+    $preferredLanguageSet = array_key_exists('preferred_language', $body);
+    if ($preferredLanguageSet) {
+        try {
+            $preferredLanguage = normalizePreferredLanguage($body['preferred_language'] ?? 'de');
         } catch (\InvalidArgumentException $e) {
             jsonOut(400, ['error' => $e->getMessage()]);
         }
@@ -1150,8 +1194,13 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare("UPDATE players SET current_name = ?, current_rank_code = ?, is_active = 1, retired_at = NULL WHERE alliance = ? AND player_id = ?");
-        $stmt->execute([$newName, $rank, $alliance, $playerId]);
+        if ($preferredLanguageSet) {
+            $stmt = $pdo->prepare("UPDATE players SET current_name = ?, current_rank_code = ?, preferred_language = ?, is_active = 1, retired_at = NULL WHERE alliance = ? AND player_id = ?");
+            $stmt->execute([$newName, $rank, $preferredLanguage, $alliance, $playerId]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE players SET current_name = ?, current_rank_code = ?, is_active = 1, retired_at = NULL WHERE alliance = ? AND player_id = ?");
+            $stmt->execute([$newName, $rank, $alliance, $playerId]);
+        }
 
         if ($oldRank !== $rank || $blocked || $protected) {
             logRankChange($pdo, $alliance, [
@@ -1201,6 +1250,42 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
         }
         throw $e;
     }
+}
+
+function handleSetMemberLanguage(PDO $pdo, string $alliance, string $nameEncoded, array $body): never {
+    ensurePreferredLanguageColumn($pdo);
+    $name = rawurldecode($nameEncoded);
+    if (trim($name) === '') jsonOut(400, ['error' => 'Name fehlt']);
+
+    try {
+        $discordId = normalizeDiscordId($body['discord_id'] ?? '');
+    } catch (\InvalidArgumentException $e) {
+        jsonOut(400, ['error' => $e->getMessage()]);
+    }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+
+    try {
+        $preferredLanguage = normalizePreferredLanguage($body['preferred_language'] ?? 'de');
+    } catch (\InvalidArgumentException $e) {
+        jsonOut(400, ['error' => $e->getMessage()]);
+    }
+
+    $requester = getDiscordMember($pdo, $alliance, $discordId);
+    if (!$requester) jsonOut(403, ['error' => 'Nicht berechtigt']);
+
+    $targetStmt = $pdo->prepare("SELECT player_id, current_name FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
+    $targetStmt->execute([$alliance, $name]);
+    $target = $targetStmt->fetch();
+    if (!$target) jsonOut(404, ['error' => 'Mitglied nicht gefunden']);
+
+    $requesterRank = safeRank((int)$requester['current_rank_code']);
+    $isSelf = normalizeMemberName((string)$requester['current_name']) === normalizeMemberName((string)$target['current_name']);
+    if (!$isSelf && $requesterRank < 4) jsonOut(403, ['error' => 'Nicht berechtigt']);
+
+    $pdo->prepare("UPDATE players SET preferred_language = ? WHERE alliance = ? AND player_id = ?")
+        ->execute([$preferredLanguage, $alliance, $target['player_id']]);
+
+    jsonOut(200, ['ok' => true, 'preferred_language' => $preferredLanguage]);
 }
 
 function handleDeleteMember(PDO $pdo, string $alliance, string $nameEncoded, array $body = []): never {
@@ -2955,6 +3040,7 @@ try {
     ensureAlliancesTable($pdo);
     upsertAllianceFromConfig($pdo, $ALLIANCE);
     ensureSiteAdminsTable($pdo);
+    ensurePreferredLanguageColumn($pdo);
     seedProtectedAdmins($pdo, $PROTECTED_R4_NAMES);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
     // One-time migration: drop unique constraint that prevented multiple chars per Discord account
@@ -3034,6 +3120,11 @@ try {
     // PUT /members/{name}/beruf
     if ($method === 'PUT' && count($segments) === 3 && $segments[0] === 'members' && $segments[2] === 'beruf') {
         handleSaveMemberBeruf($pdo, $ALLIANCE, $segments[1], $body);
+    }
+
+    // PUT /members/{name}/language
+    if ($method === 'PUT' && count($segments) === 3 && $segments[0] === 'members' && $segments[2] === 'language') {
+        handleSetMemberLanguage($pdo, $ALLIANCE, $segments[1], $body);
     }
 
     // PUT /members/{name}

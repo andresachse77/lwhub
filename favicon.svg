@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <!-- Body gradient: metallic gold left-to-right highlight -->
+    <linearGradient id="bdy" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#7a4f00"/>
+      <stop offset="28%"  stop-color="#ffd060"/>
+      <stop offset="55%"  stop-color="#f0a500"/>
+      <stop offset="100%" stop-color="#7a4f00"/>
+    </linearGradient>
+    <!-- Tip gradient -->
+    <linearGradient id="tip" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#9a6200"/>
+      <stop offset="35%"  stop-color="#ffe080"/>
+      <stop offset="100%" stop-color="#9a6200"/>
+    </linearGradient>
+    <!-- Base/rim gradient -->
+    <linearGradient id="rim" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#3a2200"/>
+      <stop offset="50%"  stop-color="#c88000"/>
+      <stop offset="100%" stop-color="#3a2200"/>
+    </linearGradient>
+    <!-- Shine overlay -->
+    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="white" stop-opacity="0.0"/>
+      <stop offset="30%"  stop-color="white" stop-opacity="0.18"/>
+      <stop offset="55%"  stop-color="white" stop-opacity="0.0"/>
+    </linearGradient>
+    <clipPath id="clipL">
+      <rect x="-6" y="-50" width="12" height="55"/>
+    </clipPath>
+    <clipPath id="clipC">
+      <rect x="-6" y="-50" width="12" height="55"/>
+    </clipPath>
+    <clipPath id="clipR">
+      <rect x="-6" y="-50" width="12" height="55"/>
+    </clipPath>
+  </defs>
+
+  <!-- Dark military background -->
+  <rect width="64" height="64" rx="10" fill="#0c0e14"/>
+
+  <!-- subtle floor glow -->
+  <ellipse cx="32" cy="60" rx="26" ry="4" fill="#f0a500" opacity="0.12"/>
+
+  <!-- ═══ LEFT BULLET — base at (14, 58), tilted -20° ═══ -->
+  <g transform="translate(14,58) rotate(-20)">
+    <!-- casing rim -->
+    <rect x="-6.5" y="-5" width="13" height="5" rx="1.5" fill="url(#rim)"/>
+    <!-- body -->
+    <rect x="-5.5" y="-36" width="11" height="31" fill="url(#bdy)"/>
+    <!-- shine line on body -->
+    <rect x="-5.5" y="-36" width="11" height="31" fill="url(#shine)"/>
+    <!-- bullet tip (ogive) -->
+    <path d="M -5.5,-36 C -5.5,-44 -1.5,-50 0,-50 C 1.5,-50 5.5,-44 5.5,-36 Z" fill="url(#tip)"/>
+    <!-- tip shine -->
+    <path d="M -5.5,-36 C -5.5,-44 -1.5,-50 0,-50 C 1.5,-50 5.5,-44 5.5,-36 Z" fill="url(#shine)"/>
+    <!-- primer dot at base -->
+    <circle cx="0" cy="-2.5" r="2.2" fill="#3a2200" opacity="0.7"/>
+    <circle cx="0" cy="-2.5" r="1.2" fill="#c88000" opacity="0.5"/>
+  </g>
+
+  <!-- ═══ CENTER BULLET — base at (32, 58), upright ═══ -->
+  <g transform="translate(32,58)">
+    <rect x="-6.5" y="-5" width="13" height="5" rx="1.5" fill="url(#rim)"/>
+    <rect x="-5.5" y="-36" width="11" height="31" fill="url(#bdy)"/>
+    <rect x="-5.5" y="-36" width="11" height="31" fill="url(#shine)"/>
+    <path d="M -5.5,-36 C -5.5,-44 -1.5,-50 0,-50 C 1.5,-50 5.5,-44 5.5,-36 Z" fill="url(#tip)"/>
+    <path d="M -5.5,-36 C -5.5,-44 -1.5,-50 0,-50 C 1.5,-50 5.5,-44 5.5,-36 Z" fill="url(#shine)"/>
+    <circle cx="0" cy="-2.5" r="2.2" fill="#3a2200" opacity="0.7"/>
+    <circle cx="0" cy="-2.5" r="1.2" fill="#c88000" opacity="0.5"/>
+  </g>
+
+  <!-- ═══ RIGHT BULLET — base at (50, 58), tilted +20° ═══ -->
+  <g transform="translate(50,58) rotate(20)">
+    <rect x="-6.5" y="-5" width="13" height="5" rx="1.5" fill="url(#rim)"/>
+    <rect x="-5.5" y="-36" width="11" height="31" fill="url(#bdy)"/>
+    <rect x="-5.5" y="-36" width="11" height="31" fill="url(#shine)"/>
+    <path d="M -5.5,-36 C -5.5,-44 -1.5,-50 0,-50 C 1.5,-50 5.5,-44 5.5,-36 Z" fill="url(#tip)"/>
+    <path d="M -5.5,-36 C -5.5,-44 -1.5,-50 0,-50 C 1.5,-50 5.5,-44 5.5,-36 Z" fill="url(#shine)"/>
+    <circle cx="0" cy="-2.5" r="2.2" fill="#3a2200" opacity="0.7"/>
+    <circle cx="0" cy="-2.5" r="1.2" fill="#c88000" opacity="0.5"/>
+  </g>
+</svg>

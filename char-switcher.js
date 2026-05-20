@@ -17,6 +17,7 @@
 
   const AUTH_KEY        = 'iny_auth_state_v1';
   const ACTIVE_CHAR_KEY = 'iny_active_char_v1';
+  const tr = (text) => (typeof window.trText === 'function' ? window.trText(text) : text);
 
   function getApiBase() {
     if (typeof window.getApiBase === 'function') return window.getApiBase();
@@ -280,7 +281,7 @@
     // Dropdown
     const dropdown = document.createElement('div');
     dropdown.id = 'cs-dropdown';
-    dropdown.innerHTML = `<div class="cs-section-label">Charaktere</div><div id="cs-chars-list"></div>`;
+    dropdown.innerHTML = `<div class="cs-section-label">${escHtml(tr('Charaktere'))}</div><div id="cs-chars-list"></div>`;
     wrap.appendChild(dropdown);
 
     // Toggle – rebuild nav section on open so it reflects current compact state
@@ -331,7 +332,7 @@
           const syncBtn = document.createElement('button');
           syncBtn.className = 'cs-menu-item cs-mobile-only cs-nav-item';
           syncBtn.id = 'cs-sync-btn';
-          syncBtn.textContent = '🔄 Daten aktualisieren';
+          syncBtn.textContent = `🔄 ${tr('Daten aktualisieren')}`;
           syncBtn.addEventListener('click', () => {
             dropdown.classList.remove('open');
             trigger.classList.remove('open');
@@ -384,7 +385,7 @@
     const dropdown = document.getElementById('cs-dropdown');
 
     if (!chars || !chars.length) {
-      list.innerHTML = '<div style="font-size:12px;color:#7a8498;padding:6px 10px">Keine Charaktere gefunden</div>';
+      list.innerHTML = `<div style="font-size:12px;color:#7a8498;padding:6px 10px">${escHtml(tr('Keine Charaktere gefunden'))}</div>`;
       return;
     }
 
@@ -410,7 +411,7 @@
             <div class="cs-char-info">
               <div class="cs-char-info-name">${escHtml(c.name)}</div>
             </div>
-            ${isActive ? '<div class="cs-char-active-dot" title="Aktiver Charakter"></div>' : ''}
+            ${isActive ? `<div class="cs-char-active-dot" title="${escHtml(tr('Aktiver Charakter'))}"></div>` : ''}
           </div>`;
       }
     }
@@ -425,20 +426,20 @@
 
     html += `<div class="cs-divider"></div>`;
     if (myCurrentChar) {
-      html += `<button class="cs-menu-item" id="cs-rename-btn">✎ Charakter umbenennen (${escHtml(myCurrentChar.name)})</button>
+      html += `<button class="cs-menu-item" id="cs-rename-btn">✎ ${escHtml(tr('Charakter umbenennen'))} (${escHtml(myCurrentChar.name)})</button>
                <div class="cs-rename-form" id="cs-rename-form">
                  <input type="text" id="cs-rename-input" placeholder="${escHtml(myCurrentChar.name)}" maxlength="150">
                  <div class="cs-rename-row">
-                   <button class="cs-btn-confirm" id="cs-rename-confirm">Speichern</button>
-                   <button class="cs-btn-cancel" id="cs-rename-cancel">Abbrechen</button>
+                   <button class="cs-btn-confirm" id="cs-rename-confirm">${escHtml(tr('Speichern'))}</button>
+                   <button class="cs-btn-cancel" id="cs-rename-cancel">${escHtml(tr('Abbrechen'))}</button>
                  </div>
                </div>`;
     }
     const activeRank = chars.find(c => c.is_active)?.rank ?? myCurrentChar?.rank ?? 0;
     if (activeRank >= 4) {
-      html += `<button class="cs-menu-item" id="cs-admin-btn" style="color:#f0a500">⚙ Allianz-Verwaltung</button>`;
+      html += `<button class="cs-menu-item" id="cs-admin-btn" style="color:#f0a500">⚙ ${escHtml(tr('Allianz-Verwaltung'))}</button>`;
     }
-    html += `<button class="cs-menu-item" id="cs-logout-btn">⏻ Logout</button>`;
+    html += `<button class="cs-menu-item" id="cs-logout-btn">⏻ ${escHtml(tr('Logout'))}</button>`;
 
     // Nav actions section is rebuilt dynamically on dropdown open – see rebuildNavSection()
 
@@ -484,12 +485,12 @@
           item.classList.add('active');
           const dot = document.createElement('div');
           dot.className = 'cs-char-active-dot';
-          dot.title = 'Aktiver Charakter';
+          dot.title = tr('Aktiver Charakter');
           item.appendChild(dot);
           // Reload page to reflect new char
           window.location.reload();
         } catch (e) {
-          alert('Fehler beim Wechseln: ' + e.message);
+          alert(tr('Fehler beim Wechseln: ') + e.message);
         }
       });
     });
@@ -528,7 +529,7 @@
           document.getElementById('cs-trigger')?.classList.remove('open');
           window.location.reload();
         } catch (e) {
-          alert('Fehler: ' + e.message);
+          alert(tr('Fehler: ') + e.message);
         }
       });
 
@@ -567,7 +568,7 @@
     }
 
     // Update page <title>
-    document.title = shortName + (title ? ` – ${title}` : '') + ' · Tool';
+    document.title = 'Alli App';
 
     // Update any element with class js-alliance-short / js-alliance-title
     document.querySelectorAll('.js-alliance-short').forEach(el => { el.textContent = shortName; });

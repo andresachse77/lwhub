@@ -6,7 +6,7 @@
   <!-- Top controls -->
   <div class="panel" style="margin-bottom:1rem;">
     <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
-      <div class="panel-title" style="color:var(--text);"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="16" viewBox="0 0 38 20" style="vertical-align:-2px;display:inline-block;"><circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/><circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/><rect x="6.5" y="3" width="4" height="4.5" rx="0.8" fill="#B87300"/><rect x="1" y="6.5" width="22" height="9" rx="4" fill="#F0A500"/><rect x="2" y="7.2" width="19" height="3.2" rx="2" fill="rgba(255,230,90,0.38)"/><rect x="19" y="3.5" width="10" height="12" rx="1.5" fill="#D4890A"/><rect x="18" y="2.2" width="12" height="2.5" rx="1" fill="#B87300"/><rect x="21" y="5" width="5" height="4" rx="1" fill="#87CEEB" opacity="0.88"/><rect x="0" y="10.8" width="2" height="2.5" rx="0.4" fill="#9A6200"/><circle cx="8.5" cy="17" r="3.4" fill="#9A6200" stroke="#F0C040" stroke-width="1.1"/><circle cx="8.5" cy="17" r="1.3" fill="#C8820A"/><line x1="8.5" y1="13.6" x2="8.5" y2="20.4" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="15" x2="11.9" y2="19" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="19" x2="11.9" y2="15" stroke="#C8820A" stroke-width="0.7"/><circle cx="3" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="21" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="27" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><rect x="3" y="16.3" width="25" height="1.5" rx="0.5" fill="#9A6200" opacity="0.6"/></svg> Zug</div>
+      <div class="panel-title" style="color:var(--text);"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="16" viewBox="0 0 38 20" style="vertical-align:-2px;display:inline-block;"><circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/><circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/><rect x="6.5" y="3" width="4" height="4.5" rx="0.8" fill="#B87300"/><rect x="1" y="6.5" width="22" height="9" rx="4" fill="#F0A500"/><rect x="2" y="7.2" width="19" height="3.2" rx="2" fill="rgba(255,230,90,0.38)"/><rect x="19" y="3.5" width="10" height="12" rx="1.5" fill="#D4890A"/><rect x="18" y="2.2" width="12" height="2.5" rx="1" fill="#B87300"/><rect x="21" y="5" width="5" height="4" rx="1" fill="#87CEEB" opacity="0.88"/><rect x="0" y="10.8" width="2" height="2.5" rx="0.4" fill="#9A6200"/><circle cx="8.5" cy="17" r="3.4" fill="#9A6200" stroke="#F0C040" stroke-width="1.1"/><circle cx="8.5" cy="17" r="1.3" fill="#C8820A"/><line x1="8.5" y1="13.6" x2="8.5" y2="20.4" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="15" x2="11.9" y2="19" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="19" x2="11.9" y2="15" stroke="#C8820A" stroke-width="0.7"/><circle cx="3" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="21" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="27" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><rect x="3" y="16.3" width="25" height="1.5" rx="0.5" fill="#9A6200" opacity="0.6"/></svg> Zugplan</div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">
         <label style="font-size:0.82rem;color:var(--soft);">Regelwerk:</label>
         <select id="zug-ruleset-select" style="background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:0.82rem;" onchange="zugOnRulesetChange()"></select>
@@ -286,7 +286,6 @@
   <div class="panel">
     <div class="panel-head">
       <div class="panel-title">🧩 Events</div>
-      <div class="panel-sub">Wache 1-3, Wüste und Spezialevents</div>
       <div class="kw-nav" style="margin-left:auto;">
         <button class="kw-btn" type="button" onclick="changeYearWeek(-1)" title="Vorherige Woche">‹</button>
         <div class="kw-wrap"><label>KW</label><span class="kw-val">--</span></div>
@@ -365,7 +364,7 @@
 <div class="page" id="page-r">
   <div class="panel" style="max-width:100%;">
     <div class="panel-head" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <div class="panel-title">📊 Rang-Empfehlungen</div>
+      <div class="panel-title">📊 <span>Rang-Empfehlungen</span></div>
       <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
         <label style="font-size:0.85rem;color:var(--muted);">Wochen:</label>
         <select id="ergebnis-weeks" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.85rem;">
@@ -374,7 +373,7 @@
           <option value="5">5</option>
           <option value="6">6</option>
         </select>
-        <button class="wt-btn" onclick="loadErgebnis()" style="padding:5px 14px;">🔄 Laden</button>
+        <button class="wt-btn" onclick="loadErgebnis()" style="padding:5px 14px;">🔄 <span>Laden</span></button>
       </div>
     </div>
     <div id="ergebnis-legend" style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.78rem;margin-bottom:12px;color:var(--muted);">
@@ -385,7 +384,7 @@
     </div>
     <div id="ergebnis-loading" style="display:none;color:var(--muted);text-align:center;padding:24px;">Lade Daten…</div>
     <div id="ergebnis-info" style="display:none;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.3);border-radius:6px;padding:8px 14px;font-size:0.83rem;color:#f0a500;margin-bottom:10px;"></div>
-    <div id="ergebnis-empty" style="display:none;color:var(--muted);text-align:center;padding:24px;">Keine Daten vorhanden.</div>
+    <div id="ergebnis-empty" style="display:none;color:var(--muted);text-align:center;padding:24px;">Keine Daten vorhanden</div>
     <div id="ergebnis-table-wrap" style="overflow-x:auto;"></div>
   </div>
 </div>
@@ -396,33 +395,33 @@
 
     <!-- ADD MEMBER -->
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">➕ Mitglied hinzufügen</div></div>
+      <div class="panel-head"><div class="panel-title">➕ <span data-i18n="s_mitglied_hinzufuegen">Mitglied hinzufügen</span></div></div>
       <div style="display:flex;flex-direction:column;gap:10px;">
         <div>
           <div class="vlabel">Name</div>
           <input class="vinput" id="v-new-name" placeholder="Spielername..." type="text">
         </div>
         <div>
-          <div class="vlabel">Discord-ID <span style="color:var(--soft);font-size:11px;font-weight:400">(optional)</span></div>
+          <div class="vlabel"><span data-i18n="s_discord_id">Discord-ID</span> <span data-i18n="s_optional" style="color:var(--soft);font-size:11px;font-weight:400">(optional)</span></div>
           <input class="vinput" id="v-new-discord" placeholder="z.B. 123456789012345678" type="text" inputmode="numeric">
         </div>
         <div>
-          <div class="vlabel">Rang</div>
+          <div class="vlabel" data-i18n="s_rang">Rang</div>
           <div style="display:flex;gap:6px;">
             <button class="vrank-btn" data-vr="1">1 · Rookie</button>
             <button class="vrank-btn" data-vr="2">2 · Pro</button>
             <button class="vrank-btn on" data-vr="3">3 · Elite</button>
             <button class="vrank-btn" data-vr="4">4 · Leader</button>
-            <button class="vrank-btn" data-vr="5">5 · Chef</button>
+            <button class="vrank-btn" data-vr="5">5 · <span data-i18n="s_chef">Chef</span></button>
           </div>
         </div>
-        <button class="save-btn" id="v-add-btn" style="margin-top:4px;">+ Hinzufügen</button>
+        <button class="save-btn" id="v-add-btn" style="margin-top:4px;">+ <span data-i18n="s_hinzufuegen">Hinzufügen</span></button>
       </div>
     </div>
 
     <!-- STATS -->
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">📊 Übersicht</div></div>
+      <div class="panel-head"><div class="panel-title">📊 <span data-i18n="s_uebersicht">Übersicht</span></div></div>
       <div id="v-stats" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
@@ -431,7 +430,7 @@
   <!-- MEMBER TABLE -->
   <div class="panel" style="margin-top:1rem;">
     <div class="panel-head">
-      <div class="panel-title">👥 Mitgliederliste</div>
+      <div class="panel-title">👥 <span data-i18n="s_mitgliederliste">Mitgliederliste</span></div>
       <div class="kw-nav" style="margin-left:auto;margin-right:8px;">
         <button class="kw-btn" type="button" onclick="changeYearWeek(-1)" title="Vorherige Woche">‹</button>
         <div class="kw-wrap"><label>KW</label><span class="kw-val">--</span></div>
@@ -444,7 +443,7 @@
 
   <div class="panel" style="margin-top:1rem;">
     <div class="panel-head">
-      <div class="panel-title">📝 Login-Anfragen</div>
+      <div class="panel-title">📝 <span data-i18n="s_login_anfragen">Login-Anfragen</span></div>
       <div class="panel-sub" id="v-access-count">0 offen</div>
     </div>
     <div id="v-access-requests" class="v-access-list"></div>
@@ -453,7 +452,7 @@
   <!-- SE AUSWERTUNG -->
   <div class="panel" style="margin-top:1rem;">
     <div class="panel-head">
-      <div class="panel-title">🔍 Kein Spezialevent in letzten Wochen</div>
+      <div class="panel-title">🔍 <span>Kein Spezialevent in letzten Wochen</span></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <label style="font-size:0.85em;color:var(--softer);">Wochen:</label>
         <select id="se-weeks-select" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.85em;">
@@ -472,7 +471,7 @@
   <!-- FEATURE CONFIG -->
   <div class="panel" style="margin-top:1rem;">
     <div class="panel-head">
-      <div class="panel-title">✨ Feature-Konfiguration</div>
+      <div class="panel-title">✨ <span>Feature-Konfiguration</span></div>
       <div class="panel-sub">Legt fest welche Features erfasst und ausgewertet werden</div>
     </div>
     <div id="v-flag-config"><div class="empty">Lade …</div></div>

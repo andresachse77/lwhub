@@ -286,7 +286,6 @@
   <div class="panel">
     <div class="panel-head">
       <div class="panel-title">🧩 Events</div>
-      <div class="panel-sub">Wache 1-3, Wüste und Spezialevents</div>
       <div class="kw-nav" style="margin-left:auto;">
         <button class="kw-btn" type="button" onclick="changeYearWeek(-1)" title="Vorherige Woche">‹</button>
         <div class="kw-wrap"><label>KW</label><span class="kw-val">--</span></div>
@@ -396,33 +395,33 @@
 
     <!-- ADD MEMBER -->
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">➕ Mitglied hinzufügen</div></div>
+      <div class="panel-head"><div class="panel-title">➕ <span data-i18n="s_mitglied_hinzufuegen">Mitglied hinzufügen</span></div></div>
       <div style="display:flex;flex-direction:column;gap:10px;">
         <div>
           <div class="vlabel">Name</div>
           <input class="vinput" id="v-new-name" placeholder="Spielername..." type="text">
         </div>
         <div>
-          <div class="vlabel">Discord-ID <span style="color:var(--soft);font-size:11px;font-weight:400">(optional)</span></div>
+          <div class="vlabel"><span data-i18n="s_discord_id">Discord-ID</span> <span data-i18n="s_optional" style="color:var(--soft);font-size:11px;font-weight:400">(optional)</span></div>
           <input class="vinput" id="v-new-discord" placeholder="z.B. 123456789012345678" type="text" inputmode="numeric">
         </div>
         <div>
-          <div class="vlabel">Rang</div>
+          <div class="vlabel" data-i18n="s_rang">Rang</div>
           <div style="display:flex;gap:6px;">
             <button class="vrank-btn" data-vr="1">1 · Rookie</button>
             <button class="vrank-btn" data-vr="2">2 · Pro</button>
             <button class="vrank-btn on" data-vr="3">3 · Elite</button>
             <button class="vrank-btn" data-vr="4">4 · Leader</button>
-            <button class="vrank-btn" data-vr="5">5 · Chef</button>
+            <button class="vrank-btn" data-vr="5">5 · <span data-i18n="s_chef">Chef</span></button>
           </div>
         </div>
-        <button class="save-btn" id="v-add-btn" style="margin-top:4px;">+ Hinzufügen</button>
+        <button class="save-btn" id="v-add-btn" style="margin-top:4px;">+ <span data-i18n="s_hinzufuegen">Hinzufügen</span></button>
       </div>
     </div>
 
     <!-- STATS -->
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">📊 Übersicht</div></div>
+      <div class="panel-head"><div class="panel-title">📊 <span data-i18n="s_uebersicht">Übersicht</span></div></div>
       <div id="v-stats" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
@@ -431,7 +430,7 @@
   <!-- MEMBER TABLE -->
   <div class="panel" style="margin-top:1rem;">
     <div class="panel-head">
-      <div class="panel-title">👥 Mitgliederliste</div>
+      <div class="panel-title">👥 <span data-i18n="s_mitgliederliste">Mitgliederliste</span></div>
       <div class="kw-nav" style="margin-left:auto;margin-right:8px;">
         <button class="kw-btn" type="button" onclick="changeYearWeek(-1)" title="Vorherige Woche">‹</button>
         <div class="kw-wrap"><label>KW</label><span class="kw-val">--</span></div>
@@ -444,7 +443,7 @@
 
   <div class="panel" style="margin-top:1rem;">
     <div class="panel-head">
-      <div class="panel-title">📝 Login-Anfragen</div>
+      <div class="panel-title">📝 <span data-i18n="s_login_anfragen">Login-Anfragen</span></div>
       <div class="panel-sub" id="v-access-count">0 offen</div>
     </div>
     <div id="v-access-requests" class="v-access-list"></div>

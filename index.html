@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ALLY · Tool</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Alli App</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap');
 
@@ -62,8 +63,18 @@ nav {
 .sync-btn { background: var(--card2); border: 1px solid var(--line2); border-radius: 8px; padding: 5px 10px; font-size: 16px; cursor: pointer; color: var(--soft); transition: all 0.2s; }
 .sync-btn:hover { color: var(--gold); border-color: var(--gold); }
 .sync-btn.spinning { animation: spin 0.8s linear infinite; pointer-events: none; }
+.lang-select {
+  background: var(--card2);
+  color: var(--text);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+}
+.lang-select:focus { outline: none; border-color: var(--gold); }
 .nav-actions { display: flex; align-items: center; gap: 10px; }
-@media (max-width: 1100px) { .nav-actions .nav-link-btn, .nav-actions .nav-help-btn, .nav-actions .sync-btn { display: none !important; } }
+@media (max-width: 1100px) { .nav-actions .nav-link-btn, .nav-actions .nav-help-btn, .nav-actions .sync-btn, .nav-actions #lang-switch { display: none !important; } }
 .nav-link-btn {
   display: none;
   align-items: center;
@@ -963,7 +974,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 <!-- ═══ LOGIN ═══ -->
 <div id="login-screen">
   <div class="login-box" id="login-box">
-    <div class="logo">ALLY <em>Tool</em></div>
+    <div class="logo">Alli<em>App</em></div>
     <p>Login für verknüpfte Allianz-Mitglieder</p>
     <button class="discord-btn" onclick="discordLogin()">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
@@ -977,7 +988,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 
 <nav>
   <div class="nav-inner">
-  <div class="logo"><span class="js-alliance-short">ALLY</span> <em class="js-alliance-tagline">Tool</em></div>
+  <div class="logo"><span class="js-alliance-short">ALLY</span><em class="js-alliance-tagline">App</em></div>
   <div class="tabs" id="main-tabs">
     <button class="tab active" id="tab-m" onclick="showPage('m')">Mein Bereich</button>
     <button class="tab" id="tab-p" onclick="showPage('p')">Punkte-Guide</button>
@@ -986,6 +997,15 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <span id="admin-tab-btns"></span>
   </div>
   <div class="nav-actions">
+    <select id="lang-switch" class="lang-select" title="Sprache">
+      <option value="de">DE</option>
+      <option value="en">EN</option>
+      <option value="it">IT</option>
+      <option value="fr">FR</option>
+      <option value="pl">PL</option>
+      <option value="es">ES</option>
+      <option value="zh">ZH</option>
+    </select>
     <button class="sync-btn" id="btn-sync" onclick="syncData()" title="Daten neu laden">🔄</button>
   </div>
   <input type="number" id="kwInput" style="display:none" min="1" max="9953" value="2616">
@@ -1033,7 +1053,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
         <button class="me-kw-btn" type="button" id="week-next" onclick="meStepWeek(1)">›</button>
       </div>
       <div class="me-delta-display">
-        <div class="me-delta-label">Vergleich zur Vorwoche</div>
+        <div class="me-delta-label" data-i18n="s_vergleich_zur_vorwoche">Vergleich zur Vorwoche</div>
         <div class="me-delta-value" id="week-delta">–</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -1103,8 +1123,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <section class="me-panel" id="me-berufe-section" style="display:none;margin-top:18px;">
       <div class="me-panel-head">
         <div>
-          <div class="me-panel-title">⚗ Beruf</div>
-          <div class="me-panel-sub">Dein Beruf in der Allianz – von dir selbst oder R4 pflegbar</div>
+          <div class="me-panel-title"><span aria-hidden="true">⚗</span> <span>Beruf</span></div>
+          <div class="me-panel-sub">Dein Beruf in der Allianz - von dir selbst oder R4 pflegbar</div>
         </div>
       </div>
       <div id="me-berufe-content"></div>
@@ -1120,7 +1140,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <article class="pg-hero-card">
         <div class="pg-eyebrow">Erklaerbaer</div>
         <h1 class="pg-h1">Punkte und Abzuege einfach erklaert</h1>
-        <p class="pg-sub">Hier sieht jedes Mitglied transparent, wie die Punktzahl entsteht. Einige Bereiche haben eine Gewichtung, daher sind hohe Werte wie 300 in Einzelfaellen moeglich.</p>
+        <p class="pg-sub" data-i18n="s_punkte_guide_beschreibung">Hier sieht jedes Mitglied transparent, wie die Punktzahl entsteht. Einige Bereiche haben eine Gewichtung, daher sind hohe Werte wie 300 in Einzelfaellen moeglich.</p>
       </article>
       <article class="pg-grid">
         <div class="pg-kpi">
@@ -1149,7 +1169,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <div class="pg-row" data-guide-features="wache"><div class="pg-name">Wache Teilnahme je Slot</div><div class="pg-badge pg-plus">+10</div></div>
           <div class="pg-row" data-guide-features="wache"><div class="pg-name">Wache Bonus (pro 2 Teilnahmen)</div><div class="pg-badge pg-plus">+15</div></div>
           <div class="pg-row" data-guide-features="spezial"><div class="pg-name">Spezialevent Teilnahme / Top 50 / Top 20</div><div class="pg-badge pg-mix">+20 / +30 / +20</div></div>
-          <div class="pg-row" data-guide-features="wueste"><div class="pg-name">Wueste Anmeldung / Teilnahme</div><div class="pg-badge pg-plus">+10 / +25</div></div>
+          <div class="pg-row" data-guide-features="wueste"><div class="pg-name" data-i18n="s_wueste_anmeldung_teilnahme">Wueste Anmeldung / Teilnahme</div><div class="pg-badge pg-plus">+10 / +25</div></div>
           <div class="pg-row" data-guide-features="bonus"><div class="pg-name">Bonus: Umfragen / Support / Feedback</div><div class="pg-badge pg-plus">+10 / +10 / +5</div></div>
         </div>
         <div class="pg-tip">Hinweis: VS und Spenden haben Basiswerte und werden im Regelwerk gewichtet. Deshalb entstehen dort groessere Spruenge als bei normalen Features.</div>
@@ -1160,7 +1180,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <div class="pg-points-list">
             <div class="pg-row" data-guide-features="vs,spende" data-guide-requires="strafe"><div class="pg-name">VS unter Schwelle / Spende unter Schwelle</div><div class="pg-badge pg-minus">-25 / -35</div></div>
             <div class="pg-row" data-guide-features="wache" data-guide-requires="strafe"><div class="pg-name">Wache kein DMG</div><div class="pg-badge pg-minus">-5</div></div>
-            <div class="pg-row" data-guide-features="wueste" data-guide-requires="strafe"><div class="pg-name">Wueste unentschuldigt fehlen</div><div class="pg-badge pg-minus">-15</div></div>
+            <div class="pg-row" data-guide-features="wueste" data-guide-requires="strafe"><div class="pg-name" data-i18n="s_wueste_unentschuldigt_fehlen">Wueste unentschuldigt fehlen</div><div class="pg-badge pg-minus">-15</div></div>
             <div class="pg-row" data-guide-features="strafe"><div class="pg-name">Inaktiv / NAP / Verhalten extern</div><div class="pg-badge pg-minus">-30 / -30 / -30</div></div>
             <div class="pg-row" data-guide-features="strafe"><div class="pg-name">Schild / Falschparken</div><div class="pg-badge pg-minus">-10 / -10</div></div>
             <div class="pg-row" data-guide-features="strafe"><div class="pg-name">Ankuendigungs-Mails / Verhalten intern</div><div class="pg-badge pg-minus">-15 / -15</div></div>
@@ -1173,12 +1193,12 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
             <div class="pg-ex-row" data-guide-features="spende"><span>Spenden Gewichtung</span><strong>+35</strong></div>
             <div class="pg-ex-row" data-guide-features="wache"><span>Wache Gesamt</span><strong>+35</strong></div>
             <div class="pg-ex-row" data-guide-features="spezial"><span>Spezialevents Gesamt</span><strong>+70</strong></div>
-            <div class="pg-ex-row" data-guide-features="wueste"><span>Wueste Gesamt</span><strong>+35</strong></div>
+            <div class="pg-ex-row" data-guide-features="wueste"><span data-i18n="s_wueste_gesamt">Wueste Gesamt</span><strong>+35</strong></div>
             <div class="pg-ex-row" data-guide-features="strafe"><span>Strafpunkte</span><strong>0</strong></div>
             <div class="pg-ex-total"><span>Gesamtpunkte</span><span>300</span></div>
           </div>
         </div>
-        <div class="pg-footer-note">Rank-Logik fuer R1-R3: bis 84 Punkte = R1, ab 85 Punkte = R2, ab 180 Punkte = R3. R4/R5 bleiben fix.</div>
+        <div class="pg-footer-note">Rank-Logik für R1-R3: bis 84 Punkte = R1, ab 85 Punkte = R2, ab 180 Punkte = R3. R4/R5 bleiben fix.</div>
       </aside>
     </section>
   </div>
@@ -1198,11 +1218,11 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   </div>
 </div>
 
-<!-- ═══ ZUGPLAN LESEANSICHT (alle Mitglieder) ═══ -->
+<!-- ═══ ZUG LESEANSICHT (alle Mitglieder) ═══ -->
 <div class="page" id="page-zv">
   <div class="panel" style="margin-bottom:1rem;">
     <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
-      <div class="panel-title" style="color:var(--text);"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="16" viewBox="0 0 38 20" style="vertical-align:-2px;display:inline-block;"><circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/><circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/><rect x="6.5" y="3" width="4" height="4.5" rx="0.8" fill="#B87300"/><rect x="1" y="6.5" width="22" height="9" rx="4" fill="#F0A500"/><rect x="2" y="7.2" width="19" height="3.2" rx="2" fill="rgba(255,230,90,0.38)"/><rect x="19" y="3.5" width="10" height="12" rx="1.5" fill="#D4890A"/><rect x="18" y="2.2" width="12" height="2.5" rx="1" fill="#B87300"/><rect x="21" y="5" width="5" height="4" rx="1" fill="#87CEEB" opacity="0.88"/><rect x="0" y="10.8" width="2" height="2.5" rx="0.4" fill="#9A6200"/><circle cx="8.5" cy="17" r="3.4" fill="#9A6200" stroke="#F0C040" stroke-width="1.1"/><circle cx="8.5" cy="17" r="1.3" fill="#C8820A"/><line x1="8.5" y1="13.6" x2="8.5" y2="20.4" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="15" x2="11.9" y2="19" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="19" x2="11.9" y2="15" stroke="#C8820A" stroke-width="0.7"/><circle cx="3" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="21" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="27" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><rect x="3" y="16.3" width="25" height="1.5" rx="0.5" fill="#9A6200" opacity="0.6"/></svg> Zugplan</div>
+      <div class="panel-title" style="color:var(--text);"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="16" viewBox="0 0 38 20" style="vertical-align:-2px;display:inline-block;"><circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/><circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/><rect x="6.5" y="3" width="4" height="4.5" rx="0.8" fill="#B87300"/><rect x="1" y="6.5" width="22" height="9" rx="4" fill="#F0A500"/><rect x="2" y="7.2" width="19" height="3.2" rx="2" fill="rgba(255,230,90,0.38)"/><rect x="19" y="3.5" width="10" height="12" rx="1.5" fill="#D4890A"/><rect x="18" y="2.2" width="12" height="2.5" rx="1" fill="#B87300"/><rect x="21" y="5" width="5" height="4" rx="1" fill="#87CEEB" opacity="0.88"/><rect x="0" y="10.8" width="2" height="2.5" rx="0.4" fill="#9A6200"/><circle cx="8.5" cy="17" r="3.4" fill="#9A6200" stroke="#F0C040" stroke-width="1.1"/><circle cx="8.5" cy="17" r="1.3" fill="#C8820A"/><line x1="8.5" y1="13.6" x2="8.5" y2="20.4" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="15" x2="11.9" y2="19" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="19" x2="11.9" y2="15" stroke="#C8820A" stroke-width="0.7"/><circle cx="3" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="21" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="27" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><rect x="3" y="16.3" width="25" height="1.5" rx="0.5" fill="#9A6200" opacity="0.6"/></svg> Zug</div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">
         <label style="font-size:0.82rem;color:var(--soft);">Regelwerk:</label>
         <select id="zug-ro-ruleset-select" style="background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:0.82rem;" onchange="zugRoOnRulesetChange()"></select>
@@ -1340,7 +1360,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div class="admin-page" id="admin-section-flags">
       <div class="section-head">
         <div>
-          <div class="section-title">✨ Feature-Konfiguration</div>
+          <div class="section-title"><span aria-hidden="true">✨</span> <span>Feature-Konfiguration</span></div>
           <div class="section-sub">Legt fest welche Features je Allianz sichtbar und nutzbar sind. Gilt global für alle Geräte.</div>
         </div>
       </div>
@@ -1350,7 +1370,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <option value="">Lade …</option>
         </select>
       </div>
-      <div id="admin-flags-body"><div class="empty">Allianz wählen</div></div>
+      <div id="admin-flags-body"><div class="empty">Erst Allianz wählen</div></div>
     </div>
 
   </div>
@@ -1440,6 +1460,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   </div>
 </div>
 
+<script src="i18n.js"></script>
 <script>
 // ══════════════════════════════════════════════════════
 //  INY RANKING – Backend API (PHP /api)
@@ -1609,7 +1630,7 @@ function renderLoginPending(cachedState) {
   const memberName = cachedState?.member_name || cachedState?.discord_username || 'dein Account';
   document.getElementById('login-box').innerHTML = `
     <div class="login-pending">
-      <div class="logo">ALLY <em>Tool</em></div>
+      <div class="logo">Alli<em>App</em></div>
       <div class="login-spinner"></div>
       <strong>Bekannte Anmeldung gefunden</strong>
       <span>Prüfe gerade ${escHtml(memberName)}. Wenn dein Discord-Login noch gültig ist, geht es automatisch weiter.</span>
@@ -1701,7 +1722,7 @@ async function renderAccessDenied(user, reason = 'Kein Zugriff') {
       <img src="${avatarUrl}" alt="">
       <span>${safeUsername}</span>
     </div>
-    <div style="color:var(--red);font-size:13px;margin-bottom:1rem;">${escHtml(reason)} \u2013 dein Discord ist aktuell noch keinem aktiven Mitglied zugeordnet.</div>
+    <div style="color:var(--red);font-size:13px;margin-bottom:1rem;">${escHtml(tr(reason))} \u2013 ${escHtml(tr('dein Discord ist aktuell noch keinem aktiven Mitglied zugeordnet.'))}</div>
     <button class="discord-btn" style="background:var(--card2);font-size:13px;padding:8px 20px;" onclick="discordLogout()">Anderer Account</button>
     <div class="login-request" id="login-request-box">
       <div class="title">Keinen Zugriff? Anfrage senden</div>
@@ -1748,7 +1769,7 @@ async function submitAccessRequest() {
       box.innerHTML = '<div class="hint" style="color:var(--green);">Anfrage gesendet. Ein R4/R5 kann dich in der Verwaltung nun direkt zuordnen.</div>';
     }
   } catch (err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
   }
 }
 window.submitAccessRequest = submitAccessRequest;
@@ -1807,6 +1828,7 @@ async function checkDiscordAuth() {
       rank: verify.rank || null,
       role: verify.role || 'normal',
       can_manage: !!verify.can_manage,
+      preferred_language: verify.preferred_language || 'de',
       discord_avatar: verify.discord_avatar || user.avatar || null,
       discord_avatar_url: verify.discord_avatar_url || null,
       checked_at: new Date().toISOString()
@@ -2028,6 +2050,17 @@ async function apiPost(data) {
           beruf: data.beruf ?? null,
           med_hilfe: data.med_hilfe ? 1 : 0,
           winwin: data.winwin || null
+        })
+      });
+    }
+    case 'set_member_language': {
+      const name = encodeURIComponent(data.name || '');
+      return fetchJson(`/members/${name}/language`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discord_id: data.discordId || authMember?.discord_id || '',
+          preferred_language: data.preferred_language || 'de'
         })
       });
     }
@@ -2325,6 +2358,7 @@ async function loadMembers() {
       alliance: m.alliance || 'INY',
       discordId: m.discord_id || null,
       discordUsername: m.discord_username || null,
+      preferredLanguage: m.preferred_language || 'de',
       discordAvatarUrl: m.discord_avatar_url || null,
       discordConnected: !!m.discord_connected,
       lastVisitAt: m.last_visit_at || null,
@@ -2535,10 +2569,10 @@ function openEditor(name){
         :f.t==='n'
         ?'border-color:rgba(155,109,255,0.5);background:rgba(155,109,255,0.15);color:var(--purple);'
         :'border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.12);color:#80b8ff;';
-      return `<button class="flag-btn" data-fk="${f.k}" onclick="toggleFlag('${f.k}')" style="${on?onStyle:''}">${f.l}</button>`;
+      return `<button class="flag-btn" data-fk="${f.k}" onclick="toggleFlag('${f.k}')" style="${on?onStyle:''}">${escHtml(tr(f.l))}</button>`;
     }).join('');
     return `<div class="flag-cat" style="background:${cat.bg};border:1px solid ${cat.bc};">
-      <div class="flag-cat-title" style="color:${cat.lc};">${cat.l}</div>
+      <div class="flag-cat-title" style="color:${cat.lc};">${escHtml(tr(cat.l))}</div>
       <div class="flag-btns">${btns}</div>
     </div>`;
   }).join('');
@@ -2683,7 +2717,7 @@ function me_renderOverview() {
   const discordName = member.discord_username || (meViewingOther ? null : authMember?.discord_username) || null;
   const checkedAt = meViewingOther ? (meHistoryBundle?.weeks?.[0]?.updated_at || null) : authMember?.checked_at;
   document.getElementById('member-meta').textContent =
-    (discordName ? discordName + ' · ' : '') + 'letzter Abgleich ' + formatWhen(checkedAt);
+    (discordName ? discordName + ' · ' : '') + tr('letzter Abgleich') + ' ' + formatWhen(checkedAt);
 
   const rankColor = RC[member.rank] || '#97a3bc';
   document.getElementById('member-badges').innerHTML =
@@ -2692,7 +2726,7 @@ function me_renderOverview() {
   document.getElementById('stat-points').textContent = String(selectedPoints);
   document.getElementById('stat-rank-display').textContent = `R${member.rank} · ${RL[member.rank] || 'Member'}`;
   document.getElementById('stat-week').textContent = selected ? formatWeek(selected.year_week).replace('KW ', '') : '-';
-  document.getElementById('timeline-sub').textContent = `${weeks.length} Wochen gespeichert · Woche anklicken zum Wechsel`;
+  document.getElementById('timeline-sub').textContent = `${weeks.length} ${tr('Wochen gespeichert - Woche anklicken zum Wechsel')}`;
 
   me_renderWeekPanel();
   me_renderActivities();
@@ -2724,7 +2758,7 @@ function me_renderWeekPanel() {
   if (nextBtn) nextBtn.disabled = meSelectedWeekIndex <= 0;
 
   document.getElementById('week-sub').textContent = selected
-    ? `${formatWeek(selected.year_week)} · ${points} Punkte` : 'Noch keine Woche ausgewählt';
+    ? `${formatWeek(selected.year_week)} · ${points} ${tr('Punkte')}` : tr('Noch keine Woche ausgewählt');
 
   const rankChangeBadge = document.getElementById('rank-change-badge');
   if (selected && previous && selected.final_rank !== previous.final_rank) {
@@ -2752,9 +2786,9 @@ function me_renderActivities() {
   const allSet = Object.keys(flags).filter(k => flags[k]);
 
   document.getElementById('acts-title').textContent = selected
-    ? `Aktivitäten – ${formatWeek(selected.year_week)}` : 'Aktivitäten dieser Woche';
+    ? `${tr('s_aktivitaeten')} – ${formatWeek(selected.year_week)}` : tr('s_aktivitaeten_dieser_woche');
   document.getElementById('acts-sub').textContent = selected
-    ? 'Was hat dir Punkte gebracht oder genommen?' : 'Keine Woche geladen';
+    ? tr('s_was_hat_dir_punkte_gebracht_oder_genommen') : tr('s_keine_woche_geladen');
 
   const positives = allSet
     .filter(k => !DANGER.has(k) && !NEUTRAL.has(k))
@@ -2773,12 +2807,12 @@ function me_renderActivities() {
         const ptsCls = NEUTRAL.has(key) ? 'neu' : AMBER.has(key) ? 'bon' : 'pos';
         return `<div class="me-act-item ${cls}"><span>${escHtml(LBL[key] || key)}</span><span class="me-act-pts ${ptsCls}">+${impact}</span></div>`;
       }).join('')
-    : '<div class="me-empty">Keine positiven Einträge diese Woche.</div>';
+    : '<div class="me-empty">' + escHtml(tr('s_keine_positiven_eintraege_diese_woche')) + '</div>';
   negEl.innerHTML = negatives.length
     ? negatives.map(({ key, impact }) =>
         `<div class="me-act-item bad"><span>${escHtml(LBL[key] || key)}</span><span class="me-act-pts neg">${impact}</span></div>`
       ).join('')
-    : '<div class="me-empty" style="border-color:rgba(46,203,122,0.2);color:var(--green)">Keine Strafpunkte diese Woche 🎉</div>';
+    : '<div class="me-empty" style="border-color:rgba(46,203,122,0.2);color:var(--green)">' + escHtml(tr('s_keine_strafpunkte_diese_woche')) + '</div>';
 }
 
 function me_renderPotential() {
@@ -2796,7 +2830,7 @@ function me_renderPotential() {
   section.style.display = 'block';
   grid.innerHTML = opportunities.map(({ key, gain }) => `
     <div class="me-potential-card">
-      <div class="me-potential-card-label">+${gain} Punkte möglich</div>
+      <div class="me-potential-card-label">+${gain} ${tr('Punkte möglich')}</div>
       <div class="me-potential-card-name">${escHtml(LBL[key] || key)}</div>
       <div class="me-potential-card-gain">+${gain}</div>
     </div>`).join('');
@@ -2818,11 +2852,11 @@ function me_renderTimeline() {
       </div>
       <div>
         <div class="me-bar-track"><div class="me-bar-fill" style="width:${Math.max(8, Math.round((points / maxPoints) * 100))}%;"></div></div>
-        <div class="me-timeline-meta">${Object.keys(week.flags || {}).filter(k => week.flags[k]).length} aktive Felder</div>
+        <div class="me-timeline-meta">${Object.keys(week.flags || {}).filter(k => week.flags[k]).length} ${tr('aktive Felder')}</div>
       </div>
       <div class="me-timeline-score">
         <strong>${points}</strong>
-        <span>${delta == null ? 'erste Woche' : `${delta >= 0 ? '+' : ''}${delta} zur Vorwoche`}</span>
+        <span>${delta == null ? tr('erste Woche') : `${delta >= 0 ? '+' : ''}${delta} ${tr('zur Vorwoche')}`}</span>
       </div>
     </button>`;
   }).join('');
@@ -2843,7 +2877,7 @@ function me_renderChanges() {
       <div class="me-change-body">
         ${change.old_rank ? `R${change.old_rank}` : 'neu'} → R${change.applied_rank}
         ${change.requested_rank && change.requested_rank !== change.applied_rank ? `(angefragt: R${change.requested_rank})` : ''}
-        ${change.is_blocked ? ' · geschützt/blockiert' : ''}
+        ${change.is_blocked ? ' · gesch�tzt/blockiert' : ''}
         ${change.reason ? ` · ${escHtml(change.reason)}` : ''}
       </div>
     </div>`).join('');
@@ -2890,9 +2924,9 @@ function renderMeBerufe() {
   const kriegsherren = members.filter(n => memberMeta[n]?.beruf === 'kriegsherr' && n !== targetName).sort();
 
   const opts = [
-    { value: null,         label: 'Kein Beruf',  icon: '—',  cls: '' },
-    { value: 'ingenieur',  label: 'Ingenieur',   icon: '⚗',  cls: '' },
-    { value: 'kriegsherr', label: 'Kriegsherr',  icon: '⚔',  cls: 'kriegsherr' },
+    { value: null,         label: tr('Kein Beruf'),  icon: '—',  cls: '' },
+    { value: 'ingenieur',  label: tr('Ingenieur'),   icon: '⚗',  cls: '' },
+    { value: 'kriegsherr', label: tr('Kriegsherr'),  icon: '⚔',  cls: 'kriegsherr' },
   ];
 
   let html = `<div class="me-beruf-picker">`;
@@ -2907,29 +2941,29 @@ function renderMeBerufe() {
     html += `<div class="me-beruf-sub">
       <label class="me-beruf-toggle">
         <input type="checkbox" id="me-medhilfe-cb" ${medHilfe ? 'checked' : ''}>
-        <span>🏥 Medizinische Hilfe</span>
+        <span>🏥 ${escHtml(tr('Medizinische Hilfe'))}</span>
       </label>
     </div>
     <div class="me-beruf-sub">
-      <div class="me-beruf-sub-label">⚡ Win-Win Kriegsherr</div>
+      <div class="me-beruf-sub-label">⚡ ${escHtml(tr('Win-Win Kriegsherr'))}</div>
       ${kriegsherren.length
         ? `<select class="me-beruf-select" id="me-winwin-sel">
-            <option value="">— keiner —</option>
+            <option value="">${escHtml(tr('— keiner —'))}</option>
             ${kriegsherren.map(n => `<option value="${escHtml(n)}"${n === winwin ? ' selected' : ''}>${escHtml(n)}</option>`).join('')}
           </select>`
-        : `<div class="me-beruf-info">Noch keine Kriegsherren in der Allianz vorhanden.</div>`
+        : `<div class="me-beruf-info">${escHtml(tr('Noch keine Kriegsherren in der Allianz vorhanden.'))}</div>`
       }
     </div>`;
   } else if (beruf === 'kriegsherr') {
     const myIngenieure = members.filter(n => memberMeta[n]?.berufWinwin === targetName);
     if (myIngenieure.length) {
-      html += `<div class="me-beruf-info">Ingenieure im Win-Win: ${myIngenieure.map(n => escHtml(n)).join(', ')} (${myIngenieure.length}/3)</div>`;
+      html += `<div class="me-beruf-info">${escHtml(tr('Ingenieure im Win-Win'))}: ${myIngenieure.map(n => escHtml(n)).join(', ')} (${myIngenieure.length}/3)</div>`;
     } else {
-      html += `<div class="me-beruf-info">Noch keine Ingenieure haben dich als Win-Win gewählt.</div>`;
+      html += `<div class="me-beruf-info">${escHtml(tr('Noch keine Ingenieure haben dich als Win-Win gewählt.'))}</div>`;
     }
   }
 
-  html += `<button class="v-btn save" style="margin-top:14px;" onclick="saveMeBeruf()">✓ Speichern</button>`;
+  html += `<button class="v-btn save" style="margin-top:14px;" onclick="saveMeBeruf()">✓ ${escHtml(tr('Speichern'))}</button>`;
   content.innerHTML = html;
 }
 window.renderMeBerufe = renderMeBerufe;
@@ -2965,8 +2999,8 @@ async function saveMeBeruf() {
     if (document.getElementById('page-v')?.classList.contains('active')) {
       renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
     }
-    toast('Beruf gespeichert!');
-  } catch(err) { toast('Fehler: ' + err.message); }
+    toast(tr('Beruf gespeichert!'));
+  } catch(err) { toast(tr('Fehler: ') + err.message); }
 }
 window.saveMeBeruf = saveMeBeruf;
 function buildNavActionsFromTabs() {
@@ -3052,6 +3086,10 @@ async function injectR4Tabs(discordId) {
     document.getElementById('r4-tab-btns').innerHTML = data.tabBtns;
     document.getElementById('r4-pages-container').innerHTML = data.pages;
     // R4 tabs injected
+    if (typeof window.applyI18n === 'function') {
+      window.applyI18n(document.getElementById('r4-tab-btns'));
+      window.applyI18n(document.getElementById('r4-pages-container'));
+    }
     initR4Listeners();
     updateFeatureTabVisibility();
     updatePointsGuideVisibility();
@@ -3107,12 +3145,14 @@ async function showPage(id) {
     if (!meHistoryLoaded || meViewingOther) {
       meViewingOther = false;
       meHistoryLoaded = false;
-      await me_loadHistory(authMember.discord_id, authMember.member_name);
+      await runWithBattleLoader(async () => {
+        await me_loadHistory(authMember.discord_id, authMember.member_name);
+      });
     }
   }
   if (id === 'd') renderDashboard();
   if (id === 'e') renderList();
-  if (id === 'r') loadErgebnis();
+  if (id === 'r') await runWithBattleLoader(async () => { await loadErgebnis(); });
   if (id === 'v') { await loadMembers(); await refreshEntriesIfNeeded({background:true}); renderVerwaltung(); renderFlagsAdmin(); }
   if (id === 'a') adminInitPage();
   if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 'a' && id !== 'w' && id !== 'z' && id !== 'zv') {
@@ -3133,16 +3173,16 @@ function renderAll(){
 function toggleDoneMode(){
   doneMode=(doneMode+1)%3;
   const btn=document.getElementById('btn-done-bottom');
-  if(doneMode===0){btn.classList.remove('on');btn.textContent='↓ Erfasste ans Ende';}
-  else if(doneMode===1){btn.classList.add('on');btn.textContent='↓ Erfasste ans Ende';}
-  else{btn.classList.add('on');btn.textContent='○ Erfasste ausblenden';}
+  if(doneMode===0){btn.classList.remove('on');btn.textContent='↓ '+tr('Erfasste ans Ende');}
+  else if(doneMode===1){btn.classList.add('on');btn.textContent='↓ '+tr('Erfasste ans Ende');}
+  else{btn.classList.add('on');btn.textContent='○ '+tr('Erfasste ausblenden');}
   renderList();
 }
 window.toggleDoneMode=toggleDoneMode;
 
 function renderList(){
   const n=entries.length, pct=Math.round(n/members.length*100);
-  document.getElementById('listCounter').textContent=`${n} / ${members.length} erfasst (${pct}%)`;
+  document.getElementById('listCounter').textContent=`${n} / ${members.length} ${tr('erfasst')} (${pct}%)`;
 
   const shown=members.filter(name=>{
     if(search&&!name.toLowerCase().includes(search)) return false;
@@ -3281,15 +3321,15 @@ function renderDashboard(){
   if(entriesLoading && entries.length===0){
     document.getElementById('s-count').textContent='...';
     document.getElementById('prog-fill').style.width='0%';
-    document.getElementById('prog-pct').textContent='laedt';
+    document.getElementById('prog-pct').textContent=tr('lädt');
     document.getElementById('kw-d').textContent=kw;
     document.getElementById('s-warn').textContent='...';
     document.getElementById('s-up').textContent='...';
     document.getElementById('s-down').textContent='...';
-    document.getElementById('warn-ct').textContent='laedt';
-    document.getElementById('warn-list').innerHTML='<div class="empty" style="padding:0.5rem 0;">Warnliste laedt ...</div>';
-    document.getElementById('top-list').innerHTML='<div class="empty" style="padding:0.5rem 0;">Top Performer werden geladen ...</div>';
-    document.getElementById('field-bars').innerHTML='<div class="empty" style="padding:0.5rem 0;">Diagramme werden im Hintergrund aktualisiert ...</div>';
+    document.getElementById('warn-ct').textContent=tr('lädt');
+    document.getElementById('warn-list').innerHTML='<div class="empty" style="padding:0.5rem 0;">'+escHtml(tr('Warnliste lädt ...'))+'</div>';
+    document.getElementById('top-list').innerHTML='<div class="empty" style="padding:0.5rem 0;">'+escHtml(tr('Top Performer werden geladen ...'))+'</div>';
+    document.getElementById('field-bars').innerHTML='<div class="empty" style="padding:0.5rem 0;">'+escHtml(tr('Diagramme werden im Hintergrund aktualisiert ...'))+'</div>';
     document.getElementById('rdist').innerHTML='';
     renderTable();
     return;
@@ -3308,10 +3348,10 @@ function renderDashboard(){
   document.getElementById('s-warn').textContent=we.length;
   document.getElementById('s-up').textContent=ue.length;
   document.getElementById('s-down').textContent=de.length;
-  document.getElementById('warn-ct').textContent=we.length+' Mitglieder';
+  document.getElementById('warn-ct').textContent=we.length+' '+tr('Mitglieder');
 
   document.getElementById('warn-list').innerHTML=we.length===0
-    ?'<div class="empty" style="padding:0.5rem 0;">Keine Warnungen diese Woche.</div>'
+    ?'<div class="empty" style="padding:0.5rem 0;">'+escHtml(tr('Keine Warnungen diese Woche.'))+'</div>'
     :we.slice(0,8).map(e=>{
       const wf=dk.filter(k=>e.flags[k]);
       const col=RC[e.rank]||'#888';
@@ -3330,7 +3370,7 @@ function renderDashboard(){
     return{...e,score:pos-neg*2};
   }).sort((a,b)=>b.score-a.score);
   document.getElementById('top-list').innerHTML=sc.length===0
-    ?'<div class="empty" style="padding:0.5rem 0;">Noch keine Einträge.</div>'
+    ?'<div class="empty" style="padding:0.5rem 0;">'+escHtml(tr('Noch keine Einträge.'))+'</div>'
     :sc.slice(0,8).map((e,i)=>{
       const br=isFixed(e.name)?fixedRank(e.name):(PREV[e.name]||3);
       const escName = e.name.replace(/'/g, "\\'");
@@ -3360,7 +3400,7 @@ function renderDashboard(){
   const srt=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const mxF=srt.length?srt[0][1]:1;
   document.getElementById('field-bars').innerHTML=srt.length===0
-    ?'<div class="empty" style="padding:0.5rem 0;">Noch keine Daten.</div>'
+    ?`<div class="empty" style="padding:0.5rem 0;">${escHtml(tr('Noch keine Daten.'))}</div>`
     :srt.map(([k,v])=>`<div class="bar-row">
       <div class="bar-lbl">${LBL[k]||k}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/mxF*100)}%;background:${DANGER.has(k)?'#e05545':AMBER.has(k)?'#f0a500':'#4a9eff'};"></div></div>
@@ -3389,7 +3429,7 @@ function renderTable(){
   });
 
   const tbody=document.getElementById('rankingBody');
-  if(!rows.length){tbody.innerHTML='<tr><td colspan="6" style="color:var(--softer);text-align:center;padding:1.5rem;">Keine Einträge.</td></tr>';return;}
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="6" style="color:var(--softer);text-align:center;padding:1.5rem;">Noch keine Einträge.</td></tr>';return;}
 
   let pos=0;
   tbody.innerHTML=rows.map(r=>{
@@ -3431,10 +3471,14 @@ document.addEventListener('DOMContentLoaded', initFilterBars);
 
 function toast(msg, type = '') {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  t.textContent = typeof window.trText === 'function' ? window.trText(msg) : msg;
   t.className = `toast show${type ? ' ' + type : ''}`;
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function tr(msg) {
+  return typeof window.trText === 'function' ? window.trText(msg) : msg;
 }
 
 let battleLoaderDepth = 0;
@@ -3529,9 +3573,9 @@ applyEventContrastState();
 function toggleEventDoneMode(){
   eventDoneMode=(eventDoneMode+1)%3;
   const btn=document.getElementById('btn-event-done-bottom');
-  if(eventDoneMode===0){btn.classList.remove('on');btn.textContent='↓ Erfasste ans Ende';}
-  else if(eventDoneMode===1){btn.classList.add('on');btn.textContent='↓ Erfasste ans Ende';}
-  else{btn.classList.add('on');btn.textContent='○ Erfasste ausblenden';}
+  if(eventDoneMode===0){btn.classList.remove('on');btn.textContent='↓ '+tr('Erfasste ans Ende');}
+  else if(eventDoneMode===1){btn.classList.add('on');btn.textContent='↓ '+tr('Erfasste ans Ende');}
+  else{btn.classList.add('on');btn.textContent='○ '+tr('Erfasste ausblenden');}
   selectEventView(activeEventView);
 }
 window.toggleEventDoneMode=toggleEventDoneMode;
@@ -3696,7 +3740,7 @@ async function wacheSet(name, type) {
     }
     await loadEntries();
     renderWache();
-  } catch(err) { toast('Fehler: ' + err.message); }
+  } catch(err) { toast(tr('Fehler: ') + err.message); }
 }
 window.wacheSet = wacheSet;
 window.selectWache = selectWache;
@@ -3776,7 +3820,7 @@ async function wuesteSet(name, type) {
     }
     await loadEntries();
     renderWueste();
-  } catch(err) { toast('Fehler: ' + err.message); }
+  } catch(err) { toast(tr('Fehler: ') + err.message); }
 }
 window.wuesteSet = wuesteSet;
 
@@ -3871,7 +3915,7 @@ async function spezialSet(name, type) {
     await loadEntries();
     renderSpezial();
   } catch(err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
   }
 }
 window.spezialSet = spezialSet;
@@ -3949,7 +3993,7 @@ async function vsSet(name, type) {
     }
     await loadEntries();
     renderVS();
-  } catch(err) { toast('Fehler: ' + err.message); }
+  } catch(err) { toast(tr('Fehler: ') + err.message); }
 }
 window.vsSet = vsSet;
 
@@ -4021,7 +4065,7 @@ async function spendeSet(name, type) {
     }
     await loadEntries();
     renderSpende();
-  } catch(err) { toast('Fehler: ' + err.message); }
+  } catch(err) { toast(tr('Fehler: ') + err.message); }
 }
 window.spendeSet = spendeSet;
 let vNewRank=3;
@@ -4034,17 +4078,17 @@ let flagConfig = {}; // in-memory cache populated by loadFlagConfig()
 let allianceFeatureModalAlliance = '';
 
 const FEATURE_CAT_DEFS = [
-  { key:'events',  label:'🎉 Events',       sub:'Hauptschalter für den Events-Bereich' },
-  { key:'wache',   label:'🛡 Wache',        sub:'Events W1–W3 – Kacheln & Tabs' },
-  { key:'wueste',  label:'🏜 Wüste',         sub:'Wüsten-Event – Tab & Kacheln' },
-  { key:'spezial', label:'🎯 Spezialevents', sub:'Spezial-Event – Tab & Kacheln' },
-  { key:'vs',      label:'⚔ VS',             sub:'VS-Event – Tab & Kacheln' },
-  { key:'spende',  label:'💰 Spenden',        sub:'Spenden-Event – Tab & Kacheln' },
-  { key:'zug',     label:'🚂 Zug',            sub:'Zug-Planer + Zugplan – Bearbeiten und Leseansicht' },
-  { key:'strafe',  label:'❌ Strafpunkte',    sub:'In der Verwaltung pflegbar' },
-  { key:'bonus',   label:'⭐ Bonus',          sub:'In der Verwaltung pflegbar' },
-  { key:'afk',     label:'⏸ AFK',            sub:'In der Verwaltung pflegbar' },
-  { key:'berufe',  label:'⚗ Berufe',          sub:'Ingenieur / Kriegsherr – von Mitgliedern und R4 pflegbar' },
+  { key:'events',  icon:'🎉', label:'s_events_label',       sub:'s_hauptschalter_fuer_den_events_bereich' },
+  { key:'wache',   icon:'🛡', label:'s_wache',              sub:'s_events_w1_w3_kacheln_tabs' },
+  { key:'wueste',  icon:'🏜', label:'s_wueste_label',       sub:'s_wuesten_event_tab_kacheln' },
+  { key:'spezial', icon:'🎯', label:'s_spezialevents_label', sub:'s_spezial_event_tab_kacheln' },
+  { key:'vs',      icon:'⚔', label:'VS',                    sub:'s_vs_event_tab_kacheln' },
+  { key:'spende',  icon:'💰', label:'s_spenden_label',      sub:'s_spenden_event_tab_kacheln' },
+  { key:'zug',     icon:'🚂', label:'s_zug_label',          sub:'s_zug_zugplan_leseansicht_bearbeiten' },
+  { key:'strafe',  icon:'❌', label:'s_strafpunkte_label',   sub:'s_in_der_verwaltung_pflegbar' },
+  { key:'bonus',   icon:'⭐', label:'s_pluspunkte',         sub:'s_in_der_verwaltung_pflegbar' },
+  { key:'afk',     icon:'⏸', label:'AFK',                   sub:'s_afk_sperrt_rang_aenderung' },
+  { key:'berufe',  icon:'⚗', label:'s_berufe_label',        sub:'s_ingenieur_kriegsherr_von_mitgliedern_und_r4_pflegbar' },
 ];
 
 function isFeatureEnabled(key) {
@@ -4075,11 +4119,11 @@ function renderFeatureToggles(containerId, alliance, config) {
   const el = document.getElementById(containerId);
   if (!el || !alliance) return;
   el.innerHTML = `<div style="display:flex;flex-direction:column;">` +
-    FEATURE_CAT_DEFS.map(({ key, label, sub }) => {
+    FEATURE_CAT_DEFS.map(({ key, icon, label, sub }) => {
       const on = config[key] === true;
       return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);">
-        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${label}</div><div style="font-size:11px;color:var(--soft);">${sub}</div></div>
-        <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on ? 'save' : 'del'}" style="min-width:88px;">${on ? '✓ Aktiv' : '✗ Inaktiv'}</button>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(icon)} ${escHtml(tr(label))}</div><div style="font-size:11px;color:var(--soft);">${escHtml(tr(sub))}</div></div>
+        <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on ? 'save' : 'del'}" style="min-width:88px;">${on ? '✓ ' + escHtml(tr('Aktiv')) : '✗ ' + escHtml(tr('Inaktiv'))}</button>
       </div>`;
     }).join('') +
     `</div>`;
@@ -4096,16 +4140,16 @@ async function openAllianceFeatures(alliance) {
   allianceFeatureModalAlliance = alliance;
   const title = document.getElementById('alliance-features-title');
   const sub = document.getElementById('alliance-features-sub');
-  if (title) title.textContent = `Features: ${alliance}`;
-  if (sub) sub.textContent = 'Steuere hier direkt, welche Bereiche diese Allianz nutzen darf.';
+  if (title) title.textContent = `${tr('Features')}: ${alliance}`;
+  if (sub) sub.textContent = tr('Steuere hier direkt, welche Bereiche diese Allianz nutzen darf.');
   const body = document.getElementById('alliance-features-body');
-  if (body) body.innerHTML = '<div class="empty">Lade …</div>';
+  if (body) body.innerHTML = '<div class="empty">' + escHtml(tr('Lade …')) + '</div>';
   openModal('modal-alliance-features');
   try {
     const config = await loadAllianceFeatureConfig(alliance);
     renderFeatureToggles('alliance-features-body', alliance, config);
   } catch (e) {
-    if (body) body.innerHTML = `<div class="empty">Fehler: ${escHtml(e.message)}</div>`;
+    if (body) body.innerHTML = `<div class="empty"></div>`;
   }
 }
 
@@ -4209,7 +4253,7 @@ async function toggleCatConfig(key, allianceOverride) {
       renderFlagsAdmin();
     }
   } catch(err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
     // revert
     if (targetAlliance) {
       adminFlagConfigCache[targetAlliance] = await loadFlagConfig(targetAlliance);
@@ -4245,6 +4289,25 @@ function renderFlagsAdmin() {
 }
 window.renderFlagsAdmin = renderFlagsAdmin;
 
+// Re-render dynamic content when language changes
+document.addEventListener('i18n:language-changed', () => {
+  // Mein Bereich (start page) – all me_render* functions use tr() inline
+  if (typeof me_renderOverview === 'function' && typeof meHistoryBundle !== 'undefined' && meHistoryBundle) {
+    me_renderOverview();
+  }
+  // Dashboard / R4 pages / member list
+  if (typeof renderAll === 'function' && typeof members !== 'undefined' && members.length) {
+    renderAll();
+  }
+  // Verwaltung (re-render even if renderAll already called it, to pass search filter)
+  if (typeof renderVerwaltung === 'function' && typeof members !== 'undefined' && members.length) {
+    renderVerwaltung(document.getElementById('v-search')?.value?.toLowerCase() || '');
+  }
+  if (typeof renderAccessRequests === 'function' && typeof accessRequests !== 'undefined') {
+    renderAccessRequests();
+  }
+});
+
 // ── VERWALTUNG DETAIL / FLAG TOGGLE ──
 function toggleVerwaltungRow(name) {
   if (vDetailOpen === name) {
@@ -4275,7 +4338,7 @@ async function toggleVerwaltungFlag(name, flagKey) {
     await loadEntries();
     renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
   } catch (err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
     await loadEntries();
     renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
   }
@@ -4400,9 +4463,9 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
   const kriegsherren = members.filter(function(n) { return memberMeta[n] && memberMeta[n].beruf === 'kriegsherr' && n !== name; }).sort();
 
   const berufDefs = [
-    { v: null,         l: '— Kein' },
-    { v: 'ingenieur',  l: '⚗ Ingenieur' },
-    { v: 'kriegsherr', l: '⚔ Kriegsherr' },
+    { v: null,         l: '— ' + tr('Kein') },
+    { v: 'ingenieur',  l: '⚗ ' + tr('Ingenieur') },
+    { v: 'kriegsherr', l: '⚔ ' + tr('Kriegsherr') },
   ];
   let berufBtns = '';
   for (let i = 0; i < berufDefs.length; i++) {
@@ -4417,24 +4480,24 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
   if (currentBeruf === 'ingenieur') {
     let winwinEl;
     if (kriegsherren.length) {
-      let opts = '<option value="">— kein Win-Win —</option>';
+      let opts = '<option value="">' + escHtml(tr('— kein Win-Win —')) + '</option>';
       for (let i = 0; i < kriegsherren.length; i++) {
         const n = kriegsherren[i];
         opts += '<option value="' + escHtml(n) + '"' + (n === currentWinwin ? ' selected' : '') + '>' + escHtml(n) + '</option>';
       }
       winwinEl = '<select class="v-rank-sel" id="v-beruf-winwin" style="flex:1;min-width:120px;" onclick="event.stopPropagation()">' + opts + '</select>';
     } else {
-      winwinEl = '<span style="font-size:12px;color:var(--soft);">Keine Kriegsherren vorhanden</span>';
+      winwinEl = '<span style="font-size:12px;color:var(--soft);">' + escHtml(tr('Keine Kriegsherren vorhanden')) + '</span>';
     }
     subHtml = '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">'
       + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'
-      + '<input type="checkbox" id="v-beruf-medhilfe"' + (currentMedHilfe ? ' checked' : '') + '> 🏥 Med. Hilfe'
+      + '<input type="checkbox" id="v-beruf-medhilfe"' + (currentMedHilfe ? ' checked' : '') + '> 🏥 ' + escHtml(tr('Med. Hilfe'))
       + '</label>' + winwinEl + '</div>'
-      + '<button class="v-btn save" style="margin-top:8px;" onclick="event.stopPropagation();saveVerwaltungBerufSub(\'' + esc + '\')">✓ Beruf speichern</button>';
+      + '<button class="v-btn save" style="margin-top:8px;" onclick="event.stopPropagation();saveVerwaltungBerufSub(\'' + esc + '\')">✓ ' + escHtml(tr('Beruf speichern')) + '</button>';
   }
 
   return '<div class="flag-cat" style="background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.18);margin-top:10px;">'
-    + '<div class="flag-cat-title" style="color:#6aabff;">⚗ Beruf</div>'
+    + '<div class="flag-cat-title" style="color:#6aabff;">⚗ ' + escHtml(tr('Beruf')) + '</div>'
     + '<div class="flag-btns">' + berufBtns + '</div>'
     + subHtml
     + '</div>';
@@ -4444,17 +4507,17 @@ function renderVerwaltung(filter=''){
   const missingDiscord = members.filter((n) => !memberMeta[n]?.discordConnected).length;
   const pendingAccess = accessRequests.length;
   document.getElementById('v-stats').innerHTML=`
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">Gesamt</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--gold);">${members.length}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">R5 Chef</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--purple);">${R5.size}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">R4 Leader</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--red);">${R4.size}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Gesamt'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--gold);">${members.length}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('R5 Chef'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--purple);">${R5.size}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('R4 Leader'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--red);">${R4.size}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">R1–R3</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--green);">${members.filter(n=>!R4.has(n)&&!R5.has(n)).length}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">Discord noch offen</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${missingDiscord ? 'var(--red)' : 'var(--green)'};">${missingDiscord}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--soft);font-size:13px;">Login-Anfragen offen</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${pendingAccess ? 'var(--blue)' : 'var(--green)'};">${pendingAccess}</span></div>`;
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Discord noch offen'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${missingDiscord ? 'var(--red)' : 'var(--green)'};">${missingDiscord}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Login-Anfragen offen'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${pendingAccess ? 'var(--blue)' : 'var(--green)'};">${pendingAccess}</span></div>`;
 
   const shown=filter?members.filter(n=>n.toLowerCase().includes(filter)):members;
   const list=document.getElementById('v-list');
   if(!shown.length){
-    list.innerHTML='<div class="empty">Keine Mitglieder gefunden.</div>';
+    list.innerHTML='<div class="empty">' + escHtml(tr('Keine Mitglieder gefunden.')) + '</div>';
     renderAccessRequests();
     return;
   }
@@ -4469,7 +4532,7 @@ function renderVerwaltung(filter=''){
       : `<div class="v-avatar placeholder">${escHtml((name||'?').slice(0,2).toUpperCase())}</div>`;
     const discordState = meta.discordConnected
       ? `<span class="v-state ok">Discord ✓</span>`
-      : `<span class="v-state warn">kein Discord</span>`;
+      : `<span class="v-state warn">${escHtml(tr('kein Discord'))}</span>`;
 
     const isOpen = vDetailOpen === name;
     const isEditing = editingMember === name && isOpen;
@@ -4489,17 +4552,17 @@ function renderVerwaltung(filter=''){
             </div>
             <div style="flex:1;min-width:150px;">
               <div class="vlabel">Discord-ID</div>
-              <input class="vinput" id="v-edit-discord" value="${(meta.discordId||'').replace(/"/g,'&quot;')}" placeholder="numerisch oder leer">
+              <input class="vinput" id="v-edit-discord" value="${(meta.discordId||'').replace(/"/g,'&quot;')}" placeholder="${escHtml(tr('numerisch oder leer'))}">
             </div>
           </div>
           <div style="margin-bottom:10px;">
-            <div class="vlabel">Rang</div>
+            <div class="vlabel">${escHtml(tr('Rang'))}</div>
             <select class="v-rank-sel" id="v-edit-rank">
               <option value="1" ${role===1?'selected':''}>1 · Rookie</option>
               <option value="2" ${role===2?'selected':''}>2 · Pro</option>
               <option value="3" ${role===3?'selected':''}>3 · Elite</option>
               <option value="4" ${role===4?'selected':''}>4 · Leader (R4)</option>
-              <option value="5" ${role===5?'selected':''}>5 · Chef (R5)</option>
+              <option value="5" ${role===5?'selected':''}>5 · ${escHtml(tr('Chef'))} (R5)</option>
             </select>
           </div>`;
       } else {
@@ -4509,8 +4572,8 @@ function renderVerwaltung(filter=''){
         memberInfoHtml = `
           <div style="font-size:11px;color:var(--soft);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px;">
             <span>Discord-ID: ${escHtml(meta.discordId||'–')}${meta.discordUsername?` (${escHtml(meta.discordUsername)})`:''}</span>
-            <span>·</span><span>Spieler-ID: ${escHtml(meta.id||'–')}</span>
-            ${lastVisitStr?`<span style="color:#6aabff;">· 🕐 ${lastVisitStr}</span>`:'<span style="color:var(--softer);">· Noch nie eingeloggt</span>'}
+            <span>·</span><span>${escHtml(tr('Spieler-ID'))}: ${escHtml(meta.id||'–')}</span>
+            ${lastVisitStr?`<span style="color:#6aabff;">· 🕐 ${lastVisitStr}</span>`:`<span style="color:var(--softer);">· ${escHtml(tr('Noch nie eingeloggt'))}</span>`}
           </div>`;
       }
 
@@ -4527,7 +4590,7 @@ function renderVerwaltung(filter=''){
             :f.t==='a'?'border-color:rgba(240,165,0,0.4);background:rgba(240,165,0,0.12);color:var(--gold);'
             :f.t==='n'?'border-color:rgba(155,109,255,0.5);background:rgba(155,109,255,0.15);color:var(--purple);'
             :'border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.12);color:#80b8ff;';
-          return `<button class="flag-btn" onclick="event.stopPropagation();toggleVerwaltungFlag('${esc}','${f.k}')" style="${on?onStyle:''}">${f.l}</button>`;
+          return `<button class="flag-btn" onclick="event.stopPropagation();toggleVerwaltungFlag('${esc}','${f.k}')" style="${on?onStyle:''}">${escHtml(tr(f.l))}</button>`;
         }).join('');
         return `<div class="flag-cat" style="background:${cat.bg};border:1px solid ${cat.bc};">
           <div class="flag-cat-title" style="color:${cat.lc};">${cat.l} <small style="font-weight:400;text-transform:none;letter-spacing:0;opacity:0.7;">KW ${formatYearWeek(kw)}</small></div>
@@ -4541,9 +4604,9 @@ function renderVerwaltung(filter=''){
             <button class="v-btn cancel" onclick="event.stopPropagation();cancelEdit()">✕ Abbrechen</button>
           </div>`
         : `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-            <button class="v-btn edit" onclick="event.stopPropagation();startEdit('${esc}')">✏ Bearbeiten</button>
-            <button class="v-btn del" onclick="event.stopPropagation();removeMember('${esc}')">🗑 Entfernen</button>
-            <button class="v-btn" onclick="event.stopPropagation();openMemberMeInApp('${esc}')" style="background:rgba(100,160,255,0.1);border-color:rgba(100,160,255,0.3);color:#80b8ff;">👁 Me-Ansicht</button>
+            <button class="v-btn edit" onclick="event.stopPropagation();startEdit('${esc}')">✏ ${escHtml(tr('Bearbeiten'))}</button>
+            <button class="v-btn del" onclick="event.stopPropagation();removeMember('${esc}')">🗑 ${escHtml(tr('Entfernen'))}</button>
+            <button class="v-btn" onclick="event.stopPropagation();openMemberMeInApp('${esc}')" style="background:rgba(100,160,255,0.1);border-color:rgba(100,160,255,0.3);color:#80b8ff;">👁 ${escHtml(tr('Me-Ansicht'))}</button>
           </div>`;
 
       detailHtml = '<div class="v-detail" onclick="event.stopPropagation()">'
@@ -4578,9 +4641,9 @@ function renderAccessRequests() {
   const count = document.getElementById('v-access-count');
   if (!wrap || !count) return;
 
-  count.textContent = `${accessRequests.length} offen`;
+  count.textContent = `${accessRequests.length} ${tr('offen')}`;
   if (!accessRequests.length) {
-    wrap.innerHTML = '<div class="v-access-empty">Keine offenen Anfragen.</div>';
+    wrap.innerHTML = '<div class="v-access-empty">' + escHtml(tr('Keine offenen Anfragen.')) + '</div>';
     return;
   }
 
@@ -4594,7 +4657,7 @@ function renderAccessRequests() {
     const exact = members.find((m) => m.toLowerCase() === wanted);
     const includes = exact ? null : members.find((m) => wanted && m.toLowerCase().includes(wanted));
     const suggested = exact || includes || '';
-    const options = ['<option value="">Mitglied auswählen ...</option>']
+    const options = [`<option value="">${escHtml(tr('Mitglied auswählen ...'))}</option>`]
       .concat(members.map((m) => `<option value="${escHtml(m)}" ${m===suggested?'selected':''}>${escHtml(m)}</option>`))
       .join('');
     return `<div class="v-access-row">
@@ -4606,10 +4669,10 @@ function renderAccessRequests() {
         </div>
       </div>
       <div class="v-access-actions">
-        <button class="v-btn save" onclick="acceptAccessRequestAsNew('${reqId}')">Als neues Mitglied</button>
+        <button class="v-btn save" onclick="acceptAccessRequestAsNew('${reqId}')">${escHtml(tr('Als neues Mitglied'))}</button>
         <select class="v-map-select" id="${escHtml(selectId)}">${options}</select>
-        <button class="v-btn map" onclick="mapAccessRequestToMember('${reqId}')">Auf Member mappen</button>
-        <button class="v-btn reject" onclick="rejectAccessRequest('${reqId}')">Ablehnen</button>
+        <button class="v-btn map" onclick="mapAccessRequestToMember('${reqId}')">${escHtml(tr('Auf Member mappen'))}</button>
+        <button class="v-btn reject" onclick="rejectAccessRequest('${reqId}')">${escHtml(tr('Ablehnen'))}</button>
       </div>
     </div>`;
   }).join('');
@@ -4639,7 +4702,7 @@ async function acceptAccessRequestAsNew(requestId) {
     renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
     toast(name + ' wurde angelegt und verknüpft.');
   } catch (err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
   }
 }
 window.acceptAccessRequestAsNew = acceptAccessRequestAsNew;
@@ -4671,7 +4734,7 @@ async function mapAccessRequestToMember(requestId) {
     renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
     toast('Discord-ID auf ' + targetName + ' gemappt.');
   } catch (err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
   }
 }
 window.mapAccessRequestToMember = mapAccessRequestToMember;
@@ -4683,7 +4746,7 @@ async function rejectAccessRequest(requestId) {
     renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
     toast('Anfrage abgelehnt.');
   } catch (err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
   }
 }
 window.rejectAccessRequest = rejectAccessRequest;
@@ -4718,7 +4781,7 @@ async function setVerwaltungBeruf(name, beruf) {
     await apiPost({ action: 'save_beruf', name, beruf, med_hilfe: 0, winwin: null });
     await loadMembers();
     renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
-  } catch(err) { toast('Fehler: ' + err.message); }
+  } catch(err) { toast(tr('Fehler: ') + err.message); }
 }
 window.setVerwaltungBeruf = setVerwaltungBeruf;
 
@@ -4730,7 +4793,7 @@ async function saveVerwaltungBerufSub(name) {
     await loadMembers();
     renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
     toast('Beruf gespeichert!');
-  } catch(err) { toast('Fehler: ' + err.message); }
+  } catch(err) { toast(tr('Fehler: ') + err.message); }
 }
 window.saveVerwaltungBerufSub = saveVerwaltungBerufSub;
 
@@ -4752,7 +4815,7 @@ async function swapMemberIdToDiscord(name){
     renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
     toast(name+' ID auf Discord-ID gesetzt.');
   } catch(err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
   }
 }
 window.swapMemberIdToDiscord = swapMemberIdToDiscord;
@@ -4773,12 +4836,12 @@ window.removeMember=removeMember;
 async function loadSeInactive() {
   const box = document.getElementById('se-inactive-result');
   const weeks = parseInt(document.getElementById('se-weeks-select')?.value || 4);
-  box.innerHTML = '<div class="hint">Lade...</div>';
+  box.innerHTML = '<div class="hint">' + escHtml(tr('Lade …')) + '</div>';
   try {
     const data = await fetchJson(`/se-inactive?weeks=${weeks}`);
 
     if (!data.inactive || data.inactive.length === 0) {
-      box.innerHTML = '<div class="hint" style="color:var(--green);">✓ Alle aktiven Mitglieder waren mindestens einmal beim Spezialevent dabei!</div>';
+      box.innerHTML = '<div class="hint" style="color:var(--green);">✓ ' + escHtml(tr('Alle aktiven Mitglieder waren mindestens einmal beim Spezialevent dabei!')) + '</div>';
       return;
     }
 
@@ -4806,7 +4869,7 @@ async function loadSeInactive() {
     data.inactive.sort((a, b) => (playerPoints[a.name]?.total ?? 0) - (playerPoints[b.name]?.total ?? 0));
 
     let html = `<div style="margin-bottom:8px;color:var(--softer);font-size:0.85em;">
-      ${data.inactive.length} Spieler ohne Spezialevent-Teilnahme in den letzten ${weeks} Wochen (${weekLabels.join(', ')}):
+      ${data.inactive.length} ${escHtml(tr('Spieler ohne Spezialevent-Teilnahme in den letzten'))} ${weeks} ${escHtml(tr('Wochen'))} (${weekLabels.join(', ')}):
     </div>`;
     html += `<table style="width:100%;border-collapse:collapse;font-size:0.88em;">
       <thead><tr>
@@ -4844,7 +4907,7 @@ async function loadSeInactive() {
     html += '</tbody></table>';
     box.innerHTML = html;
   } catch(e) {
-    box.innerHTML = `<div class="hint" style="color:var(--red);">Fehler: ${e.message}</div>`;
+    box.innerHTML = `<div class="hint" style="color:var(--red);"></div>`;
   }
 }
 window.loadSeInactive = loadSeInactive;
@@ -4857,7 +4920,7 @@ window.loadSeInactive = loadSeInactive;
 //   Beförderung: calcRanking(pts, realRank) > realRank in den letzten ≥2 Wochen (nicht AFK)
 //   Herabstufung: calcRanking(pts, realRank) < realRank in den letzten >2 Wochen (nicht AFK)
 //   AFK in einer relevanten Woche: sperrt die Empfehlung
-//   Nur ±1 Schritt, R4/R5 unverändert
+//   Nur ±1 Schritt, R4/R5 unver�ndert
 
 function ergebnisRecommend(playerData, weeks) {
   // weeks ist sortiert absteigend (neueste zuerst)
@@ -4928,7 +4991,7 @@ async function loadErgebnis() {
   try {
     data = await api('ranking-history', { weeks: weeksN });
   } catch(err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
     loading.style.display = 'none';
     return;
   }
@@ -4943,7 +5006,7 @@ async function loadErgebnis() {
   const infoEl = document.getElementById('ergebnis-info');
   if (data.currentKwFiltered) {
     infoEl.style.display = 'block';
-    infoEl.textContent = `ℹ KW ${data.currentKw} läuft noch und wird erst ab Sonntag in die Bewertung einbezogen.`;
+    infoEl.textContent = `ℹ KW ${data.currentKw} ${tr('l�uft noch und wird erst ab Sonntag in die Bewertung einbezogen.')}`;
   } else {
     infoEl.style.display = 'none';
   }
@@ -4965,11 +5028,11 @@ async function loadErgebnis() {
   let html = `<table class="ergebnis-table" style="width:100%;border-collapse:collapse;font-size:0.85rem;">
     <thead>
       <tr>
-        <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);">Spieler</th>
-        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">Echter Rang</th>
+        <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Spieler'))}</th>
+        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Echter Rang'))}</th>
         ${weekHeaders.replace(/(<th)/g, '$1 style="padding:6px 10px;border-bottom:1px solid var(--border);"')}
-        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">Empfehlung</th>
-        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">Aktion</th>
+        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Empfehlung'))}</th>
+        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Aktion'))}</th>
       </tr>
     </thead>
     <tbody>`;
@@ -4981,7 +5044,7 @@ async function loadErgebnis() {
 
     let actionCell = '<td></td>';
     if (rec.type === 'promote' || rec.type === 'demote') {
-      const verb = rec.type === 'promote' ? 'Befördern' : 'Herabstufen';
+      const verb = rec.type === 'promote' ? tr('Befördern') : tr('Herabstufen');
       const btnColor = rec.type === 'promote' ? '#2ecb7a' : '#e05545';
       const esc = player.name.replace(/'/g, "\\'");
       actionCell = `<td style="text-align:center;">
@@ -5008,12 +5071,12 @@ async function loadErgebnis() {
 async function ergebnisApply(name, targetRank) {
   const player = { name, realRank: PREV[name] || 3 };
   const rankLabel = RL[targetRank] || `R${targetRank}`;
-  const direction = targetRank > (PREV[name] || 3) ? 'befördern' : 'herabstufen';
+  const direction = targetRank > (PREV[name] || 3) ? tr('befördern') : tr('herabstufen');
 
   const confirmed = window.confirm(
-    `Bestätigung erforderlich:\n\n` +
-    `Ich habe Spieler "${name}" ingame auf Rang ${targetRank} (${rankLabel}) ${direction}.\n\n` +
-    `Soll der Rang jetzt auch im Tool aktualisiert werden?`
+    `${tr('Bestätigung erforderlich:')}\n\n` +
+    `${tr('Ich habe Spieler')} "${name}" ingame ${tr('auf Rang')} ${targetRank} (${rankLabel}) ${direction}.\n\n` +
+    `${tr('Soll der Rang jetzt auch im Tool aktualisiert werden?')}`
   );
   if (!confirmed) return;
 
@@ -5024,12 +5087,12 @@ async function ergebnisApply(name, targetRank) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, newRank: targetRank, confirmation })
     });
-    toast(`${name} wurde auf R${targetRank} (${rankLabel}) gesetzt.`);
+    toast(`${name} ${tr('wurde auf')} R${targetRank} (${rankLabel}) ${tr('gesetzt.')}`);
     PREV[name] = targetRank;
     await loadMembers();
     await loadErgebnis();
   } catch(err) {
-    toast('Fehler: ' + err.message);
+    toast(tr('Fehler: ') + err.message);
   }
 }
 window.loadErgebnis = loadErgebnis;
@@ -5048,14 +5111,14 @@ async function syncData(){
     if (document.getElementById('page-w')?.classList.contains('active')) selectEventView(activeEventView);
     toast('Daten synchronisiert!');
   } catch(e) {
-    toast('Sync-Fehler: ' + e.message);
+    toast(tr('Sync-Fehler: ') + e.message);
   } finally {
     btn.classList.remove('spinning');
   }
 }
 window.syncData = syncData;
 
-// ── PRESENCE PING (unabhängig vom Chat-Widget) ──
+// ── PRESENCE PING (unabh�ngig vom Chat-Widget) ──
 function startPresencePing(memberName, discordId, discordUsername) {
   async function ping() {
     try {
@@ -5079,6 +5142,26 @@ async function initApp(){
 
   authMember = readAuthState();
   updateMeButton();
+
+  if (typeof window.registerI18nPersistHandler === 'function') {
+    window.registerI18nPersistHandler(async (lang) => {
+      const memberName = authMember?.member_name || '';
+      const discordId = authMember?.discord_id || '';
+      if (!memberName || !discordId) return;
+      await apiPost({
+        action: 'set_member_language',
+        name: memberName,
+        discordId,
+        preferred_language: lang
+      });
+      authMember.preferred_language = lang;
+      writeAuthState(authMember);
+      if (memberMeta[memberName]) memberMeta[memberName].preferredLanguage = lang;
+    });
+  }
+  if (typeof window.initI18n === 'function') {
+    await window.initI18n(authMember?.preferred_language || '');
+  }
 
   if (!API_BASE_CANDIDATES.length) {
     document.getElementById('login-screen').style.display = 'flex';
@@ -5122,11 +5205,18 @@ async function initApp(){
     if (typeof window.initCharSwitcher === 'function') {
       await window.initCharSwitcher(currentDiscordUser, authMember);
       authMember = readAuthState() || authMember;
+      if (typeof window.setAppLanguage === 'function' && authMember?.preferred_language) {
+        await window.setAppLanguage(authMember.preferred_language, { persistLocal: true, persistServer: false });
+      }
     }
 
+    showBattleLoader();
     document.getElementById('login-screen').style.display = 'none';
     startPresencePing(authMember.member_name, authMember.discord_id, authMember.discord_username);
     await Promise.all([me_loadHistory(authMember.discord_id, authMember.member_name), loadFlagConfig()]);
+    const _initElapsed = Date.now() - battleLoaderShownAt;
+    if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
+    hideBattleLoader();
 
     // Warm up core datasets right after login so Events/Zug are ready without manual sync.
     ensureCoreDataLoaded({ forceEntries: true }).catch(() => {});
@@ -5138,6 +5228,7 @@ async function initApp(){
 
   // ── Lokal / Local Preview ──
   document.getElementById('login-screen').style.display = 'none';
+  showBattleLoader();
   try {
     await loadFlagConfig();
     await loadMembers();
@@ -5167,6 +5258,9 @@ async function initApp(){
     if (typeof window.initCharSwitcher === 'function') {
       await window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
       authMember = readAuthState() || localAuth;
+      if (typeof window.setAppLanguage === 'function' && authMember?.preferred_language) {
+        await window.setAppLanguage(authMember.preferred_language, { persistLocal: true, persistServer: false });
+      }
     } else {
       window.addEventListener('load', () => {
         if (typeof window.initCharSwitcher === 'function')
@@ -5175,8 +5269,12 @@ async function initApp(){
     }
     startPresencePing(localAuth.member_name || LOCAL_DEV_MEMBER_NAME, localAuth.discord_id || '', localAuth.discord_username || '');
     await me_loadHistory(localAuth.discord_id || '', localAuth.member_name || LOCAL_DEV_MEMBER_NAME);
+    const _initElapsed = Date.now() - battleLoaderShownAt;
+    if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
+    hideBattleLoader();
     showPage('m');
   } catch(e) {
+    hideBattleLoader();
     toast('Fehler beim Laden: ' + e.message);
   }
 }
@@ -5251,7 +5349,7 @@ async function adminLoadFlagConfig() {
     adminFlagConfigCache[alliance] = config;
     renderAdminFlagConfig();
   } catch(e) {
-    if (body) body.innerHTML = `<div class="empty">Fehler: ${escHtml(e.message)}</div>`;
+    if (body) body.innerHTML = `<div class="empty"></div>`;
   }
 }
 window.adminLoadFlagConfig = adminLoadFlagConfig;
@@ -5290,7 +5388,7 @@ async function loadAlliances() {
     }
   } catch (e) {
     const el = document.getElementById('alliance-list');
-    if (el) el.innerHTML = `<div class="empty">Fehler: ${escHtml(e.message)}</div>`;
+    if (el) el.innerHTML = `<div class="empty"></div>`;
   }
 }
 
@@ -5338,7 +5436,7 @@ async function submitCreate() {
     closeModal('modal-create-alliance');
     toast('Allianz angelegt', 'ok');
     await loadAlliances();
-  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+  } catch (e) { toast(tr('Fehler: ') + e.message, 'err'); }
 }
 
 function openEditAlliance(short, title, acceptsRequests = 0) {
@@ -5365,7 +5463,7 @@ async function submitEdit() {
     closeModal('modal-edit-alliance');
     toast(doMigrate ? 'Allianz umbenannt & Daten migriert' : 'Titel gespeichert', 'ok');
     await loadAlliances();
-  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+  } catch (e) { toast(tr('Fehler: ') + e.message, 'err'); }
 }
 
 // ── Archive ──
@@ -5394,7 +5492,7 @@ async function loadArchive() {
       </tr>
     `).join('');
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty">Fehler: ${escHtml(e.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="empty"></td></tr>`;
   }
 }
 
@@ -5408,7 +5506,7 @@ async function restorePlayer(archiveId, name) {
     });
     toast(`${name} wiederhergestellt`, 'ok');
     await loadArchive();
-  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+  } catch (e) { toast(tr('Fehler: ') + e.message, 'err'); }
 }
 
 // ── Transfer ──
@@ -5420,7 +5518,7 @@ async function loadTransferAlliances() {
       const el = document.getElementById(id);
       if (!el) return;
       const current = el.value;
-      el.innerHTML = '<option value="">– wählen –</option>';
+      el.innerHTML = '<option value="">– w�hlen –</option>';
       alliances.forEach(a => {
         const opt = document.createElement('option');
         opt.value = a.short_name; opt.textContent = a.short_name;
@@ -5435,45 +5533,45 @@ async function loadTransferPlayers() {
   const fromEl = document.getElementById('transfer-from');
   const playerEl = document.getElementById('transfer-player');
   const fromAlliance = fromEl?.value;
-  if (!fromAlliance) { playerEl.innerHTML = '<option value="">Erst Allianz wählen</option>'; return; }
+  if (!fromAlliance) { playerEl.innerHTML = '<option value="">' + escHtml(tr('Erst Allianz wählen')) + '</option>'; return; }
   playerEl.innerHTML = '<option value="">Lade …</option>';
   try {
     const data = await adminApi(`/members?alliance=${encodeURIComponent(fromAlliance)}&discord_id=${encodeURIComponent(authMember?.discord_id || '')}`);
     const members = Array.isArray(data) ? data : (data.members || []);
-    if (!members.length) { playerEl.innerHTML = '<option value="">Keine Spieler</option>'; return; }
-    playerEl.innerHTML = '<option value="">Spieler wählen …</option>' +
+    if (!members.length) { playerEl.innerHTML = '<option value="">' + escHtml(tr('Keine Spieler')) + '</option>'; return; }
+    playerEl.innerHTML = '<option value="">' + escHtml(tr('Spieler wählen ...')) + '</option>' +
       members.map(m => `<option value="${escHtml(m.name)}">${escHtml(m.name)} (R${m.default_rank ?? m.rank})</option>`).join('');
-  } catch (_) { playerEl.innerHTML = '<option value="">Fehler beim Laden</option>'; }
+  } catch (_) { playerEl.innerHTML = '<option value="">' + escHtml(tr('Fehler beim Laden')) + '</option>'; }
 }
 
 async function submitTransfer() {
   const fromAlliance = document.getElementById('transfer-from')?.value?.trim();
   const playerName   = document.getElementById('transfer-player')?.value?.trim();
   const toAlliance   = document.getElementById('transfer-to')?.value?.trim();
-  if (!fromAlliance || !playerName || !toAlliance) { toast('Bitte alle Felder ausfüllen', 'err'); return; }
-  if (fromAlliance === toAlliance) { toast('Quell- und Ziel-Allianz sind identisch', 'err'); return; }
-  if (!confirm(`Spieler "${playerName}" von ${fromAlliance} nach ${toAlliance} transferieren?\n\nAlle Daten werden mitgenommen.`)) return;
+  if (!fromAlliance || !playerName || !toAlliance) { toast(tr('Bitte alle Felder ausfüllen'), 'err'); return; }
+  if (fromAlliance === toAlliance) { toast(tr('Quell- und Ziel-Allianz sind identisch'), 'err'); return; }
+  if (!confirm(`${tr('Spieler')} "${playerName}" ${tr('von')} ${fromAlliance} ${tr('nach')} ${toAlliance} ${tr('transferieren?')}\n\n${tr('Alle Daten werden mitgenommen.')}`)) return;
   try {
     await adminApi(`/members/${encodeURIComponent(playerName)}/transfer?alliance=${encodeURIComponent(fromAlliance)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ discord_id: authMember?.discord_id, to_alliance: toAlliance })
     });
-    toast(`${playerName} nach ${toAlliance} transferiert`, 'ok');
-    document.getElementById('transfer-player').innerHTML = '<option value="">Spieler wählen …</option>';
+    toast(`${playerName} ${tr('nach')} ${toAlliance} ${tr('transferiert')}`, 'ok');
+    document.getElementById('transfer-player').innerHTML = '<option value="">' + escHtml(tr('Spieler wählen ...')) + '</option>';
     await loadTransferPlayers();
-  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+  } catch (e) { toast(tr('Fehler: ') + e.message, 'err'); }
 }
 
 // ── Admins ──
 async function loadAdmins() {
   const tbody = document.getElementById('admins-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="7" class="empty"><span class="spin">↻</span> Lade …</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" class="empty"><span class="spin">↻</span> ' + escHtml(tr('Lade …')) + '</td></tr>';
   try {
     const data = await adminApi(`/admins?discord_id=${encodeURIComponent(authMember?.discord_id || '')}`);
     const admins = data.admins || [];
-    if (!admins.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Keine Admins gefunden.</td></tr>'; return; }
+    if (!admins.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">' + escHtml(tr('Keine Admins gefunden.')) + '</td></tr>'; return; }
     const selfId = authMember?.discord_id || '';
     tbody.innerHTML = admins.map(a => {
       const avatarHtml = a.avatar
@@ -5484,14 +5582,14 @@ async function loadAdmins() {
         <td><strong>${escHtml(displayName)}</strong></td>
         <td style="color:var(--soft);font-size:12px">${avatarHtml}${escHtml(a.username || a.discord_user_id)}</td>
         <td>${a.alliance ? escHtml(a.alliance) : '<em style="color:var(--softer)">-</em>'}</td>
-        <td style="color:var(--soft);font-size:12px">${escHtml(a.granted_by === 'system' ? 'System' : (a.granted_by || '-'))}</td>
+        <td style="color:var(--soft);font-size:12px">${escHtml(a.granted_by === 'system' ? tr('System') : (a.granted_by || '-'))}</td>
         <td style="color:var(--soft);font-size:12px">${escHtml(a.note || '')}</td>
         <td style="color:var(--soft);font-size:12px">${a.granted_at ? a.granted_at.slice(0,10) : '-'}</td>
-        <td>${isSelf ? '' : `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" onclick="revokeAdmin(${escHtml(JSON.stringify(a.discord_user_id))}, ${escHtml(JSON.stringify(displayName))})">Entziehen</button>`}</td>
+        <td>${isSelf ? '' : `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" onclick="revokeAdmin(${escHtml(JSON.stringify(a.discord_user_id))}, ${escHtml(JSON.stringify(displayName))})">${escHtml(tr('Entziehen'))}</button>`}</td>
       </tr>`;
     }).join('');
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty">Fehler: ${escHtml(e.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty"></td></tr>`;
   }
 }
 
@@ -5504,7 +5602,7 @@ function openGrantAdmin() {
 async function submitGrantAdmin() {
   const input = document.getElementById('grant-player-name').value.trim();
   const note  = document.getElementById('grant-note').value.trim();
-  if (!input) { toast('Name oder Discord-ID eingeben', 'err'); return; }
+  if (!input) { toast(tr('Name oder Discord-ID eingeben'), 'err'); return; }
   const isDiscordId = /^\d{15,25}$/.test(input);
   const payload = {
     discord_id: authMember?.discord_id,
@@ -5518,22 +5616,22 @@ async function submitGrantAdmin() {
       body: JSON.stringify(payload)
     });
     closeModal('modal-grant-admin');
-    toast('Admin-Recht vergeben', 'ok');
+    toast(tr('Admin-Recht vergeben'), 'ok');
     await loadAdmins();
-  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+  } catch (e) { toast(tr('Fehler: ') + e.message, 'err'); }
 }
 
 async function revokeAdmin(targetDiscordId, displayName) {
-  if (!confirm(`Admin-Recht von "${displayName}" entziehen?`)) return;
+  if (!confirm(`${tr('Admin-Recht von')} "${displayName}" ${tr('entziehen?')}`)) return;
   try {
     await adminApi(`/admins/${encodeURIComponent(targetDiscordId)}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ discord_id: authMember?.discord_id })
     });
-    toast(`Admin-Recht von ${displayName} entzogen`, 'ok');
+    toast(`${tr('Admin-Recht von')} ${displayName} ${tr('entzogen')}`, 'ok');
     await loadAdmins();
-  } catch (e) { toast('Fehler: ' + e.message, 'err'); }
+  } catch (e) { toast(tr('Fehler: ') + e.message, 'err'); }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -5690,7 +5788,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       });
       if (d.ok) { zugQueue = d.queue || []; zugRenderQueue(); toast('Queue synchronisiert'); }
       else toast(d.error || 'Fehler', 'err');
-    } catch(e) { toast('Fehler: '+e.message,'err'); }
+    } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
     if (btn) btn.textContent = '⟳ Queue sync';
   };
 
@@ -5744,7 +5842,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       const kwYear = new Date(week[3] + 'T00:00').getFullYear(); // Thu = ISO week year
 
       // Build copyable mail text for this week
-      const mailLines = ['KW' + kw + ' (' + kwYear + ') – Wöchentliche Schaffner-Bestimmung', ''];
+      const mailLines = ['KW' + kw + ' (' + kwYear + ') – W�chentliche Schaffner-Bestimmung', ''];
       for (const ds of week) {
         const e = byDate[ds];
         const d = new Date(ds + 'T00:00');
@@ -5763,7 +5861,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       // Week header row
       html += '<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:4px;padding:2px 0;">'
         + '<span style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--soft);text-transform:uppercase;white-space:nowrap;">KW ' + kw + '</span>'
-        + '<button data-mailtext="' + mailText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '" onclick="zugCopyMail(this)" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--soft);cursor:pointer;transition:all 0.15s;" title="Mail-Text für KW ' + kw + ' kopieren">✉ Mail</button>'
+        + '<button data-mailtext="' + mailText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '" onclick="zugCopyMail(this)" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--soft);cursor:pointer;transition:all 0.15s;" title="Mail-Text f�r KW ' + kw + ' kopieren">✉ Mail</button>'
         + '<div style="flex:1;height:1px;background:rgba(255,255,255,0.05);"></div>'
         + '</div>';
 
@@ -5845,7 +5943,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
     const assigned = zugQueue.filter(r =>  plannedNames.has(r.member_name));
 
     const renderRow = (row, rank, isFirst, isAssigned) => {
-      const last = row.last_turn_date ? 'Letzter Einsatz: ' + row.last_turn_date : 'Noch nie';
+      const last = row.last_turn_date ? tr('Letzter Einsatz') + ': ' + row.last_turn_date : tr('Noch nie');
       const bg     = isAssigned ? 'rgba(46,203,122,0.07)'  : isFirst ? 'rgba(240,165,0,0.1)'       : 'rgba(255,255,255,0.025)';
       const border = isAssigned ? 'rgba(46,203,122,0.25)'  : isFirst ? 'rgba(240,165,0,0.3)'        : 'rgba(255,255,255,0.05)';
       const numCol = isAssigned ? 'var(--green)'            : isFirst ? 'var(--gold)'                : 'var(--soft-2)';
@@ -5856,7 +5954,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
         '<span style="font-family:\'Rajdhani\',sans-serif;font-size:18px;color:' + numCol + ';width:22px;text-align:center;">' + rank + '</span>' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(row.member_name) + '</div>' +
-          '<div style="font-size:10px;color:var(--soft-2);">' + last + ' · ' + row.turn_count + '× gefahren</div>' +
+          '<div style="font-size:10px;color:var(--soft-2);">' + last + ' · ' + row.turn_count + tr('× gefahren') + '</div>' +
         '</div>' + badge + '</div>';
     };
 
@@ -5939,7 +6037,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
         } else {
           toast(d.error || 'Fehler beim Tauschen', 'err');
         }
-      } catch(e) { toast('Fehler: ' + e.message, 'err'); }
+      } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
       return;
     }
 
@@ -6031,7 +6129,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       });
       if (d.ok) { zugRulesets = d.rulesets; zugHideRulesetForm(); zugRenderRulesetList(); zugRenderRulesetSelect(); toast('Regelwerk gespeichert'); }
       else toast(d.error||'Fehler','err');
-    } catch(e) { toast('Fehler: '+e.message,'err'); }
+    } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
   };
   window.zugDeleteRuleset = async function(key) {
     if (!confirm(`Regelwerk "${key}" wirklich löschen?`)) return;
@@ -6042,7 +6140,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       });
       if (d.ok) { zugRulesets = d.rulesets; zugRenderRulesetList(); zugRenderRulesetSelect(); toast('Regelwerk gelöscht'); }
       else toast(d.error||'Fehler','err');
-    } catch(e) { toast('Fehler: '+e.message,'err'); }
+    } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
   };
 
   // ── day click & event form ─────────────────────────────────────────────────
@@ -6091,7 +6189,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       });
       if (d.ok) { await zugReloadAndClose(); toast('Als abgeschlossen markiert'); }
       else toast(d.error||'Fehler','err');
-    } catch(e) { toast('Fehler: '+e.message,'err'); }
+    } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
   };
 
   window.zugOpenNoShowForm = function() {
@@ -6119,7 +6217,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       });
       if (d.ok) { await zugReloadAndClose(); toast(sub ? `No-Show. Einspringer: ${sub}` : 'No-Show eingetragen'); }
       else toast(d.error||'Fehler','err');
-    } catch(e) { toast('Fehler: '+e.message,'err'); }
+    } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
   };
 
   window.zugEditExisting = async function() {
@@ -6146,7 +6244,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       });
       if (d.ok) { await zugReloadAndClose(); toast('Termin gelöscht'); }
       else toast(d.error||'Fehler','err');
-    } catch(e) { toast('Fehler: '+e.message,'err'); }
+    } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
   };
 
   window.zugOpenCreateForm = async function(editing=false) {
@@ -6200,7 +6298,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
         if (d.ok) { await zugReloadAndClose(); toast('Termin angelegt'); }
         else toast(d.error||'Fehler','err');
       }
-    } catch(e) { toast('Fehler: '+e.message,'err'); }
+    } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
   };
 
   async function zugReloadAndClose() {
@@ -6318,3 +6416,5 @@ initApp();
 <script src="shared-bottom.js"></script>
 </body>
 </html>
+
+

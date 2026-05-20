@@ -42,8 +42,8 @@
   <!-- subtle floor glow -->
   <ellipse cx="32" cy="60" rx="26" ry="4" fill="#f0a500" opacity="0.12"/>
 
-  <!-- ═══ LEFT BULLET — base at (14, 58), tilted -20° ═══ -->
-  <g transform="translate(14,58) rotate(-20)">
+  <!-- ═══ LEFT BULLET — base at (20, 58), tilted -20° ═══ -->
+  <g transform="translate(20,58) rotate(-20)">
     <!-- casing rim -->
     <rect x="-6.5" y="-5" width="13" height="5" rx="1.5" fill="url(#rim)"/>
     <!-- body -->
@@ -70,8 +70,8 @@
     <circle cx="0" cy="-2.5" r="1.2" fill="#c88000" opacity="0.5"/>
   </g>
 
-  <!-- ═══ RIGHT BULLET — base at (50, 58), tilted +20° ═══ -->
-  <g transform="translate(50,58) rotate(20)">
+  <!-- ═══ RIGHT BULLET — base at (44, 58), tilted +20° ═══ -->
+  <g transform="translate(44,58) rotate(20)">
     <rect x="-6.5" y="-5" width="13" height="5" rx="1.5" fill="url(#rim)"/>
     <rect x="-5.5" y="-36" width="11" height="31" fill="url(#bdy)"/>
     <rect x="-5.5" y="-36" width="11" height="31" fill="url(#shine)"/>

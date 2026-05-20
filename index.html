@@ -1927,9 +1927,6 @@ async function api(action, params = {}) {
       if (!Number.isFinite(week)) return [];
       return fetchJson(`/entries/${week}`);
     }
-    case 'history':
-      // Noch kein History-Endpunkt im Flask-Backend.
-      return [];
     case 'weights':
       return W;
     case 'verify_discord':
@@ -2216,7 +2213,6 @@ let kw=currentYearWeek(), entries=[], activeFilter='all', listFilter='all', sear
 let doneMode=0; // 0=normal, 1=ans Ende, 2=ausblenden
 let members = [];
 let memberMeta = {};
-let historyData = [];
 let accessRequests = [];
 let entriesLoading = false;
 let entriesLoadedAt = 0;
@@ -2434,10 +2430,6 @@ async function loadAccessRequests() {
   } catch (err) {
     accessRequests = [];
   }
-}
-
-async function loadHistory() {
-  historyData = await api('history') || [];
 }
 
 async function saveEntry(name, rank, flags) {
@@ -3281,8 +3273,8 @@ function renderList(){
   }
 
   document.addEventListener('keydown',function(e){
-    const pageE=document.getElementById('page-e').classList.contains('active');
-    const pageW=document.getElementById('page-w').classList.contains('active');
+    const pageE=document.getElementById('page-e')?.classList.contains('active');
+    const pageW=document.getElementById('page-w')?.classList.contains('active');
     if(!pageE && !pageW) return;
     const tag=(document.activeElement?.tagName||'').toLowerCase();
     if(tag==='input'||tag==='textarea'||tag==='select') return;
@@ -5109,7 +5101,6 @@ async function syncData(){
     await loadMembers();
     await loadEntries();
     await loadAccessRequests();
-    await loadHistory();
     renderAll();
     if (document.getElementById('page-w')?.classList.contains('active')) selectEventView(activeEventView);
     toast('Daten synchronisiert!');
@@ -6416,7 +6407,6 @@ initApp();
 
 </script>
 <script src="char-switcher.js"></script>
-<script src="shared-bottom.js"></script>
 </body>
 </html>
 

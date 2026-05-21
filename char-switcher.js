@@ -80,7 +80,6 @@
         align-items: center;
         gap: 8px;
         margin-left: auto;
-        margin-right: 12px;
       }
       #cs-alliance-name {
         font-family: 'Rajdhani', sans-serif;
@@ -346,7 +345,7 @@
       const langEl = document.getElementById('lang-switch');
       if (langEl && (isCompact || isMobile)) {
         const langRow = document.createElement('div');
-        langRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 12px 2px;';
+        langRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 12px 2px 6px;';
         const langLabel = document.createElement('span');
         langLabel.style.cssText = 'font-size:12px;color:#7a8498;flex-shrink:0;';
         langLabel.textContent = '🌐 ' + tr('Sprache');

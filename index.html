@@ -3015,11 +3015,12 @@ function buildNavActionsFromTabs() {
   const actions = [];
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(btn => {
     const label = btn.textContent.trim();
-    if (label) {
-      const ref = btn;
-      // always register all tabs; dropdown filters by cs-mobile-only + nav-compact visibility
-      actions.push({ label, fn: () => ref.click(), btnRef: ref });
-    }
+    if (!label) return;
+    // Parse showPage id directly so we never rely on .click() of a hidden element
+    const onclickStr = btn.getAttribute('onclick') || '';
+    const m = onclickStr.match(/showPage\(['"]([^'"]+)['"]\)/);
+    const fn = m ? () => showPage(m[1]) : () => btn.click();
+    actions.push({ label, fn, btnRef: btn });
   });
   window.csNavActions = actions;
 }

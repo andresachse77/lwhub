@@ -80,6 +80,7 @@
         align-items: center;
         gap: 8px;
         margin-left: auto;
+        margin-right: 12px;
       }
       #cs-alliance-name {
         font-family: 'Rajdhani', sans-serif;
@@ -190,10 +191,10 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 10px;
+        padding: 10px 12px;
         border-radius: 8px;
         cursor: pointer;
-        font-size: 12px;
+        font-size: 13px;
         color: #7a8498;
         transition: all 0.12s;
         border: none;
@@ -281,7 +282,7 @@
     // Dropdown
     const dropdown = document.createElement('div');
     dropdown.id = 'cs-dropdown';
-    dropdown.innerHTML = `<div class="cs-section-label">${escHtml(tr('Charaktere'))}</div><div id="cs-chars-list"></div>`;
+    dropdown.innerHTML = `<div id="cs-nav-section"></div><div class="cs-section-label" id="cs-chars-label">${escHtml(tr('Charaktere'))}</div><div id="cs-chars-list"></div>`;
     wrap.appendChild(dropdown);
 
     // Toggle – rebuild nav section on open so it reflects current compact state
@@ -300,10 +301,9 @@
 
     // Rebuild only the nav-actions divider + buttons at bottom of list
     function rebuildNavSection() {
-      const list = document.getElementById('cs-chars-list');
-      if (!list) return;
-      // Remove existing nav section (divider + nav items)
-      list.querySelectorAll('.cs-nav-divider, .cs-nav-item').forEach(el => el.remove());
+      const navSection = document.getElementById('cs-nav-section');
+      if (!navSection) return;
+      navSection.innerHTML = '';
       const navActions = window.csNavActions || [];
       const isMobile = window.innerWidth <= 720;
       const isCompact = document.body.classList.contains('nav-compact');
@@ -311,13 +311,10 @@
         isMobile || !a.btnRef || a.btnRef.style.display === 'none'
       );
       if (isCompact && hiddenActions.length) {
-        const divider = document.createElement('div');
-        divider.className = 'cs-divider cs-mobile-only cs-nav-divider';
-        list.appendChild(divider);
         hiddenActions.forEach((a) => {
           const origIdx = navActions.indexOf(a);
           const btn = document.createElement('button');
-          btn.className = 'cs-menu-item cs-mobile-only cs-nav-item';
+          btn.className = 'cs-menu-item cs-nav-item';
           btn.dataset.navAction = origIdx;
           btn.textContent = a.label;
           btn.addEventListener('click', () => {
@@ -325,12 +322,12 @@
             trigger.classList.remove('open');
             if (a.fn) a.fn();
           });
-          list.appendChild(btn);
+          navSection.appendChild(btn);
         });
         const syncEl = document.getElementById('btn-sync');
         if (syncEl) {
           const syncBtn = document.createElement('button');
-          syncBtn.className = 'cs-menu-item cs-mobile-only cs-nav-item';
+          syncBtn.className = 'cs-menu-item cs-nav-item';
           syncBtn.id = 'cs-sync-btn';
           syncBtn.textContent = `🔄 ${tr('Daten aktualisieren')}`;
           syncBtn.addEventListener('click', () => {
@@ -338,8 +335,43 @@
             trigger.classList.remove('open');
             syncEl.click();
           });
-          list.appendChild(syncBtn);
+          navSection.appendChild(syncBtn);
         }
+        const divider = document.createElement('div');
+        divider.className = 'cs-divider cs-nav-divider';
+        navSection.appendChild(divider);
+      }
+
+      // Language switcher – always show in dropdown when navbar lang-select is hidden
+      const langEl = document.getElementById('lang-switch');
+      if (langEl && (isCompact || isMobile)) {
+        const langRow = document.createElement('div');
+        langRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 12px 2px;';
+        const langLabel = document.createElement('span');
+        langLabel.style.cssText = 'font-size:12px;color:#7a8498;flex-shrink:0;';
+        langLabel.textContent = '🌐 ' + tr('Sprache');
+        const langSel = document.createElement('select');
+        langSel.style.cssText = 'flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#dde1ec;font-size:12px;padding:4px 6px;outline:none;cursor:pointer;font-family:inherit;';
+        for (const opt of langEl.options) {
+          const o = document.createElement('option');
+          o.value = opt.value;
+          o.textContent = opt.textContent;
+          if (opt.selected) o.selected = true;
+          langSel.appendChild(o);
+        }
+        langSel.addEventListener('change', () => {
+          langEl.value = langSel.value;
+          langEl.dispatchEvent(new Event('change'));
+          dropdown.classList.remove('open');
+          trigger.classList.remove('open');
+        });
+        langRow.appendChild(langLabel);
+        langRow.appendChild(langSel);
+        navSection.appendChild(langRow);
+        const langDivider = document.createElement('div');
+        langDivider.className = 'cs-divider';
+        langDivider.style.marginTop = '8px';
+        navSection.appendChild(langDivider);
       }
     }
 

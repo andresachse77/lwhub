@@ -1220,25 +1220,16 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 
 <!-- ═══ ZUG LESEANSICHT (alle Mitglieder) ═══ -->
 <div class="page" id="page-zv">
-  <div class="panel" style="margin-bottom:1rem;">
-    <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
-      <div class="panel-title" style="color:var(--text);"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="16" viewBox="0 0 38 20" style="vertical-align:-2px;display:inline-block;"><circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/><circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/><rect x="6.5" y="3" width="4" height="4.5" rx="0.8" fill="#B87300"/><rect x="1" y="6.5" width="22" height="9" rx="4" fill="#F0A500"/><rect x="2" y="7.2" width="19" height="3.2" rx="2" fill="rgba(255,230,90,0.38)"/><rect x="19" y="3.5" width="10" height="12" rx="1.5" fill="#D4890A"/><rect x="18" y="2.2" width="12" height="2.5" rx="1" fill="#B87300"/><rect x="21" y="5" width="5" height="4" rx="1" fill="#87CEEB" opacity="0.88"/><rect x="0" y="10.8" width="2" height="2.5" rx="0.4" fill="#9A6200"/><circle cx="8.5" cy="17" r="3.4" fill="#9A6200" stroke="#F0C040" stroke-width="1.1"/><circle cx="8.5" cy="17" r="1.3" fill="#C8820A"/><line x1="8.5" y1="13.6" x2="8.5" y2="20.4" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="15" x2="11.9" y2="19" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="19" x2="11.9" y2="15" stroke="#C8820A" stroke-width="0.7"/><circle cx="3" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="21" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="27" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><rect x="3" y="16.3" width="25" height="1.5" rx="0.5" fill="#9A6200" opacity="0.6"/></svg> Zug</div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">
-        <label style="font-size:0.82rem;color:var(--soft);">Regelwerk:</label>
-        <select id="zug-ro-ruleset-select" style="background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:0.82rem;" onchange="zugRoOnRulesetChange()"></select>
-      </div>
-    </div>
-  </div>
+  <h2 style="margin:0 0 14px 2px;font-size:1.45rem;font-weight:700;color:var(--text);letter-spacing:0.01em;">Schaffner-Übersicht</h2>
   <div class="panel" id="zug-ro-cal-panel">
     <div class="panel-head">
       <div>
         <div class="panel-title" id="zug-ro-cal-title">Kalender</div>
-        <div class="panel-sub">Schaffner-Übersicht</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <button class="wt-btn" onclick="zugRoNavMonth(-1)">‹</button>
-        <button class="wt-btn" onclick="zugRoNavMonth(1)">›</button>
-        <button class="wt-btn" onclick="zugRoNavToday()" style="padding:4px 10px;font-size:11px;">Heute</button>
+        <button class="wt-btn" onclick="zugRoNavWeek(-1)" style="padding:8px 14px;font-size:20px;min-width:44px;">‹</button>
+        <button class="wt-btn" onclick="zugRoNavWeek(1)" style="padding:8px 14px;font-size:20px;min-width:44px;">›</button>
+        <button class="wt-btn" onclick="zugRoNavToday()" style="padding:8px 14px;font-size:12px;">Heute</button>
       </div>
     </div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;margin-bottom:12px;color:var(--soft);">
@@ -1247,16 +1238,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(224,85,69,0.7);margin-right:4px;vertical-align:middle;"></span>No-Show</span>
       <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(100,100,100,0.5);margin-right:4px;vertical-align:middle;"></span>Abgesagt</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;">
-      <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Mo</div>
-      <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Di</div>
-      <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Mi</div>
-      <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Do</div>
-      <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Fr</div>
-      <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Sa</div>
-      <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">So</div>
-    </div>
-    <div id="zug-ro-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+    <div id="zug-ro-cal-grid"></div>
   </div>
 </div>
 
@@ -2336,12 +2318,11 @@ async function loadMemberDiscordAvatar(name) {
   }
 
   const probeUrl = `https://unavatar.io/discord/${encodeURIComponent(meta.discordId)}?fallback=false&t=${Date.now()}`;
-  const ok = await new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = probeUrl;
-  });
+  let ok = false;
+  try {
+    const resp = await fetch(probeUrl, { method: 'HEAD' });
+    ok = resp.ok;
+  } catch {}
 
   if (!ok) {
     toast('Kein Discord-Bild gefunden.');
@@ -2357,17 +2338,19 @@ async function loadMemberDiscordAvatar(name) {
 window.loadMemberDiscordAvatar = loadMemberDiscordAvatar;
 
 async function autoRefreshAvatars() {
+  // Im lokalen Modus oder ohne Discord-Token keine externen Anfragen
+  if (IS_LOCAL_PREVIEW || !localStorage.getItem('discord_token')) return;
   const stale = Object.values(memberMeta).filter(m => m.discordId && isAvatarCacheStale(m.discordId));
   if (!stale.length) return;
   for (const meta of stale) {
-    const probeUrl = `https://unavatar.io/discord/${encodeURIComponent(meta.discordId)}?fallback=false`;
-    const ok = await new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = probeUrl + '&t=' + Date.now();
-    });
-    if (ok) setAvatarCache(meta.discordId, probeUrl);
+    const probeUrl = `https://unavatar.io/discord/${encodeURIComponent(meta.discordId)}?fallback=false&t=${Date.now()}`;
+    let ok = false;
+    try {
+      const resp = await fetch(probeUrl, { method: 'HEAD' });
+      ok = resp.ok;
+    } catch {}
+    // Cache both hits and misses (null url) to prevent re-probing within TTL
+    setAvatarCache(meta.discordId, ok ? probeUrl.split('&t=')[0] : null);
   }
 }
 
@@ -3080,21 +3063,13 @@ function updateNavCompact() {
 
   const candidateBtns = allBtns.filter(b => b.style.display !== 'none');
 
-  // Step 3: Greedy — show as many as fit left-to-right
-  let used = 0;
-  let anyHidden = false;
-  candidateBtns.forEach(btn => {
-    const w = btn.offsetWidth + 4; // +4px for gap between buttons
-    if (used + w <= availW) {
-      used += w;
-    } else {
-      btn.style.display = 'none';
-      anyHidden = true;
-    }
-  });
-
-  const anyVisible = allBtns.some(b => b.style.display !== 'none');
-  if (!anyVisible) tabs.style.display = 'none';
+  // Step 3: All-or-nothing — if not all tabs fit, hide ALL and let char-switcher show them
+  const totalNeeded = candidateBtns.reduce((sum, btn) => sum + btn.offsetWidth + 4, 0);
+  const anyHidden = totalNeeded > availW;
+  if (anyHidden) {
+    candidateBtns.forEach(btn => { btn.style.display = 'none'; });
+    tabs.style.display = 'none';
+  }
   document.body.classList.toggle('nav-compact', anyHidden);
 }
 
@@ -3139,6 +3114,8 @@ async function showPage(id) {
     if (id === 'p' && !isPointsGuideVisible()) return 'm';
     return id;
   })();
+
+  try { localStorage.setItem('lwhub_last_page', safeId); } catch(e) {}
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pageEl = document.getElementById('page-' + safeId);
@@ -5249,7 +5226,7 @@ async function initApp(){
     ensureCoreDataLoaded({ forceEntries: true }).catch(() => {});
 
     updateEventTabVisibility();
-    showPage('m');
+    showPage(localStorage.getItem('lwhub_last_page') || 'm');
     return;
   }
 
@@ -5299,7 +5276,7 @@ async function initApp(){
     const _initElapsed = Date.now() - battleLoaderShownAt;
     if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
     hideBattleLoader();
-    showPage('m');
+    showPage(localStorage.getItem('lwhub_last_page') || 'm');
   } catch(e) {
     hideBattleLoader();
     toast('Fehler beim Laden: ' + e.message);
@@ -5665,8 +5642,8 @@ async function revokeAdmin(targetDiscordId, displayName) {
 // ZUG-PLANER
 // ══════════════════════════════════════════════════════════════════════════════
 (function(){
-  let zugCurrentMonth = null;   // 'YYYY-MM'
-  let zugSchedule     = [];     // entries for current month
+  let zugWindowStart  = null;   // 'YYYY-MM-DD' Monday of first visible week
+  let zugSchedule     = [];     // entries loaded for current window
   let zugQueue        = [];     // queue rows
   let zugRulesets     = [];     // ruleset definitions
   let zugActiveRuleset= 'standard';
@@ -5765,17 +5742,45 @@ async function revokeAdmin(targetDiscordId, displayName) {
     } catch(e) { console.warn('zugLoadQueue', e); }
   }
 
-  async function zugLoadSchedule(month) {
-    try {
-      const d = await zugApiFetch(`/zug/schedule?month=${encodeURIComponent(month)}`);
-      if (d.ok) zugSchedule = d.entries || [];
-    } catch(e) { console.warn('zugLoadSchedule', e); }
+  // Returns 'YYYY-MM-DD' of the ISO Monday of the week containing dateStr
+  function getMondayOfWeek(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const dow = (d.getDay() + 6) % 7; // Mon=0
+    d.setDate(d.getDate() - dow);
+    const _p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${_p(d.getMonth()+1)}-${_p(d.getDate())}`;
+  }
+
+  // Load schedule entries for all months that overlap with a weekCount-week window
+  async function zugLoadScheduleForWindow(windowStart, weekCount) {
+    const months = new Set();
+    const _p = n => String(n).padStart(2,'0');
+    for (let w = 0; w <= weekCount; w++) {
+      const d = new Date(windowStart + 'T00:00:00');
+      d.setDate(d.getDate() + w * 7);
+      months.add(d.getFullYear() + '-' + _p(d.getMonth()+1));
+      const dEnd = new Date(d); dEnd.setDate(dEnd.getDate() + 6);
+      months.add(dEnd.getFullYear() + '-' + _p(dEnd.getMonth()+1));
+    }
+    const results = await Promise.all([...months].map(mo =>
+      zugApiFetch(`/zug/schedule?month=${encodeURIComponent(mo)}`).catch(() => ({ok:false}))
+    ));
+    const seen = new Set();
+    zugSchedule = [];
+    for (const d of results) {
+      if (!d.ok) continue;
+      for (const e of (d.entries || [])) {
+        const k = e.event_date + '|' + e.ruleset_key;
+        if (!seen.has(k)) { seen.add(k); zugSchedule.push(e); }
+      }
+    }
   }
 
   // ── main entry point ───────────────────────────────────────────────────────
   window.zugLoadPage = async function() {
-    if (!zugCurrentMonth) zugCurrentMonth = todayStr().slice(0,7);
-    await Promise.all([zugLoadRulesets(), zugLoadQueue(), zugLoadSchedule(zugCurrentMonth)]);
+    if (!zugWindowStart) zugWindowStart = getMondayOfWeek(todayStr());
+    const weekCount = zugCalWeekCount();
+    await Promise.all([zugLoadRulesets(), zugLoadQueue(), zugLoadScheduleForWindow(zugWindowStart, weekCount)]);
     zugRenderRulesetSelect();
     zugRenderCalendar();
     zugRenderQueue();
@@ -5790,17 +5795,20 @@ async function revokeAdmin(targetDiscordId, displayName) {
     zugRenderCalendar();
   };
 
-  window.zugNavMonth = async function(delta) {
-    const [y,m] = zugCurrentMonth.split('-').map(Number);
-    const d = new Date(y, m-1+delta, 1);
-    zugCurrentMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    await zugLoadSchedule(zugCurrentMonth);
+  window.zugNavWeek = async function(delta) {
+    const d = new Date(zugWindowStart + 'T00:00:00');
+    d.setDate(d.getDate() + delta * 7);
+    const _p = n => String(n).padStart(2,'0');
+    zugWindowStart = `${d.getFullYear()}-${_p(d.getMonth()+1)}-${_p(d.getDate())}`;
+    const weekCount = zugCalWeekCount();
+    await zugLoadScheduleForWindow(zugWindowStart, weekCount);
     zugRenderCalendar();
   };
 
   window.zugNavToday = async function() {
-    zugCurrentMonth = todayStr().slice(0,7);
-    await zugLoadSchedule(zugCurrentMonth);
+    zugWindowStart = getMondayOfWeek(todayStr());
+    const weekCount = zugCalWeekCount();
+    await zugLoadScheduleForWindow(zugWindowStart, weekCount);
     zugRenderCalendar();
   };
 
@@ -5829,98 +5837,126 @@ async function revokeAdmin(targetDiscordId, displayName) {
   }
 
   // ── render: calendar ───────────────────────────────────────────────────────
+  // How many week columns fit in the calendar panel at current width
+  function zugCalWeekCount() {
+    const grid = document.getElementById('zug-cal-grid');
+    const DAY_COL_W = 36;
+    const MIN_CELL_W = 120; // ~30% more than the read-only view (90px)
+    const containerW = (grid ? grid.offsetWidth : 0) || (window.innerWidth - 64);
+    return Math.max(1, Math.floor((containerW - DAY_COL_W) / MIN_CELL_W));
+  }
+
   function zugRenderCalendar() {
     const titleEl = document.getElementById('zug-cal-title');
     const grid    = document.getElementById('zug-cal-grid');
     if (!titleEl || !grid) return;
-    titleEl.innerHTML = zugSvg(16) + ' ' + zugMonthLabel(zugCurrentMonth);
 
-    const [y, m] = zugCurrentMonth.split('-').map(Number);
-    const today  = todayStr();
+    const today = todayStr();
+    const weekCount = zugCalWeekCount();
+
+    // Build the weeks array from zugWindowStart
+    const _p = n => String(n).padStart(2,'0');
+    const weeks = [];
+    for (let w = 0; w < weekCount; w++) {
+      const weekStart = new Date(zugWindowStart + 'T00:00:00');
+      weekStart.setDate(weekStart.getDate() + w * 7);
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+        const dd = new Date(weekStart); dd.setDate(dd.getDate() + d);
+        week.push(dd.getFullYear() + '-' + _p(dd.getMonth()+1) + '-' + _p(dd.getDate()));
+      }
+      weeks.push(week);
+    }
+
+    // Title: "KW N – KW M (YYYY)"
+    const firstKw = isoWeek(weeks[0][0]);
+    const lastKw  = isoWeek(weeks[weeks.length - 1][0]);
+    const pivotDate = weeks[Math.floor(weeks.length / 2)][3]; // Thursday of middle week → ISO year
+    const titleYear = new Date(pivotDate + 'T00:00').getFullYear();
+    titleEl.innerHTML = zugSvg(16) + ' KW\u00a0' + firstKw + '\u2013KW\u00a0' + lastKw + ' (' + titleYear + ')';
 
     // Index entries by date (active ruleset)
     const byDate = {};
     for (const e of zugSchedule) {
       if (e.ruleset_key === zugActiveRuleset || zugActiveRuleset === 'all') byDate[e.event_date] = e;
     }
-    // All entries (any ruleset) for multi-ruleset indicators
     const byDateAll = {};
     for (const e of zugSchedule) { (byDateAll[e.event_date] = byDateAll[e.event_date] || []).push(e); }
 
-    // Build full calendar weeks covering the month
-    const firstOfMonth = new Date(y, m-1, 1);
-    const lastOfMonth  = new Date(y, m, 0);
-    const startDow = (firstOfMonth.getDay() + 6) % 7; // Mon=0
-    const calStart = new Date(firstOfMonth); calStart.setDate(calStart.getDate() - startDow);
-    const endDow   = (lastOfMonth.getDay() + 6) % 7;
-    const calEnd   = new Date(lastOfMonth); calEnd.setDate(calEnd.getDate() + (6 - endDow));
+    // Transposed layout: rows = weekdays (Mo–So), columns = calendar weeks
+    const DAY_NAMES = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    const DAY_COL_W = 36;
+    let html = '<table style="width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed;">';
+    html += '<colgroup><col style="width:' + DAY_COL_W + 'px;">';
+    for (let i = 0; i < weeks.length; i++) html += '<col>';
+    html += '</colgroup>';
 
-    const allDates = [];
-    const _pad = n => String(n).padStart(2,'0');
-    for (let d = new Date(calStart); d <= calEnd; d.setDate(d.getDate()+1)) {
-      allDates.push(d.getFullYear() + '-' + _pad(d.getMonth()+1) + '-' + _pad(d.getDate()));
-    }
-    const weeks = [];
-    for (let i = 0; i < allDates.length; i += 7) weeks.push(allDates.slice(i, i+7));
-
-    let html = '';
+    // Header row: corner + one KW-header per week (with mail button)
+    html += '<thead><tr><th style="padding:2px;"></th>';
     for (const week of weeks) {
       const kw = isoWeek(week[0]);
-      const kwYear = new Date(week[3] + 'T00:00').getFullYear(); // Thu = ISO week year
-
-      // Build copyable mail text for this week
-      const mailLines = ['KW' + kw + ' (' + kwYear + ') – W�chentliche Schaffner-Bestimmung', ''];
+      const kwYear = new Date(week[3] + 'T00:00').getFullYear();
+      const mailLines = ['KW' + kw + ' (' + kwYear + ') \u2013 W\u00f6chentliche Schaffner-Bestimmung', ''];
       for (const ds of week) {
         const e = byDate[ds];
         const d = new Date(ds + 'T00:00');
         const dayName = d.toLocaleDateString('de-DE', {weekday:'long'});
         const dayNum  = d.toLocaleDateString('de-DE', {day:'numeric', month:'numeric'});
-        if (e) {
-          let line = dayName + ' (' + dayNum + '): ' + e.schaffner_name;
-          if (e.vip_name) line += '  |  VIP: ' + e.vip_name;
-          mailLines.push(line);
-        } else {
-          mailLines.push(dayName + ' (' + dayNum + '): —');
-        }
+        mailLines.push(e
+          ? dayName + ' (' + dayNum + '): ' + e.schaffner_name + (e.vip_name ? '  |  VIP: ' + e.vip_name : '')
+          : dayName + ' (' + dayNum + '): \u2014');
       }
-      const mailText = mailLines.join('\n');
+      const mailAttr = mailLines.join('\n').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      html += '<th style="text-align:center;padding:3px 4px;">'
+        + '<div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--soft);text-transform:uppercase;margin-bottom:3px;">KW ' + kw + '</div>'
+        + '<button data-mailtext="' + mailAttr + '" onclick="zugCopyMail(this)" style="font-size:9px;padding:2px 6px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--soft);cursor:pointer;transition:all 0.15s;" title="Mail-Text f\u00fcr KW ' + kw + ' kopieren">\u2709 Mail</button>'
+        + '</th>';
+    }
+    html += '</tr></thead><tbody>';
 
-      // Week header row
-      html += '<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:4px;padding:2px 0;">'
-        + '<span style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--soft);text-transform:uppercase;white-space:nowrap;">KW ' + kw + '</span>'
-        + '<button data-mailtext="' + mailText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '" onclick="zugCopyMail(this)" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--soft);cursor:pointer;transition:all 0.15s;" title="Mail-Text f�r KW ' + kw + ' kopieren">✉ Mail</button>'
-        + '<div style="flex:1;height:1px;background:rgba(255,255,255,0.05);"></div>'
-        + '</div>';
-
-      // Day cells
-      for (const dateStr of week) {
+    // 7 rows: one per weekday
+    for (let dow = 0; dow < 7; dow++) {
+      const isWeekend = dow >= 5;
+      html += '<tr><td style="font-size:11px;font-weight:700;color:' + (isWeekend ? 'var(--soft-2)' : 'var(--soft)') + ';white-space:nowrap;padding:3px 6px 3px 2px;vertical-align:top;">' + DAY_NAMES[dow] + '</td>';
+      for (const week of weeks) {
+        const dateStr = week[dow];
         const dayNum = parseInt(dateStr.slice(8));
-        const isCurrentMonth = dateStr.slice(0,7) === zugCurrentMonth;
         const isToday = dateStr === today;
         const entry = byDate[dateStr];
         const allEntries = byDateAll[dateStr] || [];
         const bgColor = entry ? STATUS_COLOR[entry.status] || STATUS_COLOR.planned : 'transparent';
         const border  = isToday ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.06)';
-        const dimStyle = isCurrentMonth ? '' : 'opacity:0.4;';
         const isPlanned = entry && entry.status === 'planned';
-        let inner = '<div style="font-size:11px;font-weight:600;color:' + (isToday?'var(--gold)':(isCurrentMonth?'var(--soft)':'var(--soft-2)')) + ';display:flex;justify-content:space-between;">'
+        let inner = '<div style="font-size:11px;font-weight:600;color:' + (isToday ? 'var(--gold)' : 'var(--soft)') + ';display:flex;justify-content:space-between;">'
           + '<span>' + dayNum + '</span>'
-          + (isPlanned ? '<span style="opacity:0.35;font-size:9px;">⠿</span>' : '')
+          + (isPlanned ? '<span style="opacity:0.35;font-size:9px;">\u28bf</span>' : '')
           + '</div>';
         if (entry) {
-          inner += '<div style="font-size:10px;line-height:1.3;margin-top:3px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
-          if (entry.vip_name) inner += '<div style="font-size:9px;color:var(--gold-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(entry.vip_name) + '">⭐ ' + escHtml(entry.vip_name) + '</div>';
+          inner += '<div style="font-size:10px;line-height:1.3;margin-top:2px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
+          if (entry.vip_name) inner += '<div style="font-size:9px;color:var(--gold-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.vip_name) + '">\u2b50 ' + escHtml(entry.vip_name) + '</div>';
         } else if (allEntries.length) {
           inner += '<div style="font-size:9px;color:var(--soft-2);margin-top:3px;">' + allEntries.length + ' and. RW</div>';
         }
         const draggable = isPlanned ? 'draggable="true" ondragstart="zugCalDragStart(event,\'' + dateStr + '\')"' : '';
-        html += '<div ' + draggable + ' onclick="zugDayClick(\'' + dateStr + '\')" ondragover="zugDragOver(event,this)" ondragleave="zugDragLeave(this,\'' + isToday + '\')" ondrop="zugHandleDrop(event,\'' + dateStr + '\',this,\'' + isToday + '\')" data-date="' + dateStr + '" style="' + dimStyle + 'min-height:64px;background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:6px 5px;cursor:' + (isPlanned?'grab':'pointer') + ';transition:0.15s;overflow:hidden;" onmouseover="this.style.borderColor=\'var(--gold)\'" onmouseout="this.style.borderColor=\'' + (isToday?'var(--gold)':'rgba(255,255,255,0.06)') + '\'">'
-          + inner
-          + '</div>';
+        html += '<td ' + draggable + ' onclick="zugDayClick(\'' + dateStr + '\')" ondragover="zugDragOver(event,this)" ondragleave="zugDragLeave(this,\'' + isToday + '\')" ondrop="zugHandleDrop(event,\'' + dateStr + '\',this,\'' + isToday + '\')" data-date="' + dateStr + '" style="background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:6px 5px;cursor:' + (isPlanned ? 'grab' : 'pointer') + ';transition:0.15s;vertical-align:top;" onmouseover="this.style.borderColor=\'var(--gold)\'" onmouseout="this.style.borderColor=\'' + (isToday ? 'var(--gold)' : 'rgba(255,255,255,0.06)') + '\'">'
+          + inner + '</td>';
       }
+      html += '</tr>';
     }
+    html += '</tbody></table>';
     grid.innerHTML = html;
   }
+
+  // Re-render on resize so week column count adapts
+  let _zugResizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(_zugResizeTimer);
+    _zugResizeTimer = setTimeout(() => {
+      if (zugWindowStart) zugRenderCalendar();
+    }, 150);
+  });
+
+
 
   // ── mail copy ──────────────────────────────────────────────────────────────
   window.zugCopyMail = function(btn) {
@@ -5977,7 +6013,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       const badge  = isAssigned ? '<span style="font-size:10px;color:var(--green);white-space:nowrap;">✓ geplant</span>' :
                      isFirst    ? '<span>' + zugSvg(15) + '</span>' :
                                   '<span style="font-size:11px;color:var(--soft-2);opacity:0.5;">⠿</span>';
-      return '<div draggable="true" data-member="' + escHtml(row.member_name) + '" ondragstart="zugDragStart(event,this.dataset.member)" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:' + bg + ';border:1px solid ' + border + ';cursor:grab;' + (isAssigned ? 'opacity:0.6;' : '') + '">' +
+      return '<div draggable="true" data-member="' + escHtml(row.member_name) + '" ondragstart="zugDragStart(event,this.dataset.member)" ondragover="zugQueueDragOver(event,this)" ondragleave="zugQueueDragLeave(this)" ondrop="zugQueueDrop(event,this)" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:' + bg + ';border:1px solid ' + border + ';cursor:grab;' + (isAssigned ? 'opacity:0.6;' : '') + '">' +
         '<span style="font-family:\'Rajdhani\',sans-serif;font-size:18px;color:' + numCol + ';width:22px;text-align:center;">' + rank + '</span>' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(row.member_name) + '</div>' +
@@ -6002,6 +6038,46 @@ async function revokeAdmin(targetDiscordId, displayName) {
     window._zugDragPayload = 'member:' + memberName; // most reliable cross-env transfer
     try { event.dataTransfer.setData('text/plain', 'member:' + memberName); } catch(e){}
     event.dataTransfer.effectAllowed = 'copy';
+  };
+
+  // ── queue drag-to-reorder ─────────────────────────────────────────────────
+  window.zugQueueDragOver = function(event, el) {
+    if (!(window._zugDragPayload || '').startsWith('member:')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    el.style.outline = '2px solid var(--gold)';
+    el.style.outlineOffset = '-1px';
+  };
+
+  window.zugQueueDragLeave = function(el) {
+    el.style.outline = '';
+    el.style.outlineOffset = '';
+  };
+
+  window.zugQueueDrop = async function(event, el) {
+    event.preventDefault();
+    event.stopPropagation();
+    el.style.outline = '';
+    el.style.outlineOffset = '';
+    const rawData = window._zugDragPayload || '';
+    window._zugDragPayload = null;
+    if (!rawData.startsWith('member:')) return;
+    const srcName = rawData.slice(7);
+    const tgtName = el.dataset.member;
+    if (!tgtName || srcName === tgtName) return;
+    const names = zugQueue.map(r => r.member_name);
+    if (names.indexOf(srcName) < 0 || names.indexOf(tgtName) < 0) return;
+    const newOrder = names.filter(n => n !== srcName);
+    newOrder.splice(newOrder.indexOf(tgtName), 0, srcName);
+    const byName = Object.fromEntries(zugQueue.map(r => [r.member_name, r]));
+    zugQueue = newOrder.map(n => byName[n]);
+    zugRenderQueue();
+    try {
+      await zugApiFetch('/zug/queue/reorder', {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({ discord_id: getDiscordId(), ruleset: zugActiveRuleset, order: newOrder })
+      });
+    } catch(e) { console.warn('zugQueueDrop', e); }
   };
 
   window.zugCalDragStart = function(event, dateStr) {
@@ -6058,7 +6134,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
           body: JSON.stringify({ discord_id: getDiscordId(), date1: srcDate, date2: dateStr, ruleset_key: zugActiveRuleset })
         });
         if (d.ok) {
-          await Promise.all([zugLoadQueue(), zugLoadSchedule(zugCurrentMonth)]);
+          await Promise.all([zugLoadQueue(), zugLoadScheduleForWindow(zugWindowStart, zugCalWeekCount())]);
           zugRenderCalendar(); zugRenderQueue();
           toast(d.msg || (d.action === 'swapped' ? 'Tausch durchgeführt' : 'Eintrag verschoben'));
         } else {
@@ -6329,21 +6405,47 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   async function zugReloadAndClose() {
-    await Promise.all([zugLoadQueue(), zugLoadSchedule(zugCurrentMonth)]);
+    await Promise.all([zugLoadQueue(), zugLoadScheduleForWindow(zugWindowStart, zugCalWeekCount())]);
     zugRenderCalendar();
     zugRenderQueue();
     zugCloseEventForm();
   }
   // ── READ-ONLY view (alle Mitglieder) ──────────────────────────────────────
-  let zugRoCurrentMonth = null;
+  let zugRoWindowStart  = null;  // 'YYYY-MM-DD' Monday of first visible week
   let zugRoSchedule     = [];
   let zugRoActiveRuleset = 'standard';
 
-  async function zugRoLoadSchedule(month) {
-    try {
-      const d = await zugApiFetch(`/zug/schedule?month=${encodeURIComponent(month)}`);
-      if (d.ok) zugRoSchedule = d.entries || [];
-    } catch(e) { console.warn('zugRoLoadSchedule', e); }
+  // How many week columns fit in the read-only calendar at current width
+  function zugRoCalWeekCount() {
+    const grid = document.getElementById('zug-ro-cal-grid');
+    const DAY_COL_W  = 36;
+    const MIN_CELL_W = 150; // wide enough so names aren't cut off
+    const containerW = (grid ? grid.offsetWidth : 0) || (window.innerWidth - 48);
+    return Math.max(1, Math.floor((containerW - DAY_COL_W) / MIN_CELL_W));
+  }
+
+  async function zugRoLoadScheduleForWindow(windowStart, weekCount) {
+    const months = new Set();
+    const _p = n => String(n).padStart(2,'0');
+    for (let w = 0; w <= weekCount; w++) {
+      const d = new Date(windowStart + 'T00:00:00');
+      d.setDate(d.getDate() + w * 7);
+      months.add(d.getFullYear() + '-' + _p(d.getMonth()+1));
+      const dEnd = new Date(d); dEnd.setDate(dEnd.getDate() + 6);
+      months.add(dEnd.getFullYear() + '-' + _p(dEnd.getMonth()+1));
+    }
+    const results = await Promise.all([...months].map(mo =>
+      zugApiFetch(`/zug/schedule?month=${encodeURIComponent(mo)}`).catch(() => ({ok:false}))
+    ));
+    const seen = new Set();
+    zugRoSchedule = [];
+    for (const d of results) {
+      if (!d.ok) continue;
+      for (const e of (d.entries || [])) {
+        const k = e.event_date + '|' + e.ruleset_key;
+        if (!seen.has(k)) { seen.add(k); zugRoSchedule.push(e); }
+      }
+    }
   }
 
   function zugRoRenderRulesetSelect() {
@@ -6358,73 +6460,95 @@ async function revokeAdmin(targetDiscordId, displayName) {
     const titleEl = document.getElementById('zug-ro-cal-title');
     const grid    = document.getElementById('zug-ro-cal-grid');
     if (!titleEl || !grid) return;
-    titleEl.innerHTML = zugSvg(16) + ' ' + zugMonthLabel(zugRoCurrentMonth);
 
-    const [y, m] = zugRoCurrentMonth.split('-').map(Number);
-    const today  = todayStr();
+    const today = todayStr();
+    const weekCount = zugRoCalWeekCount();
+
+    // Build weeks from zugRoWindowStart
+    const _pad = n => String(n).padStart(2,'0');
+    const weeks = [];
+    for (let w = 0; w < weekCount; w++) {
+      const weekStart = new Date(zugRoWindowStart + 'T00:00:00');
+      weekStart.setDate(weekStart.getDate() + w * 7);
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+        const dd = new Date(weekStart); dd.setDate(dd.getDate() + d);
+        week.push(dd.getFullYear() + '-' + _pad(dd.getMonth()+1) + '-' + _pad(dd.getDate()));
+      }
+      weeks.push(week);
+    }
+
+    // Title: "KW N – KW M (YYYY)"
+    const firstKw  = isoWeek(weeks[0][0]);
+    const lastKw   = isoWeek(weeks[weeks.length - 1][0]);
+    const pivotDate = weeks[Math.floor(weeks.length / 2)][3]; // Thursday of middle week
+    const titleYear = new Date(pivotDate + 'T00:00').getFullYear();
+    titleEl.innerHTML = zugSvg(16) + ' KW\u00a0' + firstKw + '\u2013KW\u00a0' + lastKw + ' (' + titleYear + ')';
+
     const byDate = {};
     for (const e of zugRoSchedule) {
       if (e.ruleset_key === zugRoActiveRuleset || zugRoActiveRuleset === 'all') byDate[e.event_date] = e;
     }
 
-    const firstOfMonth = new Date(y, m-1, 1);
-    const lastOfMonth  = new Date(y, m, 0);
-    const startDow = (firstOfMonth.getDay() + 6) % 7;
-    const calStart = new Date(firstOfMonth); calStart.setDate(calStart.getDate() - startDow);
-    const endDow   = (lastOfMonth.getDay() + 6) % 7;
-    const calEnd   = new Date(lastOfMonth); calEnd.setDate(calEnd.getDate() + (6 - endDow));
-    const allDates = [];
-    const _pad = n => String(n).padStart(2,'0');
-    for (let d = new Date(calStart); d <= calEnd; d.setDate(d.getDate()+1)) {
-      allDates.push(d.getFullYear() + '-' + _pad(d.getMonth()+1) + '-' + _pad(d.getDate()));
-    }
-    const weeks = [];
-    for (let i = 0; i < allDates.length; i += 7) weeks.push(allDates.slice(i, i+7));
-
-    let html = '';
+    // Transposed layout: rows = weekdays (Mo–So), columns = calendar weeks (KW N)
+    const DAY_NAMES = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    const DAY_COL_W = 36;
+    let html = '<table style="width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed;">';
+    html += '<colgroup><col style="width:' + DAY_COL_W + 'px;">';
+    for (let i = 0; i < weeks.length; i++) html += '<col>';
+    html += '</colgroup>';
+    html += '<thead><tr><th style="padding:2px;"></th>';
     for (const week of weeks) {
       const kw = isoWeek(week[0]);
-      html += '<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:4px;padding:2px 0;">'
-        + '<span style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--soft);text-transform:uppercase;white-space:nowrap;">KW ' + kw + '</span>'
-        + '<div style="flex:1;height:1px;background:rgba(255,255,255,0.05);"></div>'
-        + '</div>';
-      for (const dateStr of week) {
+      html += '<th style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--soft);text-transform:uppercase;padding:3px 4px;">KW ' + kw + '</th>';
+    }
+    html += '</tr></thead><tbody>';
+
+    for (let dow = 0; dow < 7; dow++) {
+      const isWeekend = dow >= 5;
+      html += '<tr><td style="font-size:11px;font-weight:700;color:' + (isWeekend ? 'var(--soft-2)' : 'var(--soft)') + ';white-space:nowrap;padding:3px 6px 3px 2px;vertical-align:top;">' + DAY_NAMES[dow] + '</td>';
+      for (const week of weeks) {
+        const dateStr = week[dow];
         const dayNum = parseInt(dateStr.slice(8));
-        const isCurrentMonth = dateStr.slice(0,7) === zugRoCurrentMonth;
         const isToday = dateStr === today;
         const entry = byDate[dateStr];
         const bgColor = entry ? STATUS_COLOR[entry.status] || STATUS_COLOR.planned : 'transparent';
         const border  = isToday ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.06)';
-        const dimStyle = isCurrentMonth ? '' : 'opacity:0.4;';
-        let inner = '<div style="font-size:11px;font-weight:600;color:' + (isToday?'var(--gold)':(isCurrentMonth?'var(--soft)':'var(--soft-2)')) + '"><span>' + dayNum + '</span></div>';
+        let inner = '<div style="font-size:11px;font-weight:600;color:' + (isToday ? 'var(--gold)' : 'var(--soft)') + '">' + dayNum + '</div>';
         if (entry) {
-          inner += '<div style="font-size:10px;line-height:1.3;margin-top:3px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
-          if (entry.vip_name) inner += '<div style="font-size:9px;color:var(--gold-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(entry.vip_name) + '">⭐ ' + escHtml(entry.vip_name) + '</div>';
+          inner += '<div style="font-size:10px;line-height:1.3;margin-top:2px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
+          if (entry.vip_name) inner += '<div style="font-size:9px;color:var(--gold-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.vip_name) + '">\u2b50 ' + escHtml(entry.vip_name) + '</div>';
         }
-        html += '<div style="' + dimStyle + 'min-height:64px;background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:6px 5px;overflow:hidden;">' + inner + '</div>';
+        html += '<td style="background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:5px;vertical-align:top;">' + inner + '</td>';
       }
+      html += '</tr>';
     }
+    html += '</tbody></table>';
     grid.innerHTML = html;
   }
 
   window.zugRoLoadPage = async function() {
-    if (!zugRoCurrentMonth) zugRoCurrentMonth = todayStr().slice(0,7);
-    await Promise.all([zugLoadRulesets(), zugRoLoadSchedule(zugRoCurrentMonth)]);
+    if (!zugRoWindowStart) zugRoWindowStart = getMondayOfWeek(todayStr());
+    const weekCount = zugRoCalWeekCount();
+    await Promise.all([zugLoadRulesets(), zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount)]);
     zugRoRenderRulesetSelect();
     zugRoRenderCalendar();
   };
 
-  window.zugRoNavMonth = async function(delta) {
-    const [y,m] = zugRoCurrentMonth.split('-').map(Number);
-    const d = new Date(y, m-1+delta, 1);
-    zugRoCurrentMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    await zugRoLoadSchedule(zugRoCurrentMonth);
+  window.zugRoNavWeek = async function(delta) {
+    const d = new Date(zugRoWindowStart + 'T00:00:00');
+    d.setDate(d.getDate() + delta * 7);
+    const _p = n => String(n).padStart(2,'0');
+    zugRoWindowStart = `${d.getFullYear()}-${_p(d.getMonth()+1)}-${_p(d.getDate())}`;
+    const weekCount = zugRoCalWeekCount();
+    await zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount);
     zugRoRenderCalendar();
   };
 
   window.zugRoNavToday = async function() {
-    zugRoCurrentMonth = todayStr().slice(0,7);
-    await zugRoLoadSchedule(zugRoCurrentMonth);
+    zugRoWindowStart = getMondayOfWeek(todayStr());
+    const weekCount = zugRoCalWeekCount();
+    await zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount);
     zugRoRenderCalendar();
   };
 
@@ -6433,6 +6557,15 @@ async function revokeAdmin(targetDiscordId, displayName) {
     if (sel) zugRoActiveRuleset = sel.value;
     zugRoRenderCalendar();
   };
+
+  // Re-render on resize so the visible week count adapts to available width
+  let _zugRoResizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(_zugRoResizeTimer);
+    _zugRoResizeTimer = setTimeout(() => {
+      if (zugRoWindowStart) zugRoRenderCalendar();
+    }, 150);
+  });
 
 })(); // end Zug module
 

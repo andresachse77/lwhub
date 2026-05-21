@@ -15,20 +15,20 @@
     </div>
   </div>
 
-  <!-- Calendar + Queue side by side -->
-  <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:1rem;align-items:start;">
+  <!-- Calendar + Queue side by side (wraps on narrow screens) -->
+  <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:start;">
 
     <!-- Calendar panel -->
-    <div class="panel" id="zug-cal-panel">
+    <div class="panel" id="zug-cal-panel" style="flex:2 1 340px;min-width:0;">
       <div class="panel-head">
         <div>
           <div class="panel-title" id="zug-cal-title">Kalender</div>
-          <div class="panel-sub">Monat wählen, Termin planen oder bearbeiten</div>
+          <div class="panel-sub">Woche wählen, Termin planen oder bearbeiten</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
-          <button class="wt-btn" onclick="zugNavMonth(-1)">‹</button>
-          <button class="wt-btn" onclick="zugNavMonth(1)">›</button>
-          <button class="wt-btn" onclick="zugNavToday()" style="padding:4px 10px;font-size:11px;">Heute</button>
+          <button class="wt-btn" onclick="zugNavWeek(-1)" style="padding:8px 14px;font-size:20px;min-width:44px;">‹</button>
+          <button class="wt-btn" onclick="zugNavWeek(1)" style="padding:8px 14px;font-size:20px;min-width:44px;">›</button>
+          <button class="wt-btn" onclick="zugNavToday()" style="padding:8px 14px;font-size:12px;">Heute</button>
         </div>
       </div>
       <!-- Legend -->
@@ -38,21 +38,11 @@
         <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(224,85,69,0.7);margin-right:4px;vertical-align:middle;"></span>No-Show</span>
         <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(100,100,100,0.5);margin-right:4px;vertical-align:middle;"></span>Abgesagt</span>
       </div>
-      <!-- Day-of-week headers -->
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;">
-        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Mo</div>
-        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Di</div>
-        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Mi</div>
-        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Do</div>
-        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Fr</div>
-        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">Sa</div>
-        <div style="text-align:center;font-size:10px;color:var(--soft);padding:3px;">So</div>
-      </div>
-      <div id="zug-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+      <div id="zug-cal-grid"></div>
     </div>
 
     <!-- Queue panel -->
-    <div class="panel" id="zug-queue-panel">
+    <div class="panel" id="zug-queue-panel" style="flex:1 1 260px;">
       <div class="panel-head">
         <div>
           <div class="panel-title">Warteschlange</div>

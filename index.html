@@ -388,7 +388,7 @@ nav {
 }
 .battle-loader.show { display: flex; }
 .battle-loader-card {
-  width: min(900px, 100%);
+  width: min(860px, 100%);
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.14);
   background: linear-gradient(165deg, rgba(18,25,42,0.96), rgba(23,32,54,0.95));
@@ -397,7 +397,7 @@ nav {
 }
 .battle-loader-frame {
   position: relative;
-  min-height: 300px;
+  aspect-ratio: 3 / 2;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.08);
   background: linear-gradient(180deg, rgba(74,158,255,0.1), rgba(224,85,69,0.08));
@@ -406,7 +406,7 @@ nav {
 .battle-loader-stage {
   position: relative;
   width: 100%;
-  height: min(62vh, 560px);
+  height: 100%;
   background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06), rgba(255,255,255,0.01));
 }
 .battle-loader-stage::after {
@@ -422,9 +422,32 @@ nav {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  position: relative;
+  z-index: 1;
   filter: brightness(0.58) saturate(1.04) contrast(1.08);
   animation: battleMainPulse 1.15s ease-in-out infinite;
+}
+.battle-loader-final-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  filter: brightness(0.96) saturate(1.03) contrast(1.04);
+  transition: opacity 120ms linear;
+}
+.battle-loader.ending .battle-loader-main-img {
+  animation: none;
+  opacity: 0;
+}
+.battle-loader.ending .battle-loader-final-img {
+  opacity: 1;
 }
 .battle-loader-side {
   position: absolute;
@@ -1210,6 +1233,9 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div class="battle-loader-frame">
       <div class="battle-loader-stage">
         <img class="battle-loader-main-img battle-loader-media" src="img/load.png" alt="" loading="eager"
+             onload="window.updateBattleLoaderMediaState?.()"
+             onerror="window.updateBattleLoaderMediaState?.()">
+        <img class="battle-loader-final-img battle-loader-media" src="img/load2.png" alt="" loading="eager"
              onload="window.updateBattleLoaderMediaState?.()"
              onerror="window.updateBattleLoaderMediaState?.()">
       </div>
@@ -3521,6 +3547,7 @@ function tr(msg) {
 let battleLoaderDepth = 0;
 let battleLoaderShowTimer = null;
 let battleLoaderShownAt = 0;
+let battleLoaderTransitionToken = 0;
 
 function updateBattleLoaderMediaState() {
   const loader = document.getElementById('battle-loader');
@@ -3538,15 +3565,26 @@ window.updateBattleLoaderMediaState = updateBattleLoaderMediaState;
 function showBattleLoader() {
   const el = document.getElementById('battle-loader');
   if (!el) return;
+  battleLoaderTransitionToken += 1;
+  el.classList.remove('ending');
   updateBattleLoaderMediaState();
   el.classList.add('show');
   el.setAttribute('aria-hidden', 'false');
   battleLoaderShownAt = Date.now();
 }
 
-function hideBattleLoader() {
+async function hideBattleLoader(endFrameMs = 600) {
   const el = document.getElementById('battle-loader');
   if (!el) return;
+  const transitionToken = ++battleLoaderTransitionToken;
+  const finalImg = el.querySelector('.battle-loader-final-img');
+  const finalReady = !!(finalImg && finalImg.complete && finalImg.naturalWidth > 0);
+  if (finalReady) {
+    el.classList.add('ending');
+    await new Promise((resolve) => setTimeout(resolve, endFrameMs));
+    if (transitionToken !== battleLoaderTransitionToken) return;
+  }
+  el.classList.remove('ending');
   el.classList.remove('show');
   el.setAttribute('aria-hidden', 'true');
   battleLoaderShownAt = 0;
@@ -3577,7 +3615,7 @@ async function runWithBattleLoader(task, minVisibleMs = 1800, showDelayMs = 120)
       }
     }
     battleLoaderDepth = Math.max(0, battleLoaderDepth - 1);
-    if (battleLoaderDepth === 0) hideBattleLoader();
+    if (battleLoaderDepth === 0) await hideBattleLoader();
   }
 }
 
@@ -5313,7 +5351,7 @@ async function initApp(){
     await Promise.all([me_loadHistory(authMember.discord_id, authMember.member_name), loadFlagConfig()]);
     const _initElapsed = Date.now() - battleLoaderShownAt;
     if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
-    hideBattleLoader();
+    await hideBattleLoader();
 
     // Warm up core datasets right after login so Events/Zug are ready without manual sync.
     ensureCoreDataLoaded({ forceEntries: true }).catch(() => {});
@@ -5368,10 +5406,10 @@ async function initApp(){
     await me_loadHistory(localAuth.discord_id || '', localAuth.member_name || LOCAL_DEV_MEMBER_NAME);
     const _initElapsed = Date.now() - battleLoaderShownAt;
     if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
-    hideBattleLoader();
+    await hideBattleLoader();
     showPage(localStorage.getItem('lwhub_last_page') || 'm', { skipBattleLoader: true });
   } catch(e) {
-    hideBattleLoader();
+    await hideBattleLoader();
     toast('Fehler beim Laden: ' + e.message);
   }
 }

@@ -172,6 +172,91 @@ function getDiscordMember(PDO $pdo, string $alliance, string $discordId, bool $l
     }
 }
 
+function getDiscordMemberAcrossAlliancesSql(bool $withCache, bool $leadershipOnly): string {
+    $rankFilter = $leadershipOnly ? 'AND p.current_rank_code IN (4, 5)' : '';
+    if ($withCache) {
+        return "
+            SELECT p.alliance, p.player_id, p.current_name, p.current_rank_code,
+                   p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+                   p.preferred_language,
+                   COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
+                   COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
+                   COALESCE(puld.discord_avatar, dpc.discord_avatar) AS discord_avatar,
+                   CASE WHEN uac.discord_user_id IS NULL THEN 0 ELSE 1 END AS is_active_char
+            FROM players p
+            LEFT JOIN (
+                SELECT alliance, player_id, MIN(discord_user_id) AS discord_user_id
+                FROM player_identities WHERE discord_user_id IS NOT NULL
+                GROUP BY alliance, player_id
+            ) pid ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+            LEFT JOIN (
+                SELECT pul.alliance, pul.player_id,
+                       MIN(uda.discord_user_id) AS discord_user_id,
+                       MIN(uda.discord_username) AS discord_username,
+                       MIN(uda.discord_avatar) AS discord_avatar
+                FROM player_user_links pul
+                JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+                GROUP BY pul.alliance, pul.player_id
+            ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
+            LEFT JOIN discord_profile_cache dpc
+                ON dpc.alliance = p.alliance
+               AND dpc.discord_user_id = COALESCE(pid.discord_user_id, puld.discord_user_id)
+            LEFT JOIN user_active_char uac
+                ON uac.discord_user_id = ?
+               AND uac.alliance = p.alliance
+               AND uac.player_id = p.player_id
+            WHERE p.is_active = 1 {$rankFilter}
+              AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+            ORDER BY is_active_char DESC, p.current_rank_code DESC, p.alliance ASC, p.current_name ASC
+            LIMIT 1
+        ";
+    }
+    return "
+        SELECT p.alliance, p.player_id, p.current_name, p.current_rank_code,
+               p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+               p.preferred_language,
+               COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
+               puld.discord_username, puld.discord_avatar,
+               CASE WHEN uac.discord_user_id IS NULL THEN 0 ELSE 1 END AS is_active_char
+        FROM players p
+        LEFT JOIN (
+            SELECT alliance, player_id, MIN(discord_user_id) AS discord_user_id
+            FROM player_identities WHERE discord_user_id IS NOT NULL
+            GROUP BY alliance, player_id
+        ) pid ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+        LEFT JOIN (
+            SELECT pul.alliance, pul.player_id,
+                   MIN(uda.discord_user_id) AS discord_user_id,
+                   MIN(uda.discord_username) AS discord_username,
+                   MIN(uda.discord_avatar) AS discord_avatar
+            FROM player_user_links pul
+            JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+            GROUP BY pul.alliance, pul.player_id
+        ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
+        LEFT JOIN user_active_char uac
+            ON uac.discord_user_id = ?
+           AND uac.alliance = p.alliance
+           AND uac.player_id = p.player_id
+        WHERE p.is_active = 1 {$rankFilter}
+          AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+        ORDER BY is_active_char DESC, p.current_rank_code DESC, p.alliance ASC, p.current_name ASC
+        LIMIT 1
+    ";
+}
+
+function getDiscordMemberAcrossAlliances(PDO $pdo, string $discordId, bool $leadershipOnly = false): ?array {
+    try {
+        $stmt = $pdo->prepare(getDiscordMemberAcrossAlliancesSql(true, $leadershipOnly));
+        $stmt->execute([$discordId, $discordId]);
+        return $stmt->fetch() ?: null;
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+        $stmt = $pdo->prepare(getDiscordMemberAcrossAlliancesSql(false, $leadershipOnly));
+        $stmt->execute([$discordId, $discordId]);
+        return $stmt->fetch() ?: null;
+    }
+}
+
 function getMemberByNameSql(bool $withCache): string {
     if ($withCache) {
         return "

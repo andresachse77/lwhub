@@ -490,6 +490,7 @@
           const newRank = charData ? charData.rank : null;
           const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
           auth.member_name = name;
+          auth.alliance = alliance;
           auth.active_alliance = alliance;
           auth.active_player_id = playerId;
           if (newRank !== null) {
@@ -621,11 +622,11 @@
     injectIntoTopbar(widget);
 
     const discordId = discordUser?.id || '';
-    // Determine active alliance from localStorage
-    let currentActiveAlliance = null;
+    // Prefer the verified/server-side alliance before falling back to local client state.
+    let currentActiveAlliance = authMember?.active_alliance || authMember?.alliance || null;
     try {
       const ac = JSON.parse(localStorage.getItem(ACTIVE_CHAR_KEY) || 'null');
-      currentActiveAlliance = ac?.alliance || null;
+      if (!currentActiveAlliance) currentActiveAlliance = ac?.alliance || null;
     } catch (_) {}
     window.getActiveAlliance = () => currentActiveAlliance;
 
@@ -690,6 +691,7 @@
           const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
           if (auth && typeof auth === 'object') {
             auth.member_name = effectiveActiveChar.name;
+            auth.alliance = effectiveActiveChar.alliance;
             auth.active_alliance = effectiveActiveChar.alliance;
             auth.active_player_id = effectiveActiveChar.player_id;
             auth.rank = effectiveActiveChar.rank;

@@ -59,17 +59,25 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
                                 updated_at   = CURRENT_TIMESTAMP
     ");
 
+    $toStoredValue = static function ($v): string {
+        if ($v === false || $v === 'false') return 'false';
+        if ($v === true || $v === 'true') return 'true';
+        if (is_int($v) || is_float($v)) return (string)$v;
+        if (is_string($v)) return trim($v);
+        return '';
+    };
+
     if (isset($body['config']) && is_array($body['config'])) {
         foreach ($body['config'] as $k => $v) {
             $key = trim((string)$k);
             if ($key === '') continue;
-            $stmt->execute([$alliance, $key, ($v === false || $v === 'false') ? 'false' : 'true', $updatedBy]);
+            $stmt->execute([$alliance, $key, $toStoredValue($v), $updatedBy]);
         }
     } else {
         $key = trim((string)($body['key'] ?? ''));
         if ($key === '') jsonOut(400, ['error' => 'key fehlt']);
         $v = $body['value'] ?? true;
-        $stmt->execute([$alliance, $key, ($v === false || $v === 'false') ? 'false' : 'true', $updatedBy]);
+        $stmt->execute([$alliance, $key, $toStoredValue($v), $updatedBy]);
     }
     handleGetAllianceConfig($pdo, $alliance);
 }

@@ -162,6 +162,51 @@
 
 </div>
 
+<!-- ═══ BERUFEPLANNER ═══ -->
+<div class="page" id="page-bp">
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
+      <div>
+        <div class="panel-title">⚗ <span data-i18n="s_bp_berufeplanner">Berufeplanner</span></div>
+        <div class="panel-sub" data-i18n="s_bp_panel_sub">Kriegsherren und Ingenieure per Drag-and-drop zuordnen</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">
+        <label style="font-size:12px;color:var(--soft);" data-i18n="s_bp_sort_label">Sortierung:</label>
+        <select id="bp-sort-select" onchange="berufePlannerSetSort(this.value)" style="background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:12px;">
+          <option value="asc" data-i18n="s_bp_sort_az">Kriegsherr A-Z</option>
+          <option value="desc" data-i18n="s_bp_sort_za">Kriegsherr Z-A</option>
+          <option value="count_desc" data-i18n="s_bp_sort_most">Meiste Ingenieure zuerst</option>
+          <option value="count_asc" data-i18n="s_bp_sort_least">Wenigste Ingenieure zuerst</option>
+        </select>
+        <button class="wt-btn" onclick="berufePlannerLoadPage()" style="padding:6px 12px;font-size:12px;">↻ <span data-i18n="s_bp_reload">Neu laden</span></button>
+        <button class="wt-btn" id="bp-mail-btn" onclick="berufePlannerCopyMail(this)" style="padding:6px 12px;font-size:12px;">✉ <span data-i18n="s_bp_alliance_mail">Allianzmail</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-start;">
+    <div class="panel" style="flex:1 1 260px;min-width:250px;">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Warteschlange</div>
+          <div class="panel-sub" data-i18n="s_bp_queue_sub">Mitglieder ohne Zuordnung</div>
+        </div>
+      </div>
+      <div id="bp-queue" style="display:flex;flex-direction:column;gap:6px;min-height:100px;"></div>
+    </div>
+
+    <div class="panel" style="flex:2 1 560px;min-width:320px;">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title" id="bp-grid-title" data-i18n="s_bp_kriegsherren_und_ingenieure">Kriegsherren und Ingenieure</div>
+          <div class="panel-sub" id="bp-grid-sub" data-i18n="s_bp_grid_sub">Ziehe Mitglieder aus der Warteschlange in die linke Spalte (Kriegsherr) oder in Ingenieur-Slots.</div>
+        </div>
+      </div>
+      <div id="bp-grid"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ DASHBOARD ═══ -->
 <div class="page" id="page-d">
 

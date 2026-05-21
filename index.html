@@ -1844,6 +1844,8 @@ async function checkDiscordAuth() {
   writeAuthState({
     discord_id: user.id,
     discord_username: user.username || user.global_name || null,
+    alliance: verify.alliance || null,
+    active_alliance: verify.alliance || null,
     member_id: verify.member_id || null,
     member_name: verify.member_name || null,
     rank: verify.rank || null,
@@ -2928,6 +2930,7 @@ function renderMeBerufe() {
   const beruf    = meBerufPending?.beruf    !== undefined ? meBerufPending.beruf    : (meta.beruf ?? member.beruf ?? null);
   const medHilfe = meBerufPending?.medHilfe !== undefined ? meBerufPending.medHilfe : !!(meta.berufMedHilfe ?? member.beruf_med_hilfe);
   const winwin   = meBerufPending?.winwin   !== undefined ? meBerufPending.winwin   : (meta.berufWinwin ?? member.beruf_winwin ?? null);
+  const maxEngineers = getBerufeMaxEngineers();
 
   const kriegsherren = members.filter(n => memberMeta[n]?.beruf === 'kriegsherr' && n !== targetName).sort();
 
@@ -2965,7 +2968,7 @@ function renderMeBerufe() {
   } else if (beruf === 'kriegsherr') {
     const myIngenieure = members.filter(n => memberMeta[n]?.berufWinwin === targetName);
     if (myIngenieure.length) {
-      html += `<div class="me-beruf-info">${escHtml(tr('Ingenieure im Win-Win'))}: ${myIngenieure.map(n => escHtml(n)).join(', ')} (${myIngenieure.length}/3)</div>`;
+      html += `<div class="me-beruf-info">${escHtml(tr('Ingenieure im Win-Win'))}: ${myIngenieure.map(n => escHtml(n)).join(', ')} (${myIngenieure.length}/${maxEngineers})</div>`;
     } else {
       html += `<div class="me-beruf-info">${escHtml(tr('Noch keine Ingenieure haben dich als Win-Win gewählt.'))}</div>`;
     }
@@ -3112,6 +3115,7 @@ async function showPage(id) {
     if (id === 'w' && !isEventPageVisible()) return 'm';
     if (id === 'z' && !isFeatureEnabled('zug')) return 'm';
     if (id === 'zv' && !isFeatureEnabled('zug')) return 'm';
+    if (id === 'bp' && !isFeatureEnabled('berufe')) return 'm';
     if (id === 'p' && !isPointsGuideVisible()) return 'm';
     return id;
   })();
@@ -3126,7 +3130,7 @@ async function showPage(id) {
   const tabEl = document.getElementById('tab-' + safeId);
   if (tabEl) tabEl.classList.add('active');
 
-  const isBattleView = safeId === 'w' || safeId === 'z' || safeId === 'zv';
+  const isBattleView = safeId === 'w' || safeId === 'z' || safeId === 'zv' || safeId === 'bp';
 
   if (isBattleView) {
     await runWithBattleLoader(async () => {
@@ -3134,6 +3138,7 @@ async function showPage(id) {
       if (safeId === 'w') selectEventView(activeEventView);
       if (safeId === 'z') await zugLoadPage();
       if (safeId === 'zv') await window.zugRoLoadPage?.();
+      if (safeId === 'bp') await window.berufePlannerLoadPage?.();
     }, 0);
     return;
   }
@@ -3158,7 +3163,7 @@ async function showPage(id) {
   if (id === 'r') await runWithBattleLoader(async () => { await loadErgebnis(); });
   if (id === 'v') { await loadMembers(); await refreshEntriesIfNeeded({background:true}); await loadAccessRequests(); renderVerwaltung(); renderFlagsAdmin(); }
   if (id === 'a') adminInitPage();
-  if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 'a' && id !== 'w' && id !== 'z' && id !== 'zv') {
+  if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 'a' && id !== 'w' && id !== 'z' && id !== 'zv' && id !== 'bp') {
     refreshEntriesIfNeeded({ background: true });
   }
 }
@@ -3170,6 +3175,7 @@ function renderAll(){
   if(document.getElementById('page-e')?.classList.contains('active')) renderList();
   if(document.getElementById('page-w')?.classList.contains('active')) selectEventView(activeEventView);
   if(document.getElementById('page-v')?.classList.contains('active')) renderVerwaltung();
+  if(document.getElementById('page-bp')?.classList.contains('active')) window.berufePlannerRender?.();
 }
 
 // ── MEMBER LIST ──
@@ -4098,6 +4104,13 @@ function isFeatureEnabled(key) {
   return flagConfig[key] === true || (key === 'zug' && flagConfig.zugplan === true);
 }
 
+function getBerufeMaxEngineers(config = flagConfig) {
+  const raw = config?.berufe_max_ingenieure;
+  const parsed = Number.parseInt(String(raw ?? ''), 10);
+  if (!Number.isFinite(parsed)) return 3;
+  return Math.max(1, Math.min(10, parsed));
+}
+
 function hasEventFeaturesEnabled(config = flagConfig) {
   return ['wache', 'wueste', 'spezial', 'vs', 'spende'].some(key => config[key] === true);
 }
@@ -4121,6 +4134,8 @@ function setTabVisible(id, visible) {
 function renderFeatureToggles(containerId, alliance, config) {
   const el = document.getElementById(containerId);
   if (!el || !alliance) return;
+  const maxIng = getBerufeMaxEngineers(config);
+  const inputId = `${containerId}-berufe-max`;
   el.innerHTML = `<div style="display:flex;flex-direction:column;">` +
     FEATURE_CAT_DEFS.map(({ key, icon, label, sub }) => {
       const on = config[key] === true;
@@ -4129,6 +4144,14 @@ function renderFeatureToggles(containerId, alliance, config) {
         <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on ? 'save' : 'del'}" style="min-width:88px;">${on ? '✓ ' + escHtml(tr('Aktiv')) : '✗ ' + escHtml(tr('Inaktiv'))}</button>
       </div>`;
     }).join('') +
+    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">⚙ Max. Ingenieure je Kriegsherr</div>
+        <div style="font-size:11px;color:var(--soft);">Steuert die Berufe-Grenze (Default 3).</div>
+      </div>
+      <input id="${escHtml(inputId)}" type="number" min="1" max="10" value="${maxIng}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
+      <button onclick="saveBerufeMaxIngenieure('${escHtml(alliance)}','${escHtml(inputId)}')" class="v-btn save" style="min-width:88px;">Speichern</button>
+    </div>` +
     `</div>`;
 }
 
@@ -4277,6 +4300,40 @@ async function toggleCatConfig(key, allianceOverride) {
 }
 window.toggleCatConfig = toggleCatConfig;
 
+async function saveBerufeMaxIngenieure(alliance, inputId) {
+  const discordId = authMember?.discord_id || '';
+  const input = document.getElementById(inputId);
+  const nextVal = Math.max(1, Math.min(10, Number.parseInt(String(input?.value || ''), 10) || 3));
+  if (input) input.value = String(nextVal);
+
+  try {
+    await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance || '')}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ discord_id: discordId, config: { berufe_max_ingenieure: nextVal } })
+    });
+    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
+    if (isCurrentAllianceTarget(alliance)) {
+      flagConfig = { ...adminFlagConfigCache[alliance] };
+      updateFeatureTabVisibility();
+      renderFlagsAdmin();
+      if (document.getElementById('page-bp')?.classList.contains('active')) {
+        window.berufePlannerRender?.();
+      }
+      renderMeBerufe();
+    }
+    renderAdminFlagConfig();
+    renderAllianceFeaturesModal();
+    toast('Max. Ingenieure gespeichert', 'ok');
+  } catch (err) {
+    toast(tr('Fehler: ') + err.message, 'err');
+    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
+    renderAdminFlagConfig();
+    renderAllianceFeaturesModal();
+  }
+}
+window.saveBerufeMaxIngenieure = saveBerufeMaxIngenieure;
+
 function renderFlagsAdmin() {
   const el = document.getElementById('v-flag-config');
   if (!el) return;
@@ -4375,10 +4432,17 @@ function updateFeatureTabVisibility() {
     setTabVisible('tab-zv', isFeatureEnabled('zug'));
   }
 
+  const berufeTab = document.getElementById('tab-bp');
+  if (berufeTab) {
+    setTabVisible('tab-bp', isFeatureEnabled('berufe'));
+  }
+
   setElementVisible('page-z', isFeatureEnabled('zug'));
   setElementVisible('page-zv', isFeatureEnabled('zug'));
+  setElementVisible('page-bp', isFeatureEnabled('berufe'));
   if ((!isFeatureEnabled('zug') && document.getElementById('page-z')?.classList.contains('active')) ||
-      (!isFeatureEnabled('zug') && document.getElementById('page-zv')?.classList.contains('active'))) {
+      (!isFeatureEnabled('zug') && document.getElementById('page-zv')?.classList.contains('active')) ||
+      (!isFeatureEnabled('berufe') && document.getElementById('page-bp')?.classList.contains('active'))) {
     showPage('m');
   }
 }
@@ -6569,6 +6633,296 @@ async function revokeAdmin(targetDiscordId, displayName) {
   });
 
 })(); // end Zug module
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BERUFEPLANNER
+// ══════════════════════════════════════════════════════════════════════════════
+(function() {
+  let bpSort = 'asc';
+
+  function bpEngineerListFor(kriegsherrName) {
+    return members.filter(n => {
+      const m = memberMeta[n] || {};
+      return m.beruf === 'ingenieur' && m.berufWinwin === kriegsherrName;
+    });
+  }
+
+  function bpWarlordList() {
+    const warlords = members.filter(n => (memberMeta[n]?.beruf || null) === 'kriegsherr');
+    warlords.sort((a, b) => a.localeCompare(b, 'de'));
+    if (bpSort === 'desc') warlords.reverse();
+    if (bpSort === 'count_desc' || bpSort === 'count_asc') {
+      warlords.sort((a, b) => {
+        const diff = bpEngineerListFor(a).length - bpEngineerListFor(b).length;
+        return bpSort === 'count_desc' ? -diff : diff;
+      });
+    }
+    return warlords;
+  }
+
+  function bpQueueList() {
+    return members.filter(n => {
+      const m = memberMeta[n] || {};
+      if (m.beruf === 'kriegsherr') return false;
+      if (m.beruf === 'ingenieur' && m.berufWinwin) return false;
+      return true;
+    }).sort((a, b) => a.localeCompare(b, 'de'));
+  }
+
+  async function bpSaveBeruf(name, beruf, medHilfe, winwin) {
+    await apiPost({ action: 'save_beruf', name, beruf, med_hilfe: medHilfe ? 1 : 0, winwin: winwin || null });
+  }
+
+  window.berufePlannerRender = function() {
+    const queueEl = document.getElementById('bp-queue');
+    const gridEl = document.getElementById('bp-grid');
+    const subEl = document.getElementById('bp-grid-sub');
+    if (!queueEl || !gridEl) return;
+
+    const maxIng = getBerufeMaxEngineers();
+    const queue = bpQueueList();
+    const warlords = bpWarlordList();
+    if (subEl) {
+      subEl.textContent = `${tr('s_bp_subtext_prefix')} ${maxIng} ${tr('s_bp_subtext_suffix')}`;
+    }
+
+    if (!queue.length) {
+      queueEl.innerHTML = `<div style="font-size:12px;color:var(--soft);padding:8px;">${escHtml(tr('s_bp_queue_empty'))}</div>`;
+    } else {
+      queueEl.innerHTML = queue.map(name =>
+        `<div draggable="true" data-member="${escHtml(name)}" ondragstart="bpDragStart(event,this.dataset.member)" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);cursor:grab;">
+          <span style="font-size:12px;color:var(--soft-2);">⠿</span>
+          <span style="font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(name)}</span>
+          <button onclick="event.preventDefault();event.stopPropagation();bpMakeWarlord('${encodeURIComponent(name)}')" title="${escHtml(tr('s_bp_make_warlord'))}" style="border:1px solid rgba(224,85,69,0.45);background:rgba(224,85,69,0.15);color:#ff9f94;border-radius:6px;padding:0 7px;height:24px;line-height:22px;font-size:16px;font-weight:700;cursor:pointer;">+</button>
+        </div>`
+      ).join('');
+    }
+
+    let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      + `<div ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropNewWarlord(event,this)" style="padding:8px;border:1px dashed rgba(224,85,69,0.35);border-radius:8px;color:#f09080;font-size:11px;">${escHtml(tr('s_bp_drop_new_warlord'))}</div>`
+      + `<div ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToQueue(event,this)" style="padding:8px;border:1px dashed rgba(255,255,255,0.2);border-radius:8px;color:var(--soft);font-size:11px;">${escHtml(tr('s_bp_drop_to_queue'))}</div>`
+      + '</div>';
+    html += '<table style="width:100%;border-collapse:separate;border-spacing:4px;table-layout:fixed;">';
+    html += `<thead><tr><th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;">${escHtml(tr('s_kriegsherr'))}</th>`;
+    for (let i = 1; i <= maxIng; i++) {
+      html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;">${escHtml(tr('s_bp_ing_prefix'))} ${i}</th>`;
+    }
+    html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;">${escHtml(tr('s_aktion'))}</th></tr></thead><tbody>`;
+
+    warlords.forEach((kh) => {
+      const engineers = bpEngineerListFor(kh);
+      const khEnc = encodeURIComponent(kh);
+      html += '<tr>';
+      html += `<td ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToWarlord(event,'${khEnc}',this)" style="background:rgba(224,85,69,0.08);border:1px solid rgba(224,85,69,0.2);border-radius:8px;padding:8px;vertical-align:top;">`;
+      html += `<div draggable="true" data-member="${escHtml(kh)}" ondragstart="bpDragStart(event,this.dataset.member)" style="display:flex;align-items:center;gap:8px;cursor:grab;">`;
+      html += '<span style="font-size:12px;color:#f09080;">⚔</span>';
+      html += `<span style="font-size:13px;font-weight:700;">${escHtml(kh)}</span>`;
+      html += '</div></td>';
+
+      for (let i = 0; i < maxIng; i++) {
+        const eng = engineers[i] || null;
+        html += `<td ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToEngineerSlot(event,'${khEnc}',${i},this)" style="background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.18);border-radius:8px;padding:8px;min-height:44px;vertical-align:top;">`;
+        if (eng) {
+          html += `<div draggable="true" data-member="${escHtml(eng)}" ondragstart="bpDragStart(event,this.dataset.member)" style="display:flex;align-items:center;gap:8px;cursor:grab;">`;
+          html += '<span style="font-size:12px;color:#80b8ff;">⚗</span>';
+          html += `<span style="font-size:13px;font-weight:600;">${escHtml(eng)}</span>`;
+          html += '</div>';
+        } else {
+          html += `<span style="font-size:11px;color:var(--soft-2);">${escHtml(tr('s_bp_slot_free'))}</span>`;
+        }
+        html += '</td>';
+      }
+
+      html += `<td style="padding:6px;vertical-align:top;"><button class="wt-btn" onclick="bpUnsetWarlord('${khEnc}')" style="font-size:11px;padding:5px 10px;">${escHtml(tr('s_bp_to_queue_btn'))}</button></td>`;
+      html += '</tr>';
+    });
+
+    if (!warlords.length) {
+      html += `<tr><td colspan="${maxIng + 2}" style="padding:12px;color:var(--soft);font-size:12px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.15);border-radius:8px;">${escHtml(tr('s_bp_no_warlords'))}</td></tr>`;
+    }
+
+    html += '</tbody></table>';
+    gridEl.innerHTML = html;
+  };
+
+  window.berufePlannerLoadPage = async function() {
+    await loadFlagConfig();
+    await loadMembers();
+    const sel = document.getElementById('bp-sort-select');
+    if (sel && sel.value) bpSort = sel.value;
+    window.berufePlannerRender();
+  };
+
+  window.berufePlannerSetSort = function(mode) {
+    bpSort = mode || 'asc';
+    window.berufePlannerRender();
+  };
+
+  window.bpDragStart = function(event, memberName) {
+    window._bpDragMember = memberName;
+    try { event.dataTransfer.setData('text/plain', memberName); } catch (e) {}
+    event.dataTransfer.effectAllowed = 'copy';
+  };
+
+  window.bpAllowDrop = function(event, el) {
+    event.preventDefault();
+    if (el) {
+      el.style.outline = '2px solid var(--gold)';
+      el.style.outlineOffset = '-1px';
+    }
+  };
+
+  window.bpDropLeave = function(el) {
+    if (!el) return;
+    el.style.outline = '';
+    el.style.outlineOffset = '';
+  };
+
+  function bpReadDragMember(event) {
+    let name = window._bpDragMember || '';
+    window._bpDragMember = null;
+    if (!name) {
+      try { name = event.dataTransfer.getData('text/plain') || ''; } catch (e) {}
+    }
+    return name;
+  }
+
+  window.bpDropToQueue = async function(event, el) {
+    event.preventDefault();
+    bpDropLeave(el);
+    const name = bpReadDragMember(event);
+    if (!name) return;
+    try {
+      const meta = memberMeta[name] || {};
+      if ((meta.beruf || null) === 'kriegsherr') {
+        await bpSaveBeruf(name, null, 0, null);
+      } else {
+        await bpSaveBeruf(name, 'ingenieur', !!meta.berufMedHilfe, null);
+      }
+      await loadMembers();
+      window.berufePlannerRender();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+  };
+
+  window.bpDropToWarlord = async function(event, warlordName, el) {
+    event.preventDefault();
+    bpDropLeave(el);
+    warlordName = decodeURIComponent(String(warlordName || ''));
+    const name = bpReadDragMember(event);
+    if (!name || name === warlordName) return;
+    try {
+      await bpSaveBeruf(name, 'kriegsherr', 0, null);
+      await loadMembers();
+      window.berufePlannerRender();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+  };
+
+  window.bpDropNewWarlord = async function(event, el) {
+    event.preventDefault();
+    bpDropLeave(el);
+    const name = bpReadDragMember(event);
+    if (!name) return;
+    try {
+      await bpSaveBeruf(name, 'kriegsherr', 0, null);
+      await loadMembers();
+      window.berufePlannerRender();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+  };
+
+  window.bpDropToEngineerSlot = async function(event, warlordName, slotIndex, el) {
+    event.preventDefault();
+    bpDropLeave(el);
+    warlordName = decodeURIComponent(String(warlordName || ''));
+    const dragName = bpReadDragMember(event);
+    if (!dragName) return;
+    const engineers = bpEngineerListFor(warlordName);
+    const slotOccupant = engineers[slotIndex] || null;
+    if (slotOccupant === dragName) return;
+
+    try {
+      if (slotOccupant && slotOccupant !== dragName) {
+        const occMeta = memberMeta[slotOccupant] || {};
+        await bpSaveBeruf(slotOccupant, 'ingenieur', !!occMeta.berufMedHilfe, null);
+      }
+      const dragMeta = memberMeta[dragName] || {};
+      await bpSaveBeruf(dragName, 'ingenieur', !!dragMeta.berufMedHilfe, warlordName);
+      await loadMembers();
+      window.berufePlannerRender();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+  };
+
+  window.bpUnsetWarlord = async function(name) {
+    name = decodeURIComponent(String(name || ''));
+    const msg = `${tr('s_bp_confirm_unset_title')} ${name}?\n\n${tr('s_bp_confirm_unset_line1')}\n${tr('s_bp_confirm_unset_line2')}`;
+    if (!confirm(msg)) return;
+    try {
+      await bpSaveBeruf(name, null, 0, null);
+      await loadMembers();
+      window.berufePlannerRender();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+  };
+
+  function bpBuildMailText() {
+    const maxIng = getBerufeMaxEngineers();
+    const warlords = bpWarlordList();
+    const lines = [`${tr('s_bp_mail_title')} ${authMember?.alliance || ''}`.trim(), `${tr('s_bp_max_engineers_label')}: ${maxIng}`, ''];
+    if (!warlords.length) {
+      lines.push(tr('s_bp_no_warlords_assigned'));
+      return lines.join('\n');
+    }
+    warlords.forEach((kh) => {
+      const engineers = bpEngineerListFor(kh);
+      lines.push(`⚔ ${kh}`);
+      if (!engineers.length) {
+        lines.push(`  - ${tr('s_bp_no_engineers')}`);
+      } else {
+        engineers.forEach((name, idx) => lines.push(`  ${idx + 1}. ⚗ ${name}`));
+      }
+      lines.push('');
+    });
+    return lines.join('\n');
+  }
+
+  window.berufePlannerCopyMail = function(btn) {
+    const text = bpBuildMailText();
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        if (!btn) return;
+        const orig = btn.textContent;
+        btn.textContent = '✓';
+        btn.style.color = 'var(--green)';
+        setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1800);
+      }).catch(() => {
+        toast(tr('s_bp_copy_failed'), 'err');
+      });
+      return;
+    }
+    toast(tr('s_bp_clipboard_unavailable'), 'err');
+  };
+
+  window.bpMakeWarlord = async function(encodedName) {
+    const name = decodeURIComponent(String(encodedName || ''));
+    if (!name) return;
+    try {
+      await bpSaveBeruf(name, 'kriegsherr', 0, null);
+      await loadMembers();
+      window.berufePlannerRender();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+  };
+})();
 
 initApp();
 

@@ -70,11 +70,18 @@ function handleVerifyDiscord(PDO $pdo, string $alliance): never {
     if ($discordId === '') jsonOut(200, ['ok' => false, 'error' => 'Discord-ID fehlt']);
 
     $member = getDiscordMember($pdo, $alliance, $discordId);
+    if (!$member) {
+        $member = getDiscordMemberAcrossAlliances($pdo, $discordId);
+        if ($member && !empty($member['alliance'])) {
+            $alliance = (string)$member['alliance'];
+        }
+    }
     if (!$member) jsonOut(200, ['ok' => false, 'error' => 'Kein Zugriff']);
 
     $rank = safeRank((int)$member['current_rank_code']);
     jsonOut(200, [
         'ok'                => true,
+        'alliance'          => $alliance,
         'member_id'         => $member['player_id'],
         'member_name'       => $member['current_name'],
         'rank'              => $rank,
@@ -907,6 +914,17 @@ function handleApplyRankChange(PDO $pdo, string $alliance, array $body, array $p
     jsonOut(200, ['ok' => true, 'oldRank' => $oldRank, 'newRank' => $effectiveRank]);
 }
 
+function getBerufeMaxEngineersPerKriegsherr(PDO $pdo, string $alliance): int {
+    ensureAllianceConfigTable($pdo);
+    $stmt = $pdo->prepare("SELECT config_value FROM alliance_config WHERE alliance = ? AND config_key = 'berufe_max_ingenieure' LIMIT 1");
+    $stmt->execute([$alliance]);
+    $raw = $stmt->fetchColumn();
+    $val = is_numeric($raw) ? (int)$raw : 3;
+    if ($val < 1) $val = 1;
+    if ($val > 10) $val = 10;
+    return $val;
+}
+
 function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, array $body): never {
     ensureBerufColumns($pdo);
     $targetName = rawurldecode($nameEncoded);
@@ -943,6 +961,7 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
     $winwin   = ($beruf === 'ingenieur') ? (trim((string)($body['winwin'] ?? '')) ?: null) : null;
 
     if ($winwin !== null) {
+        $maxEngineers = getBerufeMaxEngineersPerKriegsherr($pdo, $alliance);
         $chk = $pdo->prepare("SELECT beruf FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
         $chk->execute([$alliance, $winwin]);
         $chkRow = $chk->fetch();
@@ -953,8 +972,8 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
             "SELECT COUNT(*) AS cnt FROM players WHERE alliance = ? AND beruf_winwin = ? AND player_id != ? AND is_active = 1"
         );
         $cntStmt->execute([$alliance, $winwin, $target['player_id']]);
-        if ((int)($cntStmt->fetch()['cnt'] ?? 0) >= 3) {
-            jsonOut(409, ['error' => 'Dieser Kriegsherr hat bereits 3 Ingenieure']);
+        if ((int)($cntStmt->fetch()['cnt'] ?? 0) >= $maxEngineers) {
+            jsonOut(409, ['error' => "Dieser Kriegsherr hat bereits {$maxEngineers} Ingenieure"]);
         }
     }
 

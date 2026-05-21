@@ -3110,7 +3110,8 @@ async function injectAdminTabs(discordId) {
 }
 
 // ── NAV ──
-async function showPage(id) {
+async function showPage(id, options = {}) {
+  const skipBattleLoader = options?.skipBattleLoader === true;
   const safeId = (() => {
     if (id === 'w' && !isEventPageVisible()) return 'm';
     if (id === 'z' && !isFeatureEnabled('zug')) return 'm';
@@ -3133,13 +3134,18 @@ async function showPage(id) {
   const isBattleView = safeId === 'w' || safeId === 'z' || safeId === 'zv' || safeId === 'bp';
 
   if (isBattleView) {
-    await runWithBattleLoader(async () => {
+    const loadBattleView = async () => {
       await ensureCoreDataLoaded({ forceEntries: !entries.length });
       if (safeId === 'w') selectEventView(activeEventView);
       if (safeId === 'z') await zugLoadPage();
       if (safeId === 'zv') await window.zugRoLoadPage?.();
       if (safeId === 'bp') await window.berufePlannerLoadPage?.();
-    }, 0);
+    };
+    if (skipBattleLoader) {
+      await loadBattleView();
+    } else {
+      await runWithBattleLoader(loadBattleView, 0);
+    }
     return;
   }
 
@@ -3160,12 +3166,34 @@ async function showPage(id) {
   }
   if (id === 'd') renderDashboard();
   if (id === 'e') renderList();
-  if (id === 'r') await runWithBattleLoader(async () => { await loadErgebnis(); });
+  if (id === 'r') {
+    if (skipBattleLoader) {
+      await loadErgebnis();
+    } else {
+      await runWithBattleLoader(async () => { await loadErgebnis(); });
+    }
+  }
   if (id === 'v') { await loadMembers(); await refreshEntriesIfNeeded({background:true}); await loadAccessRequests(); renderVerwaltung(); renderFlagsAdmin(); }
   if (id === 'a') adminInitPage();
   if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 'a' && id !== 'w' && id !== 'z' && id !== 'zv' && id !== 'bp') {
     refreshEntriesIfNeeded({ background: true });
   }
+}
+
+function applyInitialSavedPageSelection() {
+  let saved = 'm';
+  try {
+    saved = localStorage.getItem('lwhub_last_page') || 'm';
+  } catch (_) {}
+
+  const hasStoredTarget = !!document.getElementById('page-' + saved);
+  const safeInitial = hasStoredTarget ? saved : 'm';
+
+  document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+  document.getElementById('page-' + safeInitial)?.classList.add('active');
+
+  document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach((t) => t.classList.remove('active'));
+  document.getElementById('tab-' + safeInitial)?.classList.add('active');
 }
 
 // ── RENDER ALL ──
@@ -5291,7 +5319,7 @@ async function initApp(){
     ensureCoreDataLoaded({ forceEntries: true }).catch(() => {});
 
     updateEventTabVisibility();
-    showPage(localStorage.getItem('lwhub_last_page') || 'm');
+    showPage(localStorage.getItem('lwhub_last_page') || 'm', { skipBattleLoader: true });
     return;
   }
 
@@ -5341,7 +5369,7 @@ async function initApp(){
     const _initElapsed = Date.now() - battleLoaderShownAt;
     if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
     hideBattleLoader();
-    showPage(localStorage.getItem('lwhub_last_page') || 'm');
+    showPage(localStorage.getItem('lwhub_last_page') || 'm', { skipBattleLoader: true });
   } catch(e) {
     hideBattleLoader();
     toast('Fehler beim Laden: ' + e.message);
@@ -6924,6 +6952,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 })();
 
+applyInitialSavedPageSelection();
 initApp();
 
 </script>

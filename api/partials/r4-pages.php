@@ -167,7 +167,7 @@
   <div class="panel" style="margin-bottom:1rem;">
     <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
       <div>
-        <div class="panel-title">⚗ <span data-i18n="s_bp_berufeplanner">Berufeplanner</span></div>
+        <div class="panel-title">⚗ <span data-i18n="s_bp_berufeplanner">Berufeplaner</span></div>
         <div class="panel-sub" data-i18n="s_bp_panel_sub">Kriegsherren und Ingenieure per Drag-and-drop zuordnen</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">

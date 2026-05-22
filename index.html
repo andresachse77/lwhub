@@ -4540,6 +4540,9 @@ function updateEventTabVisibility() {
   if (!eventVisible && document.getElementById('page-w')?.classList.contains('active')) {
     showPage('m');
   }
+  // Keep mobile dropdown navigation in sync with current tab visibility.
+  if (typeof buildNavActionsFromTabs === 'function') buildNavActionsFromTabs();
+  if (typeof updateNavCompact === 'function') updateNavCompact();
 }
 window.updateEventTabVisibility = updateEventTabVisibility;
 
@@ -4565,6 +4568,9 @@ function updateFeatureTabVisibility() {
       (!isFeatureEnabled('berufe') && document.getElementById('page-bp')?.classList.contains('active'))) {
     showPage('m');
   }
+  // Keep mobile dropdown navigation in sync with current tab visibility.
+  if (typeof buildNavActionsFromTabs === 'function') buildNavActionsFromTabs();
+  if (typeof updateNavCompact === 'function') updateNavCompact();
 }
 window.updateFeatureTabVisibility = updateFeatureTabVisibility;
 

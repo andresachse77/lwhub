@@ -84,3 +84,21 @@ Repo-Struktur nach Umstellung:
 Hinweise:
 - Der Workflow schliesst `config.php`, `.git/` und `.github/` vom Upload aus.
 - Nicht mehr vorhandene Dateien im Repo werden auf dem Ziel ebenfalls entfernt.
+
+## Auto-Reload nach Deploy
+
+Nach jedem Deploy schreibt der Workflow die Datei `deploy-version.json` neu (Commit-SHA + UTC-Zeit).
+
+Die App laedt `deploy-refresh.js` und prueft etwa alle 60 Sekunden auf eine neue Deploy-Version. Wenn eine neue Version erkannt wird, erscheint eine Meldung mit Countdown und Button (`Jetzt neu laden`); danach wird die Seite automatisch mit Cache-Buster Parameter neu geladen.
+
+Optional pro Geraet deaktivieren (Browser-Konsole):
+
+```
+localStorage.setItem('lwhub_disable_auto_reload', '1')
+```
+
+Wieder aktivieren:
+
+```
+localStorage.removeItem('lwhub_disable_auto_reload')
+```

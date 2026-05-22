@@ -17,6 +17,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Write deploy version file
+        run: |
+          DEPLOYED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat > deploy-version.json <<EOF
+          {
+            "version": "${GITHUB_SHA}",
+            "deployed_at": "${DEPLOYED_AT}"
+          }
+          EOF
+
       - name: Validate required FTP secrets
         env:
           FTP_SERVER_EFFECTIVE: ${{ secrets.FTP_SERVER || secrets.SERVER }}

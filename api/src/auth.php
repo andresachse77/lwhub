@@ -84,7 +84,7 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
                 ON dpc.alliance = p.alliance
                AND dpc.discord_user_id = COALESCE(pid.discord_user_id, puld.discord_user_id)
             WHERE p.alliance = ? AND p.is_active = 1 {$rankFilter}
-              AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+              AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
             LIMIT 1
         ";
     }
@@ -110,7 +110,7 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
             GROUP BY pul.alliance, pul.player_id
         ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
         WHERE p.alliance = ? AND p.is_active = 1 {$rankFilter}
-          AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+                    AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
         LIMIT 1
     ";
 }
@@ -162,12 +162,12 @@ function getDiscordMember(PDO $pdo, string $alliance, string $discordId, bool $l
 
     try {
         $stmt = $pdo->prepare(getDiscordMemberSql(true, $leadershipOnly));
-        $stmt->execute([$alliance, $discordId]);
+            $stmt->execute([$alliance, $discordId, $discordId]);
         return $stmt->fetch() ?: null;
     } catch (\PDOException $e) {
         if (!isOptionalTableError($e)) throw $e;
         $stmt = $pdo->prepare(getDiscordMemberSql(false, $leadershipOnly));
-        $stmt->execute([$alliance, $discordId]);
+            $stmt->execute([$alliance, $discordId, $discordId]);
         return $stmt->fetch() ?: null;
     }
 }
@@ -206,7 +206,7 @@ function getDiscordMemberAcrossAlliancesSql(bool $withCache, bool $leadershipOnl
                AND uac.alliance = p.alliance
                AND uac.player_id = p.player_id
             WHERE p.is_active = 1 {$rankFilter}
-              AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+                            AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
             ORDER BY is_active_char DESC, p.current_rank_code DESC, p.alliance ASC, p.current_name ASC
             LIMIT 1
         ";
@@ -238,7 +238,7 @@ function getDiscordMemberAcrossAlliancesSql(bool $withCache, bool $leadershipOnl
            AND uac.alliance = p.alliance
            AND uac.player_id = p.player_id
         WHERE p.is_active = 1 {$rankFilter}
-          AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+                    AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
         ORDER BY is_active_char DESC, p.current_rank_code DESC, p.alliance ASC, p.current_name ASC
         LIMIT 1
     ";
@@ -247,12 +247,12 @@ function getDiscordMemberAcrossAlliancesSql(bool $withCache, bool $leadershipOnl
 function getDiscordMemberAcrossAlliances(PDO $pdo, string $discordId, bool $leadershipOnly = false): ?array {
     try {
         $stmt = $pdo->prepare(getDiscordMemberAcrossAlliancesSql(true, $leadershipOnly));
-        $stmt->execute([$discordId, $discordId]);
+            $stmt->execute([$discordId, $discordId, $discordId]);
         return $stmt->fetch() ?: null;
     } catch (\PDOException $e) {
         if (!isOptionalTableError($e)) throw $e;
         $stmt = $pdo->prepare(getDiscordMemberAcrossAlliancesSql(false, $leadershipOnly));
-        $stmt->execute([$discordId, $discordId]);
+            $stmt->execute([$discordId, $discordId, $discordId]);
         return $stmt->fetch() ?: null;
     }
 }
@@ -407,10 +407,10 @@ function requireR5(PDO $pdo, string $discordId): array {
                 JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
             ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
             WHERE p.is_active = 1
-              AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+                            AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
             LIMIT 1
         ");
-        $stmt->execute([$discordId]);
+                $stmt->execute([$discordId, $discordId]);
         $row = $stmt->fetch();
         if ($row) return $row;
         return ['player_id' => null, 'current_name' => null, 'current_rank_code' => 5, 'alliance' => null];
@@ -427,10 +427,10 @@ function requireR5(PDO $pdo, string $discordId): array {
             JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
         ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
         WHERE p.is_active = 1 AND p.current_rank_code = 5
-          AND COALESCE(pid.discord_user_id, puld.discord_user_id) = ?
+                    AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
         LIMIT 1
     ");
-    $stmt->execute([$discordId]);
+        $stmt->execute([$discordId, $discordId]);
     $row = $stmt->fetch();
     if (!$row) jsonOut(403, ['error' => 'Kein Zugriff – nur Admins dürfen diesen Bereich nutzen']);
     return $row;

@@ -69,12 +69,14 @@ function handleVerifyDiscord(PDO $pdo, string $alliance): never {
     }
     if ($discordId === '') jsonOut(200, ['ok' => false, 'error' => 'Discord-ID fehlt']);
 
-    $member = getDiscordMember($pdo, $alliance, $discordId);
-    if (!$member) {
-        $member = getDiscordMemberAcrossAlliances($pdo, $discordId);
-        if ($member && !empty($member['alliance'])) {
-            $alliance = (string)$member['alliance'];
-        }
+    // Resolve effective membership first (prefers server-side active char) to keep
+    // re-login/reopen in the same alliance context across sessions/devices.
+    $member = getDiscordMemberAcrossAlliances($pdo, $discordId);
+    if ($member && !empty($member['alliance'])) {
+        $alliance = (string)$member['alliance'];
+    } elseif (!$member) {
+        // Backward-compatible fallback for installations without full cross-alliance linkage.
+        $member = getDiscordMember($pdo, $alliance, $discordId);
     }
     if (!$member) jsonOut(200, ['ok' => false, 'error' => 'Kein Zugriff']);
 

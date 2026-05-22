@@ -156,7 +156,7 @@
           <div class="panel-sub" data-i18n="s_bp_queue_sub">Mitglieder ohne Zuordnung</div>
         </div>
       </div>
-      <div id="bp-queue" style="display:flex;flex-direction:column;gap:6px;min-height:100px;"></div>
+      <div id="bp-queue" class="bp-queue-list"></div>
     </div>
 
     <div class="panel bp-grid-panel">

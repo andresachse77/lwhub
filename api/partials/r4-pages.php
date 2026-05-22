@@ -148,8 +148,8 @@
     </div>
   </div>
 
-  <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-start;">
-    <div class="panel" style="flex:1 1 260px;min-width:250px;">
+  <div class="bp-layout">
+    <div class="panel bp-queue-panel">
       <div class="panel-head">
         <div>
           <div class="panel-title" data-i18n="s_bp_queue_title">Warteschlange</div>
@@ -159,7 +159,7 @@
       <div id="bp-queue" style="display:flex;flex-direction:column;gap:6px;min-height:100px;"></div>
     </div>
 
-    <div class="panel" style="flex:2 1 560px;min-width:320px;">
+    <div class="panel bp-grid-panel">
       <div class="panel-head">
         <div>
           <div class="panel-title" id="bp-grid-title" data-i18n="s_bp_kriegsherren_und_ingenieure">Kriegsherren und Ingenieure</div>

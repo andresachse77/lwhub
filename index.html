@@ -663,6 +663,19 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   #main-tabs { display: none !important; }
   .nav-actions { margin-left: auto; }
   .tab { padding: 6px 12px; }
+
+  .battle-loader { padding: 10px; }
+  .battle-loader-card {
+    width: min(720px, 100%);
+    padding: 12px;
+    border-radius: 14px;
+    border-color: rgba(255,255,255,0.1);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+  }
+  .battle-loader-frame {
+    border-radius: 10px;
+    border-color: rgba(255,255,255,0.06);
+  }
 }
 
 @media (max-width: 520px) {
@@ -674,6 +687,18 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   }
   .wache-tab { padding: 8px 6px; font-size: 13px; text-align: center; }
   .wache-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+
+  .battle-loader { padding: 8px; }
+  .battle-loader-card {
+    padding: 8px;
+    border-radius: 10px;
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+  .battle-loader-frame {
+    border-radius: 8px;
+    border-color: rgba(255,255,255,0.05);
+  }
 }
 
 /* ── MEIN BEREICH (me- prefix, scoped) ── */

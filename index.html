@@ -1927,8 +1927,9 @@ async function fetchJson(path, options = {}) {
   try {
     const normalizedPath = String(path || '').toLowerCase();
     if (!normalizedPath.startsWith('/verify-discord')) {
+      const hasAllianceQuery = /(?:\?|&)alliance=/.test(String(path || ''));
       const activeChar = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null');
-      if (activeChar?.alliance) {
+      if (!hasAllianceQuery && activeChar?.alliance) {
         path = path + (path.includes('?') ? '&' : '?') + 'alliance=' + encodeURIComponent(activeChar.alliance);
       }
     }
@@ -4278,6 +4279,21 @@ function renderAllianceFeaturesModal() {
 
 window.openAllianceFeatures = openAllianceFeatures;
 
+function getEffectiveAllianceForApi() {
+  const fromAuth = String(authMember?.active_alliance || authMember?.alliance || '').trim();
+  if (fromAuth) return fromAuth;
+  try {
+    const fromGetter = typeof window.getActiveAlliance === 'function' ? String(window.getActiveAlliance() || '').trim() : '';
+    if (fromGetter) return fromGetter;
+  } catch (_) {}
+  try {
+    const ac = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null');
+    const fromStorage = String(ac?.alliance || '').trim();
+    if (fromStorage) return fromStorage;
+  } catch (_) {}
+  return '';
+}
+
 async function loadFlagConfig(allianceOverride) {
   try {
     if (allianceOverride) {
@@ -4287,7 +4303,11 @@ async function loadFlagConfig(allianceOverride) {
       if (config.zugplan === true && config.zug !== true) config.zug = true;
       return config;
     }
-    const data = await fetchJson('/alliance-config');
+    const alliance = getEffectiveAllianceForApi();
+    const path = alliance
+      ? `/alliance-config?alliance=${encodeURIComponent(alliance)}`
+      : '/alliance-config';
+    const data = await fetchJson(path);
     flagConfig = data.config || {};
     if (flagConfig.zugplan === true && flagConfig.zug !== true) flagConfig.zug = true;
     updateEventTabVisibility();
@@ -4305,7 +4325,7 @@ function isCatEnabled(catKey) {
 }
 
 function isCurrentAllianceTarget(targetAlliance) {
-  const currentAlliance = String(authMember?.alliance || '').trim().toLowerCase();
+  const currentAlliance = String(authMember?.active_alliance || authMember?.alliance || '').trim().toLowerCase();
   const target = String(targetAlliance || '').trim().toLowerCase();
   return !!currentAlliance && !!target && currentAlliance === target;
 }

@@ -3161,6 +3161,15 @@ async function injectAdminTabs(discordId) {
   } catch(e) { /* silent fail */ }
 }
 
+function resetRoleScopedUi() {
+  const r4Btns = document.getElementById('r4-tab-btns');
+  const adminBtns = document.getElementById('admin-tab-btns');
+  const r4Pages = document.getElementById('r4-pages-container');
+  if (r4Btns) r4Btns.innerHTML = '';
+  if (adminBtns) adminBtns.innerHTML = '';
+  if (r4Pages) r4Pages.innerHTML = '';
+}
+
 // ── NAV ──
 async function showPage(id, options = {}) {
   const skipBattleLoader = options?.skipBattleLoader === true;
@@ -5372,15 +5381,6 @@ async function initApp(){
 
     document.getElementById('logout-btn').style.display = 'block';
 
-    // Inject R4/Admin tabs if user has the rank (R1-R3 see only m + p tabs)
-    if (authResult.can_manage) {
-      await injectR4Tabs(authMember.discord_id);
-      if (authResult.rank >= 5) await injectAdminTabs(authMember.discord_id);
-    }
-
-    // Nav actions for char-switcher dropdown (tabs hidden on mobile → show as menu items)
-    buildNavActionsFromTabs();
-
     // Init char switcher
     if (typeof window.initCharSwitcher === 'function') {
       await window.initCharSwitcher(currentDiscordUser, authMember);
@@ -5389,6 +5389,16 @@ async function initApp(){
         await window.setAppLanguage(authMember.preferred_language, { persistLocal: true, persistServer: false });
       }
     }
+
+    // Render role-protected navigation only after active char + language are finalized.
+    resetRoleScopedUi();
+    if (authMember?.can_manage) {
+      await injectR4Tabs(authMember.discord_id);
+      if ((authMember?.rank || 0) >= 5) await injectAdminTabs(authMember.discord_id);
+    }
+
+    // Nav actions for char-switcher dropdown (tabs hidden on mobile → show as menu items)
+    buildNavActionsFromTabs();
 
     showBattleLoader();
     document.getElementById('login-screen').style.display = 'none';
@@ -5418,22 +5428,6 @@ async function initApp(){
       document.getElementById('login-screen').style.display = 'flex';
       return;
     }
-    if (localAuth.can_manage) {
-      await injectR4Tabs(localAuth.discord_id || 'local-preview');
-      if (localAuth.rank >= 5) await injectAdminTabs(localAuth.discord_id || 'local-preview');
-      updateEventTabVisibility();
-      renderAll();
-      hydrateEntriesFromCache(kw, { allowStale: true });
-      renderAll();
-      refreshEntriesIfNeeded({ force: !entries.length, background: true });
-      loadAccessRequests().then(() => {
-        if (document.getElementById('page-v')?.classList.contains('active')) {
-          renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
-        }
-      });
-    }
-    // Nav actions for char-switcher dropdown (tabs hidden on mobile → show as menu items)
-    buildNavActionsFromTabs();
     const _lpDiscordId = localAuth?.discord_id || 'local-preview';
     if (typeof window.initCharSwitcher === 'function') {
       await window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
@@ -5447,6 +5441,23 @@ async function initApp(){
           window.initCharSwitcher({ id: _lpDiscordId, username: localAuth?.discord_username || 'Lokaler Admin', avatar: null }, localAuth);
       });
     }
+    resetRoleScopedUi();
+    if (authMember?.can_manage) {
+      await injectR4Tabs(authMember.discord_id || 'local-preview');
+      if ((authMember?.rank || 0) >= 5) await injectAdminTabs(authMember.discord_id || 'local-preview');
+      updateEventTabVisibility();
+      renderAll();
+      hydrateEntriesFromCache(kw, { allowStale: true });
+      renderAll();
+      refreshEntriesIfNeeded({ force: !entries.length, background: true });
+      loadAccessRequests().then(() => {
+        if (document.getElementById('page-v')?.classList.contains('active')) {
+          renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+        }
+      });
+    }
+    // Nav actions for char-switcher dropdown (tabs hidden on mobile → show as menu items)
+    buildNavActionsFromTabs();
     startPresencePing(localAuth.member_name || LOCAL_DEV_MEMBER_NAME, localAuth.discord_id || '', localAuth.discord_username || '');
     await me_loadHistory(localAuth.discord_id || '', localAuth.member_name || LOCAL_DEV_MEMBER_NAME);
     const _initElapsed = Date.now() - battleLoaderShownAt;

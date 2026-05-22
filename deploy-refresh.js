@@ -15,6 +15,18 @@
   let countdownTimerId = null;
   let pendingVersion = '';
 
+  function tr(key, fallback, vars) {
+    const fn = typeof window.trText === 'function' ? window.trText : null;
+    let out = fn ? fn(key) : key;
+    if (!out || out === key) out = fallback || key;
+    if (vars && typeof vars === 'object') {
+      Object.keys(vars).forEach(function (name) {
+        out = out.replace('{' + name + '}', String(vars[name]));
+      });
+    }
+    return out;
+  }
+
   function clearReloadTimers() {
     if (reloadTimerId) {
       clearTimeout(reloadTimerId);
@@ -48,10 +60,10 @@
     box = document.createElement('div');
     box.id = 'deploy-update-banner';
     box.innerHTML = [
-      '<strong>Neue Version verfuegbar</strong>',
-      '<div id="deploy-update-text">Die Seite wird gleich aktualisiert.</div>',
+      '<strong id="deploy-update-title"></strong>',
+      '<div id="deploy-update-text"></div>',
       '<div class="deploy-update-row">',
-      '  <button id="deploy-update-now" class="deploy-update-btn" type="button">Jetzt neu laden</button>',
+      '  <button id="deploy-update-now" class="deploy-update-btn" type="button"></button>',
       '  <span id="deploy-update-countdown" class="deploy-update-note"></span>',
       '</div>'
     ].join('');
@@ -65,15 +77,18 @@
     clearReloadTimers();
 
     const box = ensureBanner();
+    const titleEl = document.getElementById('deploy-update-title');
     const textEl = document.getElementById('deploy-update-text');
     const countdownEl = document.getElementById('deploy-update-countdown');
     const button = document.getElementById('deploy-update-now');
 
     let remainingSeconds = Math.ceil(RELOAD_DELAY_MS / 1000);
-    if (textEl) textEl.textContent = 'Ein Update wurde bereitgestellt. Offene Aenderungen koennen verloren gehen.';
-    if (countdownEl) countdownEl.textContent = 'Neuladen in ' + remainingSeconds + 's';
+    if (titleEl) titleEl.textContent = tr('s_deploy_update_title', 'Neue Version verfuegbar');
+    if (textEl) textEl.textContent = tr('s_deploy_update_text', 'Ein Update wurde bereitgestellt. Offene Aenderungen koennen verloren gehen.');
+    if (countdownEl) countdownEl.textContent = tr('s_deploy_update_in_seconds', 'Neuladen in {seconds}s', { seconds: remainingSeconds });
 
     if (button) {
+      button.textContent = tr('s_deploy_update_reload_now', 'Jetzt neu laden');
       button.onclick = function () {
         reloadWithVersion(version);
       };
@@ -83,7 +98,7 @@
       remainingSeconds -= 1;
       if (!countdownEl) return;
       if (remainingSeconds > 0) {
-        countdownEl.textContent = 'Neuladen in ' + remainingSeconds + 's';
+        countdownEl.textContent = tr('s_deploy_update_in_seconds', 'Neuladen in {seconds}s', { seconds: remainingSeconds });
       } else {
         countdownEl.textContent = '';
       }

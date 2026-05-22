@@ -12,7 +12,8 @@ function handleGetMyChars(PDO $pdo, string $discordId): never {
     $chars = [];
     try {
         $stmt = $pdo->prepare("
-            SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code,
+                 SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code,
+                     p.preferred_language,
                    pid.discord_user_id AS via_identity,
                    puld.discord_user_id AS via_account
             FROM players p
@@ -40,6 +41,7 @@ function handleGetMyChars(PDO $pdo, string $discordId): never {
                 'name'      => $p['current_name'],
                 'rank'      => safeRank((int)$p['current_rank_code']),
                 'role'      => roleFromRank(safeRank((int)$p['current_rank_code'])),
+                'preferred_language' => $p['preferred_language'] ?: 'de',
                 'is_active' => $isActive,
             ];
         }

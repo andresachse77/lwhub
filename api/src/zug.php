@@ -121,8 +121,8 @@ function resetZugQueueToFront(PDO $pdo, string $alliance, string $rulesetKey, st
 }
 
 function hasWeeklyZugRole(PDO $pdo, string $alliance, string $memberName, string $eventDate, ?string $excludeId = null): bool {
-    $sql = "SELECT COUNT(*) FROM zug_schedule WHERE alliance=? AND YEARWEEK(event_date,3)=YEARWEEK(?,3) AND (schaffner_name=? OR vip_name=?) AND status!='cancelled'";
-    $params = [$alliance, $eventDate, $memberName, $memberName];
+    $sql = "SELECT COUNT(*) FROM zug_schedule WHERE alliance=? AND YEARWEEK(event_date,3)=YEARWEEK(?,3) AND schaffner_name=? AND status!='cancelled'";
+    $params = [$alliance, $eventDate, $memberName];
     if ($excludeId !== null) { $sql .= " AND id!=?"; $params[] = $excludeId; }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -186,12 +186,75 @@ function handleSyncZugQueue(PDO $pdo, string $alliance, array $body): never {
                 ->execute([$alliance, $rulesetKey, $m]);
         }
     }
-    // Re-compact positions
-    $upd = getZugQueueRows($pdo, $alliance, $rulesetKey);
-    foreach ($upd as $i => $r) {
-        $pdo->prepare("UPDATE zug_queue SET queue_position=? WHERE alliance=? AND ruleset_key=? AND member_name=?")
-            ->execute([$i+1, $alliance, $rulesetKey, $r['member_name']]);
+
+    // Backfill queue stats from historical completed entries so sync can repair drift.
+    $stmtHist = $pdo->prepare("\n        SELECT schaffner_name AS member_name, COUNT(*) AS turn_count, MAX(event_date) AS last_turn_date\n        FROM zug_schedule\n        WHERE alliance=? AND ruleset_key=? AND status='completed'\n        GROUP BY schaffner_name\n    ");
+    $stmtHist->execute([$alliance, $rulesetKey]);
+    $histByMember = [];
+    foreach ($stmtHist->fetchAll() as $row) {
+        $histByMember[(string)$row['member_name']] = [
+            'turn_count' => (int)$row['turn_count'],
+            'last_turn_date' => $row['last_turn_date'] ?: null,
+        ];
     }
+
+    $stmtQueue = $pdo->prepare("SELECT member_name FROM zug_queue WHERE alliance=? AND ruleset_key=?");
+    $stmtQueue->execute([$alliance, $rulesetKey]);
+    $updStats = $pdo->prepare("UPDATE zug_queue SET turn_count=?, last_turn_date=? WHERE alliance=? AND ruleset_key=? AND member_name=?");
+    foreach ($stmtQueue->fetchAll() as $row) {
+        $member = (string)$row['member_name'];
+        $stats = $histByMember[$member] ?? ['turn_count' => 0, 'last_turn_date' => null];
+        $updStats->execute([(int)$stats['turn_count'], $stats['last_turn_date'], $alliance, $rulesetKey, $member]);
+    }
+
+    // Stable fair ordering:
+    // - members without rides are always sorted alphabetically
+    // - members with rides are sorted by fewest rides, then oldest last_turn_date
+    $rows = getZugQueueRows($pdo, $alliance, $rulesetKey);
+    $annotated = [];
+    foreach ($rows as $row) {
+        $member = (string)$row['member_name'];
+        $turnCount = (int)($row['turn_count'] ?? 0);
+        $prevPos = (int)($row['queue_position'] ?? 999999);
+        $lastTurn = $row['last_turn_date'] ?: null;
+
+        $annotated[] = [
+            'row' => $row,
+            'member_name' => $member,
+            'turn_count' => $turnCount,
+            'prev_pos' => $prevPos,
+            'last_turn_date' => $lastTurn,
+        ];
+    }
+
+    usort($annotated, static function(array $a, array $b): int {
+        $aZero = $a['turn_count'] === 0;
+        $bZero = $b['turn_count'] === 0;
+        if ($aZero && $bZero) {
+            $cmpName = strcasecmp((string)$a['member_name'], (string)$b['member_name']);
+            if ($cmpName !== 0) return $cmpName;
+            return $a['prev_pos'] <=> $b['prev_pos'];
+        }
+        if ($aZero !== $bZero) {
+            return $aZero ? -1 : 1;
+        }
+        if ($a['turn_count'] !== $b['turn_count']) {
+            return $a['turn_count'] <=> $b['turn_count'];
+        }
+        $aDate = $a['last_turn_date'] ?? '9999-12-31';
+        $bDate = $b['last_turn_date'] ?? '9999-12-31';
+        if ($aDate !== $bDate) {
+            return strcmp((string)$aDate, (string)$bDate);
+        }
+        return $a['prev_pos'] <=> $b['prev_pos'];
+    });
+
+    foreach ($annotated as $i => $item) {
+        $row = $item['row'];
+        $pdo->prepare("UPDATE zug_queue SET queue_position=? WHERE alliance=? AND ruleset_key=? AND member_name=?")
+            ->execute([$i + 1, $alliance, $rulesetKey, $row['member_name']]);
+    }
+
     handleGetZugQueue($pdo, $alliance);
 }
 
@@ -236,16 +299,13 @@ function handleGetZugSuggest(PDO $pdo, string $alliance): never {
     $eventDate  = trim($_GET['date'] ?? date('Y-m-d'));
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $eventDate)) $eventDate = date('Y-m-d');
     $queue = getZugQueueRows($pdo, $alliance, $rulesetKey);
-    $sugSchaffner = null; $sugVip = null;
+    $sugSchaffner = null;
     foreach ($queue as $row) {
         if ($sugSchaffner === null && !hasWeeklyZugRole($pdo, $alliance, $row['member_name'], $eventDate)) {
             $sugSchaffner = $row['member_name'];
-        } elseif ($sugSchaffner !== null && $sugVip === null && !hasWeeklyZugRole($pdo, $alliance, $row['member_name'], $eventDate)) {
-            $sugVip = $row['member_name'];
-            break;
         }
     }
-    jsonOut(200, ['ok' => true, 'suggested_schaffner' => $sugSchaffner, 'suggested_vip' => $sugVip]);
+    jsonOut(200, ['ok' => true, 'suggested_schaffner' => $sugSchaffner, 'suggested_vip' => null]);
 }
 
 function handleCreateZugSchedule(PDO $pdo, string $alliance, array $body): never {
@@ -260,9 +320,6 @@ function handleCreateZugSchedule(PDO $pdo, string $alliance, array $body): never
     if ($schaffner === '') jsonOut(400, ['error' => 'Schaffner-Name erforderlich']);
     if (hasWeeklyZugRole($pdo, $alliance, $schaffner, $eventDate)) {
         jsonOut(409, ['error' => "{$schaffner} ist diese Woche bereits als Schaffner oder VIP eingeplant."]);
-    }
-    if ($vip !== null && hasWeeklyZugRole($pdo, $alliance, $vip, $eventDate)) {
-        jsonOut(409, ['error' => "{$vip} ist diese Woche bereits als Schaffner oder VIP eingeplant."]);
     }
     $id = uuid4();
     $pdo->prepare("
@@ -285,9 +342,6 @@ function handleUpdateZugSchedule(PDO $pdo, string $alliance, string $id, array $
     if (!in_array($status, ['planned','completed','noshow','cancelled'], true)) jsonOut(400, ['error' => 'Ungültiger Status']);
     if ($schaffner !== $entry['schaffner_name'] && hasWeeklyZugRole($pdo, $alliance, $schaffner, $entry['event_date'], $id)) {
         jsonOut(409, ['error' => "{$schaffner} ist diese Woche bereits als Schaffner oder VIP eingeplant."]);
-    }
-    if ($vip !== null && $vip !== $entry['vip_name'] && hasWeeklyZugRole($pdo, $alliance, $vip, $entry['event_date'], $id)) {
-        jsonOut(409, ['error' => "{$vip} ist diese Woche bereits als Schaffner oder VIP eingeplant."]);
     }
     $pdo->prepare("UPDATE zug_schedule SET schaffner_name=?,vip_name=?,status=?,notes=? WHERE id=? AND alliance=?")
         ->execute([$schaffner,$vip,$status,$notes,$id,$alliance]);

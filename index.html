@@ -3199,11 +3199,36 @@ async function showPage(id, options = {}) {
 
   if (isBattleView) {
     const loadBattleView = async () => {
+      const waitForBattleDomReady = async () => {
+        const started = Date.now();
+        const timeoutMs = 4000;
+        while (Date.now() - started < timeoutMs) {
+          if (safeId === 'z') {
+            const calReady = !!document.querySelector('#zug-cal-grid table');
+            const queueReady = !!document.querySelector('#zug-queue-list > *');
+            if (calReady && queueReady) break;
+          } else if (safeId === 'zv') {
+            const calReady = !!document.querySelector('#zug-ro-cal-grid table');
+            if (calReady) break;
+          } else if (safeId === 'bp') {
+            const gridReady = !!document.querySelector('#bp-grid > *');
+            const queueReady = !!document.querySelector('#bp-queue > *');
+            if (gridReady && queueReady) break;
+          } else {
+            break;
+          }
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+        }
+      };
+
       await ensureCoreDataLoaded({ forceEntries: !entries.length });
       if (safeId === 'w') selectEventView(activeEventView);
       if (safeId === 'z') await zugLoadPage();
       if (safeId === 'zv') await window.zugRoLoadPage?.();
       if (safeId === 'bp') await window.berufePlannerLoadPage?.();
+      await waitForBattleDomReady();
+      // Ensure one full paint cycle after DOM is ready before hiding loader.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     };
     if (skipBattleLoader) {
       await loadBattleView();
@@ -4474,6 +4499,9 @@ window.renderFlagsAdmin = renderFlagsAdmin;
 
 // Re-render dynamic content when language changes
 document.addEventListener('i18n:language-changed', () => {
+  if (typeof buildNavActionsFromTabs === 'function') {
+    buildNavActionsFromTabs();
+  }
   // Mein Bereich (start page) – all me_render* functions use tr() inline
   if (typeof me_renderOverview === 'function' && typeof meHistoryBundle !== 'undefined' && meHistoryBundle) {
     me_renderOverview();
@@ -5841,7 +5869,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   let zugWindowStart  = null;   // 'YYYY-MM-DD' Monday of first visible week
   let zugSchedule     = [];     // entries loaded for current window
   let zugQueue        = [];     // queue rows
-  let zugRulesets     = [];     // ruleset definitions
+  let zugRulesets     = [];     // kept for compatibility, UI is fixed to standard
   let zugActiveRuleset= 'standard';
   let zugOpenEntry      = null;   // the schedule entry being edited
   let zugOpenDate       = null;   // the date string being acted on
@@ -5974,18 +6002,16 @@ async function revokeAdmin(targetDiscordId, displayName) {
 
   // ── main entry point ───────────────────────────────────────────────────────
   window.zugLoadPage = async function() {
+    zugActiveRuleset = 'standard';
     if (!zugWindowStart) zugWindowStart = getMondayOfWeek(todayStr());
     const weekCount = zugCalWeekCount();
-    await Promise.all([zugLoadRulesets(), zugLoadQueue(), zugLoadScheduleForWindow(zugWindowStart, weekCount)]);
-    zugRenderRulesetSelect();
+    await Promise.all([zugLoadQueue(), zugLoadScheduleForWindow(zugWindowStart, weekCount)]);
     zugRenderCalendar();
     zugRenderQueue();
-    zugRenderRulesetList();
   };
 
   window.zugOnRulesetChange = async function() {
-    const sel = document.getElementById('zug-ruleset-select');
-    if (sel) zugActiveRuleset = sel.value;
+    zugActiveRuleset = 'standard';
     await zugLoadQueue();
     zugRenderQueue();
     zugRenderCalendar();
@@ -6015,7 +6041,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
       const d = await zugApiFetch('/zug/queue/sync', {
         method: 'POST',
         headers: {'content-type':'application/json'},
-        body: JSON.stringify({ discord_id: getDiscordId(), ruleset: zugActiveRuleset })
+        body: JSON.stringify({ discord_id: getDiscordId(), ruleset: 'standard' })
       });
       if (d.ok) { zugQueue = d.queue || []; zugRenderQueue(); toast('Queue synchronisiert'); }
       else toast(d.error || 'Fehler', 'err');
@@ -6023,13 +6049,26 @@ async function revokeAdmin(targetDiscordId, displayName) {
     if (btn) btn.textContent = '⟳ Queue sync';
   };
 
+  function zugArrangePanels() {
+    const wrap = document.getElementById('zug-cal-panel')?.parentElement;
+    const cal = document.getElementById('zug-cal-panel');
+    const queue = document.getElementById('zug-queue-panel');
+    const planned = document.getElementById('zug-planned-panel');
+    if (!wrap || !cal || !queue || !planned) return;
+    if (window.innerWidth <= 900) {
+      if (cal.nextElementSibling !== planned) {
+        wrap.insertBefore(planned, queue);
+      }
+      return;
+    }
+    if (queue.nextElementSibling !== planned) {
+      wrap.insertBefore(planned, queue.nextElementSibling);
+    }
+  }
+
   // ── render: ruleset select ─────────────────────────────────────────────────
   function zugRenderRulesetSelect() {
-    const sel = document.getElementById('zug-ruleset-select');
-    if (!sel) return;
-    sel.innerHTML = zugRulesets.map(r =>
-      `<option value="${escHtml(r.ruleset_key)}"${r.ruleset_key===zugActiveRuleset?' selected':''}>${escHtml(r.ruleset_name)}</option>`
-    ).join('') || '<option value="standard">Standard</option>';
+    return;
   }
 
   // ── render: calendar ───────────────────────────────────────────────────────
@@ -6183,9 +6222,12 @@ async function revokeAdmin(targetDiscordId, displayName) {
   // ── render: queue ──────────────────────────────────────────────────────────
   function zugRenderQueue() {
     const el = document.getElementById('zug-queue-list');
+    const plannedEl = document.getElementById('zug-planned-list');
     if (!el) return;
+    if (!plannedEl) return;
     if (!zugQueue.length) {
       el.innerHTML = '<div style="color:var(--soft);font-size:12px;padding:8px;">Noch keine Mitglieder in der Queue. Bitte Queue-Sync ausführen.</div>';
+      plannedEl.innerHTML = '<div style="color:var(--soft);font-size:12px;padding:8px;">Keine geplanten Schaffner.</div>';
       return;
     }
     // Wer hat bereits einen geplanten Termin in der Zukunft?
@@ -6217,12 +6259,12 @@ async function revokeAdmin(targetDiscordId, displayName) {
         '</div>' + badge + '</div>';
     };
 
-    let html = free.map((row, i) => renderRow(row, i + 1, i === 0, false)).join('');
-    if (assigned.length) {
-      html += '<div style="font-size:10px;color:var(--soft);padding:6px 2px 2px;letter-spacing:0.05em;">BEREITS GEPLANT</div>';
-      html += assigned.map((row, i) => renderRow(row, '–', false, true)).join('');
-    }
-    el.innerHTML = html;
+    el.innerHTML = free.length
+      ? free.map((row, i) => renderRow(row, i + 1, i === 0, false)).join('')
+      : '<div style="color:var(--soft);font-size:12px;padding:8px;">Alle verfügbaren Mitglieder sind bereits geplant.</div>';
+    plannedEl.innerHTML = assigned.length
+      ? assigned.map((row) => renderRow(row, '–', false, true)).join('')
+      : '<div style="color:var(--soft);font-size:12px;padding:8px;">Keine geplanten Schaffner.</div>';
   }
 
   // ── drag & drop ────────────────────────────────────────────────────────────
@@ -6356,7 +6398,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
     // Reset sub-sections
     document.getElementById('zug-ev-existing').style.display    = 'none';
     document.getElementById('zug-ev-noshow').style.display      = 'none';
-    document.getElementById('zug-ev-new-trigger').style.display = 'none';
+    zugActiveRuleset = 'standard';
 
     if (zugOpenEntry) {
       // Date already has entry – show it, but swap Schaffner directly via form
@@ -6381,70 +6423,27 @@ async function revokeAdmin(targetDiscordId, displayName) {
 
   // ── render: ruleset list ───────────────────────────────────────────────────
   function zugRenderRulesetList() {
-    const el = document.getElementById('zug-rulesets-list');
-    if (!el) return;
-    if (!zugRulesets.length) { el.innerHTML = '<div style="color:var(--soft);font-size:12px;padding:8px;">Keine Regelwerke gefunden.</div>'; return; }
-    el.innerHTML = zugRulesets.map(r => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);">
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:13px;">${escHtml(r.ruleset_name)} <span style="font-family:monospace;font-size:10px;color:var(--soft-2);">[${escHtml(r.ruleset_key)}]</span></div>
-          ${r.description ? `<div style="font-size:11px;color:var(--soft);">${escHtml(r.description)}</div>` : ''}
-          ${r.allowed_weekdays ? `<div style="font-size:10px;color:var(--soft-2);">Wochentage: ${escHtml(r.allowed_weekdays)}</div>` : ''}
-        </div>
-        <button class="wt-btn" onclick="zugShowRulesetForm('${escHtml(r.ruleset_key)}')" style="font-size:11px;padding:4px 10px;">✏</button>
-        ${r.ruleset_key !== 'standard' ? `<button class="wt-btn" onclick="zugDeleteRuleset('${escHtml(r.ruleset_key)}')" style="font-size:11px;padding:4px 10px;color:var(--red);">🗑</button>` : ''}
-      </div>`
-    ).join('');
+    return;
   }
 
   // ── ruleset form ───────────────────────────────────────────────────────────
   window.zugShowRulesetForm = function(key) {
-    const wrap = document.getElementById('zug-ruleset-form-wrap');
-    const rs = key ? zugRulesets.find(r => r.ruleset_key === key) : null;
-    document.getElementById('zug-ruleset-form-title').textContent = rs ? 'Regelwerk bearbeiten' : 'Neues Regelwerk';
-    document.getElementById('zug-rs-key').value      = rs ? rs.ruleset_key      : '';
-    document.getElementById('zug-rs-key').disabled   = !!rs;
-    document.getElementById('zug-rs-name').value     = rs ? rs.ruleset_name     : '';
-    document.getElementById('zug-rs-desc').value     = rs ? (rs.description||''):'';
-    document.getElementById('zug-rs-weekdays').value = rs ? (rs.allowed_weekdays||''):'';
-    document.getElementById('zug-rs-order').value    = rs ? rs.sort_order       : 0;
-    wrap.style.display = '';
-    wrap.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    return;
   };
   window.zugHideRulesetForm = function() {
-    document.getElementById('zug-ruleset-form-wrap').style.display = 'none';
+    return;
   };
   window.zugSaveRuleset = async function() {
-    const key      = document.getElementById('zug-rs-key').value.trim();
-    const name     = document.getElementById('zug-rs-name').value.trim();
-    const desc     = document.getElementById('zug-rs-desc').value.trim();
-    const weekdays = document.getElementById('zug-rs-weekdays').value.trim();
-    const order    = parseInt(document.getElementById('zug-rs-order').value)||0;
-    if (!key || !name) { toast('Schlüssel und Name erforderlich','err'); return; }
-    try {
-      const d = await zugApiFetch('/zug/rulesets', {
-        method:'POST', headers:{'content-type':'application/json'},
-        body: JSON.stringify({ discord_id:getDiscordId(), ruleset_key:key, ruleset_name:name, description:desc||null, allowed_weekdays:weekdays||null, sort_order:order })
-      });
-      if (d.ok) { zugRulesets = d.rulesets; zugHideRulesetForm(); zugRenderRulesetList(); zugRenderRulesetSelect(); toast('Regelwerk gespeichert'); }
-      else toast(d.error||'Fehler','err');
-    } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
+    return;
   };
   window.zugDeleteRuleset = async function(key) {
-    if (!confirm(`Regelwerk "${key}" wirklich löschen?`)) return;
-    try {
-      const d = await zugApiFetch(`/zug/rulesets/${encodeURIComponent(key)}`, {
-        method:'DELETE', headers:{'content-type':'application/json'},
-        body: JSON.stringify({ discord_id:getDiscordId() })
-      });
-      if (d.ok) { zugRulesets = d.rulesets; zugRenderRulesetList(); zugRenderRulesetSelect(); toast('Regelwerk gelöscht'); }
-      else toast(d.error||'Fehler','err');
-    } catch(e) { toast(tr('Fehler: ') + e.message, 'err'); }
+    return;
   };
 
   // ── day click & event form ─────────────────────────────────────────────────
   window.zugDayClick = async function(dateStr) {
     if (zugDropHandled) return; // suppress click-after-drop
+    zugActiveRuleset = 'standard';
     zugOpenDate  = dateStr;
     zugOpenEntry = zugSchedule.find(e => e.event_date === dateStr && e.ruleset_key === zugActiveRuleset) || null;
 
@@ -6456,7 +6455,6 @@ async function revokeAdmin(targetDiscordId, displayName) {
     document.getElementById('zug-ev-existing').style.display    = 'none';
     document.getElementById('zug-ev-noshow').style.display      = 'none';
     document.getElementById('zug-ev-form').style.display        = 'none';
-    document.getElementById('zug-ev-new-trigger').style.display = '';
 
     if (zugOpenEntry) {
       const e = zugOpenEntry;
@@ -6466,10 +6464,10 @@ async function revokeAdmin(targetDiscordId, displayName) {
       statusEl.innerHTML = `<span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;background:${STATUS_COLOR[e.status]};color:var(--text);">${STATUS_LABEL[e.status]||e.status}</span>`;
       document.getElementById('zug-ev-info-notes').textContent = e.notes || '';
       document.getElementById('zug-ev-existing').style.display = '';
-      document.getElementById('zug-ev-new-trigger').style.display = 'none';
       document.getElementById('zug-ev-title').textContent = 'Termin bearbeiten';
     } else {
       document.getElementById('zug-ev-title').textContent = 'Termin planen';
+      await zugOpenCreateForm(false);
     }
     overlay.style.display = 'flex';
   };
@@ -6527,10 +6525,8 @@ async function revokeAdmin(targetDiscordId, displayName) {
     if (zugOpenEntry) {
       document.getElementById('zug-ev-form').style.display = 'none';
       document.getElementById('zug-ev-existing').style.display = '';
-      document.getElementById('zug-ev-new-trigger').style.display = 'none';
     } else {
-      document.getElementById('zug-ev-form').style.display = 'none';
-      document.getElementById('zug-ev-new-trigger').style.display = '';
+      zugCloseEventForm();
     }
   };
 
@@ -6560,19 +6556,11 @@ async function revokeAdmin(targetDiscordId, displayName) {
       document.getElementById('zug-ev-notes').value     = zugOpenEntry.notes || '';
       document.getElementById('zug-ev-save-btn').textContent = 'Aktualisieren';
     } else {
-      // Pre-fill suggestion from queue
-      try {
-        const sug = await zugApiFetch(`/zug/suggest?ruleset=${encodeURIComponent(zugActiveRuleset)}&date=${encodeURIComponent(zugOpenDate)}`);
-        if (sug.ok) {
-          if (sug.suggested_schaffner) document.getElementById('zug-ev-schaffner').value = sug.suggested_schaffner;
-          if (sug.suggested_vip)       document.getElementById('zug-ev-vip').value       = sug.suggested_vip;
-        }
-      } catch(e) { /* ignore */ }
+      document.getElementById('zug-ev-vip').value = '';
       document.getElementById('zug-ev-save-btn').textContent = 'Anlegen';
     }
 
     document.getElementById('zug-ev-existing').style.display    = 'none';
-    document.getElementById('zug-ev-new-trigger').style.display = 'none';
     document.getElementById('zug-ev-form').style.display        = '';
   };
 
@@ -6642,6 +6630,28 @@ async function revokeAdmin(targetDiscordId, displayName) {
         if (!seen.has(k)) { seen.add(k); zugRoSchedule.push(e); }
       }
     }
+  }
+
+  function zugRoAlignWindowToLatest(weekCount) {
+    const plannedDates = zugRoSchedule
+      .filter(e => e && e.status === 'planned' && typeof e.event_date === 'string')
+      .map(e => e.event_date)
+      .sort();
+    const anyDates = zugRoSchedule
+      .filter(e => e && typeof e.event_date === 'string')
+      .map(e => e.event_date)
+      .sort();
+    const latest = plannedDates.length
+      ? plannedDates[plannedDates.length - 1]
+      : (anyDates.length ? anyDates[anyDates.length - 1] : todayStr());
+
+    const latestWeekMonday = getMondayOfWeek(latest);
+    const rightGapCols = weekCount >= 2 ? 1 : 0;
+    const colsBeforeLatest = Math.max(0, weekCount - 1 - rightGapCols);
+    const d = new Date(latestWeekMonday + 'T00:00:00');
+    d.setDate(d.getDate() - colsBeforeLatest * 7);
+    const _p = n => String(n).padStart(2,'0');
+    zugRoWindowStart = `${d.getFullYear()}-${_p(d.getMonth()+1)}-${_p(d.getDate())}`;
   }
 
   function zugRoRenderRulesetSelect() {
@@ -6724,10 +6734,13 @@ async function revokeAdmin(targetDiscordId, displayName) {
   }
 
   window.zugRoLoadPage = async function() {
+    zugRoActiveRuleset = 'standard';
     if (!zugRoWindowStart) zugRoWindowStart = getMondayOfWeek(todayStr());
     const weekCount = zugRoCalWeekCount();
-    await Promise.all([zugLoadRulesets(), zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount)]);
-    zugRoRenderRulesetSelect();
+    await Promise.all([zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount)]);
+    zugRoAlignWindowToLatest(weekCount);
+    await Promise.all([zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount)]);
+    zugArrangePanels();
     zugRoRenderCalendar();
   };
 
@@ -6745,12 +6758,13 @@ async function revokeAdmin(targetDiscordId, displayName) {
     zugRoWindowStart = getMondayOfWeek(todayStr());
     const weekCount = zugRoCalWeekCount();
     await zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount);
+    zugRoAlignWindowToLatest(weekCount);
+    await zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount);
     zugRoRenderCalendar();
   };
 
   window.zugRoOnRulesetChange = function() {
-    const sel = document.getElementById('zug-ro-ruleset-select');
-    if (sel) zugRoActiveRuleset = sel.value;
+    zugRoActiveRuleset = 'standard';
     zugRoRenderCalendar();
   };
 
@@ -6759,6 +6773,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   window.addEventListener('resize', () => {
     clearTimeout(_zugRoResizeTimer);
     _zugRoResizeTimer = setTimeout(() => {
+      zugArrangePanels();
       if (zugRoWindowStart) zugRoRenderCalendar();
     }, 150);
   });

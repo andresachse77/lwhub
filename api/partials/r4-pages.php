@@ -8,8 +8,6 @@
     <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
       <div class="panel-title" style="color:var(--text);"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="16" viewBox="0 0 38 20" style="vertical-align:-2px;display:inline-block;"><circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/><circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/><rect x="6.5" y="3" width="4" height="4.5" rx="0.8" fill="#B87300"/><rect x="1" y="6.5" width="22" height="9" rx="4" fill="#F0A500"/><rect x="2" y="7.2" width="19" height="3.2" rx="2" fill="rgba(255,230,90,0.38)"/><rect x="19" y="3.5" width="10" height="12" rx="1.5" fill="#D4890A"/><rect x="18" y="2.2" width="12" height="2.5" rx="1" fill="#B87300"/><rect x="21" y="5" width="5" height="4" rx="1" fill="#87CEEB" opacity="0.88"/><rect x="0" y="10.8" width="2" height="2.5" rx="0.4" fill="#9A6200"/><circle cx="8.5" cy="17" r="3.4" fill="#9A6200" stroke="#F0C040" stroke-width="1.1"/><circle cx="8.5" cy="17" r="1.3" fill="#C8820A"/><line x1="8.5" y1="13.6" x2="8.5" y2="20.4" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="15" x2="11.9" y2="19" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="19" x2="11.9" y2="15" stroke="#C8820A" stroke-width="0.7"/><circle cx="3" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="21" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="27" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><rect x="3" y="16.3" width="25" height="1.5" rx="0.5" fill="#9A6200" opacity="0.6"/></svg> Zugplan</div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">
-        <label style="font-size:0.82rem;color:var(--soft);">Regelwerk:</label>
-        <select id="zug-ruleset-select" style="background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:0.82rem;" onchange="zugOnRulesetChange()"></select>
         <button class="flt-toggle" id="zug-sync-btn" onclick="zugSyncQueue()" title="Mitgliederliste mit Warteschlange abgleichen">⟳ Queue sync</button>
       </div>
     </div>
@@ -51,46 +49,17 @@
       </div>
       <div id="zug-queue-list" style="display:flex;flex-direction:column;gap:4px;min-height:40px;"></div>
     </div>
-  </div>
 
-  <!-- Ruleset management -->
-  <div class="panel" style="margin-top:1rem;">
-    <div class="panel-head">
-      <div class="panel-title">Regelwerke</div>
-      <button class="save-btn" onclick="zugShowRulesetForm(null)" style="padding:5px 14px;font-size:12px;">+ Neu</button>
+    <!-- Planned panel -->
+    <div class="panel" id="zug-planned-panel" style="flex:2 1 340px;min-width:0;">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">BEREITS GEPLANT</div>
+          <div class="panel-sub">Zur schnellen Kontrolle</div>
+        </div>
+      </div>
+      <div id="zug-planned-list" style="display:flex;flex-direction:column;gap:4px;min-height:40px;"></div>
     </div>
-    <div id="zug-rulesets-list" style="display:flex;flex-direction:column;gap:6px;"></div>
-  </div>
-
-  <!-- Ruleset form (hidden by default) -->
-  <div class="panel" id="zug-ruleset-form-wrap" style="margin-top:1rem;display:none;">
-    <div class="panel-head">
-      <div class="panel-title" id="zug-ruleset-form-title">Regelwerk</div>
-      <button class="editor-close" onclick="zugHideRulesetForm()">✕</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div>
-        <div class="vlabel">Schlüssel (a-z, 0-9, _,-)</div>
-        <input class="vinput" id="zug-rs-key" placeholder="z.B. wochenmitte">
-      </div>
-      <div>
-        <div class="vlabel">Name</div>
-        <input class="vinput" id="zug-rs-name" placeholder="z.B. Mittwoch-Regel">
-      </div>
-      <div style="grid-column:1/-1;">
-        <div class="vlabel">Beschreibung <span style="color:var(--soft-2);font-size:11px;">(optional)</span></div>
-        <input class="vinput" id="zug-rs-desc" placeholder="Kurze Erklärung...">
-      </div>
-      <div>
-        <div class="vlabel">Erlaubte Wochentage <span style="color:var(--soft-2);font-size:11px;">(1=Mo … 7=So, kommasepariert, leer=alle)</span></div>
-        <input class="vinput" id="zug-rs-weekdays" placeholder="z.B. 3,6">
-      </div>
-      <div>
-        <div class="vlabel">Reihenfolge</div>
-        <input class="vinput" id="zug-rs-order" type="number" value="0">
-      </div>
-    </div>
-    <button class="save-btn" onclick="zugSaveRuleset()" style="margin-top:10px;">Speichern</button>
   </div>
 
   <!-- Event form dialog (shown on day click) -->
@@ -151,11 +120,6 @@
           <button class="save-btn" onclick="zugSaveEntry()" style="flex:1;width:auto;" id="zug-ev-save-btn">Speichern</button>
           <button class="save-btn" onclick="zugCancelEditForm()" style="flex:0 0 auto;width:auto;padding-left:14px;padding-right:14px;background:var(--card2);color:var(--soft);border:1px solid var(--line2);">Abbrechen</button>
         </div>
-      </div>
-
-      <!-- new entry trigger -->
-      <div id="zug-ev-new-trigger">
-        <button class="save-btn" onclick="zugOpenCreateForm()" style="width:100%;" id="zug-ev-new-btn">+ Termin anlegen</button>
       </div>
     </div>
   </div>

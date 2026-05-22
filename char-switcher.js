@@ -18,6 +18,9 @@
   const AUTH_KEY        = 'iny_auth_state_v1';
   const ACTIVE_CHAR_KEY = 'iny_active_char_v1';
   const tr = (text) => (typeof window.trText === 'function' ? window.trText(text) : text);
+  let csCachedChars = [];
+  let csCachedDiscordId = '';
+  let csCachedAlliance = '';
 
   function getApiBase() {
     if (typeof window.getApiBase === 'function') return window.getApiBase();
@@ -413,6 +416,10 @@
     const list = document.getElementById('cs-chars-list');
     if (!list) return;
 
+    csCachedChars = Array.isArray(chars) ? chars : [];
+    csCachedDiscordId = discordId || '';
+    csCachedAlliance = currentAllianceShort || '';
+
     const dropdown = document.getElementById('cs-dropdown');
 
     if (!chars || !chars.length) {
@@ -493,12 +500,18 @@
           auth.alliance = alliance;
           auth.active_alliance = alliance;
           auth.active_player_id = playerId;
+          if (charData?.preferred_language) {
+            auth.preferred_language = String(charData.preferred_language || 'de').toLowerCase();
+          }
           if (newRank !== null) {
             auth.rank       = newRank;
             auth.role       = newRank >= 5 ? 'r5' : newRank >= 4 ? 'r4' : 'normal';
             auth.can_manage = newRank >= 4;
           }
           localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+          if (typeof window.setAppLanguage === 'function' && auth.preferred_language) {
+            await window.setAppLanguage(auth.preferred_language, { persistLocal: true, persistServer: false });
+          }
           localStorage.setItem(ACTIVE_CHAR_KEY, JSON.stringify({ alliance, player_id: playerId, name }));
           // Update display
           const charNameEl = document.getElementById('cs-char-name');
@@ -589,6 +602,14 @@
     });
 
     // Mobile nav actions – now handled by rebuildNavSection() on open
+  }
+
+  function refreshCharSwitcherI18n() {
+    const charsLabel = document.getElementById('cs-chars-label');
+    if (charsLabel) charsLabel.textContent = tr('Charaktere');
+    if (csCachedChars.length) {
+      renderChars(csCachedChars, csCachedDiscordId, csCachedAlliance);
+    }
   }
 
   // ── Update alliance title in page ─────────────────────────────────────────────
@@ -694,6 +715,9 @@
             auth.alliance = effectiveActiveChar.alliance;
             auth.active_alliance = effectiveActiveChar.alliance;
             auth.active_player_id = effectiveActiveChar.player_id;
+            if (effectiveActiveChar.preferred_language) {
+              auth.preferred_language = String(effectiveActiveChar.preferred_language || 'de').toLowerCase();
+            }
             auth.rank = effectiveActiveChar.rank;
             auth.role = effectiveActiveChar.role || (effectiveActiveChar.rank >= 5 ? 'r5' : effectiveActiveChar.rank >= 4 ? 'r4' : 'normal');
             auth.can_manage = (effectiveActiveChar.rank >= 4);
@@ -708,5 +732,11 @@
       console.warn('[char-switcher] Init error:', e);
     }
   };
+
+  window.refreshCharSwitcherI18n = refreshCharSwitcherI18n;
+
+  document.addEventListener('i18n:language-changed', () => {
+    refreshCharSwitcherI18n();
+  });
 
 }());

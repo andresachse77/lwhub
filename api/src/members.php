@@ -638,6 +638,7 @@ function handleDeleteMember(PDO $pdo, string $alliance, string $nameEncoded, arr
     if ($archivedBy === '') $archivedBy = null;
 
     ensureArchiveTables($pdo);
+    ensureUserActiveCharTable($pdo);
 
     $pdo->beginTransaction();
     try {
@@ -687,7 +688,6 @@ function handleDeleteMember(PDO $pdo, string $alliance, string $nameEncoded, arr
         try { $pdo->prepare("DELETE FROM player_identities WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
         $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
         try {
-            ensureUserActiveCharTable($pdo);
             $pdo->prepare("DELETE FROM user_active_char WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
         } catch (\PDOException $e) {}
 

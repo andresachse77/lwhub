@@ -3069,6 +3069,9 @@ window.saveMeBeruf = saveMeBeruf;
 function buildNavActionsFromTabs() {
   const actions = [];
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(btn => {
+    const hiddenByFeature = btn.dataset.featureHidden === '1';
+    const hiddenByRole = btn.dataset.forceHide === 'r4';
+    if (hiddenByFeature || hiddenByRole) return;
     const label = btn.textContent.trim();
     if (!label) return;
     // Parse showPage id directly so we never rely on .click() of a hidden element

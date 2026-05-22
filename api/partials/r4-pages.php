@@ -188,7 +188,7 @@
     <div class="panel" style="flex:1 1 260px;min-width:250px;">
       <div class="panel-head">
         <div>
-          <div class="panel-title">Warteschlange</div>
+          <div class="panel-title" data-i18n="s_bp_queue_title">Warteschlange</div>
           <div class="panel-sub" data-i18n="s_bp_queue_sub">Mitglieder ohne Zuordnung</div>
         </div>
       </div>

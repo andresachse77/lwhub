@@ -42,9 +42,10 @@ function handleTabHtml(PDO $pdo, string $alliance): never {
     }
 
     $rank = safeRank((int)$member['current_rank_code']);
+    $effectiveRank = effectiveRankForAccess($rank, normalizeHonorRole($member['honor_role'] ?? null));
 
-    if ($section === 'r4'    && $rank < 4) jsonOut(403, ['ok' => false, 'error' => 'Rang 4 oder höher erforderlich']);
-    if ($section === 'admin' && $rank < 5) jsonOut(403, ['ok' => false, 'error' => 'Rang 5 erforderlich']);
+    if ($section === 'r4'    && $effectiveRank < 4) jsonOut(403, ['ok' => false, 'error' => 'Rang 4 oder höher erforderlich']);
+    if ($section === 'admin' && $effectiveRank < 5) jsonOut(403, ['ok' => false, 'error' => 'Rang 5 erforderlich']);
 
     $partialsDir = __DIR__ . '/../partials/';
 
@@ -81,14 +82,21 @@ function handleVerifyDiscord(PDO $pdo, string $alliance): never {
     if (!$member) jsonOut(200, ['ok' => false, 'error' => 'Kein Zugriff']);
 
     $rank = safeRank((int)$member['current_rank_code']);
+    $honorRole = normalizeHonorRole($member['honor_role'] ?? null);
+    $effectiveRank = effectiveRankForAccess($rank, $honorRole);
+    $resolvedRole = roleFromMemberState($rank, $honorRole);
+    $canWrite = memberCanWrite($honorRole);
     jsonOut(200, [
         'ok'                => true,
         'alliance'          => $alliance,
         'member_id'         => $member['player_id'],
         'member_name'       => $member['current_name'],
         'rank'              => $rank,
-        'role'              => roleFromRank($rank),
-        'can_manage'        => $rank >= 4,
+        'role'              => $resolvedRole,
+        'honor_role'        => $honorRole,
+        'can_manage'        => $effectiveRank >= 4,
+        'can_write'         => $canWrite,
+        'read_only'         => !$canWrite,
         'discord_id'        => $member['discord_user_id'] ?? null,
         'discord_username'  => $member['discord_username'] ?? null,
         'discord_avatar'    => $member['discord_avatar'] ?? null,
@@ -212,14 +220,21 @@ function handleMemberHistory(PDO $pdo, string $alliance): never {
     }
 
     $rank = safeRank((int)$member['current_rank_code']);
+    $honorRole = normalizeHonorRole($member['honor_role'] ?? null);
+    $effectiveRank = effectiveRankForAccess($rank, $honorRole);
+    $resolvedRole = roleFromMemberState($rank, $honorRole);
+    $canWrite = memberCanWrite($honorRole);
     jsonOut(200, [
         'ok'     => true,
         'member' => [
             'id'               => $member['player_id'],
             'name'             => $member['current_name'],
             'rank'             => $rank,
-            'role'             => roleFromRank($rank),
-            'can_manage'       => $rank >= 4,
+            'role'             => $resolvedRole,
+            'honor_role'       => $honorRole,
+            'can_manage'       => $effectiveRank >= 4,
+            'can_write'        => $canWrite,
+            'read_only'        => !$canWrite,
             'discord_id'       => $member['discord_user_id'] ?? null,
             'discord_username' => $member['discord_username'] ?? null,
             'discord_avatar'   => $member['discord_avatar'] ?? null,
@@ -303,7 +318,7 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
     ensureBerufColumns($pdo);
     ensurePreferredLanguageColumn($pdo);
     $stmt = $pdo->prepare("
-        SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.last_visit_at, p.preferred_language,
+        SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.honor_role, p.last_visit_at, p.preferred_language,
                p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
@@ -332,29 +347,40 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
     $stmt->execute([$alliance]);
     $rows = $stmt->fetchAll();
 
-    $result = array_map(fn($r) => [
-        'id'                 => $r['player_id'],
-        'alliance'           => $r['alliance'],
-        'name'               => $r['current_name'],
-        'default_rank'       => (int)$r['current_rank_code'],
-        'role'               => roleFromRank((int)$r['current_rank_code']),
-        'discord_id'         => $r['discord_user_id'] ?? null,
-        'discord_username'   => $r['discord_username'] ?? null,
-        'discord_avatar'     => $r['discord_avatar'] ?? null,
-        'discord_connected'  => !empty($r['discord_user_id']),
-        'discord_avatar_url' => memberToDiscordAvatarUrl($r['discord_user_id'] ?? null, $r['discord_avatar'] ?? null, 64),
-        'last_visit_at'      => $r['last_visit_at'] ?? null,
-        'beruf'              => $r['beruf'] ?? null,
-        'beruf_med_hilfe'    => (bool)($r['beruf_med_hilfe'] ?? false),
-        'beruf_winwin'       => $r['beruf_winwin'] ?? null,
-        'preferred_language' => normalizePreferredLanguage($r['preferred_language'] ?? 'de'),
-    ], $rows);
+    $result = array_map(static function($r): array {
+        $rank = safeRank((int)$r['current_rank_code']);
+        $honorRole = normalizeHonorRole($r['honor_role'] ?? null);
+        $effectiveRank = effectiveRankForAccess($rank, $honorRole);
+        $canWrite = memberCanWrite($honorRole);
+        return [
+            'id'                 => $r['player_id'],
+            'alliance'           => $r['alliance'],
+            'name'               => $r['current_name'],
+            'default_rank'       => $rank,
+            'role'               => roleFromMemberState($rank, $honorRole),
+            'honor_role'         => $honorRole,
+            'can_manage'         => $effectiveRank >= 4,
+            'can_write'          => $canWrite,
+            'read_only'          => !$canWrite,
+            'discord_id'         => $r['discord_user_id'] ?? null,
+            'discord_username'   => $r['discord_username'] ?? null,
+            'discord_avatar'     => $r['discord_avatar'] ?? null,
+            'discord_connected'  => !empty($r['discord_user_id']),
+            'discord_avatar_url' => memberToDiscordAvatarUrl($r['discord_user_id'] ?? null, $r['discord_avatar'] ?? null, 64),
+            'last_visit_at'      => $r['last_visit_at'] ?? null,
+            'beruf'              => $r['beruf'] ?? null,
+            'beruf_med_hilfe'    => (bool)($r['beruf_med_hilfe'] ?? false),
+            'beruf_winwin'       => $r['beruf_winwin'] ?? null,
+            'preferred_language' => normalizePreferredLanguage($r['preferred_language'] ?? 'de'),
+        ];
+    }, $rows);
 
     jsonOut(200, $result);
 }
 
 function handleAddMember(PDO $pdo, string $alliance, array $body, array $protectedNames): never {
     ensurePreferredLanguageColumn($pdo);
+    ensureHonorRoleColumn($pdo);
     $name = trim($body['name'] ?? '');
     if ($name === '') jsonOut(400, ['error' => 'Name fehlt']);
 
@@ -377,19 +403,25 @@ function handleAddMember(PDO $pdo, string $alliance, array $body, array $protect
 
     $requestedRank = safeRank((int)($body['default_rank'] ?? $body['rank'] ?? 3));
     try {
+        $honorRole = normalizeHonorRole($body['honor_role'] ?? null, true);
+    } catch (\InvalidArgumentException $e) {
+        jsonOut(400, ['error' => $e->getMessage()]);
+    }
+    try {
         $preferredLanguage = normalizePreferredLanguage($body['preferred_language'] ?? 'de');
     } catch (\InvalidArgumentException $e) {
         jsonOut(400, ['error' => $e->getMessage()]);
     }
     $protection    = applyProtectedRankRule($name, $requestedRank, $protectedNames);
     $rank          = $protection['effectiveRank'];
+    if ($honorRole === 'honor_r4' && $rank < 4) $rank = 4;
     $playerId      = uuid4();
     $nameEventId   = uuid4();
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, preferred_language, is_active) VALUES (?, ?, ?, ?, ?, 1)");
-        $stmt->execute([$alliance, $playerId, $name, $rank, $preferredLanguage]);
+        $stmt = $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, honor_role, preferred_language, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)");
+        $stmt->execute([$alliance, $playerId, $name, $rank, $honorRole, $preferredLanguage]);
 
         if ($requestedRank !== $rank || isProtectedR4Member($name, $protectedNames)) {
             logRankChange($pdo, $alliance, [
@@ -491,11 +523,17 @@ function handleTransferPlayer(PDO $pdo, string $fromAlliance, string $nameEncode
 
 function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, array $body, array $protectedNames): never {
     ensurePreferredLanguageColumn($pdo);
+    ensureHonorRoleColumn($pdo);
     $oldName = rawurldecode($oldNameEncoded);
     $newName = trim($body['name'] ?? $oldName);
     if ($newName === '') jsonOut(400, ['error' => 'Name fehlt']);
 
     $requestedRank = safeRank((int)($body['default_rank'] ?? $body['rank'] ?? 3));
+    try {
+        $honorRole = normalizeHonorRole($body['honor_role'] ?? null, true);
+    } catch (\InvalidArgumentException $e) {
+        jsonOut(400, ['error' => $e->getMessage()]);
+    }
 
     $discordId = null;
     $discordIdSet = array_key_exists('discord_id', $body);
@@ -533,11 +571,13 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
     $pdo->beginTransaction();
     try {
         if ($preferredLanguageSet) {
-            $stmt = $pdo->prepare("UPDATE players SET current_name = ?, current_rank_code = ?, preferred_language = ?, is_active = 1, retired_at = NULL WHERE alliance = ? AND player_id = ?");
-            $stmt->execute([$newName, $rank, $preferredLanguage, $alliance, $playerId]);
+            if ($honorRole === 'honor_r4' && $rank < 4) $rank = 4;
+            $stmt = $pdo->prepare("UPDATE players SET current_name = ?, current_rank_code = ?, honor_role = ?, preferred_language = ?, is_active = 1, retired_at = NULL WHERE alliance = ? AND player_id = ?");
+            $stmt->execute([$newName, $rank, $honorRole, $preferredLanguage, $alliance, $playerId]);
         } else {
-            $stmt = $pdo->prepare("UPDATE players SET current_name = ?, current_rank_code = ?, is_active = 1, retired_at = NULL WHERE alliance = ? AND player_id = ?");
-            $stmt->execute([$newName, $rank, $alliance, $playerId]);
+            if ($honorRole === 'honor_r4' && $rank < 4) $rank = 4;
+            $stmt = $pdo->prepare("UPDATE players SET current_name = ?, current_rank_code = ?, honor_role = ?, is_active = 1, retired_at = NULL WHERE alliance = ? AND player_id = ?");
+            $stmt->execute([$newName, $rank, $honorRole, $alliance, $playerId]);
         }
 
         if ($oldRank !== $rank || $blocked || $protected) {

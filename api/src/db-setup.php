@@ -104,6 +104,17 @@ function ensurePreferredLanguageColumn(PDO $pdo): void {
     }
 }
 
+function ensureHonorRoleColumn(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+    try {
+        $pdo->exec("ALTER TABLE players ADD COLUMN honor_role VARCHAR(20) NULL DEFAULT NULL");
+    } catch (\PDOException) {
+        // Spalte existiert bereits – ignorieren
+    }
+}
+
 function ensureChatTable(PDO $pdo): void {
     $pdo->exec(" 
         CREATE TABLE IF NOT EXISTS member_chat_messages (

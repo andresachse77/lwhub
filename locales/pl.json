@@ -433,6 +433,12 @@
     "s_zug_label": "Pociąg",
     "s_zug_zugplan_leseansicht_bearbeiten": "Pociąg + plan pociągu - widok do czytania i edycji",
     "s_zugplan": "Plan pociągu",
+    "s_ehrenmitglied": "Członek honorowy",
+    "s_ehrenmitglieder": "Członkowie honorowi",
+    "s_ehren_r4": "Honorowy R4",
+    "s_rolle_status": "Rola/Status",
+    "s_aktives_mitglied": "Aktywny członek",
+    "s_nur_lesezugriff_ehrenrolle": "Tylko odczyt (rola honorowa): zmiany są niedozwolone.",
     "s_zur_vorwoche": "vs poprz. tyg."
   },
   "prefixes": {

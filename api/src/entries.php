@@ -1,6 +1,21 @@
 <?php
 declare(strict_types=1);
 
+function assertHonorReadOnlyWriter(PDO $pdo, string $alliance, array $body): void {
+    try {
+        $discordId = normalizeDiscordId($body['discord_id'] ?? '');
+    } catch (\InvalidArgumentException) {
+        return;
+    }
+    if ($discordId === '') return;
+    $member = getDiscordMember($pdo, $alliance, $discordId);
+    if (!$member) return;
+    $honorRole = normalizeHonorRole($member['honor_role'] ?? null);
+    if ($honorRole !== null) {
+        jsonOut(403, ['error' => 'Ehrenrollen haben nur Lesezugriff']);
+    }
+}
+
 function handleGetEntries(PDO $pdo, string $alliance, int $kw): never {
     $stmt = $pdo->prepare("
         SELECT we.entry_id, we.final_rank_code, p.current_name
@@ -24,6 +39,7 @@ function handleGetEntries(PDO $pdo, string $alliance, int $kw): never {
 }
 
 function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array $protectedNames): never {
+    assertHonorReadOnlyWriter($pdo, $alliance, $body);
     $name = trim($body['name'] ?? '');
     if ($name === '') jsonOut(400, ['error' => 'Name fehlt']);
 
@@ -42,11 +58,15 @@ function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array
     try {
         $pdo->prepare("INSERT INTO week_periods (alliance, year_week) VALUES (?, ?) ON DUPLICATE KEY UPDATE year_week = VALUES(year_week)")->execute([$alliance, $kw]);
 
-        $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code FROM players WHERE alliance = ? AND current_name = ?");
+        $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code, honor_role FROM players WHERE alliance = ? AND current_name = ?");
         $stmt->execute([$alliance, $name]);
         $playerRow = $stmt->fetch();
 
         if ($playerRow) {
+            $playerHonorRole = normalizeHonorRole($playerRow['honor_role'] ?? null);
+            if ($playerHonorRole !== null) {
+                jsonOut(403, ['error' => 'Ehrenmitglieder koennen nicht in Events/Zeiten erfasst werden']);
+            }
             $playerId = $playerRow['player_id'];
             $oldRank  = (int)$playerRow['current_rank_code'];
             $p        = applyProtectedRankRule($playerRow['current_name'], $requestedRank, $protectedNames);
@@ -105,7 +125,8 @@ function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array
     }
 }
 
-function handleDeleteEntry(PDO $pdo, string $alliance, int $kw, string $nameEncoded): never {
+function handleDeleteEntry(PDO $pdo, string $alliance, int $kw, string $nameEncoded, array $body = []): never {
+    assertHonorReadOnlyWriter($pdo, $alliance, $body);
     $name = rawurldecode($nameEncoded);
     $stmt = $pdo->prepare("SELECT we.entry_id FROM weekly_entries we JOIN players p ON p.alliance = we.alliance AND p.player_id = we.player_id WHERE we.alliance = ? AND we.year_week = ? AND p.current_name = ?");
     $stmt->execute([$alliance, $kw, $name]);

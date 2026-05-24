@@ -1805,7 +1805,10 @@ function buildLocalAuthState(name) {
     member_name: name,
     rank,
     role: rank >= 5 ? 'r5' : rank >= 4 ? 'r4' : 'normal',
+    honor_role: null,
     can_manage: rank >= 4,
+    can_write: true,
+    read_only: false,
     discord_avatar: null,
     discord_avatar_url: getEffectiveAvatarUrl(meta),
     checked_at: new Date().toISOString(),
@@ -2018,7 +2021,10 @@ async function checkDiscordAuth() {
     member_name: verify.member_name || null,
     rank: verify.rank || null,
     role: verify.role || 'normal',
+    honor_role: verify.honor_role || null,
     can_manage: !!verify.can_manage,
+    can_write: verify.can_write !== false,
+    read_only: !!verify.read_only,
     preferred_language: verify.preferred_language || 'de',
     discord_avatar: verify.discord_avatar || user.avatar || null,
     discord_avatar_url: verify.discord_avatar_url || null,
@@ -2106,6 +2112,9 @@ async function api(action, params = {}) {
         beruf: m.beruf || null,
         beruf_med_hilfe: !!m.beruf_med_hilfe,
         beruf_winwin: m.beruf_winwin || null,
+        honor_role: m.honor_role || null,
+        can_write: m.can_write !== false,
+        read_only: !!m.read_only,
       }));
     }
     case 'entries': {
@@ -2129,7 +2138,17 @@ async function api(action, params = {}) {
 }
 
 async function apiPost(data) {
+  const isHonorReadOnly = !!(authMember?.read_only || authMember?.honor_role);
   const action = (data?.action || '').toLowerCase();
+  const blockedHonorActions = new Set([
+    'save_entry', 'save_wache', 'save_wueste', 'save_spezial',
+    'add_member', 'edit_member', 'update_member', 'swap_member_id_to_discord',
+    'delete_member', 'archive_week', 'update_ergebnis', 'delete_entry',
+    'save_beruf', 'resolve_access_request', 'set_member_language', 'cache_discord_profile'
+  ]);
+  if (isHonorReadOnly && blockedHonorActions.has(action)) {
+    throw new Error(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.'));
+  }
   switch (action) {
     case 'save_entry':
     case 'save_wache':
@@ -2141,7 +2160,8 @@ async function apiPost(data) {
         body: JSON.stringify({
           name: data.name,
           rank: data.rank != null ? data.rank : getEntryRankByName(data.name, 3),
-          flags: data.flags || {}
+          flags: data.flags || {},
+          discord_id: authMember?.discord_id || ''
         })
       });
     }
@@ -2153,6 +2173,7 @@ async function apiPost(data) {
           name: data.name,
           default_rank: data.rank,
           role: data.role,
+          honor_role: data.honor_role || null,
           discord_id: data.discord_id || undefined
         })
       });
@@ -2167,6 +2188,7 @@ async function apiPost(data) {
           name: data.newName,
           default_rank: data.rank,
           role: data.role,
+          honor_role: data.honor_role || null,
           discord_id: data.discordId
         })
       });
@@ -2221,7 +2243,11 @@ async function apiPost(data) {
       return { ok: true };
     case 'delete_entry': {
       const name = encodeURIComponent(data.name || '');
-      return fetchJson(`/entries/${kw}/${name}`, { method: 'DELETE' });
+      return fetchJson(`/entries/${kw}/${name}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: authMember?.discord_id || '' })
+      });
     }
     case 'save_beruf': {
       const name = encodeURIComponent(data.name || '');
@@ -2398,6 +2424,7 @@ const ENTRIES_REFRESH_MS = 60 * 60 * 1000;
 let kw=currentYearWeek(), entries=[], activeFilter='all', listFilter='all', search='', edName=null, edFlags={}, edRank=3;
 let doneMode=0; // 0=normal, 1=ans Ende, 2=ausblenden
 let members = [];
+let honorMembers = [];
 let memberMeta = {};
 let accessRequests = [];
 let entriesLoading = false;
@@ -2531,14 +2558,19 @@ async function autoRefreshAvatars() {
 
 async function loadMembers() {
   const data = await api('members');
-  members = []; PREV = {}; R4.clear(); R5.clear(); memberMeta = {};
+  members = []; honorMembers = []; PREV = {}; R4.clear(); R5.clear(); memberMeta = {};
   if (!data || data.error) return;
   data.forEach(m => {
-    members.push(m.name);
+    const honorRole = m.honor_role || null;
+    if (honorRole) honorMembers.push(m.name);
+    else members.push(m.name);
     PREV[m.name] = m.rank;
     memberMeta[m.name] = {
       id: m.id || null,
       alliance: m.alliance || 'INY',
+      honorRole,
+      canWrite: m.can_write !== false,
+      readOnly: !!m.read_only,
       discordId: m.discord_id || null,
       discordUsername: m.discord_username || null,
       preferredLanguage: m.preferred_language || 'de',
@@ -2549,8 +2581,8 @@ async function loadMembers() {
       berufMedHilfe: !!m.beruf_med_hilfe,
       berufWinwin: m.beruf_winwin || null,
     };
-    if (m.role === 'r4' || m.rank === 4) R4.add(m.name);
-    if (m.role === 'r5' || m.rank === 5) R5.add(m.name);
+    if (!honorRole && (m.role === 'r4' || m.rank === 4)) R4.add(m.name);
+    if (!honorRole && (m.role === 'r5' || m.rank === 5)) R5.add(m.name);
   });
 }
 
@@ -2647,6 +2679,10 @@ function initR4Listeners() {
   if (saveBtn && !saveBtn._listenerAttached) {
     saveBtn._listenerAttached = true;
     saveBtn.addEventListener('click', async function() {
+      if (authMember?.read_only || authMember?.honor_role) {
+        toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.'));
+        return;
+      }
       if (!edName) return;
       const rank = isFixed(edName) ? fixedRank(edName) : edRank;
       const was = !!entries.find(x => x.name === edName);
@@ -4850,15 +4886,19 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
 function renderVerwaltung(filter=''){
   const missingDiscord = members.filter((n) => !memberMeta[n]?.discordConnected).length;
   const pendingAccess = accessRequests.length;
+  const totalMembers = members.length + honorMembers.length;
   document.getElementById('v-stats').innerHTML=`
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Gesamt'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--gold);">${members.length}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Gesamt'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--gold);">${totalMembers}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('R5 Chef'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--purple);">${R5.size}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('R4 Leader'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--red);">${R4.size}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">R1–R3</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--green);">${members.filter(n=>!R4.has(n)&&!R5.has(n)).length}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Ehrenmitglieder'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:#7fb8ff;">${honorMembers.length}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Discord noch offen'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${missingDiscord ? 'var(--red)' : 'var(--green)'};">${missingDiscord}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Login-Anfragen offen'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${pendingAccess ? 'var(--blue)' : 'var(--green)'};">${pendingAccess}</span></div>`;
 
-  const shown=filter?members.filter(n=>n.toLowerCase().includes(filter)):members;
+  const shownActive = filter ? members.filter(n=>n.toLowerCase().includes(filter)) : members;
+  const shownHonor  = filter ? honorMembers.filter(n=>n.toLowerCase().includes(filter)) : honorMembers;
+  const shown = shownActive.concat(shownHonor);
   const list=document.getElementById('v-list');
   if(!shown.length){
     list.innerHTML='<div class="empty">' + escHtml(tr('Keine Mitglieder gefunden.')) + '</div>';
@@ -4866,9 +4906,12 @@ function renderVerwaltung(filter=''){
     return;
   }
 
-  list.innerHTML=shown.map(name=>{
+  list.innerHTML=shown.map((name, idx)=>{
     const role=R5.has(name)?5:R4.has(name)?4:(PREV[name]||3);
     const meta = memberMeta[name] || {};
+    const honorRole = meta.honorRole || null;
+    const isHonor = !!honorRole;
+    const honorBadgeText = honorRole === 'honor_r4' ? tr('Ehren R4') : (honorRole === 'honor_member' ? tr('Ehrenmitglied') : '');
     const esc = name.replace(/'/g,"\\'");
     const effectiveAvatar = getEffectiveAvatarUrl(meta);
     const avatar = effectiveAvatar
@@ -4908,6 +4951,14 @@ function renderVerwaltung(filter=''){
               <option value="4" ${role===4?'selected':''}>4 · Leader (R4)</option>
               <option value="5" ${role===5?'selected':''}>5 · ${escHtml(tr('Chef'))} (R5)</option>
             </select>
+          </div>
+          <div style="margin-bottom:10px;">
+            <div class="vlabel">${escHtml(tr('Rolle/Status'))}</div>
+            <select class="v-rank-sel" id="v-edit-honor-role">
+              <option value="" ${!isHonor?'selected':''}>${escHtml(tr('Aktives Mitglied'))}</option>
+              <option value="honor_member" ${honorRole==='honor_member'?'selected':''}>${escHtml(tr('Ehrenmitglied'))}</option>
+              <option value="honor_r4" ${honorRole==='honor_r4'?'selected':''}>${escHtml(tr('Ehren R4'))}</option>
+            </select>
           </div>`;
       } else {
         const lastVisitStr = meta.lastVisitAt
@@ -4922,7 +4973,7 @@ function renderVerwaltung(filter=''){
       }
 
       // Non-event flags: Strafpunkte (5), Bonus (6), AFK (7)
-      const flagsHtml = [
+      const flagsHtml = isHonor ? '' : [
         { cat: CATS[5], key: 'strafe' },
         { cat: CATS[6], key: 'bonus' },
         { cat: CATS[7], key: 'afk' }
@@ -4950,18 +5001,22 @@ function renderVerwaltung(filter=''){
         : `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <button class="v-btn edit" onclick="event.stopPropagation();startEdit('${esc}')">✏ ${escHtml(tr('Bearbeiten'))}</button>
             <button class="v-btn del" onclick="event.stopPropagation();removeMember('${esc}')">🗑 ${escHtml(tr('Entfernen'))}</button>
-            <button class="v-btn" onclick="event.stopPropagation();openMemberMeInApp('${esc}')" style="background:rgba(100,160,255,0.1);border-color:rgba(100,160,255,0.3);color:#80b8ff;">👁 ${escHtml(tr('Me-Ansicht'))}</button>
+            ${isHonor ? '' : `<button class="v-btn" onclick="event.stopPropagation();openMemberMeInApp('${esc}')" style="background:rgba(100,160,255,0.1);border-color:rgba(100,160,255,0.3);color:#80b8ff;">👁 ${escHtml(tr('Me-Ansicht'))}</button>`}
           </div>`;
 
       detailHtml = '<div class="v-detail" onclick="event.stopPropagation()">'
         + memberInfoHtml
-        + '<div class="flag-cats">' + flagsHtml + '</div>'
-        + buildVerwaltungBerufHtml(name, esc, meta)
+        + (flagsHtml ? '<div class="flag-cats">' + flagsHtml + '</div>' : '')
+        + (isHonor ? '' : buildVerwaltungBerufHtml(name, esc, meta))
         + actionBtns
         + '</div>';
     }
 
-    return `<div class="v-row-wrap${isOpen?' is-open':''}" onclick="toggleVerwaltungRow('${esc}')">
+    const honorSectionHeader = (shownHonor.length && idx === shownActive.length)
+      ? `<div style="margin:14px 0 8px;padding:8px 10px;border:1px solid rgba(127,184,255,0.35);background:rgba(74,158,255,0.08);border-radius:10px;font-size:12px;font-weight:700;letter-spacing:.5px;color:#9cc7ff;text-transform:uppercase;">${escHtml(tr('Ehrenmitglieder'))}</div>`
+      : '';
+
+    return `${honorSectionHeader}<div class="v-row-wrap${isOpen?' is-open':''}" onclick="toggleVerwaltungRow('${esc}')">
       <div class="v-row" style="border-bottom:none;cursor:pointer;">
         <div class="v-member">
           ${avatar}
@@ -4970,7 +5025,7 @@ function renderVerwaltung(filter=''){
           </div>
         </div>
         ${discordState}
-        <span class="rank-badge ${rbClass(role)}">${role} · ${RL[role]||''}</span>
+        <span class="rank-badge ${rbClass(role)}">${role} · ${RL[role]||''}${isHonor ? ` · ${escHtml(honorBadgeText)}` : ''}</span>
         <span style="color:var(--softer);font-size:13px;padding:0 4px;">${isOpen?'▲':'▼'}</span>
       </div>
       ${detailHtml}
@@ -5102,6 +5157,7 @@ window.startEdit=startEdit; window.cancelEdit=cancelEdit;
 async function saveMemberEdit(oldName){
   const newName=document.getElementById('v-edit-input')?.value.trim();
   const newRank=parseInt(document.getElementById('v-edit-rank')?.value||3);
+  const honorRole=(document.getElementById('v-edit-honor-role')?.value || '').trim() || null;
   const discordIdRaw=document.getElementById('v-edit-discord')?.value.trim() || '';
   if(!newName){toast('Name darf nicht leer sein!');return;}
   if(discordIdRaw && !/^\d{5,30}$/.test(discordIdRaw)){
@@ -5109,7 +5165,7 @@ async function saveMemberEdit(oldName){
     return;
   }
   const role = newRank===5?'r5':newRank===4?'r4':'normal';
-  await apiPost({ action: 'edit_member', oldName, newName, rank: newRank, role, discordId: discordIdRaw });
+  await apiPost({ action: 'edit_member', oldName, newName, rank: newRank, role, honor_role: honorRole, discordId: discordIdRaw });
   await loadMembers();
   await loadEntries();
   if (vDetailOpen === oldName) vDetailOpen = newName;
@@ -6063,6 +6119,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
   function getDiscordId() { return authMember?.discord_id || ''; }
+  function isHonorReadOnlyUser() { return !!(authMember?.read_only || authMember?.honor_role); }
 
   // ── API calls ──────────────────────────────────────────────────────────────
   async function zugApiFetch(path, opts={}) {
@@ -6152,6 +6209,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugSyncQueue = async function() {
+    if (isHonorReadOnlyUser()) { toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.')); return; }
     const btn = document.getElementById('zug-sync-btn');
     if (btn) btn.textContent = '…';
     try {
@@ -6410,6 +6468,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugQueueDrop = async function(event, el) {
+    if (isHonorReadOnlyUser()) return;
     event.preventDefault();
     event.stopPropagation();
     el.style.outline = '';
@@ -6459,6 +6518,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugHandleDrop = async function(event, dateStr, cell, isToday) {
+    if (isHonorReadOnlyUser()) return;
     event.preventDefault();
     event.stopPropagation();
     zugDropHandled = true;
@@ -6583,6 +6643,10 @@ async function revokeAdmin(targetDiscordId, displayName) {
       document.getElementById('zug-ev-existing').style.display = '';
       document.getElementById('zug-ev-title').textContent = 'Termin bearbeiten';
     } else {
+      if (isHonorReadOnlyUser()) {
+        toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.'));
+        return;
+      }
       document.getElementById('zug-ev-title').textContent = 'Termin planen';
       await zugOpenCreateForm(false);
     }
@@ -6595,6 +6659,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugMarkCompleted = async function() {
+    if (isHonorReadOnlyUser()) { toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.')); return; }
     if (!zugOpenEntry) return;
     try {
       const d = await zugApiFetch(`/zug/schedule/${encodeURIComponent(zugOpenEntry.id)}`, {
@@ -6607,6 +6672,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugOpenNoShowForm = function() {
+    if (isHonorReadOnlyUser()) { toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.')); return; }
     // Build substitute select
     const sel = document.getElementById('zug-ev-sub-select');
     sel.innerHTML = '<option value="">— kein Einspringer —</option>' +
@@ -6621,6 +6687,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugConfirmNoShow = async function() {
+    if (isHonorReadOnlyUser()) { toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.')); return; }
     if (!zugOpenEntry) return;
     const sub   = document.getElementById('zug-ev-sub-select').value.trim();
     const notes = document.getElementById('zug-ev-noshow-notes').value.trim();
@@ -6635,6 +6702,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugEditExisting = async function() {
+    if (isHonorReadOnlyUser()) { toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.')); return; }
     await zugOpenCreateForm(true);
   };
 
@@ -6648,6 +6716,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugDeleteEntry = async function() {
+    if (isHonorReadOnlyUser()) { toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.')); return; }
     if (!zugOpenEntry || !confirm('Termin wirklich löschen?')) return;
     try {
       const d = await zugApiFetch(`/zug/schedule/${encodeURIComponent(zugOpenEntry.id)}`, {
@@ -6660,6 +6729,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugOpenCreateForm = async function(editing=false) {
+    if (isHonorReadOnlyUser()) { return; }
     // Build member selects
     const mOpts = '<option value="">— keiner —</option>' +
       members.map(m => `<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('');
@@ -6682,6 +6752,7 @@ async function revokeAdmin(targetDiscordId, displayName) {
   };
 
   window.zugSaveEntry = async function() {
+    if (isHonorReadOnlyUser()) { toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.')); return; }
     const schaffner = document.getElementById('zug-ev-schaffner').value;
     const vip       = document.getElementById('zug-ev-vip').value;
     const notes     = document.getElementById('zug-ev-notes').value.trim();

@@ -433,6 +433,12 @@
     "s_zug_label": "Train",
     "s_zug_zugplan_leseansicht_bearbeiten": "Train + train plan - read view and editing",
     "s_zugplan": "Train Plan",
+    "s_ehrenmitglied": "Honorary member",
+    "s_ehrenmitglieder": "Honorary members",
+    "s_ehren_r4": "Honorary R4",
+    "s_rolle_status": "Role/Status",
+    "s_aktives_mitglied": "Active member",
+    "s_nur_lesezugriff_ehrenrolle": "Read-only access (honor role): changes are not allowed.",
     "s_zur_vorwoche": "vs last week"
   },
   "prefixes": {

@@ -58,6 +58,33 @@ function roleFromRank(int $rank): string {
     return 'normal';
 }
 
+function normalizeHonorRole(mixed $value, bool $strict = false): ?string {
+    $role = strtolower(trim((string)($value ?? '')));
+    if ($role === '' || $role === 'none' || $role === 'normal') return null;
+    if ($role === 'honor_r4' || $role === 'ehren_r4') return 'honor_r4';
+    if ($role === 'honor_member' || $role === 'ehrenmitglied') return 'honor_member';
+    if ($strict) {
+        throw new InvalidArgumentException('Ungueltige Ehrenrolle. Erlaubt: honor_r4, honor_member oder leer');
+    }
+    return null;
+}
+
+function effectiveRankForAccess(int $rank, ?string $honorRole): int {
+    if ($honorRole === 'honor_r4') return 4;
+    if ($honorRole === 'honor_member') return min($rank, 3);
+    return $rank;
+}
+
+function roleFromMemberState(int $rank, ?string $honorRole): string {
+    if ($honorRole === 'honor_r4') return 'honor_r4';
+    if ($honorRole === 'honor_member') return 'honor_member';
+    return roleFromRank($rank);
+}
+
+function memberCanWrite(?string $honorRole): bool {
+    return $honorRole === null;
+}
+
 function normalizePreferredLanguage(mixed $value): string {
     $lang = strtolower(trim((string)($value ?? '')));
     if ($lang === '') return 'de';

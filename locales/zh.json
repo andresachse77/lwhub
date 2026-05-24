@@ -433,6 +433,12 @@
     "s_zug_label": "列车",
     "s_zug_zugplan_leseansicht_bearbeiten": "列车 + 列车计划 - 阅读视图和编辑",
     "s_zugplan": "列车计划",
+    "s_ehrenmitglied": "荣誉成员",
+    "s_ehrenmitglieder": "荣誉成员",
+    "s_ehren_r4": "荣誉R4",
+    "s_rolle_status": "角色/状态",
+    "s_aktives_mitglied": "活跃成员",
+    "s_nur_lesezugriff_ehrenrolle": "只读访问（荣誉角色）：不允许更改。",
     "s_zur_vorwoche": "对比上周"
   },
   "prefixes": {

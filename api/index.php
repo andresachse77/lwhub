@@ -76,6 +76,7 @@ try {
     upsertAllianceFromConfig($pdo, $ALLIANCE);
     ensureSiteAdminsTable($pdo);
     ensurePreferredLanguageColumn($pdo);
+    ensureHonorRoleColumn($pdo);
     seedProtectedAdmins($pdo, $PROTECTED_R4_NAMES);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
     try {
@@ -190,7 +191,7 @@ try {
         if (!$kw) jsonOut(400, ['error' => 'Ungueltige KW']);
         if ($method === 'GET'    && count($segments) === 2) handleGetEntries($pdo, $ALLIANCE, $kw);
         if ($method === 'POST'   && count($segments) === 2) handleSaveEntry($pdo, $ALLIANCE, $kw, $body, $PROTECTED_R4_NAMES);
-        if ($method === 'DELETE' && count($segments) === 3) handleDeleteEntry($pdo, $ALLIANCE, $kw, $segments[2]);
+        if ($method === 'DELETE' && count($segments) === 3) handleDeleteEntry($pdo, $ALLIANCE, $kw, $segments[2], $body);
     }
 
     // GET /se-inactive

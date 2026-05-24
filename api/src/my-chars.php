@@ -12,7 +12,7 @@ function handleGetMyChars(PDO $pdo, string $discordId): never {
     $chars = [];
     try {
         $stmt = $pdo->prepare("
-                 SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code,
+                 SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.honor_role,
                      p.preferred_language,
                    pid.discord_user_id AS via_identity,
                    puld.discord_user_id AS via_account
@@ -35,12 +35,17 @@ function handleGetMyChars(PDO $pdo, string $discordId): never {
             $isActive = $activeRow
                 && $activeRow['player_id'] === $p['player_id']
                 && $activeRow['alliance']   === $p['alliance'];
+            $rank = safeRank((int)$p['current_rank_code']);
+            $honorRole = normalizeHonorRole($p['honor_role'] ?? null);
             $chars[] = [
                 'player_id' => $p['player_id'],
                 'alliance'  => $p['alliance'],
                 'name'      => $p['current_name'],
-                'rank'      => safeRank((int)$p['current_rank_code']),
-                'role'      => roleFromRank(safeRank((int)$p['current_rank_code'])),
+                'rank'      => $rank,
+                'role'      => roleFromMemberState($rank, $honorRole),
+                'honor_role'=> $honorRole,
+                'can_manage'=> effectiveRankForAccess($rank, $honorRole) >= 4,
+                'can_write' => memberCanWrite($honorRole),
                 'preferred_language' => $p['preferred_language'] ?: 'de',
                 'is_active' => $isActive,
             ];

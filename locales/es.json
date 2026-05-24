@@ -433,6 +433,12 @@
     "s_zug_label": "Tren",
     "s_zug_zugplan_leseansicht_bearbeiten": "Tren + plan de tren - vista de lectura y edición",
     "s_zugplan": "Plan de tren",
+    "s_ehrenmitglied": "Miembro honorario",
+    "s_ehrenmitglieder": "Miembros honorarios",
+    "s_ehren_r4": "R4 honorario",
+    "s_rolle_status": "Rol/Estado",
+    "s_aktives_mitglied": "Miembro activo",
+    "s_nur_lesezugriff_ehrenrolle": "Solo lectura (rol honorario): no se permiten cambios.",
     "s_zur_vorwoche": "vs sem. anterior"
   },
   "prefixes": {

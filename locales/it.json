@@ -433,6 +433,12 @@
     "s_zug_label": "Treno",
     "s_zug_zugplan_leseansicht_bearbeiten": "Treno + piano treno - vista e modifica",
     "s_zugplan": "Piano treno",
+    "s_ehrenmitglied": "Membro onorario",
+    "s_ehrenmitglieder": "Membri onorari",
+    "s_ehren_r4": "R4 onorario",
+    "s_rolle_status": "Ruolo/Stato",
+    "s_aktives_mitglied": "Membro attivo",
+    "s_nur_lesezugriff_ehrenrolle": "Accesso in sola lettura (ruolo onorario): le modifiche non sono consentite.",
     "s_zur_vorwoche": "rispetto alla sett. prec."
   },
   "prefixes": {

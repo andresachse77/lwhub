@@ -61,6 +61,10 @@ function requireZugR4(PDO $pdo, string $alliance, array $body): array {
     if ($did === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
     $member = getDiscordMember($pdo, $alliance, $did, true);
     if (!$member) jsonOut(403, ['error' => 'Nur R4/R5 darf diese Zug-Aktion ausführen']);
+    $honorRole = normalizeHonorRole($member['honor_role'] ?? null);
+    if ($honorRole !== null) {
+        jsonOut(403, ['error' => 'Ehrenrollen haben nur Lesezugriff im Zugplan']);
+    }
     return $member;
 }
 
@@ -167,7 +171,7 @@ function handleGetZugQueue(PDO $pdo, string $alliance): never {
 
 function handleSyncZugQueue(PDO $pdo, string $alliance, array $body): never {
     $rulesetKey = trim((string)($body['ruleset'] ?? 'standard'));
-    $stmt = $pdo->prepare("SELECT current_name FROM players WHERE alliance=? AND is_active=1 ORDER BY current_name");
+    $stmt = $pdo->prepare("SELECT current_name FROM players WHERE alliance=? AND is_active=1 AND (honor_role IS NULL OR honor_role = '') ORDER BY current_name");
     $stmt->execute([$alliance]);
     $activeMembers = array_column($stmt->fetchAll(), 'current_name');
     $queue = getZugQueueRows($pdo, $alliance, $rulesetKey);

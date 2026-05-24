@@ -433,6 +433,12 @@
     "s_zug_label": "Zug",
     "s_zug_zugplan_leseansicht_bearbeiten": "Zug + Zugplan – Leseansicht und Bearbeiten",
     "s_zugplan": "Zugplan",
+    "s_ehrenmitglied": "Ehrenmitglied",
+    "s_ehrenmitglieder": "Ehrenmitglieder",
+    "s_ehren_r4": "Ehren R4",
+    "s_rolle_status": "Rolle/Status",
+    "s_aktives_mitglied": "Aktives Mitglied",
+    "s_nur_lesezugriff_ehrenrolle": "Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.",
     "s_zur_vorwoche": "zur Vorwoche"
   },
   "prefixes": {

@@ -1,0 +1,29 @@
+{
+  "trackName": "Gera Hamburg - Tag 5 - von Tangermünde nach Hitzacker (Elbe)",
+  "points": 1787,
+  "distanceKm": 137.4,
+  "startLat": 52.54255,
+  "startLon": 11.97412,
+  "endLat": 53.152802,
+  "endLon": 11.044797,
+  "samples": [
+    {
+      "pct": 35.0,
+      "idx": 625,
+      "lat": 52.886746,
+      "lon": 11.961736
+    },
+    {
+      "pct": 50.0,
+      "idx": 894,
+      "lat": 52.971276,
+      "lon": 11.785816
+    },
+    {
+      "pct": 65.0,
+      "idx": 1162,
+      "lat": 53.037473,
+      "lon": 11.588781
+    }
+  ]
+}

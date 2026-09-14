@@ -1,0 +1,72 @@
+{
+  "category": "aircraft",
+  "usage_scope": "private-alliance-only",
+  "access_note": "Not public. Access is limited to known ally users via Discord.",
+  "style_reference": "Use in-game screenshot style as visual baseline for hero cards.",
+  "license_note": "Internal use only. Keep assets within alliance context and do not redistribute.",
+  "heroes": [
+    {
+      "id": "lucius",
+      "name": "Lucius",
+      "image": "assets/heroes/aircraft/lucius.png",
+      "thumb": "assets/heroes/aircraft/thumbs/lucius.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "dva",
+      "name": "DVA",
+      "image": "assets/heroes/aircraft/dva.png",
+      "thumb": "assets/heroes/aircraft/thumbs/dva.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "carlie",
+      "name": "Carlie",
+      "image": "assets/heroes/aircraft/carlie.png",
+      "thumb": "assets/heroes/aircraft/thumbs/carlie.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "schuyler",
+      "name": "Schuyler",
+      "image": "assets/heroes/aircraft/schuyler.png",
+      "thumb": "assets/heroes/aircraft/thumbs/schuyler.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "morrison",
+      "name": "Morrison",
+      "image": "assets/heroes/aircraft/morrison.png",
+      "thumb": "assets/heroes/aircraft/thumbs/morrison.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "sarah",
+      "name": "Sarah",
+      "image": "assets/heroes/aircraft/sarah.png",
+      "thumb": "assets/heroes/aircraft/thumbs/sarah.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "cage",
+      "name": "Cage",
+      "image": "assets/heroes/aircraft/cage.png",
+      "thumb": "assets/heroes/aircraft/thumbs/cage.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "maxwell",
+      "name": "Maxwell",
+      "image": "assets/heroes/aircraft/maxwell.png",
+      "thumb": "assets/heroes/aircraft/thumbs/maxwell.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "ambolt",
+      "name": "Ambolt",
+      "image": "assets/heroes/aircraft/ambolt.png",
+      "thumb": "assets/heroes/aircraft/thumbs/ambolt.png",
+      "source": "user-provided"
+    }
+  ]
+}

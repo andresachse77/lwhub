@@ -1,0 +1,100 @@
+{
+  "category": "tank",
+  "usage_scope": "private-alliance-only",
+  "access_note": "Not public. Access is limited to known ally users via Discord.",
+  "style_reference": "Use in-game screenshot style as visual baseline for hero cards.",
+  "license_note": "Internal use only. Keep assets within alliance context and do not redistribute.",
+  "heroes": [
+    {
+      "id": "kimberly",
+      "name": "Kimberly",
+      "image": "assets/heroes/tank/extracted/kimberly.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/kimberly.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "murphy",
+      "name": "Murphy",
+      "image": "assets/heroes/tank/extracted/murphy.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/murphy.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "marshall",
+      "name": "Marshall",
+      "image": "assets/heroes/tank/extracted/marshall.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/marshall.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "stetmann",
+      "name": "Stetmann",
+      "image": "assets/heroes/tank/extracted/stetmann.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/stetmann.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "williams",
+      "name": "Williams",
+      "image": "assets/heroes/tank/extracted/williams.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/williams.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "scarlett",
+      "name": "Scarlett",
+      "image": "assets/heroes/tank/extracted/scarlett.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/scarlett.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "violet",
+      "name": "Violet",
+      "image": "assets/heroes/tank/extracted/violet.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/violet.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "mason",
+      "name": "Mason",
+      "image": "assets/heroes/tank/extracted/mason.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/mason.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "monica",
+      "name": "Monica",
+      "image": "assets/heroes/tank/extracted/monica.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/monica.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "farhad",
+      "name": "Farhad",
+      "image": "assets/heroes/tank/extracted/farhad.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/farhad.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "richard",
+      "name": "Richard",
+      "image": "assets/heroes/tank/extracted/richard.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/richard.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "gump",
+      "name": "Gump",
+      "image": "assets/heroes/tank/extracted/gump.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/gump.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "loki",
+      "name": "Loki",
+      "image": "assets/heroes/tank/extracted/loki.png",
+      "thumb": "assets/heroes/tank/extracted/thumbs/loki.png",
+      "source": "user-provided"
+    }
+  ]
+}

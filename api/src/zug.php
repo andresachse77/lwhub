@@ -279,6 +279,10 @@ function handleReorderZugQueue(PDO $pdo, string $alliance, array $body): never {
 }
 
 function handleGetZugSchedule(PDO $pdo, string $alliance): never {
+    // Automatically close planned trains three days after their departure date.
+    $pdo->prepare("UPDATE zug_schedule SET status='completed' WHERE alliance=? AND status='planned' AND event_date <= DATE_SUB(CURDATE(), INTERVAL 3 DAY)")
+        ->execute([$alliance]);
+
     $month = trim($_GET['month'] ?? '');
     if (!preg_match('/^\d{4}-\d{2}$/', $month)) $month = date('Y-m');
     $firstOfMonth = new \DateTime($month . '-01');

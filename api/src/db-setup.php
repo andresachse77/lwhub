@@ -128,3 +128,5 @@ function ensureChatTable(PDO $pdo): void {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
 }
+
+

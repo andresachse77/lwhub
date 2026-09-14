@@ -45,6 +45,7 @@ require_once __DIR__ . '/src/access-requests.php';
 require_once __DIR__ . '/src/admin.php';
 require_once __DIR__ . '/src/archive.php';
 require_once __DIR__ . '/src/my-chars.php';
+require_once __DIR__ . '/src/teams.php';
 require_once __DIR__ . '/src/zug.php';
 
 // ─── Route parsing ────────────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ if ($scriptDir !== '' && str_starts_with($path, $scriptDir)) {
 }
 $path     = '/' . ltrim($path, '/');
 $segments = array_values(array_filter(explode('/', $path)));
+$segments = array_map('rawurldecode', $segments);
 $method   = $_SERVER['REQUEST_METHOD'];
 
 $rawBody = file_get_contents('php://input');
@@ -77,6 +79,7 @@ try {
     ensureSiteAdminsTable($pdo);
     ensurePreferredLanguageColumn($pdo);
     ensureHonorRoleColumn($pdo);
+    ensureMemberTeamTables($pdo);
     seedProtectedAdmins($pdo, $PROTECTED_R4_NAMES);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
     try {
@@ -139,6 +142,23 @@ try {
     // GET /members
     if ($method === 'GET' && count($segments) === 1 && $segments[0] === 'members') {
         handleGetMembers($pdo, $ALLIANCE);
+    }
+
+    // teams
+    if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'my-teams') {
+        handleGetMyTeams($pdo, $ALLIANCE, $segments[1]);
+    }
+    if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'teams') {
+        handleGetMemberTeams($pdo, $ALLIANCE, $segments[1]);
+    }
+    if ($method === 'POST' && count($segments) === 2 && $segments[0] === 'my-teams') {
+        handleSaveMyTeams($pdo, $ALLIANCE, $segments[1], $body);
+    }
+    if ($method === 'POST' && count($segments) === 2 && $segments[0] === 'teams') {
+        handleSaveMemberTeams($pdo, $ALLIANCE, $segments[1], $body);
+    }
+    if ($method === 'GET' && $path === '/alliance-teams') {
+        handleGetAllianceTeams($pdo, $ALLIANCE);
     }
 
     // POST /members

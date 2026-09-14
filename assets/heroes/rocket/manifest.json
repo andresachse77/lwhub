@@ -1,0 +1,72 @@
+{
+  "category": "rocket",
+  "usage_scope": "private-alliance-only",
+  "access_note": "Not public. Access is limited to known ally users via Discord.",
+  "style_reference": "Use in-game screenshot style as visual baseline for hero cards.",
+  "license_note": "Internal use only. Keep assets within alliance context and do not redistribute.",
+  "heroes": [
+    {
+      "id": "adam",
+      "name": "Adam",
+      "image": "assets/heroes/rocket/adam.png",
+      "thumb": "assets/heroes/rocket/thumbs/adam.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "mcgregor",
+      "name": "McGregor",
+      "image": "assets/heroes/rocket/mcgregor.png",
+      "thumb": "assets/heroes/rocket/thumbs/mcgregor.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "tesla",
+      "name": "Tesla",
+      "image": "assets/heroes/rocket/tesla.png",
+      "thumb": "assets/heroes/rocket/thumbs/tesla.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "swift",
+      "name": "Swift",
+      "image": "assets/heroes/rocket/swift.png",
+      "thumb": "assets/heroes/rocket/thumbs/swift.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "fiona",
+      "name": "Fiona",
+      "image": "assets/heroes/rocket/fiona.png",
+      "thumb": "assets/heroes/rocket/thumbs/fiona.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "venom",
+      "name": "Venom",
+      "image": "assets/heroes/rocket/venom.png",
+      "thumb": "assets/heroes/rocket/thumbs/venom.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "braz",
+      "name": "Braz",
+      "image": "assets/heroes/rocket/braz.png",
+      "thumb": "assets/heroes/rocket/thumbs/braz.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "elsa",
+      "name": "Elsa",
+      "image": "assets/heroes/rocket/elsa.png",
+      "thumb": "assets/heroes/rocket/thumbs/elsa.png",
+      "source": "user-provided"
+    },
+    {
+      "id": "kane",
+      "name": "Kane",
+      "image": "assets/heroes/rocket/kane.png",
+      "thumb": "assets/heroes/rocket/thumbs/kane.png",
+      "source": "user-provided"
+    }
+  ]
+}

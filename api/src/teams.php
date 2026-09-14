@@ -8,10 +8,35 @@ function normalizeTeamType(mixed $value): ?string {
     return null;
 }
 
-function normalizeCombatPower(mixed $value): ?int {
+function normalizeCombatPower(mixed $value, int $correctionValue = 40): ?int {
     if ($value === null || $value === '') return null;
     $n = (int)$value;
-    return $n < 0 ? 0 : $n;
+    if ($n >= 999) return max(0, min(998, $correctionValue));
+    return max(0, min(999, $n));
+}
+
+function getCombatPowerCorrectionValue(PDO $pdo, string $alliance): int {
+    try {
+        $stmt = $pdo->prepare("SELECT config_value FROM alliance_config WHERE alliance=? AND config_key='combat_power_correction_value' LIMIT 1");
+        $stmt->execute([$alliance]);
+        $value = $stmt->fetchColumn();
+        $parsed = filter_var($value, FILTER_VALIDATE_INT);
+        return $parsed === false ? 40 : max(0, min(998, (int)$parsed));
+    } catch (Throwable) {
+        return 40;
+    }
+}
+
+function validateTotalHeroPower(?int $totalHeroPower, array $teams): void {
+    if ($totalHeroPower === null) return;
+    $teamPowerSum = 0;
+    foreach ($teams as $team) {
+        $teamPowerSum += (int)($team['combat_power'] ?? 0);
+    }
+    $maxTotal = (int)floor($teamPowerSum * 1.2);
+    if ($totalHeroPower > $maxTotal) {
+        jsonOut(400, ['error' => "Heldenkampfkraft darf höchstens 120% der Team-Kampfkraft betragen (max. {$maxTotal})."]);
+    }
 }
 
 function normalizeMonkeyLevel(mixed $value): ?int {
@@ -33,7 +58,7 @@ function normalizeTeamHeroes(mixed $value): array {
     return $result;
 }
 
-function normalizeTeamRequestPayload(array $body): array {
+function normalizeTeamRequestPayload(array $body, int $correctionValue = 40): array {
     $teams = [];
     if (!empty($body['teams']) && is_array($body['teams'])) {
         foreach ($body['teams'] as $entry) {
@@ -43,7 +68,7 @@ function normalizeTeamRequestPayload(array $body): array {
             $teams[$slot] = [
                 'slot' => $slot,
                 'team_type' => normalizeTeamType($entry['team_type'] ?? null),
-                'combat_power' => normalizeCombatPower($entry['combat_power'] ?? null),
+                'combat_power' => normalizeCombatPower($entry['combat_power'] ?? null, $correctionValue),
                 'monkey_level' => normalizeMonkeyLevel($entry['monkey_level'] ?? null),
                 'heroes' => normalizeTeamHeroes($entry['heroes'] ?? []),
             ];
@@ -253,10 +278,11 @@ function handleSaveMyTeams(PDO $pdo, string $alliance, ?string $nameRaw, array $
         jsonOut(404, ['error' => 'Mitglied nicht gefunden']);
     }
 
-    $teams = normalizeTeamRequestPayload($body);
+    $teams = normalizeTeamRequestPayload($body, getCombatPowerCorrectionValue($pdo, $alliance));
     $totalHeroPower = isset($body['total_hero_power']) && $body['total_hero_power'] !== ''
         ? normalizeCombatPower($body['total_hero_power'])
         : null;
+    validateTotalHeroPower($totalHeroPower, $teams);
 
     $result = saveTeamPayload($pdo, $alliance, $player, array_values($teams), $totalHeroPower);
     jsonOut(200, $result);
@@ -276,10 +302,11 @@ function handleSaveMemberTeams(PDO $pdo, string $alliance, string $nameRaw, arra
         jsonOut(404, ['error' => 'Mitglied nicht gefunden']);
     }
 
-    $teams = normalizeTeamRequestPayload($body);
+    $teams = normalizeTeamRequestPayload($body, getCombatPowerCorrectionValue($pdo, $alliance));
     $totalHeroPower = isset($body['total_hero_power']) && $body['total_hero_power'] !== ''
         ? normalizeCombatPower($body['total_hero_power'])
         : null;
+    validateTotalHeroPower($totalHeroPower, $teams);
 
     $result = saveTeamPayload($pdo, $alliance, $player, array_values($teams), $totalHeroPower);
     jsonOut(200, $result);
@@ -292,16 +319,16 @@ function handleGetAllianceTeams(PDO $pdo, string $alliance): never {
         . 'mtt.total_hero_power, '
         . 'MAX(CASE WHEN mt.slot = 1 THEN mt.team_type END) AS t1_type, '
         . 'MAX(CASE WHEN mt.slot = 1 THEN mt.combat_power END) AS t1_power, '
-        . 'MAX(CASE WHEN mt.slot = 1 THEN mt.monkey_level END) AS t1_monkey_level, '
+        . 'MAX(CASE WHEN mt.slot = 1 AND mt.heroes_json LIKE \'%"overlord"%\' THEN mt.monkey_level END) AS t1_monkey_level, '
         . 'MAX(CASE WHEN mt.slot = 2 THEN mt.team_type END) AS t2_type, '
         . 'MAX(CASE WHEN mt.slot = 2 THEN mt.combat_power END) AS t2_power, '
-        . 'MAX(CASE WHEN mt.slot = 2 THEN mt.monkey_level END) AS t2_monkey_level, '
+        . 'MAX(CASE WHEN mt.slot = 2 AND mt.heroes_json LIKE \'%"overlord"%\' THEN mt.monkey_level END) AS t2_monkey_level, '
         . 'MAX(CASE WHEN mt.slot = 3 THEN mt.team_type END) AS t3_type, '
         . 'MAX(CASE WHEN mt.slot = 3 THEN mt.combat_power END) AS t3_power, '
-        . 'MAX(CASE WHEN mt.slot = 3 THEN mt.monkey_level END) AS t3_monkey_level, '
+        . 'MAX(CASE WHEN mt.slot = 3 AND mt.heroes_json LIKE \'%"overlord"%\' THEN mt.monkey_level END) AS t3_monkey_level, '
         . 'MAX(CASE WHEN mt.slot = 4 THEN mt.team_type END) AS t4_type, '
         . 'MAX(CASE WHEN mt.slot = 4 THEN mt.combat_power END) AS t4_power, '
-        . 'MAX(CASE WHEN mt.slot = 4 THEN mt.monkey_level END) AS t4_monkey_level, '
+        . 'MAX(CASE WHEN mt.slot = 4 AND mt.heroes_json LIKE \'%"overlord"%\' THEN mt.monkey_level END) AS t4_monkey_level, '
         . 'CASE '
         . 'WHEN MAX(mt.updated_at) IS NULL THEN mtt.updated_at '
         . 'WHEN mtt.updated_at IS NULL THEN MAX(mt.updated_at) '

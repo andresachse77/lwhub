@@ -1665,58 +1665,58 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <form id="team-editor-form">
       <div class="field">
         <label data-i18n="s_total_hero_power">Heldenkampfkraft</label>
-        <input type="number" id="team-editor-total" min="0" inputmode="numeric" placeholder="Optional">
+        <input type="number" id="team-editor-total" min="0" inputmode="numeric" placeholder="Optional" max="0">
+      </div>
+      <div class="field">
+        <label data-i18n="s_overlord_level">Overlord-Level</label>
+        <input type="number" id="team-editor-monkey-level" min="0" inputmode="numeric" placeholder="Optional">
       </div>
       <div class="field">
         <label>T1</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <select id="team-editor-type-1">
             <option value="">—</option>
             <option value="panzer" data-i18n="s_panzer">Panzer</option>
             <option value="flugzeug" data-i18n="s_flugzeug">Flugzeug</option>
             <option value="rakete" data-i18n="s_rakete">Rakete</option>
           </select>
-          <input type="number" id="team-editor-power-1" min="0" inputmode="numeric" placeholder="Kampfkraft">
-          <input type="number" id="team-editor-monkey-1" min="0" inputmode="numeric" placeholder="Affe Lv">
+          <input type="number" id="team-editor-power-1" min="0" max="999" inputmode="numeric" placeholder="Kampfkraft">
         </div>
       </div>
       <div class="field">
         <label>T2</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <select id="team-editor-type-2">
             <option value="">—</option>
             <option value="panzer" data-i18n="s_panzer">Panzer</option>
             <option value="flugzeug" data-i18n="s_flugzeug">Flugzeug</option>
             <option value="rakete" data-i18n="s_rakete">Rakete</option>
           </select>
-          <input type="number" id="team-editor-power-2" min="0" inputmode="numeric" placeholder="Kampfkraft">
-          <input type="number" id="team-editor-monkey-2" min="0" inputmode="numeric" placeholder="Affe Lv">
+          <input type="number" id="team-editor-power-2" min="0" max="999" inputmode="numeric" placeholder="Kampfkraft">
         </div>
       </div>
       <div class="field">
         <label>T3</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <select id="team-editor-type-3">
             <option value="">—</option>
             <option value="panzer" data-i18n="s_panzer">Panzer</option>
             <option value="flugzeug" data-i18n="s_flugzeug">Flugzeug</option>
             <option value="rakete" data-i18n="s_rakete">Rakete</option>
           </select>
-          <input type="number" id="team-editor-power-3" min="0" inputmode="numeric" placeholder="Kampfkraft">
-          <input type="number" id="team-editor-monkey-3" min="0" inputmode="numeric" placeholder="Affe Lv">
+          <input type="number" id="team-editor-power-3" min="0" max="999" inputmode="numeric" placeholder="Kampfkraft">
         </div>
       </div>
       <div class="field">
         <label>T4</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <select id="team-editor-type-4">
             <option value="">—</option>
             <option value="panzer" data-i18n="s_panzer">Panzer</option>
             <option value="flugzeug" data-i18n="s_flugzeug">Flugzeug</option>
             <option value="rakete" data-i18n="s_rakete">Rakete</option>
           </select>
-          <input type="number" id="team-editor-power-4" min="0" inputmode="numeric" placeholder="Kampfkraft">
-          <input type="number" id="team-editor-monkey-4" min="0" inputmode="numeric" placeholder="Affe Lv">
+          <input type="number" id="team-editor-power-4" min="0" max="999" inputmode="numeric" placeholder="Kampfkraft">
         </div>
       </div>
       <div class="field">
@@ -3747,11 +3747,6 @@ function moveOrSwapHero(targetSlot, targetPos, heroId, sourceSlot = null, source
   if (id === OVERLORD_HERO.id && targetPos !== 5) return;
   if (targetPos === 5 && id !== OVERLORD_HERO.id) return;
 
-  const monkeyOwner = getMonkeyOwnerSlot();
-  if (targetPos === 5 && monkeyOwner && monkeyOwner !== targetSlot && !(sourceSlot === monkeyOwner && sourcePos === 5)) {
-    return;
-  }
-
   const targetEntry = getTeamEntry(targetSlot);
   targetEntry.heroes = normalizeHeroesArray(targetEntry.heroes);
   const targetCurrent = targetEntry.heroes[targetPos] || null;
@@ -3893,20 +3888,22 @@ function renderTeamEditorDnD() {
     const catalog = heroCatalogByType[effectiveType] || [];
     const heroMap = heroCatalogMapFor(effectiveType);
 
-    const slotCells = heroes.map((heroId, idx) => {
+    const displayPositions = [5, 0, 1, 2, 3, 4];
+    const slotCells = displayPositions.map((dataPos, displayPos) => {
+      const heroId = heroes[dataPos];
       const hero = heroId ? heroMap.get(String(heroId)) : null;
       const fallbackHero = !hero && heroId ? getHeroById(heroId) : null;
       const shownHero = hero || fallbackHero;
-      const isLockedMonkeySlot = idx === 5 && monkeyOwner && monkeyOwner !== slot;
+      const isLockedMonkeySlot = false;
       const content = hero
         ? `<img src="${escHtml(hero.thumb)}" alt="${escHtml(hero.name)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`
         : shownHero
           ? `<img src="${escHtml(shownHero.thumb)}" alt="${escHtml(shownHero.name)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`
-          : `<div style="width:44px;height:44px;border-radius:8px;border:1px dashed ${isLockedMonkeySlot ? 'rgba(240,165,0,0.45)' : 'rgba(255,255,255,0.2)'};display:grid;place-items:center;color:${isLockedMonkeySlot ? 'var(--gold)' : 'var(--soft)'};font-size:11px;">${idx === 5 ? 'Affe' : 'Slot'}</div>`;
+          : `<div style="width:44px;height:44px;border-radius:8px;border:1px dashed ${isLockedMonkeySlot ? 'rgba(240,165,0,0.45)' : 'rgba(255,255,255,0.2)'};display:grid;place-items:center;color:${isLockedMonkeySlot ? 'var(--gold)' : 'var(--soft)'};font-size:11px;">${displayPos === 0 ? tr('s_affe') : tr('s_slot')}</div>`;
       const title = shownHero ? escHtml(shownHero.name) : (isLockedMonkeySlot ? tr('s_affe_slot_gesperrt') : tr('s_drop_hero'));
-      const clearBtn = shownHero ? `<button type="button" onclick="clearTeamHero(${slot},${idx})" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:1px solid rgba(224,85,69,0.5);background:rgba(224,85,69,0.2);color:#f4b1a8;font-size:10px;line-height:1;padding:0;">×</button>` : '';
+      const clearBtn = shownHero ? `<button type="button" onclick="clearTeamHero(${slot},${dataPos})" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:1px solid rgba(224,85,69,0.5);background:rgba(224,85,69,0.2);color:#f4b1a8;font-size:10px;line-height:1;padding:0;">×</button>` : '';
       const lockBadge = isLockedMonkeySlot ? '<span style="position:absolute;bottom:-8px;right:-6px;font-size:10px;color:var(--gold);">🔒</span>' : '';
-      return `<div style="position:relative;" draggable="${shownHero ? 'true' : 'false'}" ondragstart="onTeamSlotDragStart(event,${slot},${idx})" ondragover="${isLockedMonkeySlot ? '' : 'allowHeroDrop(event)'}" ondrop="${isLockedMonkeySlot ? '' : `onTeamSlotDrop(event,${slot},${idx})`}" title="${title}">${content}${clearBtn}${lockBadge}</div>`;
+      return `<div style="position:relative;" draggable="${shownHero ? 'true' : 'false'}" ondragstart="onTeamSlotDragStart(event,${slot},${dataPos})" ondragover="allowHeroDrop(event)" ondrop="onTeamSlotDrop(event,${slot},${dataPos})" title="${title}">${content}${clearBtn}${lockBadge}</div>`;
     }).join('');
 
     const poolInfo = catalog.length
@@ -3977,13 +3974,14 @@ function renderTeamHeroStrip(team) {
   const teamType = String(team?.team_type || '').trim() || 'panzer';
   const heroes = normalizeHeroesArray(team?.heroes || []);
   const map = heroCatalogMapFor(teamType);
-  const html = heroes.map((id) => {
-    if (!id) return '';
-    const hero = map.get(String(id)) || getHeroById(id);
-    if (!hero) return '';
+  const displayHeroes = [heroes[5], ...heroes.slice(0, 5)];
+  if (!displayHeroes.some(Boolean)) return '';
+  const html = displayHeroes.map((id, index) => {
+    const hero = id ? (map.get(String(id)) || getHeroById(id)) : null;
+    if (!hero) return `<div aria-hidden="true" style="width:100%;aspect-ratio:1;"></div>`;
     return `<img src="${escHtml(hero.thumb)}" alt="${escHtml(hero.name)}" title="${escHtml(hero.name)}" style="width:100%;aspect-ratio:1;border-radius:6px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`;
-  }).filter(Boolean).join('');
-  return html ? `<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:8px;width:100%;">${html}</div>` : '';
+  }).join('');
+  return `<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:8px;width:100%;">${html}</div>`;
 }
 
 async function openTeamEditor(targetName = null) {
@@ -4022,6 +4020,7 @@ async function openTeamEditor(targetName = null) {
   ensureTeamDataShape();
   populateTeamEditor();
   bindTeamEditorTypeListeners();
+  bindTeamPowerListeners();
   modal.classList.remove('hidden');
   teamEditOpen = true;
 }
@@ -4040,17 +4039,49 @@ function populateTeamEditor() {
   if (nameEl) nameEl.textContent = teamData.member_name || currentName;
   const totalEl = document.getElementById('team-editor-total');
   if (totalEl) totalEl.value = teamData.total_hero_power ?? '';
+  const overlordOwner = getMonkeyOwnerSlot();
+  const legacyMonkeyLevel = teamData.teams.map(team => team.monkey_level).find(value => value != null && value !== '');
+  const monkeyLevelEl = document.getElementById('team-editor-monkey-level');
+  if (monkeyLevelEl) monkeyLevelEl.value = teamData.teams.find(team => Number(team.slot) === overlordOwner)?.monkey_level ?? legacyMonkeyLevel ?? '';
   ensureTeamDataShape();
   for (let slot = 1; slot <= 4; slot++) {
     const entry = teamData.teams.find(t => t.slot === slot) || { team_type: null, combat_power: null, monkey_level: null, heroes: Array.from({ length: 6 }, () => null) };
     const typeEl = document.getElementById(`team-editor-type-${slot}`);
     const powerEl = document.getElementById(`team-editor-power-${slot}`);
-    const monkeyEl = document.getElementById(`team-editor-monkey-${slot}`);
     if (typeEl) typeEl.value = entry.team_type || '';
     if (powerEl) powerEl.value = entry.combat_power ?? '';
-    if (monkeyEl) monkeyEl.value = entry.monkey_level ?? '';
   }
+  updateTeamPowerConstraint();
   renderTeamEditorDnD();
+}
+
+function updateTeamPowerConstraint() {
+  const correction = Math.max(0, Math.min(998, Number.parseInt(String(flagConfig.combat_power_correction_value ?? ''), 10) || 40));
+  for (let slot = 1; slot <= 4; slot++) {
+    const powerEl = document.getElementById(`team-editor-power-${slot}`);
+    if (powerEl && Number(powerEl.value) >= 999) powerEl.value = String(correction);
+  }
+  const teamPowerSum = Array.from({ length: 4 }, (_, i) => Number(document.getElementById(`team-editor-power-${i + 1}`)?.value || 0))
+    .reduce((sum, value) => sum + (Number.isFinite(value) ? Math.max(0, Math.min(999, value)) : 0), 0);
+  const maxTotal = Math.floor(teamPowerSum * 1.2);
+  const totalEl = document.getElementById('team-editor-total');
+  if (!totalEl) return;
+  totalEl.max = String(maxTotal);
+  totalEl.title = `${tr('s_thp_max')} ${maxTotal}`;
+  if (Number(totalEl.value) > maxTotal) totalEl.value = String(maxTotal);
+}
+
+function bindTeamPowerListeners() {
+  for (let slot = 1; slot <= 4; slot++) {
+    const powerEl = document.getElementById(`team-editor-power-${slot}`);
+    if (!powerEl || powerEl.dataset.boundPower === '1') continue;
+    powerEl.dataset.boundPower = '1';
+    powerEl.addEventListener('input', () => {
+      const correction = Math.max(0, Math.min(998, Number.parseInt(String(flagConfig.combat_power_correction_value ?? ''), 10) || 40));
+      if (Number(powerEl.value) >= 999) powerEl.value = String(correction);
+      updateTeamPowerConstraint();
+    });
+  }
 }
 
 async function saveTeams(event = null) {
@@ -4069,6 +4100,17 @@ async function saveTeams(event = null) {
     toast('Nur R4/R5 können die Teams anderer Mitglieder pflegen.');
     return;
   }
+  updateTeamPowerConstraint();
+  const teamPowerSum = Array.from({ length: 4 }, (_, i) => Number(document.getElementById(`team-editor-power-${i + 1}`)?.value || 0))
+    .reduce((sum, value) => sum + (Number.isFinite(value) ? Math.max(0, Math.min(999, value)) : 0), 0);
+  const maxTotal = Math.floor(teamPowerSum * 1.2);
+  const totalHeroPower = Number(document.getElementById('team-editor-total')?.value || 0);
+  if (totalHeroPower > maxTotal) {
+    toast(`${tr('s_thp_limit')}: ${maxTotal}`);
+    return;
+  }
+  const monkeyLevel = document.getElementById('team-editor-monkey-level')?.value || '';
+  const monkeyOwner = getMonkeyOwnerSlot();
   const payload = {
     member_name: targetName,
     teams: Array.from({ length: 4 }, (_, i) => {
@@ -4076,12 +4118,11 @@ async function saveTeams(event = null) {
       const entry = getTeamEntry(slot) || {};
       const typeEl = document.getElementById(`team-editor-type-${slot}`);
       const powerEl = document.getElementById(`team-editor-power-${slot}`);
-      const monkeyEl = document.getElementById(`team-editor-monkey-${slot}`);
       return {
         slot,
         team_type: typeEl?.value || '',
         combat_power: powerEl?.value || '',
-        monkey_level: monkeyEl?.value || '',
+        monkey_level: monkeyOwner === slot ? monkeyLevel : '',
         heroes: normalizeHeroesArray(entry.heroes || [])
       };
     }),
@@ -4126,7 +4167,10 @@ async function renderTeamsPage() {
     const rows = teamData.teams.map((team) => {
       const typeLabel = team.team_type ? tr(`s_${team.team_type}`) : '—';
       const power = formatPower(team.combat_power);
-      const monkey = (team.monkey_level != null && team.monkey_level !== '') ? ` · ${tr('s_affe_lv')} ${team.monkey_level}` : '';
+      const hasOverlord = normalizeHeroesArray(team.heroes || [])[5] === OVERLORD_HERO.id;
+      const monkey = hasOverlord && team.monkey_level != null && team.monkey_level !== ''
+        ? ` · ${tr('s_affe_lv')} ${team.monkey_level}`
+        : '';
       const heroesHtml = renderTeamHeroStrip(team);
       return `<div class="card" style="margin-bottom:8px;padding:12px 14px;">T${team.slot}: <strong>${typeLabel}</strong> · ${tr('s_combat_power')} ${power}${monkey}${heroesHtml}</div>`;
     }).join('');
@@ -5127,6 +5171,8 @@ let flagConfig = {}; // in-memory cache populated by loadFlagConfig()
 let allianceFeatureModalAlliance = '';
 
 const FEATURE_CAT_DEFS = [
+  { key:'my_area', icon:'👤', label:'s_mein_bereich', sub:'s_mein_bereich_feature_sub' },
+  { key:'my_teams', icon:'🛡', label:'s_meine_teams', sub:'s_meine_teams_feature_sub' },
   { key:'events',  icon:'🎉', label:'s_events_label',       sub:'s_hauptschalter_fuer_den_events_bereich' },
   { key:'wache',   icon:'🛡', label:'s_wache',              sub:'s_events_w1_w3_kacheln_tabs' },
   { key:'wueste',  icon:'🏜', label:'s_wueste_label',       sub:'s_wuesten_event_tab_kacheln' },
@@ -5141,7 +5187,13 @@ const FEATURE_CAT_DEFS = [
 ];
 
 function isFeatureEnabled(key) {
+  if (key === 'my_area' || key === 'my_teams') return flagConfig[key] !== false;
   return flagConfig[key] === true || (key === 'zug' && flagConfig.zugplan === true);
+}
+
+function isConfiguredFeatureEnabled(key, config) {
+  if (key === 'my_area' || key === 'my_teams') return config[key] !== false;
+  return config[key] === true || (key === 'zug' && config.zugplan === true);
 }
 
 function getBerufeMaxEngineers(config = flagConfig) {
@@ -5175,10 +5227,12 @@ function renderFeatureToggles(containerId, alliance, config) {
   const el = document.getElementById(containerId);
   if (!el || !alliance) return;
   const maxIng = getBerufeMaxEngineers(config);
+  const combatCorrection = Number.parseInt(String(config?.combat_power_correction_value ?? ''), 10) || 40;
   const inputId = `${containerId}-berufe-max`;
+  const correctionInputId = `${containerId}-combat-correction`;
   el.innerHTML = `<div style="display:flex;flex-direction:column;">` +
     FEATURE_CAT_DEFS.map(({ key, icon, label, sub }) => {
-      const on = config[key] === true;
+      const on = isConfiguredFeatureEnabled(key, config);
       return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);">
         <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(icon)} ${escHtml(tr(label))}</div><div style="font-size:11px;color:var(--soft);">${escHtml(tr(sub))}</div></div>
         <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on ? 'save' : 'del'}" style="min-width:88px;">${on ? '✓ ' + escHtml(tr('Aktiv')) : '✗ ' + escHtml(tr('Inaktiv'))}</button>
@@ -5186,11 +5240,19 @@ function renderFeatureToggles(containerId, alliance, config) {
     }).join('') +
     `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
       <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;">⚙ Max. Ingenieure je Kriegsherr</div>
-        <div style="font-size:11px;color:var(--soft);">Steuert die Berufe-Grenze (Default 3).</div>
+        <div style="font-size:13px;font-weight:500;">⚙ ${escHtml(tr('s_max_ingenieure_kriegsherr'))}</div>
+        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_berufe_grenze_default'))}</div>
       </div>
       <input id="${escHtml(inputId)}" type="number" min="1" max="10" value="${maxIng}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
       <button onclick="saveBerufeMaxIngenieure('${escHtml(alliance)}','${escHtml(inputId)}')" class="v-btn save" style="min-width:88px;">Speichern</button>
+    </div>` +
+    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">⚙ ${escHtml(tr('s_combat_power_correction'))}</div>
+        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_combat_power_correction_sub'))}</div>
+      </div>
+      <input id="${escHtml(correctionInputId)}" type="number" min="0" max="998" value="${combatCorrection}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
+      <button onclick="saveCombatPowerCorrection('${escHtml(alliance)}','${escHtml(correctionInputId)}')" class="v-btn save" style="min-width:88px;">${escHtml(tr('s_speichern'))}</button>
     </div>` +
     `</div>`;
 }
@@ -5393,6 +5455,30 @@ async function saveBerufeMaxIngenieure(alliance, inputId) {
 }
 window.saveBerufeMaxIngenieure = saveBerufeMaxIngenieure;
 
+async function saveCombatPowerCorrection(alliance, inputId) {
+  const discordId = authMember?.discord_id || '';
+  const input = document.getElementById(inputId);
+  const nextVal = Math.max(0, Math.min(998, Number.parseInt(String(input?.value || ''), 10) || 40));
+  if (input) input.value = String(nextVal);
+  try {
+    await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance || '')}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ discord_id: discordId, config: { combat_power_correction_value: nextVal } })
+    });
+    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
+    if (isCurrentAllianceTarget(alliance)) flagConfig = { ...adminFlagConfigCache[alliance] };
+    renderAdminFlagConfig();
+    renderAllianceFeaturesModal();
+    toast(tr('s_combat_correction_saved'), 'ok');
+  } catch (err) {
+    toast(tr('Fehler: ') + err.message, 'err');
+    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
+    renderAllianceFeaturesModal();
+  }
+}
+window.saveCombatPowerCorrection = saveCombatPowerCorrection;
+
 function renderFlagsAdmin() {
   const el = document.getElementById('v-flag-config');
   if (!el) return;
@@ -5495,6 +5581,19 @@ function updateEventTabVisibility() {
 window.updateEventTabVisibility = updateEventTabVisibility;
 
 function updateFeatureTabVisibility() {
+  const myAreaVisible = isFeatureEnabled('my_area');
+  const myTeamsVisible = isFeatureEnabled('my_teams');
+  setTabVisible('tab-m', myAreaVisible);
+  setTabVisible('tab-t', myTeamsVisible);
+  setElementVisible('page-m', myAreaVisible);
+  setElementVisible('page-t', myTeamsVisible);
+
+  if ((!myAreaVisible && document.getElementById('page-m')?.classList.contains('active')) ||
+      (!myTeamsVisible && document.getElementById('page-t')?.classList.contains('active'))) {
+    const fallback = myAreaVisible ? 'm' : myTeamsVisible ? 't' : 'p';
+    showPage(fallback);
+  }
+
   const zugTab = document.getElementById('tab-z');
   if (zugTab) setTabVisible('tab-z', isFeatureEnabled('zug'));
 

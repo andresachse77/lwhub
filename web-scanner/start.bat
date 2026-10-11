@@ -16,4 +16,4 @@ for /l %%i in 1,1,30 do (
 echo Server not reachable after 30 s - check the OCR server window.
 
 :open
-start "" "%~dp0index.html"
+start "" http://127.0.0.1:8795/

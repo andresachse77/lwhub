@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from PIL import Image
 from rapidocr_onnxruntime import RapidOCR
 
@@ -326,6 +326,12 @@ async def process(file: UploadFile = File(...)):
         "cards": cards,
         "rankings": rankings,
     })
+
+
+@app.get("/")
+async def index():
+    # Serve the review UI so the whole prototype lives under one URL (http://127.0.0.1:8795/).
+    return FileResponse(Path(__file__).parent / "index.html")
 
 
 @app.get("/health")

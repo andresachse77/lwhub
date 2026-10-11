@@ -1,0 +1,4 @@
+# Lokal erzeugte Artefakte – nicht versionieren
+images/
+captures/
+__pycache__/

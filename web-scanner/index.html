@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>LWHub Card Review (RapidOCR)</title>
+<style>
+  body { font-family: Segoe UI, Arial, sans-serif; background: #14161a; color: #eee; margin: 0; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  #status { color: #9cf; font-size: 13px; margin-bottom: 12px; white-space: pre-wrap; }
+  #log { background: #0a0b0d; border: 1px solid #333; padding: 8px; height: 120px; overflow-y: auto; font-family: Consolas, monospace; font-size: 12px; margin-bottom: 12px; }
+  button, input[type=text] { background: #2d7; border: none; padding: 10px 18px; font-size: 14px; border-radius: 4px; cursor: pointer; margin-right: 8px; }
+  input[type=text] { background: #222; color: #eee; border: 1px solid #444; cursor: text; }
+  button:disabled { background: #555; cursor: default; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #333; padding: 6px; text-align: left; vertical-align: middle; font-size: 13px; }
+  th { background: #22252b; position: sticky; top: 0; }
+  td canvas { display: block; background: #fff; }
+  .card-canvas { max-width: 340px; }
+  .warn { color: #f66; font-weight: bold; }
+  .view-heading { background: #1c2733; color: #8cf; font-weight: bold; }
+  .conf { font-size: 11px; color: #888; }
+  .safety-note { color: #ccc; font-size: 12px; max-width: 680px; margin-bottom: 10px; }
+  #livePreview { max-width: 320px; border: 1px solid #444; display: none; vertical-align: middle; margin-left: 12px; }
+  .live-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  #stopCaptureBtn { background: #d43; }
+  #queuePanel { display: none; align-items: center; gap: 14px; background: #1c2733; border: 1px solid #345; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; }
+  #queueThumb { max-width: 220px; max-height: 140px; border: 1px solid #567; background: #fff; display: block; }
+  #queueThumbLabel { font-size: 12px; color: #8cf; margin-bottom: 4px; }
+  #queueCount { font-size: 22px; font-weight: bold; color: #fd6; }
+  #queueCountLabel { font-size: 12px; color: #ccc; }
+</style>
+</head>
+<body>
+<h1>LWHub Card Review — RapidOCR Prototype (self-hosted, 127.0.0.1:8795)</h1>
+<div id="status">Bereit. Server: <span id="serverStatus">prüfe...</span></div>
+
+<p class="safety-note">Live-Scan nutzt die Browser-eigene Fenster-Freigabe (<code>getDisplayMedia</code>). Diese Seite klickt, tippt oder scrollt nie im geteilten Fenster — sie liest nur Pixel, während der Scan aktiv ist. Du wählst das Fenster im nativen Auswahldialog des Browsers, jederzeit über "Freigabe beenden" stoppbar.</p>
+<div class="live-controls">
+  <button id="startCaptureBtn">Fenster wählen &amp; Scan starten</button>
+  <button id="stopCaptureBtn" disabled>Scan stoppen</button>
+  <span id="captureStatus"></span>
+  <video id="livePreview" autoplay muted></video>
+</div>
+
+<div id="queuePanel">
+  <div>
+    <div id="queueThumbLabel">Wird gerade verarbeitet:</div>
+    <canvas id="queueThumb"></canvas>
+  </div>
+  <div>
+    <div id="queueCount">0</div>
+    <div id="queueCountLabel">noch in Warteschlange</div>
+  </div>
+</div>
+
+<button id="startBtn">Test mit 42 gespeicherten Bildern</button>
+<div id="log"></div>
+<table id="resultTable">
+  <thead>
+    <tr>
+      <th>Card</th>
+      <th>Recognized name</th>
+      <th>Combat power</th>
+      <th>Level</th>
+      <th>Recognized status</th>
+      <th>Raw values text</th>
+    </tr>
+  </thead>
+  <tbody id="resultBody"></tbody>
+</table>
+
+<script>
+const SERVER = 'http://127.0.0.1:8795';
+const VIEW_COUNT = 42;
+const VIEW_FILES = Array.from({ length: VIEW_COUNT }, (_, i) => `images/view-${String(i + 1).padStart(3, '0')}.png`);
+
+const statusEl = document.getElementById('status');
+const serverStatusEl = document.getElementById('serverStatus');
+const logEl = document.getElementById('log');
+const bodyEl = document.getElementById('resultBody');
+const startBtn = document.getElementById('startBtn');
+
+function log(msg) {
+  const line = document.createElement('div');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
+function setStatus(msg) { statusEl.firstChild ? statusEl.childNodes[0].textContent = msg + ' ' : null; }
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function cropCanvas(img, box, pad = 4) {
+  const x = Math.max(0, box.left - pad), y = Math.max(0, box.top - pad);
+  const w = (box.right - box.left) + pad * 2, h = (box.bottom - box.top) + pad * 2;
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, w); c.height = Math.max(1, h);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
+  return c;
+}
+
+async function checkServer() {
+  try {
+    const r = await fetch(SERVER + '/health');
+    if (r.ok) { serverStatusEl.textContent = 'online'; serverStatusEl.style.color = '#6f6'; return true; }
+  } catch (e) {}
+  serverStatusEl.textContent = 'nicht erreichbar (python server.py laufen lassen)';
+  serverStatusEl.style.color = '#f66';
+  return false;
+}
+
+async function processBlob(blob, label) {
+  const form = new FormData();
+  form.append('file', blob, label);
+  const r = await fetch(SERVER + '/process', { method: 'POST', body: form });
+  if (!r.ok) throw new Error(`Server error ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+async function processImage(file) {
+  const resp = await fetch(file);
+  const blob = await resp.blob();
+  return processBlob(blob, file.split('/').pop());
+}
+
+const MODE_LABELS = { members: 'Mitgliederliste', ranking: 'Stärke-Rangliste', unknown: 'unbekannter Bildschirm' };
+
+function renderViewHeading(label, result) {
+  const headRow = document.createElement('tr');
+  headRow.className = 'view-heading';
+  const count = result.mode === 'ranking' ? result.rankings.length : result.cards.length;
+  const noun = result.mode === 'ranking' ? 'Ranglisten-Zeilen' : 'Karten';
+  headRow.innerHTML = `<td colspan="6">${label} — ${result.width}x${result.height} — [${MODE_LABELS[result.mode] || result.mode}] — ${count} ${noun}</td>`;
+  bodyEl.appendChild(headRow);
+}
+
+function renderRankingRow(img, row) {
+  const rowCanvas = cropCanvas(img, row.box, 4);
+  rowCanvas.className = 'card-canvas';
+  const tr = document.createElement('tr');
+  const tdCard = document.createElement('td'); tdCard.appendChild(rowCanvas);
+  const tdName = document.createElement('td');
+  tdName.innerHTML = `${row.name || '<span class="warn">(leer)</span>'}<div class="conf">conf ${(row.confidence.name ?? 0).toFixed(2)}</div>`;
+  const tdPower = document.createElement('td'); tdPower.textContent = row.power || '?'; if (!row.power) tdPower.className = 'warn';
+  const tdRank = document.createElement('td'); tdRank.textContent = `#${row.rank_position ?? '?'} (${row.rank_badge})`;
+  const tdStatus = document.createElement('td'); tdStatus.textContent = '—';
+  const tdRaw = document.createElement('td'); tdRaw.textContent = '';
+  tr.append(tdCard, tdName, tdPower, tdRank, tdStatus, tdRaw);
+  bodyEl.appendChild(tr);
+  return tr;
+}
+
+function renderCard(img, card) {
+  const cardCanvas = cropCanvas(img, card.box, 6);
+  cardCanvas.className = 'card-canvas';
+  const row = document.createElement('tr');
+  const tdCard = document.createElement('td'); tdCard.appendChild(cardCanvas);
+  const tdName = document.createElement('td');
+  tdName.innerHTML = `${card.name || '<span class="warn">(leer)</span>'}<div class="conf">conf ${(card.confidence.name ?? 0).toFixed(2)}</div>`;
+  const tdPower = document.createElement('td'); tdPower.textContent = card.power || '?'; if (!card.power) tdPower.className = 'warn';
+  const tdLevel = document.createElement('td'); tdLevel.textContent = card.level || '?'; if (!card.level) tdLevel.className = 'warn';
+  const tdStatus = document.createElement('td');
+  tdStatus.innerHTML = `${card.status || '<span class="warn">(leer)</span>'}<div class="conf">conf ${(card.confidence.status ?? 0).toFixed(2)}</div>`;
+  const tdRaw = document.createElement('td'); tdRaw.textContent = card.values_text;
+  row.append(tdCard, tdName, tdPower, tdLevel, tdStatus, tdRaw);
+  bodyEl.appendChild(row);
+  return row;
+}
+
+function normalizeName(name) {
+  return (name || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+}
+
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+// Two OCR passes of the same real name rarely agree character-for-character (icon fragments glued on,
+// one letter misread) but are almost always within edit-distance 2 of each other — confirmed against
+// real capture data: exact-string dedup alone left 105 "unique" members where the alliance actually
+// has 97; this fuzzy merge (distance <=2, only for names long enough that a coincidental near-match
+// between two different real names is implausible) recovers exactly 97.
+function findFuzzyKey(map, key) {
+  if (map.has(key)) return key;
+  if (key.length < 5) return null;
+  for (const existingKey of map.keys()) {
+    if (Math.abs(existingKey.length - key.length) > 2) continue;
+    if (Math.min(existingKey.length, key.length) < 5) continue;
+    if (levenshtein(existingKey, key) <= 2) return existingKey;
+  }
+  return null;
+}
+
+function mergeIntoMap(map, name, entry, scoreOf) {
+  const key = normalizeName(name);
+  if (key.length < 3) return;
+  const matchKey = findFuzzyKey(map, key) ?? key;
+  const existing = map.get(matchKey);
+  if (!existing || scoreOf(entry) > scoreOf(existing)) map.set(matchKey, entry);
+}
+
+async function main() {
+  startBtn.disabled = true;
+  let totalCards = 0;
+  const uniqueMembers = new Map(); // normalized name -> best card seen
+  for (let vi = 0; vi < VIEW_FILES.length; vi++) {
+    const file = VIEW_FILES[vi];
+    setStatus(`Verarbeite ${file} (${vi + 1}/${VIEW_FILES.length})...`);
+    log(`Sende ${file} an RapidOCR-Server...`);
+    const img = await loadImage(file);
+    const t0 = performance.now();
+    const result = await processImage(file);
+    const dt = ((performance.now() - t0) / 1000).toFixed(2);
+    log(`${file}: ${result.raw_lines.length} Textzeilen erkannt, ${result.cards.length} Karten gruppiert (${dt}s).`);
+    renderViewHeading(file, result);
+
+    for (const card of result.cards) {
+      totalCards++;
+      renderCard(img, card);
+      log(`Karte ${totalCards}: name='${card.name}' power=${card.power} level=${card.level} status='${card.status}'`);
+
+      mergeIntoMap(uniqueMembers, card.name, card, (c) => (c.confidence.name ?? 0) + (c.power ? 1 : 0) + (c.level ? 1 : 0));
+    }
+  }
+
+  const summaryRow = document.createElement('tr');
+  summaryRow.className = 'view-heading';
+  const missingPower = [...uniqueMembers.values()].filter(c => !c.power).length;
+  summaryRow.innerHTML = `<td colspan="6">${uniqueMembers.size} eindeutige Mitglieder erkannt aus ${totalCards} Karten (${VIEW_FILES.length} Bilder). ${missingPower} davon ohne erkannte Kampfkraft.</td>`;
+  bodyEl.prepend(summaryRow);
+
+  setStatus(`Fertig. ${totalCards} Karten aus ${VIEW_FILES.length} Bildern verarbeitet, ${uniqueMembers.size} eindeutige Mitglieder.`);
+  startBtn.disabled = false;
+}
+
+startBtn.addEventListener('click', () => { bodyEl.innerHTML = ''; logEl.innerHTML = ''; main().catch(err => { log('FEHLER: ' + err.message); console.error(err); }); });
+checkServer();
+
+// ===================== Live capture via the browser's own Screen/Window Capture API =====================
+// Same idea as the old WinForms scanner's Graphics.CopyFromScreen + changed-frame detection, just
+// running entirely in the browser via getDisplayMedia() — no native app, no OS-specific code, and it
+// only ever reads pixels from whatever window the user explicitly picks in the browser's own dialog.
+
+const CHANGE_THRESHOLD = 0.015; // same threshold the WinForms scanner settled on
+const startCaptureBtn = document.getElementById('startCaptureBtn');
+const stopCaptureBtn = document.getElementById('stopCaptureBtn');
+const captureStatusEl = document.getElementById('captureStatus');
+const livePreview = document.getElementById('livePreview');
+const queuePanel = document.getElementById('queuePanel');
+const queueThumb = document.getElementById('queueThumb');
+const queueCountEl = document.getElementById('queueCount');
+
+let captureStream = null;
+let captureTimer = null;
+let prevSignature = null;
+let liveFrameCount = 0;
+let liveUniqueMembers = new Map();
+let liveRankings = new Map(); // normalized name -> best ranking row seen (separate dataset, cross-checked later)
+
+// Capturing changed frames is cheap and fast (every 600ms); OCR is not (~1-2s/image). Firing OCR
+// requests directly from the capture tick let them pile up concurrently against the single local
+// RapidOCR engine, which lost/garbled results under load (57 captured frames -> only 16 recognized
+// members). Decoupling via a queue keeps capture always-on-time while a single worker drains OCR
+// requests strictly one at a time, and keeps draining after Stop until the backlog is empty.
+let captureQueue = [];
+let queueWorkerRunning = false;
+let scanActive = false;
+
+function updateCaptureStatus() {
+  const pending = captureQueue.length;
+  const state = scanActive ? 'Aktiv' : (pending > 0 ? 'Gestoppt, verarbeite Rest' : 'Gestoppt');
+  captureStatusEl.textContent = `${state} — ${liveFrameCount} Ansichten erfasst, ${liveUniqueMembers.size} eindeutige Mitglieder`;
+  queueCountEl.textContent = String(pending);
+  queuePanel.style.display = (scanActive || pending > 0 || queueWorkerRunning) ? 'flex' : 'none';
+}
+
+function showQueueThumb(canvas) {
+  const ctx = queueThumb.getContext('2d');
+  const scale = Math.min(220 / canvas.width, 140 / canvas.height, 1);
+  queueThumb.width = Math.max(1, Math.round(canvas.width * scale));
+  queueThumb.height = Math.max(1, Math.round(canvas.height * scale));
+  ctx.drawImage(canvas, 0, 0, queueThumb.width, queueThumb.height);
+}
+
+function frameSignature(canvas) {
+  const small = document.createElement('canvas');
+  small.width = 48; small.height = 32;
+  const sctx = small.getContext('2d');
+  sctx.drawImage(canvas, 0, 0, 48, 32);
+  const data = sctx.getImageData(0, 0, 48, 32).data;
+  const sig = new Uint8Array(48 * 32);
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    sig[p] = (data[i] * 299 + data[i + 1] * 587 + data[i + 2] * 114) / 1000;
+  }
+  return sig;
+}
+
+function signatureDifference(a, b) {
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) sum += Math.abs(a[i] - b[i]);
+  return sum / (255 * a.length);
+}
+
+async function startCapture() {
+  try {
+    captureStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 5, displaySurface: 'window' },
+      audio: false,
+    });
+  } catch (err) {
+    captureStatusEl.textContent = 'Freigabe abgebrochen: ' + err.message;
+    return;
+  }
+  livePreview.srcObject = captureStream;
+  livePreview.style.display = 'inline-block';
+  await livePreview.play();
+
+  prevSignature = null;
+  liveFrameCount = 0;
+  liveUniqueMembers = new Map();
+  liveRankings = new Map();
+  captureQueue = [];
+  scanActive = true;
+  bodyEl.innerHTML = '';
+  logEl.innerHTML = '';
+  log('Live-Scan gestartet. Scrolle die Mitgliederliste manuell mit dem Mausrad — diese Seite steuert nichts selbst.');
+
+  startCaptureBtn.disabled = true;
+  stopCaptureBtn.disabled = false;
+  updateCaptureStatus();
+
+  // Stop cleanly if the user ends sharing from the browser's own UI, not just our button.
+  captureStream.getVideoTracks()[0].addEventListener('ended', stopCapture);
+
+  captureTimer = setInterval(captureFrameIfChanged, 600);
+  if (!queueWorkerRunning) processQueue();
+}
+
+function captureFrameIfChanged() {
+  if (!captureStream || livePreview.videoWidth === 0) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = livePreview.videoWidth;
+  canvas.height = livePreview.videoHeight;
+  canvas.getContext('2d').drawImage(livePreview, 0, 0);
+
+  const sig = frameSignature(canvas);
+  if (prevSignature && signatureDifference(prevSignature, sig) < CHANGE_THRESHOLD) return;
+  prevSignature = sig;
+  liveFrameCount++;
+  const label = `live-${String(liveFrameCount).padStart(3, '0')}.png`;
+  log(`Geänderte Ansicht ${liveFrameCount} erfasst, in Warteschlange (${captureQueue.length + 1} wartend).`);
+  captureQueue.push({ canvas, label });
+  updateCaptureStatus();
+}
+
+// Single sequential worker: drains the queue one request at a time so OCR calls never overlap. Keeps
+// running (checked via scanActive || queue non-empty) after Stop until every captured frame is done.
+async function processQueue() {
+  queueWorkerRunning = true;
+  while (scanActive || captureQueue.length > 0) {
+    if (captureQueue.length === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      continue;
+    }
+    const { canvas, label } = captureQueue.shift();
+    showQueueThumb(canvas);
+    document.getElementById('queueThumbLabel').textContent = `Wird gerade verarbeitet: ${label}`;
+    updateCaptureStatus();
+    try {
+      log(`Verarbeite ${label} (${captureQueue.length} noch in Warteschlange)...`);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      const result = await processBlob(blob, label);
+      renderViewHeading(label, result);
+
+      if (result.mode === 'ranking') {
+        for (const row of result.rankings) {
+          renderRankingRow(canvas, row);
+          log(`Live-Rang #${row.rank_position}: name='${row.name}' power=${row.power}`);
+          mergeIntoMap(liveRankings, row.name, row, (r) => r.confidence.name ?? 0);
+        }
+        setStatus(`Live-Scan [Stärke-Rangliste]: ${liveFrameCount} Ansichten, ${liveRankings.size} eindeutige Ranglisten-Einträge bisher.`);
+      } else {
+        for (const card of result.cards) {
+          renderCard(canvas, card);
+          log(`Live-Karte: name='${card.name}' power=${card.power} level=${card.level} status='${card.status}'`);
+          mergeIntoMap(liveUniqueMembers, card.name, card, (c) => (c.confidence.name ?? 0) + (c.power ? 1 : 0) + (c.level ? 1 : 0));
+        }
+        setStatus(`Live-Scan [Mitgliederliste]: ${liveFrameCount} Ansichten, ${liveUniqueMembers.size} eindeutige Mitglieder bisher.`);
+      }
+    } catch (err) {
+      log('FEHLER beim Verarbeiten: ' + err.message);
+    }
+    updateCaptureStatus();
+  }
+  queueWorkerRunning = false;
+  log(`Warteschlange leer. ${liveFrameCount} Ansichten verarbeitet, ${liveUniqueMembers.size} eindeutige Mitglieder.`);
+}
+
+function stopCapture() {
+  if (captureTimer) clearInterval(captureTimer);
+  captureTimer = null;
+  if (captureStream) captureStream.getTracks().forEach((t) => t.stop());
+  captureStream = null;
+  livePreview.style.display = 'none';
+  livePreview.srcObject = null;
+  scanActive = false; // queue worker keeps draining captureQueue on its own until empty
+  startCaptureBtn.disabled = false;
+  stopCaptureBtn.disabled = true;
+  updateCaptureStatus();
+  log(`Live-Scan gestoppt. ${captureQueue.length} Ansichten werden noch verarbeitet.`);
+}
+
+startCaptureBtn.addEventListener('click', () => startCapture().catch((err) => { captureStatusEl.textContent = 'Fehler: ' + err.message; log('FEHLER: ' + err.message); }));
+stopCaptureBtn.addEventListener('click', stopCapture);
+
+// ===================== Cross-check: Stärke-Rangliste vs Mitgliederliste =====================
+// Same capture session, two different screens auto-detected by header text — once both datasets have
+// entries, compare them: names only in one list, and combat-power mismatches beyond rounding noise
+// (member list shows an abbreviated "292,2M" figure, the ranking list a bare integer).
+function compareDatasets() {
+  const lines = [];
+  const memberOnly = [];
+  const rankingOnly = [];
+  const mismatched = [];
+  const matched = [];
+
+  for (const [key, member] of liveUniqueMembers) {
+    const rank = liveRankings.get(key);
+    if (!rank) { memberOnly.push(member); continue; }
+    if (member.power && rank.power) {
+      const memberPower = Math.round(parseFloat(member.power) * 1_000_000);
+      const rankPower = parseInt(rank.power, 10);
+      const diff = Math.abs(memberPower - rankPower) / Math.max(memberPower, rankPower);
+      if (diff > 0.03) { mismatched.push({ member, rank, diff }); continue; }
+    }
+    matched.push({ member, rank });
+  }
+  for (const [key, rank] of liveRankings) {
+    if (!liveUniqueMembers.has(key)) rankingOnly.push(rank);
+  }
+
+  lines.push(`=== Abgleich Mitgliederliste (${liveUniqueMembers.size}) vs Stärke-Rangliste (${liveRankings.size}) ===`);
+  lines.push(`${matched.length} übereinstimmend, ${mismatched.length} mit abweichender Kampfkraft, ${memberOnly.length} nur in Mitgliederliste, ${rankingOnly.length} nur in Rangliste.`);
+  if (mismatched.length) {
+    lines.push('--- Kampfkraft weicht > 3% ab ---');
+    for (const { member, rank, diff } of mismatched) {
+      lines.push(`  ${member.name}: Mitgliederliste ${member.power}M vs Rangliste ${rank.power} (${(diff * 100).toFixed(0)}% Abweichung)`);
+    }
+  }
+  if (memberOnly.length) {
+    lines.push('--- Nur in Mitgliederliste (evtl. noch nicht in Rangliste gescannt, oder Namensabweichung) ---');
+    for (const m of memberOnly) lines.push(`  ${m.name}`);
+  }
+  if (rankingOnly.length) {
+    lines.push('--- Nur in Rangliste (evtl. noch nicht in Mitgliederliste gescannt, oder Namensabweichung) ---');
+    for (const r of rankingOnly) lines.push(`  #${r.rank_position} ${r.name}`);
+  }
+  return lines.join('\n');
+}
+
+const compareBtn = document.createElement('button');
+compareBtn.id = 'compareBtn';
+compareBtn.textContent = 'Rangliste ↔ Mitgliederliste abgleichen';
+compareBtn.style.background = '#59c';
+document.querySelector('.live-controls').after(compareBtn);
+compareBtn.addEventListener('click', () => {
+  if (liveUniqueMembers.size === 0 || liveRankings.size === 0) {
+    log('Abgleich braucht Daten aus beiden Bildschirmen — bisher: ' + liveUniqueMembers.size + ' Mitglieder, ' + liveRankings.size + ' Ranglisten-Einträge.');
+    return;
+  }
+  const report = compareDatasets();
+  log(report);
+  console.log(report);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+@echo off
+rem Starts the RapidOCR server (server.py) and opens the review UI in the browser.
+setlocal
+cd /d "%~dp0"
+
+rem Prefer the Python 3.12 launcher, fall back to plain python on PATH.
+where py >nul 2>nul && set "PYCMD=py -3.12" || set "PYCMD=python"
+
+start "OCR Server" cmd /k %PYCMD% -m uvicorn server:app --host 127.0.0.1 --port 8795
+
+echo Waiting for OCR server...
+for /l %%i in 1,1,30 do (
+    curl -s http://127.0.0.1:8795/health >nul 2>nul && goto open
+    timeout /t 1 >nul
+)
+echo Server not reachable after 30 s - check the OCR server window.
+
+:open
+start "" "%~dp0index.html"

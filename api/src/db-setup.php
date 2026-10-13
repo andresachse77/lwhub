@@ -129,4 +129,56 @@ function ensureChatTable(PDO $pdo): void {
     ");
 }
 
+function ensureScannerColumns(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+    foreach ([
+        "ALTER TABLE players ADD COLUMN current_power BIGINT NULL DEFAULT NULL",
+        "ALTER TABLE players ADD COLUMN hq_level TINYINT NULL DEFAULT NULL",
+        "ALTER TABLE players ADD COLUMN last_scanned_at DATETIME NULL DEFAULT NULL",
+        "ALTER TABLE players ADD COLUMN last_seen_status VARCHAR(100) NULL DEFAULT NULL",
+    ] as $sql) {
+        try { $pdo->exec($sql); } catch (\PDOException) {}
+    }
+}
+
+function ensurePlayerMetricsTable(PDO $pdo): void {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS player_metrics (
+            metric_id CHAR(36) NOT NULL,
+            alliance VARCHAR(50) NOT NULL,
+            player_id CHAR(36) NOT NULL,
+            metric_type VARCHAR(40) NOT NULL,
+            value_numeric BIGINT NULL,
+            value_text VARCHAR(255) NULL,
+            extra_json JSON NULL,
+            source VARCHAR(50) NOT NULL,
+            recorded_at DATETIME NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (alliance, metric_id),
+            KEY ix_metrics_player (alliance, player_id, metric_type, recorded_at),
+            KEY ix_metrics_type_time (alliance, metric_type, recorded_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+function ensureApiTokensTable(PDO $pdo): void {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS api_tokens (
+            token_id CHAR(36) NOT NULL,
+            alliance VARCHAR(50) NOT NULL,
+            token_hash VARCHAR(128) NOT NULL,
+            client_name VARCHAR(100) NOT NULL,
+            role VARCHAR(20) NOT NULL DEFAULT 'scanner',
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_used_at DATETIME NULL,
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            PRIMARY KEY (token_id),
+            KEY ix_token_hash (token_hash)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+
 

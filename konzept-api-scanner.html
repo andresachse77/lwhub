@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LWHub &bull; API & Scanner Integrationskonzept</title>
+<style>
+  :root {
+    --bg-primary: #0e1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --bg-card: #1c2128;
+    --border-color: #30363d;
+    --accent: #58a6ff;
+    --accent-glow: rgba(88, 166, 255, 0.15);
+    --success: #3fb950;
+    --warning: #d29922;
+    --danger: #f85149;
+    --purple: #bc8cff;
+    --text-primary: #f0f6fc;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --code-bg: #0d1117;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    padding: 32px 16px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .container {
+    max-width: 980px;
+    width: 100%;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 24px;
+    margin-bottom: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+  }
+
+  .badge.blue { background: rgba(88, 166, 255, 0.15); color: var(--accent); border-color: rgba(88, 166, 255, 0.3); }
+  .badge.green { background: rgba(63, 185, 80, 0.15); color: var(--success); border-color: rgba(63, 185, 80, 0.3); }
+  .badge.purple { background: rgba(188, 140, 255, 0.15); color: var(--purple); border-color: rgba(188, 140, 255, 0.3); }
+  .badge.amber { background: rgba(210, 153, 34, 0.15); color: var(--warning); border-color: rgba(210, 153, 34, 0.3); }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.25;
+  }
+
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 15px;
+  }
+
+  /* Sections */
+  section {
+    margin-bottom: 40px;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 20px 0 10px 0;
+  }
+
+  p {
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  ul, ol {
+    margin: 0 0 16px 24px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  li {
+    margin-bottom: 6px;
+  }
+
+  strong {
+    color: var(--text-primary);
+  }
+
+  /* Cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .card h4 {
+    font-size: 15px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card p {
+    font-size: 13px;
+    margin: 0;
+  }
+
+  /* Code Blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 14px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #e6edf3;
+    margin-bottom: 16px;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--bg-tertiary);
+    padding: 2px 5px;
+    border-radius: 4px;
+    color: #f0883e;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  /* Flow Diagram */
+  .flow-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+
+  .flow-step {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .flow-step:last-child {
+    margin-bottom: 0;
+  }
+
+  .flow-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .flow-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .flow-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .arrow {
+    text-align: center;
+    color: var(--accent);
+    font-size: 18px;
+    margin: -4px 0 8px 0;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border: 1px solid var(--border-color);
+  }
+
+  th {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .highlight {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge-row">
+      <span class="badge blue">Architektur &amp; API-Konzept</span>
+      <span class="badge purple">Android &bull; Web-Scanner</span>
+      <span class="badge green">100% Abw&auml;rtskompatibel</span>
+      <span class="badge amber">Stand: 2026-10-12</span>
+    </div>
+    <h1>Integration: Thomas&rsquo; Android-App, Web-Scanner &amp; lwhub.de</h1>
+    <div class="subtitle">
+      Automatisierter Datenabgleich von Mitgliederlisten, Kampfkraft, Spenden, VS-Punkten &amp; Events &ndash; inklusive Archiv-Wiederherstellung und allianz&uuml;bergreifendem Transfer via Schnittstelle.
+    </div>
+  </div>
+
+  <!-- 1. Zielsetzung -->
+  <section>
+    <h2><span>🎯</span> 1. Ziele &amp; Kernanforderungen</h2>
+    <p>
+      Thomas entwickelt eine Android-App (<strong>Last-War-Tracker</strong> mit MediaProjection &amp; ML Kit OCR), w&auml;hrend auf dem Desktop unser <strong>Web-Scanner</strong> (RapidOCR) l&auml;uft. Beide Tools sollen nahtlos mit <strong>lwhub.de</strong> vernetzt werden.
+    </p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4><span>📋</span> Mitgliederliste abrufen</h4>
+        <p>Scanner und App laden die aktuelle Namensliste inkl. bekannter Aliase/Schreibweisen, um OCR-Fehler sofort korrigieren zu k&ouml;nnen.</p>
+      </div>
+      <div class="card">
+        <h4><span>🔄</span> Intelligenter Datenabgleich</h4>
+        <p>Wird ein Mitglied erkannt, pr&uuml;ft das Backend automatisch: Ist es aktiv? Liegt es im Archiv? Ist es in einer Partnerallianz?</p>
+      </div>
+      <div class="card">
+        <h4><span>🚀</span> Transfer &amp; Restore per API</h4>
+        <p>Keine doppelten Datens&auml;tze: Spieler aus dem Archiv werden reaktiviert; Wechsler aus anderen Allianzen werden automatisch transferiert.</p>
+      </div>
+      <div class="card">
+        <h4><span>⚔️</span> Kampfkraft, Spenden, Events</h4>
+        <p>Erweiterung des Datenmodells f&uuml;r historische Zeitreihen (Power, Spenden Tag/Woche, VS-Punkte, Kills, Desert Storm, Zombie Siege).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Der Entscheidungs-Flow beim Einfügen -->
+  <section>
+    <h2><span>🧠</span> 2. Der &bdquo;Smart-Insert&ldquo; Entscheidungsbaum</h2>
+    <p>
+      Spieler wechseln h&auml;ufig zwischen Main- und Ausweichallianzen oder pausieren im Archiv. Beim Erfassen eines Namens f&uuml;hrt die API folgenden Workflow durch:
+    </p>
+
+    <div class="flow-container">
+      <div class="flow-step" style="border-left: 4px solid var(--accent);">
+        <div class="flow-header">
+          <span class="flow-title">1. Name durch Scanner erkannt (z. B. &bdquo;Lion Tooth&ldquo;)</span>
+          <span class="badge blue">Scan-Input</span>
+        </div>
+        <div class="flow-desc">Egal ob &uuml;ber Thomas&rsquo; Handy oder den Web-Scanner &ndash; der Name trifft per Batch-Sync ein.</div>
+      </div>
+
+      <div class="arrow">&darr;</div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--success);">
+        <div class="flow-header">
+          <span class="flow-title">Fall A: Bereits aktiv in der Ziel-Allianz?</span>
+          <span class="badge green">Standard-Update</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Aktion:</strong> Momentanwerte aktualisieren (Kampfkraft, HQ-Level, Status) + neuen Datenpunkt in <code>player_metrics</code> schreiben.
+        </div>
+      </div>
+
+      <div class="arrow">&darr; <em>Nein</em></div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--warning);">
+        <div class="flow-header">
+          <span class="flow-title">Fall B: Befindet sich der Spieler im Archiv (<code>archived_players</code>)?</span>
+          <span class="badge amber">Automatischer Restore</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Aktion:</strong> Spieler wird vollst&auml;ndig aus dem Archiv zur&uuml;ckgeholt. Seine fr&uuml;here <code>player_id</code>, Discord-ID und bisherigen Wochen-Eintr&auml;ge bleiben erhalten. Allianz wird auf die Ziel-Allianz gesetzt.
+        </div>
+      </div>
+
+      <div class="arrow">&darr; <em>Nein</em></div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--purple);">
+        <div class="flow-header">
+          <span class="flow-title">Fall C: Ist der Spieler in einer ANDEREN Allianz aktiv?</span>
+          <span class="badge purple">Allianz-Transfer</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Aktion:</strong> Schnittstellen-Transfer analog zur internen R5-Transferfunktion. Spieler, Identit&auml;t, Namenshistorie und Eintr&auml;ge werden auf die neue Allianz umgeschrieben (ohne Datenverlust).
+        </div>
+      </div>
+
+      <div class="arrow">&darr; <em>Nein</em></div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--accent);">
+        <div class="flow-header">
+          <span class="flow-title">Fall D: Vollst&auml;ndig neuer Spieler</span>
+          <span class="badge blue">Neuanlage</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Aktion:</strong> Regul&auml;res <code>INSERT INTO players</code> mit neuer UUID und erstem Eintrag in der Namenshistorie.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Datenmodell-Erweiterung -->
+  <section>
+    <h2><span>🗄️</span> 3. Datenmodell-Erweiterung (100% kompatibel)</h2>
+    <p>
+      Die bestehende Seite (<code>lwhub.de</code>) und das Tabellensystem f&uuml;r R&auml;nge und Flags d&uuml;rfen keinesfalls gest&ouml;rt werden. Daher erweitern wir das Schema <strong>rein additiv</strong>:
+    </p>
+
+    <h3>A. Aktuelle Snapshot-Werte direkt in <code>players</code></h3>
+    <p>F&uuml;r blitzschnellen Zugriff in der Mitgliederliste und der Web-Verwaltung:</p>
+    <pre><code>ALTER TABLE players 
+    ADD COLUMN current_power BIGINT NULL DEFAULT NULL,
+    ADD COLUMN hq_level TINYINT NULL DEFAULT NULL,
+    ADD COLUMN last_scanned_at DATETIME NULL DEFAULT NULL,
+    ADD COLUMN last_seen_status VARCHAR(100) NULL DEFAULT NULL;</code></pre>
+
+    <h3>B. Universelle Zeitreihen-Tabelle <code>player_metrics</code></h3>
+    <p>Nimmt jeden einzelnen Scan auf. Funktioniert f&uuml;r Kampfkraft, Spenden, Kills und beliebige k&uuml;nftige Events:</p>
+    <pre><code>CREATE TABLE IF NOT EXISTS player_metrics (
+    metric_id CHAR(36) NOT NULL,
+    alliance VARCHAR(50) NOT NULL,
+    player_id CHAR(36) NOT NULL,
+    metric_type VARCHAR(40) NOT NULL, -- 'POWER', 'DONATION_WEEK', 'DONATION_DAY', 'VS_WEEK', 'VS_DAY', 'KILLS', 'DESERT_STORM', etc.
+    value_numeric BIGINT NULL,
+    value_text VARCHAR(255) NULL,
+    extra_json JSON NULL,             -- z. B. Task Force A/B, geschaffte Wellen bei Zombie Siege
+    source VARCHAR(50) NOT NULL,      -- 'android_app', 'web_scanner', 'manual'
+    recorded_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (alliance, metric_id),
+    KEY ix_metrics_player (alliance, player_id, metric_type, recorded_at),
+    KEY ix_metrics_type_time (alliance, metric_type, recorded_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+
+    <h3>C. API-Tokens f&uuml;r App und Scanner <code>api_tokens</code></h3>
+    <pre><code>CREATE TABLE IF NOT EXISTS api_tokens (
+    token_id CHAR(36) NOT NULL,
+    alliance VARCHAR(50) NOT NULL,
+    token_hash VARCHAR(128) NOT NULL,
+    client_name VARCHAR(100) NOT NULL, -- z. B. 'Thomas Android App', 'Desktop Scanner'
+    role VARCHAR(20) NOT NULL DEFAULT 'scanner', -- 'scanner', 'r4', 'r5'
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (token_id),
+    KEY ix_token_hash (token_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+  </section>
+
+  <!-- 4. API Endpunkte -->
+  <section>
+    <h2><span>🔌</span> 4. Neue &amp; erweiterte API-Schnittstellen</h2>
+
+    <h3>Authentifizierung</h3>
+    <p>Alle Anfragen von Thomas&rsquo; App oder dem Scanner senden einen Bearer-Token im HTTP-Header:</p>
+    <pre><code>Authorization: Bearer lwhub_sec_xxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
+
+    <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+    <h3>1. Mitgliederliste abrufen: <code>GET /api/members</code></h3>
+    <p>Liefert die aktive Mitgliederliste inklusive Aliasen f&uuml;r den OCR-Namensabgleich:</p>
+    <pre><code>// Response (200 OK)
+[
+  {
+    "id": "e3a89012-...",
+    "name": "Lion Tooth",
+    "rank": 4,
+    "current_power": 164200000,
+    "hq_level": 31,
+    "last_seen_status": "Online",
+    "last_scanned_at": "2026-10-12 18:30:00",
+    "aliases": ["LionTooth", "Lion Tooth", "L1on Tooth"]
+  },
+  ...
+]</code></pre>
+
+    <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+    <h3>2. Batch-Sync von Scan-Sitzungen: <code>POST /api/scans/sync</code></h3>
+    <p>Erm&ouml;glicht das Hochladen einer vollst&auml;ndigen Erfassungssitzung (z. B. 100 Mitglieder) in einer einzigen atomaren Transaktion:</p>
+    <pre><code>// Request Body
+{
+  "alliance": "INY",
+  "scan_type": "POWER", // oder 'DONATION_WEEK', 'VS_DAY', 'MEMBERS_LIST'
+  "recorded_at": "2026-10-12T19:00:00Z",
+  "source": "android_app",
+  "options": {
+    "auto_restore": true,    // Spieler im Archiv automatisch zurueckholen
+    "auto_transfer": true   // Spieler aus Partnerallianzen transferieren
+  },
+  "entries": [
+    {
+      "name": "Lion Tooth",
+      "value_numeric": 164200000,
+      "hq_level": 31,
+      "rank": 4,
+      "status": "Online"
+    },
+    {
+      "name": "R&uuml;ckkehrer77",
+      "value_numeric": 120500000,
+      "hq_level": 30
+    }
+  ]
+}</code></pre>
+
+    <pre><code>// Response (200 OK)
+{
+  "ok": true,
+  "summary": {
+    "total": 2,
+    "updated": 1,
+    "restored_from_archive": 1,
+    "transferred": 0,
+    "created_new": 0
+  },
+  "details": [
+    { "name": "Lion Tooth", "action": "updated", "player_id": "e3a89012-..." },
+    { "name": "R&uuml;ckkehrer77", "action": "restored_from_archive", "player_id": "7b0198aa-..." }
+  ],
+  "conflicts": []
+}</code></pre>
+
+    <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+    <h3>3. Gezielter Transfer &uuml;ber Schnittstelle: <code>POST /api/members/{name_or_id}/transfer</code></h3>
+    <p>F&uuml;hrt denselben sicheren Transfer wie das interne R5-Tool aus &ndash; jetzt voll script- und app-f&auml;hig:</p>
+    <pre><code>// Request Body
+{
+  "to_alliance": "INY"
+}
+
+// Response (200 OK)
+{
+  "ok": true,
+  "player_id": "e3a89012-...",
+  "player_name": "Lion Tooth",
+  "from_alliance": "NxU1",
+  "to_alliance": "INY"
+}</code></pre>
+  </section>
+
+  <!-- 5. Brücke zu den bestehenden Wochen-Flags -->
+  <section>
+    <h2><span>🌉</span> 5. Br&uuml;cke zur bestehenden Webseite</h2>
+    <p>
+      Auf <code>lwhub.de</code> arbeiten wir aktuell mit w&ouml;chentlichen H&auml;kchen/Flags (z. B. <code>spendeUnter35k</code>, <code>spendeTop20</code>, <code>vsTop10</code>). Durch die genauen Zahlen der Scanner k&ouml;nnen diese Flags k&uuml;nftig <strong>vollautomatisch berechnet und vorgeschlagen</strong> werden:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Erfasster Messwert</th>
+          <th>Automatisches LWHub Flag</th>
+          <th>Regel / Schwellenwert</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>DONATION_WEEK</code></td>
+          <td><code class="highlight">spendeUnter35k</code></td>
+          <td>Wert &lt; 35.000 Spendenm&uuml;nzen</td>
+        </tr>
+        <tr>
+          <td><code>DONATION_WEEK</code></td>
+          <td><code class="highlight">spendeTop20</code></td>
+          <td>Platz 1 bis 20 in der Allianz-Rangliste</td>
+        </tr>
+        <tr>
+          <td><code>VS_WEEK</code></td>
+          <td><code class="highlight">vsTop10</code> / <code class="highlight">vsTop30</code></td>
+          <td>Platzierung im w&ouml;chentlichen Duell</td>
+        </tr>
+        <tr>
+          <td><code>DESERT_STORM</code></td>
+          <td><code class="highlight">wuesteTeilnahme</code></td>
+          <td>Punkte &gt; 0 im Gefechtsbericht</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 6. Phasen-Fahrplan -->
+  <section>
+    <h2><span>📅</span> 6. Implementierungs-Fahrplan</h2>
+    <ol>
+      <li>
+        <strong>Phase 1: DB-Tabellen &amp; Migrationen</strong><br>
+        In <code>api/src/db-setup.php</code> die neuen Spalten an <code>players</code> sowie die Tabellen <code>player_metrics</code> und <code>api_tokens</code> einrichten.
+      </li>
+      <li>
+        <strong>Phase 2: API-Token Auth</strong><br>
+        In <code>api/src/auth.php</code> Bearer-Token-Pr&uuml;fung einbinden, sodass Apps und Skripte ohne Browser-Session autorisiert sind.
+      </li>
+      <li>
+        <strong>Phase 3: Erweiterung von <code>GET /members</code> &amp; Transfer-Endpunkt</strong><br>
+        Mitgliederliste um Kampfkraft, Level und Aliase anreichern. Transfer-Funktion f&uuml;r API-Keys freigeben.
+      </li>
+      <li>
+        <strong>Phase 4: Neuer Sync-Endpunkt <code>POST /api/scans/sync</code></strong><br>
+        Transaktionale Pr&uuml;fung auf Archiv (Restore), Fremdallianz (Transfer) und Neuanlage mit Metrik-Speicherung.
+      </li>
+      <li>
+        <strong>Phase 5: Client-Anbindung</strong><br>
+        &bull; <strong>Web-Scanner:</strong> Button &bdquo;Nach lwhub &uuml;bertragen&ldquo; in <code>index.html</code>.<br>
+        &bull; <strong>Thomas&rsquo; Android-App:</strong> Neuer <code>LwHubUploader</code>, der die <code>MergedEntry</code>-Ergebnisse direkt an die API sendet.
+      </li>
+    </ol>
+  </section>
+
+  <!-- Footer -->
+  <div class="footer">
+    Erstellt f&uuml;r LWHub &bull; Kompatibel mit allen bestehenden Web-Funktionen und Tabellen
+  </div>
+
+</div>
+
+</body>
+</html>

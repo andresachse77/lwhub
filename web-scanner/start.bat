@@ -8,6 +8,11 @@ where py >nul 2>nul && set "PYCMD=py -3.12" || set "PYCMD=python"
 
 start "OCR Server" cmd /k %PYCMD% -m uvicorn server:app --host 127.0.0.1 --port 8795
 
+rem The local API router is needed for scanner sync until the endpoint is deployed to lwhub.de.
+curl -fsS http://127.0.0.1:8080/alliances >nul 2>nul || (
+    where php >nul 2>nul && start "LWHub API" /D "%~dp0..\api" cmd /k php -S 127.0.0.1:8080 index.php
+)
+
 echo Waiting for OCR server...
 for /l %%i in 1,1,30 do (
     curl -s http://127.0.0.1:8795/health >nul 2>nul && goto open

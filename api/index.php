@@ -80,6 +80,9 @@ try {
     ensurePreferredLanguageColumn($pdo);
     ensureHonorRoleColumn($pdo);
     ensureMemberTeamTables($pdo);
+    ensureScannerColumns($pdo);
+    ensurePlayerMetricsTable($pdo);
+    ensureApiTokensTable($pdo);
     seedProtectedAdmins($pdo, $PROTECTED_R4_NAMES);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
     try {
@@ -203,6 +206,11 @@ try {
         if ($method === 'POST' && count($segments) === 3 && $segments[2] === 'resolve') {
             handleResolveAccessRequest($pdo, $ALLIANCE, $segments[1], $body);
         }
+    }
+
+    // POST /scans/sync
+    if ($method === 'POST' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'sync') {
+        handleSyncScans($pdo, $ALLIANCE, $body);
     }
 
     // entries

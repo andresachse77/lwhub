@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>LWHub &bull; Scanner-Cockpit &amp; Two-Pane Matching</title>
+<link rel="stylesheet" href="css/cockpit.css">
+</head>
+<body>
+
+<div class="app-container">
+
+  <!-- TOP BAR -->
+  <header class="top-bar">
+    <div class="brand-section">
+      <div class="brand-title">
+        <span>⚔️</span> LWHub Scanner-Cockpit
+      </div>
+      <label for="allianceSelect" style="color:var(--text-muted); font-size:12px;">Allianz:</label>
+      <select id="allianceSelect" class="alliance-selector">
+        <option value="INY">INY</option>
+        <option value="NxU1">NxU1</option>
+      </select>
+      <button id="btnReloadMembers" class="btn btn-secondary" title="Mitgliederliste von LWHub neu laden">🔄 Neu laden</button>
+      <button id="btnRematch" class="btn btn-secondary" title="Alle gescannten Kacheln neu gegen aktuelle Allianz abgleichen">⚡ Rematch</button>
+    </div>
+
+    <div class="status-section">
+      <div id="statPoolCount" class="badge-stat">0 Kacheln im Pool</div>
+      <div id="statErfasst" class="badge-stat warning">0 / 0 Erfasst</div>
+      <button id="btnSyncToLwHub" class="btn btn-success">🚀 Nach LWHub &uuml;bertragen</button>
+    </div>
+  </header>
+
+  <!-- 2-SENKEN SPLIT SCREEN -->
+  <main class="workspace-split">
+
+    <!-- LINKE SENKE: Führende Mitgliederliste (scrollt unabhängig) -->
+    <section class="pane pane-left">
+      <div class="pane-header">
+        <span>📋 F&Uuml;HRENDE MITGLIEDERLISTE (LWHUB)</span>
+        <span id="memberCountBadge" class="badge-stat">Lade...</span>
+      </div>
+
+      <div class="pane-content">
+        <!-- Vorschlags-Banner für Archivierung unerkannter Mitglieder -->
+        <div id="archiveSuggestionContainer"></div>
+
+        <!-- Ganz oben: Drop-Feld für neue Spieler -->
+        <div id="dropzoneNewPlayer" class="dropzone-new-player">
+          <div class="dropzone-new-player-title">
+            <span>➕</span> DROP-FELD: NEUER SPIELER
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted);">
+            Ziehe eine unklare Kachel hierher, um sie als Neuzugang anzulegen.
+          </div>
+        </div>
+
+        <!-- Liste neu vorgemerkter Spieler -->
+        <div id="newPlayersList" class="member-list"></div>
+
+        <!-- FILTER- & SUCH-LEISTE FÜR STABILE SORTIERUNG -->
+        <div class="member-list-controls">
+          <div class="filter-pills">
+            <button class="pill-btn active" data-filter="all">Alle (<span id="countPillAll">0</span>)</button>
+            <button class="pill-btn" data-filter="unassigned">⚠️ Offen (<span id="countPillUnassigned">0</span>)</button>
+            <button class="pill-btn" data-filter="assigned">✅ Mit Kacheln (<span id="countPillAssigned">0</span>)</button>
+            <button class="pill-btn" data-filter="archive">📦 Archivieren (<span id="countPillArchive">0</span>)</button>
+          </div>
+          <div class="list-search-sort">
+            <input type="text" id="memberSearchInput" class="input-search" placeholder="🔍 Spieler filtern...">
+            <select id="memberSortSelect" class="sort-select">
+              <option value="rank_name">Rang (R5 → R1), dann Name</option>
+              <option value="name_asc">Name (A → Z)</option>
+              <option value="name_desc">Name (Z → A)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- FÜHRENDE BASIS-MITGLIEDERLISTE (STABILE SORTIERUNG) -->
+        <div id="unifiedMembersList" class="member-list">
+          <div style="color: var(--text-muted); padding: 16px; text-align: center;">Lade Mitgliederliste...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECHTE SENKE: Kacheln-Pool & Scan-Feed (scrollt unabhängig) -->
+    <section class="pane pane-right">
+      <!-- STICKY PANE HEADER: Buttons bleiben IMMER oben sichtbar! -->
+      <div class="pane-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>📸 KACHELN-POOL</span>
+          <span id="scanStatusBadge" class="badge-stat">Bereit</span>
+        </div>
+        <div class="header-scan-actions">
+          <button id="btnHeaderStart" class="btn btn-sm btn-primary">▶️ Scan starten</button>
+          <button id="btnHeaderStop" class="btn btn-sm btn-danger" disabled>🛑 Scan stoppen</button>
+          <button id="btnHeaderTest" class="btn btn-sm btn-secondary">📸 Testbilder</button>
+        </div>
+      </div>
+
+      <div class="pane-content">
+
+        <!-- OBERER TRAY: Unklare & neue Kacheln (Prioritär) -->
+        <div class="unclear-tray">
+          <div class="tray-header">
+            <span class="tray-title">
+              <span>🗃️</span> UNKLARE &amp; NEUE KACHELN (<span id="countUnclearTray">0</span>)
+            </span>
+            <span style="font-size: 11px; color: var(--text-muted);">Per Drag &amp; Drop nach links ziehen</span>
+          </div>
+
+          <div id="unclearCardsGrid" class="cards-grid">
+            <div style="grid-column: 1 / -1; color: var(--text-dim); text-align: center; padding: 12px; font-size: 12px;">
+              Noch keine unklaren Kacheln. Starte den Live-Scan oder Testlauf.
+            </div>
+          </div>
+        </div>
+
+        <!-- SCANNER STEUERUNG & LIVE-STREAM -->
+        <div class="scanner-controls">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--text);">📡 Bildschirmaufnahme &amp; Test</div>
+            <button id="btnResetPool" class="btn btn-sm btn-secondary" title="Alle Kacheln aus dem Session-Pool verwerfen">🗑️ Pool leeren</button>
+          </div>
+
+          <div class="controls-row">
+            <button id="btnStartCapture" class="btn">Fenster w&auml;hlen &amp; Scan starten</button>
+            <button id="btnStopCapture" class="btn btn-danger" disabled>Scan stoppen</button>
+            <button id="btnRunTest" class="btn btn-secondary">Testbilder laden</button>
+          </div>
+
+          <div class="controls-row">
+            <video id="liveVideoPreview" autoplay muted></video>
+            <div style="flex: 1; font-size: 11px; color: var(--text-muted);" id="captureStatusText">
+              W&auml;hle das Spiel-Fenster aus. Scrolle langsam &ndash; ge&auml;nderte Ansichten werden automatisch erfasst.
+            </div>
+          </div>
+
+          <div id="processingProgress" class="processing-progress" hidden aria-live="polite">
+            <div class="processing-progress-label">
+              <span id="processingProgressText">Verarbeitung wird vorbereitet…</span>
+              <span id="processingCountdown"></span>
+            </div>
+            <progress id="processingProgressBar" max="100" value="0"></progress>
+          </div>
+
+          <div id="logBox" class="log-box"></div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<!-- MODULE LADEN -->
+<script src="js/matching.js"></script>
+<script src="js/drag-drop.js"></script>
+
+<!-- APP BOOTSTRAP -->
+<script>
+const OCR_SERVER = 'http://127.0.0.1:8795';
+const API_CANDIDATES = [
+  'http://127.0.0.1:8080',
+  'https://lwhub.de/api'
+];
+let activeApiUrl = API_CANDIDATES[0];
+
+window.cockpit = new CockpitState();
+
+// Logger
+const logBox = document.getElementById('logBox');
+function log(msg) {
+  const line = document.createElement('div');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logBox.appendChild(line);
+  logBox.scrollTop = logBox.scrollHeight;
+  console.log(msg);
+}
+
+// 1. Dropzone "Neuer Spieler" ganz oben links initialisieren
+const dropzoneNew = document.getElementById('dropzoneNewPlayer');
+window.cockpit.attachDropHandlers(dropzoneNew, (cardId) => {
+  window.cockpit.assignCardAsNewPlayer(cardId);
+});
+
+// Allianzen laden
+async function initAlliances() {
+  const sel = document.getElementById('allianceSelect');
+  for (const candidate of API_CANDIDATES) {
+    try {
+      const resp = await fetch(`${candidate}/alliances`, { signal: AbortSignal.timeout(2000) });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (data.ok && Array.isArray(data.alliances) && data.alliances.length > 0) {
+        activeApiUrl = candidate;
+        sel.innerHTML = '';
+        data.alliances.forEach(a => {
+          const opt = document.createElement('option');
+          opt.value = a.short_name;
+          opt.textContent = `${a.short_name}${a.title ? ' – ' + a.title : ''}`;
+          if (a.short_name === 'NxU1') opt.selected = true;
+          sel.appendChild(opt);
+        });
+        log(`API erreichbar unter ${activeApiUrl}.`);
+        break;
+      }
+    } catch (_) {}
+  }
+  await loadMembers();
+}
+
+// 2. Mitglieder von LWHub laden
+async function loadMembers() {
+  const alliance = document.getElementById('allianceSelect').value;
+  log(`Lade Mitgliederliste für Allianz ${alliance} von ${activeApiUrl}...`);
+  try {
+    const list = await MatchingEngine.fetchLwHubMembers(activeApiUrl, alliance);
+    window.cockpit.setMembers(list);
+    document.getElementById('memberCountBadge').textContent = `${list.length} Mitglieder`;
+    log(`Erfolgreich ${list.length} Mitglieder geladen.`);
+  } catch (err) {
+    log(`HINWEIS: Konnte LWHub API (${activeApiUrl}) nicht erreichen (${err.message}). Verwende Test-Mitglieder.`);
+    // Fallback Mock-Daten für autarken Testbetrieb
+    const mockList = [
+      { id: '1', name: 'Lion Tooth', rank: 4, current_power: 164000000 },
+      { id: '2', name: 'DarkKnight', rank: 3, current_power: 142000000 },
+      { id: '3', name: 'Valkyrie', rank: 4, current_power: 189000000 },
+      { id: '4', name: 'ShadowHunter', rank: 3, current_power: 95000000 },
+      { id: '5', name: 'IronClad', rank: 3, current_power: 110000000 },
+      { id: '6', name: 'Phoenix', rank: 4, current_power: 175000000 }
+    ];
+    window.cockpit.setMembers(mockList);
+    document.getElementById('memberCountBadge').textContent = `${mockList.length} Mitglieder (Mock)`;
+  }
+}
+
+// Filter-Pills Events
+document.querySelectorAll('.pill-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    window.cockpit.setFilterMode(btn.dataset.filter);
+  });
+});
+
+// Sucheingabe Event
+const searchInput = document.getElementById('memberSearchInput');
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    window.cockpit.setSearchQuery(e.target.value);
+  });
+}
+
+// Sortier-Auswahl Event
+const sortSelect = document.getElementById('memberSortSelect');
+if (sortSelect) {
+  sortSelect.addEventListener('change', (e) => {
+    window.cockpit.setSortMode(e.target.value);
+  });
+}
+
+// Allianz-Wechsel -> Mitglieder laden & Kacheln sofort automatisch neu matchen!
+document.getElementById('allianceSelect').addEventListener('change', async () => {
+  await loadMembers();
+  log(`Allianz gewechselt auf ${document.getElementById('allianceSelect').value}. Kacheln wurden automatisch neu abgeglichen.`);
+});
+document.getElementById('btnReloadMembers').addEventListener('click', loadMembers);
+
+// Manueller Rematch-Button
+const triggerRematch = () => {
+  window.cockpit.rematchAll();
+  log(`Manueller Neu-Abgleich aller Kacheln (${window.cockpit.scannedCardsPool.length}) durchgeführt.`);
+};
+document.getElementById('btnRematch').addEventListener('click', triggerRematch);
+
+// Pool leeren
+document.getElementById('btnResetPool').addEventListener('click', () => {
+  if (confirm('Möchtest du wirklich alle bisher erfassten Scan-Kacheln aus dem Session-Pool verwerfen?')) {
+    window.cockpit.resetAllScans();
+    log('Session-Pool und alle Zuweisungen geleert.');
+  }
+});
+
+// 3. Bildausschnitt für Kachel erstellen
+function cropCanvas(img, box, pad = 6) {
+  const x = Math.max(0, box.left - pad), y = Math.max(0, box.top - pad);
+  const w = (box.right - box.left) + pad * 2, h = (box.bottom - box.top) + pad * 2;
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, w); c.height = Math.max(1, h);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
+  return c;
+}
+
+// 4. Kacheln in Cockpit einspeisen
+async function processOcrResult(img, result) {
+  if (result.mode === 'ranking') {
+    for (const row of result.rankings) {
+      const canvas = cropCanvas(img, row.box, 4);
+      window.cockpit.addScannedCard({
+        name: row.name,
+        power: row.power,
+        level: null,
+        status: `Rang #${row.rank_position}`,
+        confidence: row.confidence
+      }, canvas);
+    }
+  } else {
+    for (const card of result.cards) {
+      const canvas = cropCanvas(img, card.box, 6);
+      window.cockpit.addScannedCard(card, canvas);
+    }
+  }
+}
+
+// 5. Testlauf mit Testbildern
+const VIEW_FILES = Array.from({ length: 42 }, (_, i) => `images/view-${String(i + 1).padStart(3, '0')}.png`);
+let testRunActive = false;
+let processingCountdownTimer = null;
+let processingEstimatedEndAt = null;
+
+function updateProcessingCountdown(completed, total) {
+  const countdown = document.getElementById('processingCountdown');
+  if (!countdown) return;
+
+  if (completed >= total) {
+    countdown.textContent = 'Fertig';
+  } else if (processingEstimatedEndAt === null) {
+    countdown.textContent = 'Restzeit wird ermittelt…';
+  } else {
+    const remainingSeconds = Math.max(0, Math.ceil((processingEstimatedEndAt - Date.now()) / 1000));
+    countdown.textContent = remainingSeconds > 0
+      ? `noch ca. ${remainingSeconds} s`
+      : 'dauert länger als geschätzt…';
+  }
+}
+
+function setProcessingProgress(completed, total, startedAt, file, isProcessing) {
+  const container = document.getElementById('processingProgress');
+  const text = document.getElementById('processingProgressText');
+  const bar = document.getElementById('processingProgressBar');
+  if (!container || !text || !bar) return;
+
+  container.hidden = false;
+  bar.max = total;
+  bar.value = completed;
+  text.textContent = isProcessing
+    ? `Bild ${completed + 1}/${total} wird verarbeitet · ${file}`
+    : `${completed}/${total} Bilder verarbeitet · ${file}`;
+
+  if (completed > 0 && completed < total) {
+    const averagePerImage = (Date.now() - startedAt) / 1000 / completed;
+    processingEstimatedEndAt = Date.now() + (total - completed) * averagePerImage * 1000;
+  }
+  updateProcessingCountdown(completed, total);
+}
+
+async function runTestImages() {
+  if (testRunActive) return;
+  testRunActive = true;
+  const files = VIEW_FILES.slice(0, 5);
+  const startedAt = Date.now();
+  const testButtons = [
+    document.getElementById('btnRunTest'),
+    document.getElementById('btnHeaderTest')
+  ];
+  testButtons.forEach(button => { if (button) button.disabled = true; });
+  processingEstimatedEndAt = null;
+  if (processingCountdownTimer !== null) clearInterval(processingCountdownTimer);
+  processingCountdownTimer = window.setInterval(
+    () => updateProcessingCountdown(0, files.length),
+    1000
+  );
+  log(`Starte Testlauf mit ${files.length} Testbildern...`);
+  try {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    setProcessingProgress(i, files.length, startedAt, file.split('/').pop(), true);
+    try {
+      const resp = await fetch(file);
+      if (!resp.ok) throw new Error(`Bild konnte nicht geladen werden (${resp.status})`);
+      const blob = await resp.blob();
+      const form = new FormData();
+      form.append('file', blob, file);
+      const res = await fetch(`${OCR_SERVER}/process`, { method: 'POST', body: form });
+      if (!res.ok) throw new Error(`OCR-Server antwortete mit ${res.status}`);
+      const data = await res.json();
+      const img = await new Promise(r => { const m = new Image(); m.onload = () => r(m); m.src = file; });
+      await processOcrResult(img, data);
+      log(`Bild ${file} verarbeitet.`);
+    } catch (e) {
+      log(`Fehler bei ${file}: ${e.message}`);
+    }
+    setProcessingProgress(i + 1, files.length, startedAt, file.split('/').pop(), false);
+  }
+  } finally {
+    if (processingCountdownTimer !== null) {
+      clearInterval(processingCountdownTimer);
+      processingCountdownTimer = null;
+    }
+    testRunActive = false;
+    testButtons.forEach(button => { if (button) button.disabled = false; });
+  }
+}
+document.getElementById('btnRunTest').addEventListener('click', runTestImages);
+document.getElementById('btnHeaderTest').addEventListener('click', runTestImages);
+
+// 6. Live Screen-Capture
+let captureStream = null;
+let captureTimer = null;
+let prevSignature = null;
+
+function frameSignature(canvas) {
+  const small = document.createElement('canvas');
+  small.width = 48; small.height = 32;
+  const sctx = small.getContext('2d');
+  sctx.drawImage(canvas, 0, 0, 48, 32);
+  const data = sctx.getImageData(0, 0, 48, 32).data;
+  const sig = new Uint8Array(48 * 32);
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    sig[p] = (data[i] * 299 + data[i + 1] * 587 + data[i + 2] * 114) / 1000;
+  }
+  return sig;
+}
+
+function signatureDifference(a, b) {
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) sum += Math.abs(a[i] - b[i]);
+  return sum / (255 * a.length);
+}
+
+const liveVideo = document.getElementById('liveVideoPreview');
+const btnStart = document.getElementById('btnStartCapture');
+const btnStop = document.getElementById('btnStopCapture');
+const btnHeaderStart = document.getElementById('btnHeaderStart');
+const btnHeaderStop = document.getElementById('btnHeaderStop');
+
+function updateCaptureButtons(running) {
+  btnStart.disabled = running;
+  btnStop.disabled = !running;
+  btnHeaderStart.disabled = running;
+  btnHeaderStop.disabled = !running;
+}
+
+async function startCapture() {
+  try {
+    captureStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5, displaySurface: 'window' }, audio: false });
+    liveVideo.srcObject = captureStream;
+    liveVideo.style.display = 'block';
+    await liveVideo.play();
+
+    updateCaptureButtons(true);
+    document.getElementById('scanStatusBadge').textContent = 'Scan läuft';
+    document.getElementById('scanStatusBadge').className = 'badge-stat success';
+
+    captureStream.getVideoTracks()[0].addEventListener('ended', stopCapture);
+    captureTimer = setInterval(async () => {
+      if (!captureStream || liveVideo.videoWidth === 0) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = liveVideo.videoWidth;
+      canvas.height = liveVideo.videoHeight;
+      canvas.getContext('2d').drawImage(liveVideo, 0, 0);
+
+      const sig = frameSignature(canvas);
+      if (prevSignature && signatureDifference(prevSignature, sig) < 0.015) return;
+      prevSignature = sig;
+
+      log('Neues Bild erkannt, sende an OCR...');
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      const form = new FormData();
+      form.append('file', blob, 'live.png');
+      const res = await fetch(`${OCR_SERVER}/process`, { method: 'POST', body: form });
+      const data = await res.json();
+      await processOcrResult(canvas, data);
+    }, 800);
+  } catch (err) {
+    log('Freigabe abgebrochen: ' + err.message);
+  }
+}
+
+btnStart.addEventListener('click', startCapture);
+btnHeaderStart.addEventListener('click', startCapture);
+
+function stopCapture() {
+  if (captureTimer) clearInterval(captureTimer);
+  captureTimer = null;
+  if (captureStream) captureStream.getTracks().forEach(t => t.stop());
+  captureStream = null;
+  liveVideo.style.display = 'none';
+  updateCaptureButtons(false);
+  document.getElementById('scanStatusBadge').textContent = 'Gestoppt';
+  document.getElementById('scanStatusBadge').className = 'badge-stat';
+  log('Live-Scan beendet.');
+  // Vorschlag aktualisieren
+  window.cockpit.render();
+}
+
+btnStop.addEventListener('click', stopCapture);
+btnHeaderStop.addEventListener('click', stopCapture);
+
+// 7. Sync nach LWHub
+document.getElementById('btnSyncToLwHub').addEventListener('click', async () => {
+  const alliance = document.getElementById('allianceSelect').value;
+  const assigned = window.cockpit.assigned;
+  const newPlayers = window.cockpit.newPlayers;
+  const toArchive = Array.from(window.cockpit.markedForArchive);
+
+  if (assigned.size === 0 && newPlayers.length === 0 && toArchive.length === 0) {
+    alert('Keine Änderungen zum Synchronisieren vorhanden. Bitte erst scannen oder Kacheln zuordnen.');
+    return;
+  }
+
+  let confirmMsg = `Änderungen nach LWHub (${alliance}) übertragen?\n\n` +
+    `• ${assigned.size} Mitglieder aktualisieren\n` +
+    `• ${newPlayers.length} neue Spieler anlegen\n`;
+  if (toArchive.length > 0) {
+    confirmMsg += `• ⚠️ ${toArchive.length} Spieler ARCHIVIEREN\n`;
+  }
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const res = await MatchingEngine.syncToLwHub(
+      activeApiUrl,
+      alliance,
+      assigned,
+      newPlayers,
+      toArchive
+    );
+    const sum = res.summary;
+    alert(
+      `✅ Erfolgreich synchronisiert!\n\n` +
+      `• Aktualisiert: ${sum.updated}\n` +
+      `• Neu angelegt: ${sum.created}\n` +
+      `• Archiviert: ${sum.archived || 0}\n` +
+      `• Wiederhergestellt: ${sum.restored || 0}\n` +
+      `• Transferiert: ${sum.transferred || 0}`
+    );
+    // Mitgliederliste frisch von LWHub laden
+    await loadMembers();
+  } catch (err) {
+    alert(`Fehler beim Sync: ${err.message}`);
+  }
+});
+
+// Initialer Start
+initAlliances();
+</script>
+
+</body>
+</html>

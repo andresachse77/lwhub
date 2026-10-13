@@ -317,9 +317,21 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
     ensureLastVisitColumn($pdo);
     ensureBerufColumns($pdo);
     ensurePreferredLanguageColumn($pdo);
+    ensureScannerColumns($pdo);
+
+    $aliasesByPlayer = [];
+    try {
+        $aliasStmt = $pdo->prepare("SELECT player_id, player_name FROM player_name_history WHERE alliance = ?");
+        $aliasStmt->execute([$alliance]);
+        foreach ($aliasStmt->fetchAll() as $ah) {
+            $aliasesByPlayer[$ah['player_id']][] = $ah['player_name'];
+        }
+    } catch (\PDOException) {}
+
     $stmt = $pdo->prepare("
         SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.honor_role, p.last_visit_at, p.preferred_language,
                p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+               p.current_power, p.hq_level, p.last_scanned_at, p.last_seen_status,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
                COALESCE(puld.discord_avatar, dpc.discord_avatar) AS discord_avatar
@@ -347,11 +359,12 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
     $stmt->execute([$alliance]);
     $rows = $stmt->fetchAll();
 
-    $result = array_map(static function($r): array {
+    $result = array_map(static function($r) use ($aliasesByPlayer): array {
         $rank = safeRank((int)$r['current_rank_code']);
         $honorRole = normalizeHonorRole($r['honor_role'] ?? null);
         $effectiveRank = effectiveRankForAccess($rank, $honorRole);
         $canWrite = memberCanWrite($honorRole);
+        $aliases = array_values(array_unique(array_filter($aliasesByPlayer[$r['player_id']] ?? [])));
         return [
             'id'                 => $r['player_id'],
             'alliance'           => $r['alliance'],
@@ -372,6 +385,11 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
             'beruf_med_hilfe'    => (bool)($r['beruf_med_hilfe'] ?? false),
             'beruf_winwin'       => $r['beruf_winwin'] ?? null,
             'preferred_language' => normalizePreferredLanguage($r['preferred_language'] ?? 'de'),
+            'current_power'      => is_numeric($r['current_power']) ? (int)$r['current_power'] : null,
+            'hq_level'           => is_numeric($r['hq_level']) ? (int)$r['hq_level'] : null,
+            'last_scanned_at'    => $r['last_scanned_at'] ?? null,
+            'last_seen_status'   => $r['last_seen_status'] ?? null,
+            'aliases'            => $aliases,
         ];
     }, $rows);
 
@@ -664,75 +682,109 @@ function handleSetMemberLanguage(PDO $pdo, string $alliance, string $nameEncoded
     jsonOut(200, ['ok' => true, 'preferred_language' => $preferredLanguage]);
 }
 
+function archivePlayerInternal(PDO $pdo, string $alliance, string $playerId, ?string $archivedBy = null): bool {
+    if (!$pdo->inTransaction()) {
+        ensureArchiveTables($pdo);
+        ensureUserActiveCharTable($pdo);
+    }
+
+    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code, created_at FROM players WHERE alliance = ? AND player_id = ?");
+    $stmt->execute([$alliance, $playerId]);
+    $row = $stmt->fetch();
+    if (!$row) return false;
+
+    $archiveId = uuid4();
+
+    $pdo->prepare("INSERT INTO archived_players (archive_id, archived_by, alliance, player_id, current_name, current_rank_code, player_created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+        ->execute([$archiveId, $archivedBy, $alliance, $playerId, $row['current_name'], $row['current_rank_code'], $row['created_at']]);
+
+    try {
+        $entries = $pdo->prepare("SELECT * FROM weekly_entries WHERE alliance = ? AND player_id = ?");
+        $entries->execute([$alliance, $playerId]);
+        foreach ($entries->fetchAll() as $entry) {
+            $brc = $entry['base_rank_code'] ?? $entry['final_rank_code'];
+            $pdo->prepare("INSERT INTO archived_weekly_entries (archive_id, entry_id, year_week, player_id, alliance, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                ->execute([$archiveId, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $alliance, $brc, $entry['final_rank_code'], $entry['afk'] ?? 0]);
+            $flags = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?");
+            $flags->execute([$alliance, $entry['entry_id']]);
+            foreach ($flags->fetchAll() as $flag) {
+                $pdo->prepare("INSERT INTO archived_entry_flags (archive_id, entry_id, flag_key) VALUES (?, ?, ?)")
+                    ->execute([$archiveId, $entry['entry_id'], $flag['flag_key']]);
+            }
+        }
+    } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+
+    try {
+        $hist = $pdo->prepare("SELECT * FROM player_name_history WHERE alliance = ? AND player_id = ?");
+        $hist->execute([$alliance, $playerId]);
+        foreach ($hist->fetchAll() as $h) {
+            $pdo->prepare("INSERT INTO archived_name_history (archive_id, name_event_id, player_id, alliance, player_name, valid_from_yw) VALUES (?, ?, ?, ?, ?, ?)")
+                ->execute([$archiveId, $h['name_event_id'], $playerId, $alliance, $h['player_name'], $h['valid_from_yw']]);
+        }
+    } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+
+    try {
+        $ids = $pdo->prepare("SELECT * FROM player_identities WHERE alliance = ? AND player_id = ?");
+        $ids->execute([$alliance, $playerId]);
+        foreach ($ids->fetchAll() as $id) {
+            $pdo->prepare("INSERT INTO archived_player_identities (archive_id, identity_id, player_id, alliance, discord_user_id) VALUES (?, ?, ?, ?, ?)")
+                ->execute([$archiveId, $id['identity_id'], $playerId, $alliance, $id['discord_user_id']]);
+        }
+    } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+
+    try {
+        $pdo->prepare("DELETE wef FROM weekly_entry_flags wef JOIN weekly_entries we ON wef.alliance = we.alliance AND wef.entry_id = we.entry_id WHERE wef.alliance = ? AND we.player_id = ?")->execute([$alliance, $playerId]);
+    } catch (\PDOException) {}
+    $pdo->prepare("DELETE FROM weekly_entries WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
+    try { $pdo->prepare("DELETE FROM player_name_history WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException) {}
+    try { $pdo->prepare("DELETE FROM player_user_links WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException) {}
+    try { $pdo->prepare("DELETE FROM player_identities WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException) {}
+    $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
+    try {
+        $pdo->prepare("DELETE FROM user_active_char WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
+    } catch (\PDOException) {}
+
+    return true;
+}
+
 function handleDeleteMember(PDO $pdo, string $alliance, string $nameEncoded, array $body = []): never {
     $name = rawurldecode($nameEncoded);
-    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code, created_at FROM players WHERE alliance = ? AND current_name = ?");
+    $stmt = $pdo->prepare("SELECT player_id FROM players WHERE alliance = ? AND current_name = ?");
     $stmt->execute([$alliance, $name]);
     $row = $stmt->fetch();
     if (!$row) jsonOut(200, ['ok' => true]);
 
-    $playerId  = $row['player_id'];
-    $archiveId = uuid4();
     $archivedBy = null;
     try { $archivedBy = normalizeDiscordId($body['discord_id'] ?? ''); } catch (\InvalidArgumentException) {}
     if ($archivedBy === '') $archivedBy = null;
 
-    ensureArchiveTables($pdo);
-    ensureUserActiveCharTable($pdo);
+    $pdo->beginTransaction();
+    try {
+        archivePlayerInternal($pdo, $alliance, $row['player_id'], $archivedBy);
+        $pdo->commit();
+        jsonOut(200, ['ok' => true]);
+    } catch (\PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
+function handleArchiveMemberById(PDO $pdo, string $alliance, string $idOrNameEncoded, array $body = []): never {
+    $idOrName = rawurldecode($idOrNameEncoded);
+    $stmt = $pdo->prepare("SELECT player_id FROM players WHERE alliance = ? AND (player_id = ? OR current_name = ?) LIMIT 1");
+    $stmt->execute([$alliance, $idOrName, $idOrName]);
+    $row = $stmt->fetch();
+    if (!$row) jsonOut(404, ['error' => 'Spieler nicht gefunden']);
+
+    $archivedBy = null;
+    try { $archivedBy = normalizeDiscordId($body['discord_id'] ?? ''); } catch (\InvalidArgumentException) {}
+    if ($archivedBy === '') $archivedBy = 'scanner';
 
     $pdo->beginTransaction();
     try {
-        $pdo->prepare("INSERT INTO archived_players (archive_id, archived_by, alliance, player_id, current_name, current_rank_code, player_created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            ->execute([$archiveId, $archivedBy, $alliance, $playerId, $row['current_name'], $row['current_rank_code'], $row['created_at']]);
-
-        try {
-            $entries = $pdo->prepare("SELECT * FROM weekly_entries WHERE alliance = ? AND player_id = ?");
-            $entries->execute([$alliance, $playerId]);
-            foreach ($entries->fetchAll() as $entry) {
-                $brc = $entry['base_rank_code'] ?? $entry['final_rank_code'];
-                $pdo->prepare("INSERT INTO archived_weekly_entries (archive_id, entry_id, year_week, player_id, alliance, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-                    ->execute([$archiveId, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $alliance, $brc, $entry['final_rank_code'], $entry['afk'] ?? 0]);
-                $flags = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?");
-                $flags->execute([$alliance, $entry['entry_id']]);
-                foreach ($flags->fetchAll() as $flag) {
-                    $pdo->prepare("INSERT INTO archived_entry_flags (archive_id, entry_id, flag_key) VALUES (?, ?, ?)")
-                        ->execute([$archiveId, $entry['entry_id'], $flag['flag_key']]);
-                }
-            }
-        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-
-        try {
-            $hist = $pdo->prepare("SELECT * FROM player_name_history WHERE alliance = ? AND player_id = ?");
-            $hist->execute([$alliance, $playerId]);
-            foreach ($hist->fetchAll() as $h) {
-                $pdo->prepare("INSERT INTO archived_name_history (archive_id, name_event_id, player_id, alliance, player_name, valid_from_yw) VALUES (?, ?, ?, ?, ?, ?)")
-                    ->execute([$archiveId, $h['name_event_id'], $playerId, $alliance, $h['player_name'], $h['valid_from_yw']]);
-            }
-        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-
-        try {
-            $ids = $pdo->prepare("SELECT * FROM player_identities WHERE alliance = ? AND player_id = ?");
-            $ids->execute([$alliance, $playerId]);
-            foreach ($ids->fetchAll() as $id) {
-                $pdo->prepare("INSERT INTO archived_player_identities (archive_id, identity_id, player_id, alliance, discord_user_id) VALUES (?, ?, ?, ?, ?)")
-                    ->execute([$archiveId, $id['identity_id'], $playerId, $alliance, $id['discord_user_id']]);
-            }
-        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-
-        try {
-            $pdo->prepare("DELETE wef FROM weekly_entry_flags wef JOIN weekly_entries we ON wef.alliance = we.alliance AND wef.entry_id = we.entry_id WHERE wef.alliance = ? AND we.player_id = ?")->execute([$alliance, $playerId]);
-        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        $pdo->prepare("DELETE FROM weekly_entries WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
-        try { $pdo->prepare("DELETE FROM player_name_history WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        try { $pdo->prepare("DELETE FROM player_user_links WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        try { $pdo->prepare("DELETE FROM player_identities WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]); } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
-        try {
-            $pdo->prepare("DELETE FROM user_active_char WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
-        } catch (\PDOException $e) {}
-
+        archivePlayerInternal($pdo, $alliance, $row['player_id'], $archivedBy);
         $pdo->commit();
-        jsonOut(200, ['ok' => true]);
+        jsonOut(200, ['ok' => true, 'player_id' => $row['player_id']]);
     } catch (\PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
@@ -1028,4 +1080,155 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
     }
 
     jsonOut(200, ['ok' => true]);
+}
+
+function handleSyncScans(PDO $pdo, string $alliance, array $body): never {
+    set_time_limit(120);
+    ensureScannerColumns($pdo);
+    ensurePlayerMetricsTable($pdo);
+    ensureArchiveTables($pdo);
+    ensureUserActiveCharTable($pdo);
+
+    $targetAlliance = !empty($body['alliance']) ? trim($body['alliance']) : $alliance;
+    $entries = $body['entries'] ?? [];
+    if (!is_array($entries)) jsonOut(400, ['error' => 'Ungültige Entries-Liste']);
+
+    $source = trim($body['source'] ?? 'scanner');
+    $recordedAt = !empty($body['recorded_at']) ? date('Y-m-d H:i:s', strtotime($body['recorded_at'])) : date('Y-m-d H:i:s');
+
+    $summary = [
+        'total' => count($entries),
+        'updated' => 0,
+        'created' => 0,
+        'restored' => 0,
+        'transferred' => 0,
+        'archived' => 0,
+    ];
+
+    $archivePlayerIds = $body['archive_player_ids'] ?? [];
+    if (!is_array($archivePlayerIds)) $archivePlayerIds = [];
+
+    $pdo->beginTransaction();
+    try {
+        // Process any members to archive
+        foreach ($archivePlayerIds as $archTarget) {
+            $archTarget = trim((string)$archTarget);
+            if ($archTarget === '') continue;
+            // Can be player_id or current_name
+            $stmt = $pdo->prepare("SELECT player_id FROM players WHERE alliance = ? AND (player_id = ? OR current_name = ?) LIMIT 1");
+            $stmt->execute([$targetAlliance, $archTarget, $archTarget]);
+            $pRow = $stmt->fetch();
+            if ($pRow) {
+                if (archivePlayerInternal($pdo, $targetAlliance, $pRow['player_id'], 'scanner_sync')) {
+                    $summary['archived']++;
+                }
+            }
+        }
+
+        foreach ($entries as $e) {
+            $name = trim($e['name'] ?? '');
+            if ($name === '') continue;
+
+            $playerId = !empty($e['player_id']) ? trim($e['player_id']) : null;
+            $powerStr = trim((string)($e['power_str'] ?? ''));
+            $powerNum = null;
+            if ($powerStr !== '') {
+                $cleanP = str_replace(['M', 'm', ' '], '', $powerStr);
+                $cleanP = str_replace(',', '.', $cleanP);
+                if (is_numeric($cleanP)) {
+                    $powerNum = (int)round((float)$cleanP * 1000000);
+                }
+            }
+            if ($powerNum === null && isset($e['value_numeric']) && is_numeric($e['value_numeric'])) {
+                $powerNum = (int)$e['value_numeric'];
+            }
+
+            $levelNum = null;
+            $levelStr = trim((string)($e['level_str'] ?? ''));
+            if ($levelStr !== '' && is_numeric($levelStr)) {
+                $levelNum = (int)$levelStr;
+            }
+            $statusStr = trim((string)($e['status'] ?? '')) ?: null;
+
+            $player = null;
+            if ($playerId) {
+                $stmt = $pdo->prepare("SELECT player_id, current_name, alliance FROM players WHERE alliance = ? AND player_id = ? LIMIT 1");
+                $stmt->execute([$targetAlliance, $playerId]);
+                $player = $stmt->fetch();
+            }
+
+            if (!$player) {
+                $stmt = $pdo->prepare("SELECT player_id, current_name, alliance FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
+                $stmt->execute([$targetAlliance, $name]);
+                $player = $stmt->fetch();
+            }
+
+            if ($player) {
+                $upd = $pdo->prepare("
+                    UPDATE players
+                    SET current_power = COALESCE(?, current_power),
+                        hq_level = COALESCE(?, hq_level),
+                        last_scanned_at = ?,
+                        last_seen_status = COALESCE(?, last_seen_status)
+                    WHERE alliance = ? AND player_id = ?
+                ");
+                $upd->execute([$powerNum, $levelNum, $recordedAt, $statusStr, $targetAlliance, $player['player_id']]);
+                $summary['updated']++;
+                $finalPlayerId = $player['player_id'];
+            } else {
+                $archStmt = $pdo->prepare("SELECT archive_id, player_id, current_name, current_rank_code FROM archived_players WHERE current_name = ? ORDER BY archived_at DESC LIMIT 1");
+                $archStmt->execute([$name]);
+                $arch = $archStmt->fetch();
+
+                if ($arch) {
+                    $finalPlayerId = $arch['player_id'];
+                    $pdo->prepare("
+                        INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, current_power, hq_level, last_scanned_at, last_seen_status)
+                        VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE is_active = 1, current_power = VALUES(current_power), hq_level = VALUES(hq_level), last_scanned_at = VALUES(last_scanned_at), last_seen_status = VALUES(last_seen_status)
+                    ")->execute([$targetAlliance, $finalPlayerId, $name, $arch['current_rank_code'], $powerNum, $levelNum, $recordedAt, $statusStr]);
+                    $pdo->prepare("DELETE FROM archived_players WHERE archive_id = ?")->execute([$arch['archive_id']]);
+                    $summary['restored']++;
+                } else {
+                    $otherStmt = $pdo->prepare("SELECT player_id, alliance FROM players WHERE current_name = ? AND is_active = 1 LIMIT 1");
+                    $otherStmt->execute([$name]);
+                    $other = $otherStmt->fetch();
+
+                    if ($other && $other['alliance'] !== $targetAlliance) {
+                        $finalPlayerId = $other['player_id'];
+                        $pdo->prepare("UPDATE players SET alliance = ?, current_power = COALESCE(?, current_power), hq_level = COALESCE(?, hq_level), last_scanned_at = ?, last_seen_status = COALESCE(?, last_seen_status) WHERE player_id = ?")
+                            ->execute([$targetAlliance, $powerNum, $levelNum, $recordedAt, $statusStr, $finalPlayerId]);
+                        try {
+                            $pdo->prepare("UPDATE player_identities SET alliance = ? WHERE player_id = ?")->execute([$targetAlliance, $finalPlayerId]);
+                            $pdo->prepare("UPDATE player_name_history SET alliance = ? WHERE player_id = ?")->execute([$targetAlliance, $finalPlayerId]);
+                        } catch (\PDOException) {}
+                        $summary['transferred']++;
+                    } else {
+                        $finalPlayerId = uuid4();
+                        $pdo->prepare("
+                            INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, current_power, hq_level, last_scanned_at, last_seen_status)
+                            VALUES (?, ?, ?, 3, 1, ?, ?, ?, ?)
+                        ")->execute([$targetAlliance, $finalPlayerId, $name, $powerNum, $levelNum, $recordedAt, $statusStr]);
+
+                        $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)")
+                            ->execute([$targetAlliance, uuid4(), $finalPlayerId, $name]);
+                        $summary['created']++;
+                    }
+                }
+            }
+
+            if ($powerNum !== null) {
+                $pdo->prepare("
+                    INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, source, recorded_at)
+                    VALUES (?, ?, ?, 'POWER', ?, ?, ?)
+                ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $powerNum, $source, $recordedAt]);
+            }
+        }
+
+        $pdo->commit();
+        jsonOut(200, ['ok' => true, 'summary' => $summary]);
+    } catch (\Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        jsonOut(500, ['error' => 'Fehler beim Synchronisieren: ' . $e->getMessage()]);
+    }
 }

@@ -18,11 +18,17 @@ import numpy as np
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from PIL import Image
 from rapidocr_onnxruntime import RapidOCR
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+app.mount("/css", StaticFiles(directory=Path(__file__).parent / "css"), name="css")
+app.mount("/js", StaticFiles(directory=Path(__file__).parent / "js"), name="js")
+if (Path(__file__).parent / "images").exists():
+    app.mount("/images", StaticFiles(directory=Path(__file__).parent / "images"), name="images")
 
 engine = RapidOCR()
 
@@ -330,7 +336,16 @@ async def process(file: UploadFile = File(...)):
 
 @app.get("/")
 async def index():
-    # Serve the review UI so the whole prototype lives under one URL (http://127.0.0.1:8795/).
+    # Cockpit mit 2-Senken Matching & Drag-and-Drop
+    cockpit_file = Path(__file__).parent / "cockpit.html"
+    if cockpit_file.exists():
+        return FileResponse(cockpit_file)
+    return FileResponse(Path(__file__).parent / "index.html")
+
+
+@app.get("/old")
+async def old_index():
+    # Bisherige Roh-Tabelle
     return FileResponse(Path(__file__).parent / "index.html")
 
 

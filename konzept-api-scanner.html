@@ -286,7 +286,7 @@
       <span class="badge blue">Architektur &amp; API-Konzept</span>
       <span class="badge purple">Android &bull; Web-Scanner</span>
       <span class="badge green">100% Abw&auml;rtskompatibel</span>
-      <span class="badge amber">Stand: 2026-10-12</span>
+      <span class="badge amber">Stand: 2026-10-13</span>
     </div>
     <h1>Integration: Thomas&rsquo; Android-App, Web-Scanner &amp; lwhub.de</h1>
     <div class="subtitle">
@@ -318,6 +318,10 @@
         <h4><span>⚔️</span> Kampfkraft, Spenden, Events</h4>
         <p>Erweiterung des Datenmodells f&uuml;r historische Zeitreihen (Power, Spenden Tag/Woche, VS-Punkte, Kills, Desert Storm, Zombie Siege).</p>
       </div>
+      <div class="card">
+        <h4><span>🛡️</span> Rangabgleich &amp; Rang-Erkennung</h4>
+        <p>Der Rang wird ausschlie&szlig;lich aus der Zahl auf dem goldenen Schildsymbol (R1&ndash;R5) gelesen &ndash; der Rangname wird ignoriert, weil jede Allianz ihre Bezeichnungen selbst festlegt. Der Scanner-Rang wird beim Sync mit dem gespeicherten Rang abgeglichen.</p>
+      </div>
     </div>
   </section>
 
@@ -339,6 +343,21 @@
 
       <div class="arrow">&darr;</div>
 
+      <div class="flow-step" style="border-left: 4px solid var(--warning);">
+        <div class="flow-header">
+          <span class="flow-title">Rang am Schild erkennen (Zahl R1&ndash;R5)</span>
+          <span class="badge amber">Shield-Number = Rang</span>
+        </div>
+        <div class="flow-desc">
+          Pro Entry &uuml;bermittelt der Client den Rang <strong>nur</strong> anhand der Zahl auf dem goldenen Schildsymbol.
+          Der danebenstehende Rangname wird ignoriert, da jede Allianz ihre Bezeichnung selbst festlegt.
+          R1&ndash;R4 erkennt der Scanner am Rangbalken zwischen den Mitgliederkarten (Schild links, Mitgliederzahl rechts),
+          R5 am Schild neben dem Namen des Allianzleiters.
+        </div>
+      </div>
+
+      <div class="arrow">&darr;</div>
+
       <div class="flow-step" style="border-left: 4px solid var(--success);">
         <div class="flow-header">
           <span class="flow-title">Fall A: Bereits aktiv in der Ziel-Allianz?</span>
@@ -346,6 +365,8 @@
         </div>
         <div class="flow-desc">
           <strong>Aktion:</strong> Momentanwerte aktualisieren (Kampfkraft, HQ-Level, Status) + neuen Datenpunkt in <code>player_metrics</code> schreiben.
+          <strong>Rang-Abgleich:</strong> Scanner-Rang (Schildzahl) wird mit dem gespeicherten Rang verglichen; Abweichungen laufen &uuml;ber
+          <code>applyProtectedRankRule</code> + <code>logRankChange</code> (Protected-R4 bleibt immer R4).
         </div>
       </div>
 
@@ -384,7 +405,44 @@
           <strong>Aktion:</strong> Regul&auml;res <code>INSERT INTO players</code> mit neuer UUID und erstem Eintrag in der Namenshistorie.
         </div>
       </div>
+
+      <div class="arrow">&ndash;</div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--danger);">
+        <div class="flow-header">
+          <span class="flow-title">Rang-Regeln (greifen in allen F&auml;llen)</span>
+          <span class="badge amber">Protected &amp; Ehrenrollen</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Protected-R4-Namen</strong> (config <code>INY_PROTECTED_R4_NAMES</code>, z. B. &bdquo;Lion Tooth&ldquo;) bleiben in
+          <strong>allen F&auml;llen A&ndash;D immer auf Rang 4</strong> &ndash; auch bei Restore und Transfer. Meldet der Scanner eine
+          abweichende Schildzahl (z. B. R3 oder R5), wird sie blockiert und im <code>rank_change_log</code> dokumentiert;
+          <code>enforceProtectedRanks</code> stellt den Rang 4 zus&auml;tzlich sicher. <strong>Ehrenmitglieder</strong> (<code>honor_member</code>) sind read-only
+          (<code>can_write = false</code>): Der Scanner darf ihren Rang nicht &uuml;berschreiben. Rangcodes sind auf 1&ndash;5 begrenzt
+          (<code>safeRank</code>, sonst Default 3).
+        </div>
+      </div>
     </div>
+
+    <h3>Rang-Erkennung: Schildsymbol statt Rangname</h3>
+    <p>
+      Der Scanner erkennt den Rang <strong>nur am goldenen Schildsymbol</strong> (R1&ndash;R5) in der Mitgliederliste &ndash; die Zahl auf dem
+      Schild ist der Rangcode. Der danebenstehende Rangname darf <strong>nicht</strong> verwendet werden, da jede Allianz ihre
+      Bezeichnungen selbst festlegt.
+    </p>
+    <ul>
+      <li><strong>R1&ndash;R4:</strong> Rangbalken zwischen den Mitgliederkarten (Schild links, Mitgliederzahl + Pfeil rechts). Ein Balken
+        existiert nur, solange diesem Rang Mitglieder zugeordnet sind; seine Position kann sich durch Scrollen/Aufklappen &auml;ndern.</li>
+      <li><strong>R5:</strong> Kein eigener Balken &ndash; das R5-Schild steht oben beim Allianzleiter neben dem Namen.</li>
+      <li><strong>Ist-Zustand:</strong> <code>group_ranking_rows</code> erfasst das Schild als <code>rank_badge</code>
+        (<code>RANK_BADGE_RE = ^R[1-5]$</code>), R5 &uuml;ber das Anführer-Banner (<code>find_leader_card</code>). Das Matching nutzt
+        <code>default_rank || current_rank_code || 3</code> aus der API-Liste; das Schild wird aktuell nur angezeigt.</li>
+      <li><strong>Soll-Zustand (Phase 4):</strong> Der Sync-Payload in <code>matching.js</code> soll die Schild-Zahl als numerischen
+        Rangcode (1&ndash;5) ins Feld <code>rank</code>/<code>default_rank</code> jeder Entry schreiben &ndash; bisher fehlt das
+        <code>rank</code>-Feld im <code>syncToLwHub</code>-Payload.</li>
+      <li><strong>Immer R4 (Protected):</strong> &bdquo;Lion Tooth&ldquo; bleibt durch <code>INY_PROTECTED_R4_NAMES</code> unabh&auml;ngig vom
+        OCR-Ergebnis auf Rang 4 &ndash; eine falsch gelesene Schild-Zahl wird durch <code>applyProtectedRankRule</code> blockiert.</li>
+    </ul>
   </section>
 
   <!-- 3. Datenmodell-Erweiterung -->
@@ -426,7 +484,7 @@
     alliance VARCHAR(50) NOT NULL,
     token_hash VARCHAR(128) NOT NULL,
     client_name VARCHAR(100) NOT NULL, -- z. B. 'Thomas Android App', 'Desktop Scanner'
-    role VARCHAR(20) NOT NULL DEFAULT 'scanner', -- 'scanner', 'r4', 'r5'
+    role VARCHAR(20) NOT NULL DEFAULT 'scanner', -- 'scanner', 'normal', 'r4', 'r5' (analog roleFromRank)
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_used_at DATETIME NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
@@ -446,13 +504,18 @@
     <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">
 
     <h3>1. Mitgliederliste abrufen: <code>GET /api/members</code></h3>
-    <p>Liefert die aktive Mitgliederliste inklusive Aliasen f&uuml;r den OCR-Namensabgleich:</p>
+    <p>Liefert die aktive Mitgliederliste inklusive Aliasen f&uuml;r den OCR-Namensabgleich. Feldnamen exakt wie in <code>handleGetMembers</code>:</p>
     <pre><code>// Response (200 OK)
 [
   {
     "id": "e3a89012-...",
+    "alliance": "NxU1",
     "name": "Lion Tooth",
-    "rank": 4,
+    "default_rank": 4,          // Rangcode 1&ndash;5 (safeRank), default 3
+    "role": "r4",               // 'normal' | 'r4' | 'r5' (roleFromRank)
+    "honor_role": null,         // 'honor_r4' | 'honor_member' | null
+    "can_manage": true,         // effectiveRank >= 4
+    "can_write": true,          // false bei Ehrenmitgliedern (read-only)
     "current_power": 164200000,
     "hq_level": 31,
     "last_seen_status": "Online",
@@ -481,7 +544,7 @@
       "name": "Lion Tooth",
       "value_numeric": 164200000,
       "hq_level": 31,
-      "rank": 4,
+      "rank": 4,          // Schildzahl R1–R5, nicht der Rangname
       "status": "Online"
     },
     {
@@ -491,6 +554,12 @@
     }
   ]
 }</code></pre>
+
+    <p><strong>Hinweis zu R&auml;ngen:</strong> Pro Entry wird <code>rank</code> (bzw. <code>default_rank</code>) akzeptiert &ndash; analog zu
+    <code>handleAddMember</code>/<code>handleUpdateMember</code> (<code>$body['default_rank'] ?? $body['rank'] ?? 3</code>).
+    Der &uuml;bermittelte Wert ist immer die <strong>Schildzahl R1&ndash;R5</strong> (nicht der Rangname), begrenzt auf 1&ndash;5
+    (<code>safeRank</code>, sonst Default 3). Protected-R4-Namen (z. B. &bdquo;Lion Tooth&ldquo;) bleiben immer auf Rang 4; Ehrenmitglieder sind read-only und werden nicht
+    &uuml;berschrieben. Blockierte Abweichungen landen im <code>rank_change_log</code> und werden als Konflikt zur&uumlckgemeldet.</p>
 
     <pre><code>// Response (200 OK)
 {
@@ -503,10 +572,18 @@
     "created_new": 0
   },
   "details": [
-    { "name": "Lion Tooth", "action": "updated", "player_id": "e3a89012-..." },
-    { "name": "R&uuml;ckkehrer77", "action": "restored_from_archive", "player_id": "7b0198aa-..." }
+    { "name": "Lion Tooth", "action": "updated", "player_id": "e3a89012-...", "rank": 4 },
+    { "name": "R&uuml;ckkehrer77", "action": "restored_from_archive", "player_id": "7b0198aa-...", "rank": 3 }
   ],
-  "conflicts": []
+  "conflicts": [
+    {
+      "name": "BeispielSpieler",
+      "scanned_rank": 2,
+      "kept_rank": 4,
+      "blocked": true,
+      "reason": "protected-r4-member"
+    }
+  ]
 }</code></pre>
 
     <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">

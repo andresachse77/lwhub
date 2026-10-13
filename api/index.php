@@ -210,7 +210,7 @@ try {
 
     // POST /scans/sync
     if ($method === 'POST' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'sync') {
-        handleSyncScans($pdo, $ALLIANCE, $body);
+        handleSyncScans($pdo, $ALLIANCE, $body, $PROTECTED_R4_NAMES);
     }
 
     // entries

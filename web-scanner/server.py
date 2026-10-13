@@ -32,6 +32,14 @@ if (Path(__file__).parent / "images").exists():
 
 engine = RapidOCR()
 
+# Screenshots are always upright, so the angle-classification pass is pure overhead (~2 s per
+# frame on real captures). Disabling it cuts processing time to ~1 s. Warm up once at startup
+# so the first real request doesn't pay the ~2.5 s model-load cost.
+def _warmup() -> None:
+    engine(np.zeros((64, 64, 3), dtype=np.uint8), use_cls=False)
+
+_warmup()
+
 # Every processed frame is saved here (local disk only, never sent anywhere) so that a grouping/
 # parsing bug fix can be re-run against the last real capture session instead of asking for a
 # fresh scan every time. Never auto-deleted; clear it by hand if it grows too large.
@@ -63,6 +71,14 @@ RAW_POWER_RE = re.compile(r"^[0-9]{5,}$")
 # fuses it into the name text as a stray leading "O"/"o". A real name essentially never starts with a
 # bare O directly glued (no space) to another capital letter, so this is a safe, narrow strip.
 GENDER_ICON_PREFIX_RE = re.compile(r"^[Oo](?=[A-ZÄÖÜ])")
+
+# The golden shield glyph is small and sits on a coloured background, so RapidOCR's detection pass
+# misses it outright on a fair number of real rows (confirmed on real captures: rows with a perfectly
+# readable position/name/power but no badge text at all, e.g. view-057 row 3 and view-050's "Rookie"
+# header). Re-OCRing the frame at 2x recovers every missed shield in the sample set, and since it
+# costs ~1.8 s it only runs when a row is actually missing its badge.
+SHIELD_RECOVERY_SCALE = 2
+SHIELD_MIN_SCORE = 0.7
 
 
 def clean_name(text: str) -> str:
@@ -97,6 +113,33 @@ def to_line(box, text, score) -> Line:
     return Line(text=text, score=float(score), left=min(xs), top=min(ys), right=max(xs), bottom=max(ys))
 
 
+def ocr_lines(image: Image.Image, scale: int = 1) -> list[Line]:
+    """Run OCR on the frame, mapping boxes back to the original coordinate space when enlarged."""
+    src = image if scale == 1 else image.resize((image.width * scale, image.height * scale), Image.LANCZOS)
+    result, _ = engine(np.array(src), use_cls=False)
+    lines = []
+    for box, text, score in (result or []):
+        if scale != 1:
+            box = [[p[0] / scale, p[1] / scale] for p in box]
+        lines.append(to_line(box, text, score))
+    return lines
+
+
+def shield_rescue(image: Image.Image, lines: list[Line]) -> list[Line]:
+    """Shield glyphs from the enlarged second pass, mapped back to original coordinates. Only the
+    ones the primary pass did not already find are kept, so a row that already has its badge keeps
+    using the original detection and the rescue pass can never change a correct result."""
+    already = [l for l in lines if RANK_BADGE_RE.match(l.text.strip())]
+    found = []
+    for l in ocr_lines(image, SHIELD_RECOVERY_SCALE):
+        if not RANK_BADGE_RE.match(l.text.strip()) or l.score < SHIELD_MIN_SCORE:
+            continue
+        if any(abs(o.cy - l.cy) < 12 and abs(o.cx - l.cx) < 25 for o in already):
+            continue
+        found.append(l)
+    return found
+
+
 def detect_mode(lines: list[Line]) -> str:
     texts = " ".join(l.text for l in lines)
     if RANKING_HEADER_RE.search(texts):
@@ -113,12 +156,12 @@ def detect_mode(lines: list[Line]) -> str:
     return "unknown"
 
 
-def find_leader_card(lines: list[Line]):
+def find_leader_card(lines: list[Line], extra_badges: list[Line] = ()):
     """The alliance leader (R5) is shown only once, in the featured-leader banner at the top of the
     member list — never as a normal scrollable row with its own "Kampfkraft:" line, so group_cards()
     never finds them. Every members-mode screenshot shows this banner, so this runs on every frame;
     duplicates across frames collapse the same way regular member duplicates already do downstream."""
-    badge = next((l for l in lines if l.text.strip() == "R5"), None)
+    badge = next((l for l in list(lines) + list(extra_badges) if l.text.strip() == "R5"), None)
     if badge is None:
         return None
     # The banner shows "R5  <name>" side by side on the same row, not stacked — unlike a regular
@@ -137,6 +180,7 @@ def find_leader_card(lines: list[Line]):
         "name": clean_name(name_line.text),
         "values_text": "",
         "status": "R5 (Anführer-Banner)",
+        "rank_code": 5,
         "power": None,
         "level": None,
         "confidence": {"name": name_line.score, "values": None, "status": None},
@@ -152,7 +196,7 @@ def find_leader_card(lines: list[Line]):
     }
 
 
-def group_ranking_rows(lines: list[Line]):
+def group_ranking_rows(lines: list[Line], extra_badges: list[Line] = ()):
     """The Stärke-Rangliste (strength leaderboard) is a completely different layout: no "Kampfkraft:"
     label per row at all, just a row position number, a rank-group badge (R2/R3/R4), a name, and a bare
     integer combat-power number (no "M" suffix, no level, no status).
@@ -163,12 +207,13 @@ def group_ranking_rows(lines: list[Line]):
     row). The power number is a long, distinctively-formatted integer present on every row, making it
     the far more reliable anchor — the badge is now optional decoration on the row, not required."""
     anchors = [l for l in lines if RAW_POWER_RE.match(l.text.strip())]
+    badge_pool = list(lines) + list(extra_badges)
     rows = []
     for anchor in anchors:
         row_height = max(anchor.height * 2.5, 1)
 
         badge_candidates = [
-            l for l in lines
+            l for l in badge_pool
             if RANK_BADGE_RE.match(l.text.strip())
             and abs(l.cy - anchor.cy) < row_height * 0.6
             and l.right < anchor.left
@@ -197,10 +242,14 @@ def group_ranking_rows(lines: list[Line]):
         name_line = max(name_candidates, key=lambda l: l.left) if name_candidates else None
 
         row_box_lines = [anchor, badge_line, name_line, position_line]
+        badge_text = badge_line.text.strip() if badge_line else None
         rows.append({
             "anchor_y": anchor.top,
             "rank_position": (position_line.text.strip() if position_line else None),
-            "rank_badge": (badge_line.text.strip() if badge_line else None),
+            "rank_badge": badge_text,
+            # The shield number (R1–R5) is the authoritative rank code — never the rank name, since
+            # every alliance labels its ranks differently. None when the badge glyph failed to OCR.
+            "rank_code": (int(badge_text[1]) if badge_text else None),
             "name": (clean_name(name_line.text) if name_line else ""),
             "power": anchor.text.strip(),
             "confidence": {
@@ -218,8 +267,9 @@ def group_ranking_rows(lines: list[Line]):
     return rows
 
 
-def group_cards(lines: list[Line]):
+def group_cards(lines: list[Line], extra_badges: list[Line] = ()):
     anchors = [l for l in lines if KAMPF_RE.search(l.text)]
+    badge_pool = list(lines) + list(extra_badges)
     cards = []
     for anchor in anchors:
         card_height = max(anchor.height * 4, 1)
@@ -259,6 +309,25 @@ def group_cards(lines: list[Line]):
         power_match = POWER_RE.search(anchor.text)
         level_match = LEVEL_RE.search(anchor.text)
 
+        # Rank code from the rank bar above the card: in the member list each rank group is
+        # introduced by a bar showing the golden shield number (R1–R5) on the left and the group's
+        # member count on the right. The shield number is the authoritative rank code (rank names
+        # are alliance-specific and ignored). Requiring the "N/M" counter on the same row keeps the
+        # R5 leader banner out of consideration — it shows the shield next to the leader's name,
+        # not a group count, and is handled separately by find_leader_card(). The nearest such bar
+        # above the card is this card's group header; None when no bar is visible in the frame or
+        # the glyph failed to OCR.
+        bar_candidates = [
+            l for l in badge_pool
+            if RANK_BADGE_RE.match(l.text.strip())
+            and l.bottom < anchor.top
+            and any(
+                FRACTION_RE.match(c.text.strip()) and abs(c.cy - l.cy) < l.height * 1.5
+                for c in lines
+            )
+        ]
+        bar_line = max(bar_candidates, key=lambda l: l.bottom) if bar_candidates else None
+
         card_box = {
             "left": min(x.left for x in [anchor, name_line, status_line] if x),
             "top": min(x.top for x in [anchor, name_line, status_line] if x) - card_height * 0.15,
@@ -279,6 +348,7 @@ def group_cards(lines: list[Line]):
             "name": (clean_name(name_line.text) if name_line else ""),
             "values_text": anchor.text,
             "status": (status_line.text.strip() if status_line else ""),
+            "rank_code": (int(bar_line.text.strip()[1]) if bar_line else None),
             "power": power,
             "level": level_match.group(1) if level_match else None,
             "confidence": {
@@ -295,6 +365,41 @@ def group_cards(lines: list[Line]):
     return cards
 
 
+def needs_rescue(lines: list[Line], rows: list[dict], mode: str) -> bool:
+    """Whether the enlarged pass is worth paying for.
+
+    Members mode: a group header is a label + its "N/M" counter, and the shield glyph sits on that
+    same row. If a header row has a counter but no badge, the glyph was missed — and the cards below
+    it then silently inherit the badge of the group above, which is worse than reporting nothing
+    (confirmed on real captures: view-005's "Kriegsanfuhrer 0/12" header lost its R3 glyph, so its
+    cards were filed under the R4 "Leader" group above it).
+    Ranking mode: the badge sits on the row itself, so a row without one is the same signal.
+    """
+    if mode == "ranking":
+        return any(r.get("rank_code") is None for r in rows)
+    for header in (l for l in lines if FRACTION_RE.match(l.text.strip())):
+        if not any(RANK_BADGE_RE.match(l.text.strip()) and abs(l.cy - header.cy) < header.height * 1.5
+                   for l in lines):
+            return True
+    return False
+
+
+def build_rows(image: Image.Image, lines: list[Line], mode: str, extra_badges: list[Line] = ()):
+    """Group the detected lines into cards or leaderboard rows. `extra_badges` are shield glyphs
+    recovered from the enlarged second pass — they can only ever fill in a rank_code that is
+    otherwise missing, never overwrite one the primary pass already read."""
+    if mode == "ranking":
+        return group_ranking_rows(lines, extra_badges)
+    # Default to members-mode grouping even when the header text isn't recognized (e.g. a frame
+    # captured mid-scroll where the sticky header happens to be obscured) — this is the far more
+    # common screen and degrading gracefully beats silently returning nothing.
+    cards = group_cards(lines, extra_badges)
+    leader = find_leader_card(lines, extra_badges)
+    if leader:
+        cards.insert(0, leader)
+    return cards
+
+
 def save_capture(raw: bytes, label: str) -> str:
     safe_label = re.sub(r"[^A-Za-z0-9_.-]", "_", label) or "frame.png"
     filename = f"{time.strftime('%Y%m%d-%H%M%S')}_{safe_label}"
@@ -307,28 +412,26 @@ async def process(file: UploadFile = File(...)):
     raw = await file.read()
     save_capture(raw, file.filename or "frame.png")
     image = Image.open(io.BytesIO(raw)).convert("RGB")
-    result, _ = engine(np.array(image))
-    lines = [to_line(box, text, score) for box, text, score in (result or [])]
+    lines = ocr_lines(image)
     mode = detect_mode(lines)
 
-    cards = []
-    rankings = []
-    if mode == "ranking":
-        rankings = group_ranking_rows(lines)
-    else:
-        # Default to members-mode grouping even when the header text isn't recognized (e.g. a frame
-        # captured mid-scroll where the sticky header happens to be obscured) — this is the far more
-        # common screen and degrading gracefully beats silently returning nothing.
-        cards = group_cards(lines)
-        leader = find_leader_card(lines)
-        if leader:
-            cards.insert(0, leader)
+    rows = build_rows(image, lines, mode)
+    rescue: list[Line] = []
+    if needs_rescue(lines, rows, mode):
+        # A shield glyph is missing somewhere — pay the second, enlarged pass once to get it back.
+        # Headers that are simply scrolled out of view legitimately stay without a rank code; the
+        # rescue pass finds nothing for them.
+        rescue = shield_rescue(image, lines)
+        if rescue:
+            rows = build_rows(image, lines, mode, rescue)
+
+    cards, rankings = ([], rows) if mode == "ranking" else (rows, [])
 
     return JSONResponse({
         "width": image.width,
         "height": image.height,
         "mode": mode,
-        "raw_lines": [{"text": l.text, "score": l.score} for l in lines],
+        "raw_lines": [{"text": l.text, "score": l.score} for l in lines + rescue],
         "cards": cards,
         "rankings": rankings,
     })

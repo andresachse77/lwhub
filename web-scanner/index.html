@@ -53,7 +53,7 @@
   </div>
 </div>
 
-<button id="startBtn">Test mit 42 gespeicherten Bildern</button>
+<button id="startBtn">Test mit 84 gespeicherten Bildern</button>
 <div id="log"></div>
 <table id="resultTable">
   <thead>
@@ -71,7 +71,7 @@
 
 <script>
 const SERVER = 'http://127.0.0.1:8795';
-const VIEW_COUNT = 42;
+const VIEW_COUNT = 84;
 const VIEW_FILES = Array.from({ length: VIEW_COUNT }, (_, i) => `images/view-${String(i + 1).padStart(3, '0')}.png`);
 
 const statusEl = document.getElementById('status');
@@ -369,29 +369,46 @@ function captureFrameIfChanged() {
   if (prevSignature && signatureDifference(prevSignature, sig) < CHANGE_THRESHOLD) return;
   prevSignature = sig;
   liveFrameCount++;
-  const label = `live-${String(liveFrameCount).padStart(3, '0')}.png`;
+  const label = `live-${String(liveFrameCount).padStart(3, '0')}.jpg`;
   log(`Geänderte Ansicht ${liveFrameCount} erfasst, in Warteschlange (${captureQueue.length + 1} wartend).`);
   captureQueue.push({ canvas, label });
   updateCaptureStatus();
 }
 
-// Single sequential worker: drains the queue one request at a time so OCR calls never overlap. Keeps
-// running (checked via scanActive || queue non-empty) after Stop until every captured frame is done.
+// Pipelined worker: sends up to MAX_IN_FLIGHT frames concurrently so the OCR server can start the
+// next frame while the client is still rendering the previous result. The server serializes its OCR
+// engine internally, so requests never overlap there — responses simply queue up and arrive in send
+// order. Keeps running (checked via scanActive || queue || in-flight) after Stop until done.
+const MAX_IN_FLIGHT = 2;
+
 async function processQueue() {
   queueWorkerRunning = true;
-  while (scanActive || captureQueue.length > 0) {
-    if (captureQueue.length === 0) {
+  const inFlight = [];
+  while (scanActive || captureQueue.length > 0 || inFlight.length > 0) {
+    while (inFlight.length < MAX_IN_FLIGHT && captureQueue.length > 0) {
+      const { canvas, label } = captureQueue.shift();
+      showQueueThumb(canvas);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+      log(`Sende ${label} (${captureQueue.length} noch in Warteschlange, ${inFlight.length + 1} unterwegs)...`);
+      inFlight.push(
+        processBlob(blob, label)
+          .then((result) => ({ canvas, label, result }))
+          .catch((err) => ({ canvas, label, error: err }))
+      );
+    }
+    if (inFlight.length === 0) {
       await new Promise((resolve) => setTimeout(resolve, 300));
       continue;
     }
-    const { canvas, label } = captureQueue.shift();
-    showQueueThumb(canvas);
+    const { canvas, label, result, error } = await inFlight.shift();
     document.getElementById('queueThumbLabel').textContent = `Wird gerade verarbeitet: ${label}`;
     updateCaptureStatus();
+    if (error) {
+      log('FEHLER beim Verarbeiten: ' + error.message);
+      updateCaptureStatus();
+      continue;
+    }
     try {
-      log(`Verarbeite ${label} (${captureQueue.length} noch in Warteschlange)...`);
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      const result = await processBlob(blob, label);
       renderViewHeading(label, result);
 
       if (result.mode === 'ranking') {

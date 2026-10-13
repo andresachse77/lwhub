@@ -1082,7 +1082,7 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
     jsonOut(200, ['ok' => true]);
 }
 
-function handleSyncScans(PDO $pdo, string $alliance, array $body): never {
+function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protectedNames = []): never {
     set_time_limit(120);
     ensureScannerColumns($pdo);
     ensurePlayerMetricsTable($pdo);
@@ -1103,7 +1103,39 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body): never {
         'restored' => 0,
         'transferred' => 0,
         'archived' => 0,
+        'rank_changes' => 0,
     ];
+    $details = [];
+    $conflicts = [];
+
+    // Resolve a scanned shield number (R1–R5) against the stored rank:
+    // - protected R4 names always stay at rank 4; blocked deviations -> conflict + rank_change_log
+    // - honor members are read-only; the scanned rank never overwrites their stored rank
+    // Returns [finalRank, blocked, reason].
+    $resolveScanRank = function (string $name, ?int $requested, int $oldRank, ?string $honorRole, ?string $playerId) use ($protectedNames, &$conflicts): array {
+        if ($requested === null) return [$oldRank, false, null];
+        if ($playerId !== null && !memberCanWrite($honorRole)) {
+            $conflicts[] = [
+                'name'         => $name,
+                'scanned_rank' => $requested,
+                'kept_rank'    => $oldRank,
+                'blocked'      => true,
+                'reason'       => 'honor-member-read-only',
+            ];
+            return [$oldRank, false, null];
+        }
+        $p = applyProtectedRankRule($name, $requested, $protectedNames);
+        if ($p['blocked']) {
+            $conflicts[] = [
+                'name'         => $name,
+                'scanned_rank' => $requested,
+                'kept_rank'    => $p['effectiveRank'],
+                'blocked'      => true,
+                'reason'       => 'protected-r4-member',
+            ];
+        }
+        return [$p['effectiveRank'], $p['blocked'], $p['protectedMember'] ? 'protected-r4-member' : null];
+    };
 
     $archivePlayerIds = $body['archive_player_ids'] ?? [];
     if (!is_array($archivePlayerIds)) $archivePlayerIds = [];
@@ -1150,20 +1182,28 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body): never {
             }
             $statusStr = trim((string)($e['status'] ?? '')) ?: null;
 
+            // Rank code from the golden shield number (R1–R5), never from the rank name.
+            // null = shield number not readable in this scan -> existing rank is kept.
+            $requestedRank = isset($e['rank']) ? safeRank($e['rank']) : null;
+
             $player = null;
             if ($playerId) {
-                $stmt = $pdo->prepare("SELECT player_id, current_name, alliance FROM players WHERE alliance = ? AND player_id = ? LIMIT 1");
+                $stmt = $pdo->prepare("SELECT player_id, current_name, alliance, current_rank_code, honor_role FROM players WHERE alliance = ? AND player_id = ? LIMIT 1");
                 $stmt->execute([$targetAlliance, $playerId]);
                 $player = $stmt->fetch();
             }
 
             if (!$player) {
-                $stmt = $pdo->prepare("SELECT player_id, current_name, alliance FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
+                $stmt = $pdo->prepare("SELECT player_id, current_name, alliance, current_rank_code, honor_role FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
                 $stmt->execute([$targetAlliance, $name]);
                 $player = $stmt->fetch();
             }
 
             if ($player) {
+                $finalPlayerId = $player['player_id'];
+                $oldRank = (int)$player['current_rank_code'];
+                [$finalRank, $blocked, $reason] = $resolveScanRank($name, $requestedRank, $oldRank, normalizeHonorRole($player['honor_role'] ?? null), $finalPlayerId);
+
                 $upd = $pdo->prepare("
                     UPDATE players
                     SET current_power = COALESCE(?, current_power),
@@ -1172,9 +1212,28 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body): never {
                         last_seen_status = COALESCE(?, last_seen_status)
                     WHERE alliance = ? AND player_id = ?
                 ");
-                $upd->execute([$powerNum, $levelNum, $recordedAt, $statusStr, $targetAlliance, $player['player_id']]);
+                $upd->execute([$powerNum, $levelNum, $recordedAt, $statusStr, $targetAlliance, $finalPlayerId]);
+
+                if ($finalRank !== $oldRank) {
+                    $pdo->prepare("UPDATE players SET current_rank_code = ? WHERE alliance = ? AND player_id = ?")
+                        ->execute([$finalRank, $targetAlliance, $finalPlayerId]);
+                    $summary['rank_changes']++;
+                }
+                if ($blocked || $finalRank !== $oldRank) {
+                    logRankChange($pdo, $targetAlliance, [
+                        'playerId'      => $finalPlayerId,
+                        'playerName'    => $name,
+                        'oldRank'       => $oldRank,
+                        'requestedRank' => $requestedRank,
+                        'appliedRank'   => $finalRank,
+                        'source'        => 'scanner_sync',
+                        'blocked'       => $blocked,
+                        'reason'        => $reason,
+                    ]);
+                }
+
                 $summary['updated']++;
-                $finalPlayerId = $player['player_id'];
+                $details[] = ['name' => $name, 'action' => 'updated', 'player_id' => $finalPlayerId, 'rank' => $finalRank];
             } else {
                 $archStmt = $pdo->prepare("SELECT archive_id, player_id, current_name, current_rank_code FROM archived_players WHERE current_name = ? ORDER BY archived_at DESC LIMIT 1");
                 $archStmt->execute([$name]);
@@ -1182,37 +1241,103 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body): never {
 
                 if ($arch) {
                     $finalPlayerId = $arch['player_id'];
+                    $oldRank = (int)$arch['current_rank_code'];
+                    [$finalRank, $blocked, $reason] = $resolveScanRank($name, $requestedRank, $oldRank, null, null);
+
                     $pdo->prepare("
                         INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, current_power, hq_level, last_scanned_at, last_seen_status)
                         VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
-                        ON DUPLICATE KEY UPDATE is_active = 1, current_power = VALUES(current_power), hq_level = VALUES(hq_level), last_scanned_at = VALUES(last_scanned_at), last_seen_status = VALUES(last_seen_status)
-                    ")->execute([$targetAlliance, $finalPlayerId, $name, $arch['current_rank_code'], $powerNum, $levelNum, $recordedAt, $statusStr]);
+                        ON DUPLICATE KEY UPDATE is_active = 1, current_rank_code = VALUES(current_rank_code), current_power = VALUES(current_power), hq_level = VALUES(hq_level), last_scanned_at = VALUES(last_scanned_at), last_seen_status = VALUES(last_seen_status)
+                    ")->execute([$targetAlliance, $finalPlayerId, $name, $finalRank, $powerNum, $levelNum, $recordedAt, $statusStr]);
                     $pdo->prepare("DELETE FROM archived_players WHERE archive_id = ?")->execute([$arch['archive_id']]);
+
+                    if ($blocked || $finalRank !== $oldRank) {
+                        logRankChange($pdo, $targetAlliance, [
+                            'playerId'      => $finalPlayerId,
+                            'playerName'    => $name,
+                            'oldRank'       => $oldRank,
+                            'requestedRank' => $requestedRank,
+                            'appliedRank'   => $finalRank,
+                            'source'        => 'scanner_sync',
+                            'blocked'       => $blocked,
+                            'reason'        => $reason,
+                        ]);
+                        if ($finalRank !== $oldRank) $summary['rank_changes']++;
+                    }
+
                     $summary['restored']++;
+                    $details[] = ['name' => $name, 'action' => 'restored', 'player_id' => $finalPlayerId, 'rank' => $finalRank];
                 } else {
-                    $otherStmt = $pdo->prepare("SELECT player_id, alliance FROM players WHERE current_name = ? AND is_active = 1 LIMIT 1");
+                    $otherStmt = $pdo->prepare("SELECT player_id, alliance, current_rank_code, honor_role FROM players WHERE current_name = ? AND is_active = 1 LIMIT 1");
                     $otherStmt->execute([$name]);
                     $other = $otherStmt->fetch();
 
                     if ($other && $other['alliance'] !== $targetAlliance) {
                         $finalPlayerId = $other['player_id'];
-                        $pdo->prepare("UPDATE players SET alliance = ?, current_power = COALESCE(?, current_power), hq_level = COALESCE(?, hq_level), last_scanned_at = ?, last_seen_status = COALESCE(?, last_seen_status) WHERE player_id = ?")
-                            ->execute([$targetAlliance, $powerNum, $levelNum, $recordedAt, $statusStr, $finalPlayerId]);
+                        $oldRank = (int)$other['current_rank_code'];
+                        [$finalRank, $blocked, $reason] = $resolveScanRank($name, $requestedRank, $oldRank, normalizeHonorRole($other['honor_role'] ?? null), $finalPlayerId);
+
+                        $pdo->prepare("UPDATE players SET alliance = ?, current_rank_code = ?, current_power = COALESCE(?, current_power), hq_level = COALESCE(?, hq_level), last_scanned_at = ?, last_seen_status = COALESCE(?, last_seen_status) WHERE player_id = ?")
+                            ->execute([$targetAlliance, $finalRank, $powerNum, $levelNum, $recordedAt, $statusStr, $finalPlayerId]);
                         try {
                             $pdo->prepare("UPDATE player_identities SET alliance = ? WHERE player_id = ?")->execute([$targetAlliance, $finalPlayerId]);
                             $pdo->prepare("UPDATE player_name_history SET alliance = ? WHERE player_id = ?")->execute([$targetAlliance, $finalPlayerId]);
                         } catch (\PDOException) {}
+
+                        if ($blocked || $finalRank !== $oldRank) {
+                            logRankChange($pdo, $targetAlliance, [
+                                'playerId'      => $finalPlayerId,
+                                'playerName'    => $name,
+                                'oldRank'       => $oldRank,
+                                'requestedRank' => $requestedRank,
+                                'appliedRank'   => $finalRank,
+                                'source'        => 'scanner_sync',
+                                'blocked'       => $blocked,
+                                'reason'        => $reason,
+                            ]);
+                            if ($finalRank !== $oldRank) $summary['rank_changes']++;
+                        }
+
                         $summary['transferred']++;
+                        $details[] = ['name' => $name, 'action' => 'transferred', 'player_id' => $finalPlayerId, 'rank' => $finalRank];
                     } else {
                         $finalPlayerId = uuid4();
+                        $finalRank = 3;
+                        $blocked = false;
+                        if ($requestedRank !== null) {
+                            $p = applyProtectedRankRule($name, $requestedRank, $protectedNames);
+                            $finalRank = $p['effectiveRank'];
+                            $blocked = $p['blocked'];
+                            if ($blocked) {
+                                $conflicts[] = [
+                                    'name'         => $name,
+                                    'scanned_rank' => $requestedRank,
+                                    'kept_rank'    => $finalRank,
+                                    'blocked'      => true,
+                                    'reason'       => 'protected-r4-member',
+                                ];
+                                logRankChange($pdo, $targetAlliance, [
+                                    'playerId'      => $finalPlayerId,
+                                    'playerName'    => $name,
+                                    'oldRank'       => null,
+                                    'requestedRank' => $requestedRank,
+                                    'appliedRank'   => $finalRank,
+                                    'source'        => 'scanner_sync',
+                                    'blocked'       => true,
+                                    'reason'        => 'protected-r4-member',
+                                ]);
+                            }
+                        }
+
                         $pdo->prepare("
                             INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, current_power, hq_level, last_scanned_at, last_seen_status)
-                            VALUES (?, ?, ?, 3, 1, ?, ?, ?, ?)
-                        ")->execute([$targetAlliance, $finalPlayerId, $name, $powerNum, $levelNum, $recordedAt, $statusStr]);
+                            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+                        ")->execute([$targetAlliance, $finalPlayerId, $name, $finalRank, $powerNum, $levelNum, $recordedAt, $statusStr]);
 
                         $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)")
                             ->execute([$targetAlliance, uuid4(), $finalPlayerId, $name]);
                         $summary['created']++;
+                        $details[] = ['name' => $name, 'action' => 'created', 'player_id' => $finalPlayerId, 'rank' => $finalRank];
                     }
                 }
             }
@@ -1226,7 +1351,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body): never {
         }
 
         $pdo->commit();
-        jsonOut(200, ['ok' => true, 'summary' => $summary]);
+        jsonOut(200, ['ok' => true, 'summary' => $summary, 'details' => $details, 'conflicts' => $conflicts]);
     } catch (\Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         jsonOut(500, ['error' => 'Fehler beim Synchronisieren: ' . $e->getMessage()]);

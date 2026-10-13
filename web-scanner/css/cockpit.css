@@ -711,6 +711,12 @@ html, body {
   accent-color: var(--accent);
 }
 
+.processing-progress-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .controls-row {
   display: flex;
   align-items: center;

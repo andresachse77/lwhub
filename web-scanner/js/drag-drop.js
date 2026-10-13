@@ -172,6 +172,7 @@ class CockpitState {
         poolItem.seenCount = (poolItem.seenCount || 1) + incomingCount;
         if (!poolItem.card.power && card.power) poolItem.card.power = card.power;
         if (!poolItem.card.level && card.level) poolItem.card.level = card.level;
+        if (!poolItem.card.rank_code && card.rank_code) poolItem.card.rank_code = card.rank_code;
       } else {
         this.scannedCardsPool.push({
           id: 'pool_' + (++this.poolIdCounter),
@@ -224,6 +225,7 @@ class CockpitState {
           duplicateTile.seenCount = (duplicateTile.seenCount || 1) + incomingCount;
           if (!duplicateTile.card.power && card.power) duplicateTile.card.power = card.power;
           if (!duplicateTile.card.level && card.level) duplicateTile.card.level = card.level;
+          if (!duplicateTile.card.rank_code && card.rank_code) duplicateTile.card.rank_code = card.rank_code;
           this.render();
           return { status: 'stacked_tile', member: match.member, tile: duplicateTile };
         } else {
@@ -252,6 +254,7 @@ class CockpitState {
         duplicateTile.seenCount = (duplicateTile.seenCount || 1) + incomingCount;
         if (!duplicateTile.card.power && card.power) duplicateTile.card.power = card.power;
         if (!duplicateTile.card.level && card.level) duplicateTile.card.level = card.level;
+        if (!duplicateTile.card.rank_code && card.rank_code) duplicateTile.card.rank_code = card.rank_code;
       } else {
         existingNewPlayer.tiles.push({
           id: 'tile_' + (++this.tileIdCounter),
@@ -533,17 +536,20 @@ class CockpitState {
         for (const t of item.tiles) {
           const chip = document.createElement('div');
           chip.className = 'matched-card-chip';
-          chip.appendChild(this.cloneCanvas(t.canvas));
 
           const stackBadge = (t.seenCount > 1) ? `<span class="badge-stack">x${t.seenCount}</span>` : '';
 
-          chip.innerHTML += `
+          // Wichtig: innerHTML zuerst setzen, Canvas danach anhängen.
+          // Ein "innerHTML +=" NACH dem Canvas würde den Canvas-Inhalt zerstören
+          // (Canvas-Pixel werden bei der HTML-Serialisierung nicht erhalten -> schwarz).
+          chip.innerHTML = `
             <div class="matched-details">
               <span class="matched-power">${t.card.power ? t.card.power + ' M' : (t.card.level ? 'HQ ' + t.card.level : '—')} ${stackBadge}</span>
               <span class="member-sub">${this.escapeHtml(t.card.status || '')}</span>
             </div>
             <button class="btn-detach" title="Diese Kachel lösen" onclick="window.cockpit.detachNewPlayerTile('${item.id}', '${t.id}')">✕</button>
           `;
+          chip.prepend(this.cloneCanvas(t.canvas));
           chipsList.appendChild(chip);
         }
 
@@ -685,19 +691,21 @@ class CockpitState {
         for (const t of assignedData.tiles) {
           const chip = document.createElement('div');
           chip.className = 'matched-card-chip';
-          chip.appendChild(this.cloneCanvas(t.canvas));
 
           const stackBadge = (t.seenCount > 1) ? `<span class="badge-stack" title="${t.seenCount}x im Scan erfasst">x${t.seenCount}</span>` : '';
 
           let tileLabel = t.card.power ? t.card.power + ' M' : (t.card.level ? 'HQ ' + t.card.level : 'Kachel');
 
-          chip.innerHTML += `
+          // innerHTML zuerst, Canvas danach anhängen (siehe Kommentar oben) –
+          // sonst wäre der Canvas-Inhalt nach "innerHTML +=" schwarz.
+          chip.innerHTML = `
             <div class="matched-details">
               <span class="matched-power">${tileLabel} ${stackBadge}</span>
               <span class="member-sub">${this.escapeHtml(t.card.status || '')}</span>
             </div>
             <button class="btn-detach" title="Diese Kachel trennen / zurücklegen" onclick="window.cockpit.detachTile('${m.id}', '${t.id}')">✕</button>
           `;
+          chip.prepend(this.cloneCanvas(t.canvas));
           chipsList.appendChild(chip);
         }
 

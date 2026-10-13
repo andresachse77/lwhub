@@ -120,6 +120,7 @@ const MatchingEngine = {
       let bestLevel = null;
       let statuses = [];
       let bestConfidence = 1.0;
+      let scannedRank = null; // Schildzahl R1–R5 (rank_code), nicht der Rangname
 
       for (const t of tiles) {
         const c = t.card || t;
@@ -132,19 +133,24 @@ const MatchingEngine = {
         if (c.status && !statuses.includes(c.status)) {
           statuses.push(c.status);
         }
+        if (c.rank_code && !scannedRank) {
+          scannedRank = c.rank_code;
+        }
         if (c.confidence && typeof c.confidence === 'object' && c.confidence.name) {
           bestConfidence = Math.max(bestConfidence, c.confidence.name);
         }
       }
 
-      entries.push({
+      const entry = {
         name: data.member.name,
         player_id: memberId,
         power_str: bestPower,
         level_str: bestLevel,
         status: statuses.join(' • ') || null,
         confidence: bestConfidence
-      });
+      };
+      if (scannedRank) entry.rank = scannedRank;
+      entries.push(entry);
     }
 
     // 2. Neu angelegte Spieler (können ebenfalls mehrere Kacheln haben)
@@ -154,6 +160,7 @@ const MatchingEngine = {
       let bestLevel = null;
       let statuses = [];
       let bestConfidence = 0.8;
+      let scannedRank = null; // Schildzahl R1–R5 (rank_code), nicht der Rangname
       const playerName = item.name || tiles[0]?.card?.name || '(Neuer Spieler)';
 
       for (const t of tiles) {
@@ -167,16 +174,21 @@ const MatchingEngine = {
         if (c.status && !statuses.includes(c.status)) {
           statuses.push(c.status);
         }
+        if (c.rank_code && !scannedRank) {
+          scannedRank = c.rank_code;
+        }
       }
 
-      entries.push({
+      const entry = {
         name: playerName,
         is_new: true,
         power_str: bestPower,
         level_str: bestLevel,
         status: statuses.join(' • ') || null,
         confidence: bestConfidence
-      });
+      };
+      if (scannedRank) entry.rank = scannedRank;
+      entries.push(entry);
     }
 
     const payload = {

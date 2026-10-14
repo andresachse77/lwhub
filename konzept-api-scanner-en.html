@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LWHub &bull; API &amp; Scanner Integration Concept</title>
+<style>
+  :root {
+    --bg-primary: #0e1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --bg-card: #1c2128;
+    --border-color: #30363d;
+    --accent: #58a6ff;
+    --accent-glow: rgba(88, 166, 255, 0.15);
+    --success: #3fb950;
+    --warning: #d29922;
+    --danger: #f85149;
+    --purple: #bc8cff;
+    --text-primary: #f0f6fc;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --code-bg: #0d1117;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    padding: 32px 16px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .container {
+    max-width: 980px;
+    width: 100%;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 24px;
+    margin-bottom: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+  }
+
+  .badge.blue { background: rgba(88, 166, 255, 0.15); color: var(--accent); border-color: rgba(88, 166, 255, 0.3); }
+  .badge.green { background: rgba(63, 185, 80, 0.15); color: var(--success); border-color: rgba(63, 185, 80, 0.3); }
+  .badge.purple { background: rgba(188, 140, 255, 0.15); color: var(--purple); border-color: rgba(188, 140, 255, 0.3); }
+  .badge.amber { background: rgba(210, 153, 34, 0.15); color: var(--warning); border-color: rgba(210, 153, 34, 0.3); }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.25;
+  }
+
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 15px;
+  }
+
+  /* Sections */
+  section {
+    margin-bottom: 40px;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 20px 0 10px 0;
+  }
+
+  p {
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  ul, ol {
+    margin: 0 0 16px 24px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  li {
+    margin-bottom: 6px;
+  }
+
+  strong {
+    color: var(--text-primary);
+  }
+
+  /* Cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .card h4 {
+    font-size: 15px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card p {
+    font-size: 13px;
+    margin: 0;
+  }
+
+  /* Code Blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 14px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #e6edf3;
+    margin-bottom: 16px;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--bg-tertiary);
+    padding: 2px 5px;
+    border-radius: 4px;
+    color: #f0883e;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  /* Flow Diagram */
+  .flow-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+
+  .flow-step {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .flow-step:last-child {
+    margin-bottom: 0;
+  }
+
+  .flow-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .flow-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .flow-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .arrow {
+    text-align: center;
+    color: var(--accent);
+    font-size: 18px;
+    margin: -4px 0 8px 0;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border: 1px solid var(--border-color);
+  }
+
+  th {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .highlight {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge-row">
+      <span class="badge blue">Architecture &amp; API Concept</span>
+      <span class="badge purple">Android &bull; Web Scanner</span>
+      <span class="badge green">100% Backward Compatible</span>
+      <span class="badge amber">Status: 2026-10-13</span>
+    </div>
+    <h1>Integration: Thomas&rsquo; Android App, Web Scanner &amp; lwhub.de</h1>
+    <div class="subtitle">
+      Automated data reconciliation of member lists, power, donations, VS points &amp; events &ndash; including archive restoration and cross-alliance transfer via API.
+    </div>
+  </div>
+
+  <!-- 1. Goals -->
+  <section>
+    <h2><span>🎯</span> 1. Goals &amp; Core Requirements</h2>
+    <p>
+      Thomas is developing an Android app (<strong>Last-War-Tracker</strong> with MediaProjection &amp; ML Kit OCR), while our <strong>Web Scanner</strong> (RapidOCR) runs on the desktop. Both tools should connect seamlessly with <strong>lwhub.de</strong>.
+    </p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4><span>📋</span> Fetch the member list</h4>
+        <p>Scanner and app load the current name list including known aliases/spellings, so OCR errors can be corrected immediately.</p>
+      </div>
+      <div class="card">
+        <h4><span>🔄</span> Intelligent data reconciliation</h4>
+        <p>When a member is detected, the backend automatically checks: Is it active? Is it in the archive? Is it in a partner alliance?</p>
+      </div>
+      <div class="card">
+        <h4><span>🚀</span> Transfer &amp; restore via API</h4>
+        <p>No duplicate records: archived players are reactivated; players who switched from other alliances are transferred automatically.</p>
+      </div>
+      <div class="card">
+        <h4><span>⚔️</span> Power, donations, events</h4>
+        <p>Extending the data model for historical time series (power, daily/weekly donations, VS points, kills, Desert Storm, Zombie Siege).</p>
+      </div>
+      <div class="card">
+        <h4><span>🛡️</span> Rank matching &amp; rank detection</h4>
+        <p>The rank is read exclusively from the number on the golden shield icon (R1&ndash;R5) &ndash; the rank name is ignored because every alliance defines its own labels. The scanner rank is reconciled with the stored rank during sync.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Smart-Insert decision tree -->
+  <section>
+    <h2><span>🧠</span> 2. The &ldquo;Smart-Insert&rdquo; Decision Tree</h2>
+    <p>
+      Players often switch between main and alternate alliances or pause in the archive. When a name is captured, the API runs the following workflow:
+    </p>
+
+    <div class="flow-container">
+      <div class="flow-step" style="border-left: 4px solid var(--accent);">
+        <div class="flow-header">
+          <span class="flow-title">1. Name detected by the scanner (e.g. &ldquo;Lion Tooth&rdquo;)</span>
+          <span class="badge blue">Scan Input</span>
+        </div>
+        <div class="flow-desc">Whether via Thomas&rsquo; phone or the Web Scanner &ndash; the name arrives via batch sync.</div>
+      </div>
+
+      <div class="arrow">&darr;</div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--warning);">
+        <div class="flow-header">
+          <span class="flow-title">Detect the rank from the shield (number R1&ndash;R5)</span>
+          <span class="badge amber">Shield Number = Rank</span>
+        </div>
+        <div class="flow-desc">
+          Per entry the client sends the rank <strong>only</strong> based on the number on the golden shield icon.
+          The rank name next to it is ignored because every alliance defines its own labels.
+          R1&ndash;R4 are detected on the rank bar between the member cards (shield on the left, member count on the right),
+          R5 on the shield next to the alliance leader&rsquo;s name.
+        </div>
+      </div>
+
+      <div class="arrow">&darr;</div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--success);">
+        <div class="flow-header">
+          <span class="flow-title">Case A: Already active in the target alliance?</span>
+          <span class="badge green">Standard Update</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Action:</strong> Update current values (power, HQ level, status) + write a new data point into <code>player_metrics</code>.
+          <strong>Rank check:</strong> the scanner rank (shield number) is compared with the stored rank; deviations go through
+          <code>applyProtectedRankRule</code> + <code>logRankChange</code> (protected R4 always stays R4).
+        </div>
+      </div>
+
+      <div class="arrow">&darr; <em>No</em></div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--warning);">
+        <div class="flow-header">
+          <span class="flow-title">Case B: Is the player in the archive (<code>archived_players</code>)?</span>
+          <span class="badge amber">Automatic Restore</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Action:</strong> The player is fully restored from the archive. Their previous <code>player_id</code>, Discord ID and past weekly entries are preserved. The alliance is set to the target alliance.
+        </div>
+      </div>
+
+      <div class="arrow">&darr; <em>No</em></div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--purple);">
+        <div class="flow-header">
+          <span class="flow-title">Case C: Is the player active in ANOTHER alliance?</span>
+          <span class="badge purple">Alliance Transfer</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Action:</strong> API transfer analogous to the internal R5 transfer function. Player, identity, name history and entries are rewritten to the new alliance (without data loss).
+        </div>
+      </div>
+
+      <div class="arrow">&darr; <em>No</em></div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--accent);">
+        <div class="flow-header">
+          <span class="flow-title">Case D: Completely new player</span>
+          <span class="badge blue">New Record</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Action:</strong> Regular <code>INSERT INTO players</code> with a new UUID and the first entry in the name history.
+        </div>
+      </div>
+
+      <div class="arrow">&ndash;</div>
+
+      <div class="flow-step" style="border-left: 4px solid var(--danger);">
+        <div class="flow-header">
+          <span class="flow-title">Rank rules (apply in all cases)</span>
+          <span class="badge amber">Protected &amp; Honor Roles</span>
+        </div>
+        <div class="flow-desc">
+          <strong>Protected R4 names</strong> (config <code>INY_PROTECTED_R4_NAMES</code>, e.g. &ldquo;Lion Tooth&rdquo;) always
+          <strong>stay at rank 4 in all cases A&ndash;D</strong> &ndash; even on restore and transfer. If the scanner reports a
+          different shield number (e.g. R3 or R5), it is blocked and documented in the <code>rank_change_log</code>;
+          <code>enforceProtectedRanks</code> additionally guarantees rank 4. <strong>Honor members</strong> (<code>honor_member</code>) are read-only
+          (<code>can_write = false</code>): the scanner may not overwrite their rank. Rank codes are limited to 1&ndash;5
+          (<code>safeRank</code>, otherwise default 3).
+        </div>
+      </div>
+    </div>
+
+    <h3>Rank detection: shield icon instead of rank name</h3>
+    <p>
+      The scanner detects the rank <strong>only from the golden shield icon</strong> (R1&ndash;R5) in the member list &ndash; the number on the
+      shield is the rank code. The rank name next to it must <strong>not</strong> be used, because every alliance defines its
+      own labels.
+    </p>
+    <ul>
+      <li><strong>R1&ndash;R4:</strong> rank bar between the member cards (shield on the left, member count + arrow on the right). A bar
+        only exists as long as members are assigned to that rank; its position can change when scrolling/expanding.</li>
+      <li><strong>R5:</strong> no bar of its own &ndash; the R5 shield is at the top next to the alliance leader&rsquo;s name.</li>
+      <li><strong>Current state:</strong> <code>group_ranking_rows</code> captures the shield as <code>rank_badge</code>
+        (<code>RANK_BADGE_RE = ^R[1-5]$</code>), R5 via the leader banner (<code>find_leader_card</code>). Matching uses
+        <code>default_rank || current_rank_code || 3</code> from the API list; the shield is currently only displayed.</li>
+      <li><strong>Target state (Phase 4):</strong> the sync payload in <code>matching.js</code> should write the shield number as a numeric
+        rank code (1&ndash;5) into the <code>rank</code>/<code>default_rank</code> field of each entry &ndash; so far the
+        <code>rank</code> field is missing in the <code>syncToLwHub</code> payload.</li>
+      <li><strong>Always R4 (protected):</strong> &ldquo;Lion Tooth&rdquo; stays at rank 4 via <code>INY_PROTECTED_R4_NAMES</code> regardless of the
+        OCR result &ndash; a misread shield number is blocked by <code>applyProtectedRankRule</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 3. Data model extension -->
+  <section>
+    <h2><span>🗄️</span> 3. Data Model Extension (100% compatible)</h2>
+    <p>
+      The existing page (<code>lwhub.de</code>) and the table system for ranks and flags must never be disturbed. Therefore we extend the schema <strong>purely additively</strong>:
+    </p>
+
+    <h3>A. Current snapshot values directly in <code>players</code></h3>
+    <p>For lightning-fast access in the member list and the web admin:</p>
+    <pre><code>ALTER TABLE players 
+    ADD COLUMN current_power BIGINT NULL DEFAULT NULL,
+    ADD COLUMN hq_level TINYINT NULL DEFAULT NULL,
+    ADD COLUMN last_scanned_at DATETIME NULL DEFAULT NULL,
+    ADD COLUMN last_seen_status VARCHAR(100) NULL DEFAULT NULL;</code></pre>
+
+    <h3>B. Universal time-series table <code>player_metrics</code></h3>
+    <p>Records every single scan. Works for power, donations, kills and any future events:</p>
+    <pre><code>CREATE TABLE IF NOT EXISTS player_metrics (
+    metric_id CHAR(36) NOT NULL,
+    alliance VARCHAR(50) NOT NULL,
+    player_id CHAR(36) NOT NULL,
+    metric_type VARCHAR(40) NOT NULL, -- 'POWER', 'DONATION_WEEK', 'DONATION_DAY', 'VS_WEEK', 'VS_DAY', 'KILLS', 'DESERT_STORM', etc.
+    value_numeric BIGINT NULL,
+    value_text VARCHAR(255) NULL,
+    extra_json JSON NULL,             -- e.g. Task Force A/B, completed waves in Zombie Siege
+    source VARCHAR(50) NOT NULL,      -- 'android_app', 'web_scanner', 'manual'
+    recorded_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (alliance, metric_id),
+    KEY ix_metrics_player (alliance, player_id, metric_type, recorded_at),
+    KEY ix_metrics_type_time (alliance, metric_type, recorded_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+
+    <h3>C. API tokens for app and scanner <code>api_tokens</code></h3>
+    <pre><code>CREATE TABLE IF NOT EXISTS api_tokens (
+    token_id CHAR(36) NOT NULL,
+    alliance VARCHAR(50) NOT NULL,
+    token_hash VARCHAR(128) NOT NULL,
+    client_name VARCHAR(100) NOT NULL, -- e.g. 'Thomas Android App', 'Desktop Scanner'
+    role VARCHAR(20) NOT NULL DEFAULT 'scanner', -- 'scanner', 'normal', 'r4', 'r5' (analogous to roleFromRank)
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (token_id),
+    KEY ix_token_hash (token_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+  </section>
+
+  <!-- 4. API endpoints -->
+  <section>
+    <h2><span>🔌</span> 4. New &amp; Extended API Interfaces</h2>
+
+    <h3>Authentication</h3>
+    <p>All requests from Thomas&rsquo; app or the scanner send a Bearer token in the HTTP header:</p>
+    <pre><code>Authorization: Bearer lwhub_sec_xxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
+
+    <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+    <h3>1. Fetch the member list: <code>GET /api/members</code></h3>
+    <p>Returns the active member list including aliases for OCR name matching. Field names exactly as in <code>handleGetMembers</code>:</p>
+    <pre><code>// Response (200 OK)
+[
+  {
+    "id": "e3a89012-...",
+    "alliance": "NxU1",
+    "name": "Lion Tooth",
+    "default_rank": 4,          // rank code 1–5 (safeRank), default 3
+    "role": "r4",               // 'normal' | 'r4' | 'r5' (roleFromRank)
+    "honor_role": null,         // 'honor_r4' | 'honor_member' | null
+    "can_manage": true,         // effectiveRank >= 4
+    "can_write": true,          // false for honor members (read-only)
+    "current_power": 164200000,
+    "hq_level": 31,
+    "last_seen_status": "Online",
+    "last_scanned_at": "2026-10-12 18:30:00",
+    "aliases": ["LionTooth", "Lion Tooth", "L1on Tooth"]
+  },
+  ...
+]</code></pre>
+
+    <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+    <h3>2. Batch sync of scan sessions: <code>POST /api/scans/sync</code></h3>
+    <p>Allows uploading a complete capture session (e.g. 100 members) in a single atomic transaction:</p>
+    <pre><code>// Request Body
+{
+  "alliance": "INY",
+  "scan_type": "POWER", // or 'DONATION_WEEK', 'VS_DAY', 'MEMBERS_LIST'
+  "recorded_at": "2026-10-12T19:00:00Z",
+  "source": "android_app",
+  "options": {
+    "auto_restore": true,    // automatically restore players in the archive
+    "auto_transfer": true   // transfer players from partner alliances
+  },
+  "entries": [
+    {
+      "name": "Lion Tooth",
+      "value_numeric": 164200000,
+      "hq_level": 31,
+      "rank": 4,          // shield number R1–R5, not the rank name
+      "status": "Online"
+    },
+    {
+      "name": "Returnee77",
+      "value_numeric": 120500000,
+      "hq_level": 30
+    }
+  ]
+}</code></pre>
+
+    <p><strong>Note on ranks:</strong> per entry <code>rank</code> (or <code>default_rank</code>) is accepted &ndash; analogous to
+    <code>handleAddMember</code>/<code>handleUpdateMember</code> (<code>$body['default_rank'] ?? $body['rank'] ?? 3</code>).
+    The transmitted value is always the <strong>shield number R1&ndash;R5</strong> (not the rank name), limited to 1&ndash;5
+    (<code>safeRank</code>, otherwise default 3). Protected R4 names (e.g. &ldquo;Lion Tooth&rdquo;) always stay at rank 4; honor members are read-only and are not
+    overwritten. Blocked deviations end up in the <code>rank_change_log</code> and are reported back as conflicts.</p>
+
+    <pre><code>// Response (200 OK)
+{
+  "ok": true,
+  "summary": {
+    "total": 2,
+    "updated": 1,
+    "restored_from_archive": 1,
+    "transferred": 0,
+    "created_new": 0
+  },
+  "details": [
+    { "name": "Lion Tooth", "action": "updated", "player_id": "e3a89012-...", "rank": 4 },
+    { "name": "Returnee77", "action": "restored_from_archive", "player_id": "7b0198aa-...", "rank": 3 }
+  ],
+  "conflicts": [
+    {
+      "name": "ExamplePlayer",
+      "scanned_rank": 2,
+      "kept_rank": 4,
+      "blocked": true,
+      "reason": "protected-r4-member"
+    }
+  ]
+}</code></pre>
+
+    <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+    <h3>3. Targeted transfer via API: <code>POST /api/members/{name_or_id}/transfer</code></h3>
+    <p>Performs the same safe transfer as the internal R5 tool &ndash; now fully script- and app-capable:</p>
+    <pre><code>// Request Body
+{
+  "to_alliance": "INY"
+}
+
+// Response (200 OK)
+{
+  "ok": true,
+  "player_id": "e3a89012-...",
+  "player_name": "Lion Tooth",
+  "from_alliance": "NxU1",
+  "to_alliance": "INY"
+}</code></pre>
+  </section>
+
+  <!-- 5. Bridge to existing weekly flags -->
+  <section>
+    <h2><span>🌉</span> 5. Bridge to the Existing Website</h2>
+    <p>
+      On <code>lwhub.de</code> we currently work with weekly checkboxes/flags (e.g. <code>spendeUnter35k</code>, <code>spendeTop20</code>, <code>vsTop10</code>). With the exact numbers from the scanners, these flags can be <strong>fully automatically calculated and suggested</strong> in the future:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Captured measurement</th>
+          <th>Automatic LWHub flag</th>
+          <th>Rule / threshold</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>DONATION_WEEK</code></td>
+          <td><code class="highlight">spendeUnter35k</code></td>
+          <td>Value &lt; 35,000 donation coins</td>
+        </tr>
+        <tr>
+          <td><code>DONATION_WEEK</code></td>
+          <td><code class="highlight">spendeTop20</code></td>
+          <td>Rank 1 to 20 in the alliance ranking</td>
+        </tr>
+        <tr>
+          <td><code>VS_WEEK</code></td>
+          <td><code class="highlight">vsTop10</code> / <code class="highlight">vsTop30</code></td>
+          <td>Placement in the weekly duel</td>
+        </tr>
+        <tr>
+          <td><code>DESERT_STORM</code></td>
+          <td><code class="highlight">wuesteTeilnahme</code></td>
+          <td>Points &gt; 0 in the battle report</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 6. Phase roadmap -->
+  <section>
+    <h2><span>📅</span> 6. Implementation Roadmap</h2>
+    <ol>
+      <li>
+        <strong>Phase 1: DB tables &amp; migrations</strong><br>
+        In <code>api/src/db-setup.php</code>, set up the new columns on <code>players</code> plus the <code>player_metrics</code> and <code>api_tokens</code> tables.
+      </li>
+      <li>
+        <strong>Phase 2: API token auth</strong><br>
+        In <code>api/src/auth.php</code>, add Bearer token verification so apps and scripts are authorized without a browser session.
+      </li>
+      <li>
+        <strong>Phase 3: Extension of <code>GET /members</code> &amp; transfer endpoint</strong><br>
+        Enrich the member list with power, level and aliases. Open the transfer function for API keys.
+      </li>
+      <li>
+        <strong>Phase 4: New sync endpoint <code>POST /api/scans/sync</code></strong><br>
+        Transactional check for archive (restore), foreign alliance (transfer) and new record with metric storage.
+      </li>
+      <li>
+        <strong>Phase 5: Client integration</strong><br>
+        &bull; <strong>Web Scanner:</strong> &ldquo;Send to lwhub&rdquo; button in <code>index.html</code>.<br>
+        &bull; <strong>Thomas&rsquo; Android app:</strong> new <code>LwHubUploader</code> that sends the <code>MergedEntry</code> results directly to the API.
+      </li>
+    </ol>
+  </section>
+
+  <!-- Footer -->
+  <div class="footer">
+    Created for LWHub &bull; Compatible with all existing web features and tables
+  </div>
+
+</div>
+
+</body>
+</html>

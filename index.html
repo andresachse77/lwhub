@@ -5102,6 +5102,71 @@ async function vsSet(name, type) {
 }
 window.vsSet = vsSet;
 
+// VS-Haekchen der gewaehlten KW aus den gescannten Wochenpunkten (Scanner, GET /scans/vs-week) setzen.
+// Platz 1–10: Top 10 + Top 30, Platz 11–30: Top 30, unter 43,2 Mio: Strafe. Andere Haekchen der Woche
+// (Wache, Wueste, …) bleiben unveraendert; Spieler ohne gescannten Wochenwert werden nicht angefasst.
+const VS_SCANNER_MIN_POINTS = 43200000;
+async function vsImportFromScanner() {
+  const token = (() => { try { return localStorage.getItem('discord_token'); } catch (_) { return null; } })();
+  let data;
+  try {
+    data = await fetchJson(`/scans/vs-week?year_week=${kw}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  } catch (err) {
+    toast(tr('Scanner-Daten nicht verfügbar: ') + err.message);
+    return;
+  }
+  const byName = new Map((data.players || []).map(p => [p.name, p]));
+  const plan = [];
+  for (const name of members) {
+    const p = byName.get(name);
+    if (!p) continue;
+    const want = {};
+    if (p.place <= 10) want.vsTop10 = true;
+    if (p.place <= 30) want.vsTop30 = true;
+    if (p.week_points < VS_SCANNER_MIN_POINTS) want.vsUnter50 = true;
+    const current = entries.find(x => x.name === name)?.flags || {};
+    const flags = { ...current };
+    delete flags.vsTop10; delete flags.vsTop30; delete flags.vsUnter50;
+    Object.assign(flags, want);
+    const same = ['vsTop10', 'vsTop30', 'vsUnter50'].every(k => !!current[k] === !!flags[k]);
+    if (!same) plan.push({ name, flags, p });
+  }
+  if (!data.players?.length) { toast(tr('Für diese KW gibt es keine gescannten VS-Wochenpunkte.')); return; }
+  const dayNames = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const days = (data.days_scanned || []).map(d => dayNames[d]).join(', ') || '—';
+  const missingSat = !(data.days_scanned || []).includes(6);
+  const count = (k) => plan.filter(x => x.flags[k]).length;
+  const unknown = (data.players || []).filter(p => !members.includes(p.name)).length;
+  const msg = [
+    `KW ${kw % 100}: ${data.players.length} Spieler mit gescannten Wochenpunkten`,
+    `Gescannte Tage: ${days} · Stand ${data.last_scan || '?'}`,
+    missingSat ? '⚠ Samstag ist noch nicht gescannt – die Wochenpunkte sind evtl. noch nicht final.' : null,
+    '',
+    `Änderungen bei ${plan.length} Spielern:`,
+    `• 🏆 Top 10: ${count('vsTop10')}`,
+    `• 🥈 Top 30: ${count('vsTop30')}`,
+    `• 🟥 unter 43,2 Mio: ${count('vsUnter50')}`,
+    unknown ? `(${unknown} gescannte Namen stehen nicht in der Mitgliederliste und werden übersprungen.)` : null,
+    '',
+    'VS-Häkchen dieser KW werden ersetzt, andere Häkchen bleiben. Übernehmen?',
+  ].filter(l => l !== null).join(String.fromCharCode(10));
+  if (!plan.length) { toast(tr('VS-Häkchen sind bereits auf dem Stand der Scanner-Daten.')); return; }
+  if (!confirm(msg)) return;
+  let done = 0;
+  for (const item of plan) {
+    try {
+      await apiPost({ action: 'save_wache', name: item.name, rank: PREV[item.name] || 3, flags: item.flags });
+      done++;
+    } catch (err) {
+      toast(`${item.name}: ${err.message}`);
+    }
+  }
+  await loadEntries();
+  renderVS();
+  toast(`${done} / ${plan.length} ` + tr('Spieler aus dem Scanner übernommen'), 'ok');
+}
+window.vsImportFromScanner = vsImportFromScanner;
+
 // ══════════════════════════════════════════════════════
 //  SPENDEN-VERWALTUNG
 // ══════════════════════════════════════════════════════

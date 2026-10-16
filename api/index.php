@@ -229,6 +229,11 @@ try {
         handleScannerAccess($pdo, $ALLIANCE);
     }
 
+    // GET /scans/vs-week – gescannte VS-Wochenpunkte je Spieler fuer das VS-Event (R4/R5)
+    if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'vs-week') {
+        handleVsWeek($pdo, $ALLIANCE);
+    }
+
     // GET /scans/power-history – Kampfkraft je Spieler und Tag fuer die Trend-Seite (R4/R5)
     if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'power-history') {
         handlePowerHistory($pdo, $ALLIANCE);

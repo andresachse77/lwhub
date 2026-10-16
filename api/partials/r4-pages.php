@@ -343,6 +343,9 @@
         <span><span style="color:var(--red);">⚠</span> unter 43,2 Mio (Strafe)</span>
         <span><span style="color:var(--blue);">🥈</span> Top 30 (Bonus)</span>
         <span><span style="color:var(--gold);">🏆</span> Top 10 (Bonus)</span>
+        <?php if (scannerTabAllowed($member)): ?>
+        <button class="flt-toggle" style="margin-left:auto;" onclick="vsImportFromScanner()" title="Häkchen dieser KW aus den gescannten VS-Wochenpunkten setzen: Platz 1–10 Top 10, Platz 1–30 Top 30, unter 43,2 Mio Strafe">📸 <span data-i18n="s_vs_from_scanner">Aus Scanner übernehmen</span></button>
+        <?php endif; ?>
         <span style="margin-left:auto;" class="wache-counter" id="vs-counter">0 / 0</span>
       </div>
       <div class="wache-grid" id="vs-grid"></div>

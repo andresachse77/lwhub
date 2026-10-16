@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LWHub Scanner-Cockpit (Browser-OCR)</title>
-<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261017a">
+<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261017b">
 <style>
   .ocr-engine-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .ocr-engine-row select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 12px; }
@@ -194,6 +194,14 @@
             <input type="file" id="screenshotInput" accept="image/*" multiple>
           </div>
 
+          <div class="controls-row" style="font-size: 12px; color: var(--text-muted);">
+            <label title="Jedes erkannte Bild samt Erkennungsergebnis sammeln (bleibt nur in diesem Browser), um es als ZIP herunterzuladen – zum Nacharbeiten der Erkennung">
+              <input type="checkbox" id="keepCaptures"> Aufnahmen für Auswertung aufheben
+            </label>
+            <button id="btnDownloadCaptures" class="btn btn-sm btn-secondary" disabled>📦 Aufnahmen herunterladen (0)</button>
+            <button id="btnDiscardCaptures" class="btn btn-sm btn-secondary" disabled title="Gesammelte Aufnahmen verwerfen">🗑 verwerfen</button>
+          </div>
+
           <div class="controls-row">
             <video id="liveVideoPreview" autoplay muted></video>
             <div style="flex: 1; font-size: 11px; color: var(--text-muted);" id="captureStatusText">
@@ -212,10 +220,11 @@
 </div>
 
 <!-- MODULE LADEN (Matching & Drag-and-Drop teilt sich diese Seite mit dem Server-Cockpit) -->
-<script src="../web-scanner/js/matching.js?v=20261017a"></script>
-<script src="../web-scanner/js/drag-drop.js?v=20261017a"></script>
-<script src="js/ocr-client.js?v=20261017a"></script>
-<script src="js/lwhub-access.js?v=20261017a"></script>
+<script src="../web-scanner/js/matching.js?v=20261017b"></script>
+<script src="../web-scanner/js/drag-drop.js?v=20261017b"></script>
+<script src="js/ocr-client.js?v=20261017b"></script>
+<script src="js/lwhub-access.js?v=20261017b"></script>
+<script src="js/zip-store.js?v=20261017b"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -618,6 +627,7 @@ async function processFiles(fileList) {
         } else {
           processOcrResult(data.img, data.data);
           data.img.close();
+          keepCapture(file.name, file, data.data);
           const count = resultCount(data.data);
           log(`${file.name}: ${count} Kachel(n) erkannt (${(data.data.elapsed_ms / 1000).toFixed(1)} s).`);
         }
@@ -729,6 +739,7 @@ function updateLiveStatus() {
 const liveRunner = createOrderedRunner(({ meta: { canvas, label }, data, error }) => {
   if (error) { log(`FEHLER bei ${label}: ${error.message}`); return; }
   processOcrResult(canvas, data);
+  if (keepCaptureEnabled()) keepCapture(`${label}.png`, new Promise((resolve) => canvas.toBlob(resolve, 'image/png')), data);
   const count = resultCount(data);
   log(`${label}: ${count} Kachel(n) erkannt (${(data.elapsed_ms / 1000).toFixed(1)} s, ${liveQueue.length} wartend).`);
 });
@@ -864,10 +875,79 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
 });
 
 // Versionsstand ins Protokoll (zeigt sofort, ob noch ein alter Stand aus dem Browser-Cache laeuft)
+let scannerVersion = null;
 fetch('../deploy-version.json', { cache: 'no-store' }).then(r => r.json()).then(v => {
+  scannerVersion = v;
   const when = v.deployed_at && !v.deployed_at.startsWith('1970') ? ` vom ${new Date(v.deployed_at).toLocaleString('de-DE')}` : '';
   log(`Scanner-Stand ${String(v.version || '?').slice(0, 7)}${when}.`);
 }).catch(() => {});
+
+// 9. Aufnahmen fuer die Nacharbeit sammeln: Originalbild + Erkennungsergebnis (Textzeilen mit Position,
+//    Modus, VS-Tag, Zeilen) je Ansicht, als ZIP herunterladbar. Bleibt im Browser, nichts wird hochgeladen.
+const KEEP_CAPTURES_KEY = 'lwhub.scanner.keepCaptures';
+const keepBox = document.getElementById('keepCaptures');
+const btnDownloadCaptures = document.getElementById('btnDownloadCaptures');
+const btnDiscardCaptures = document.getElementById('btnDiscardCaptures');
+let keptCaptures = [];
+let keptSeq = 0;
+try { keepBox.checked = localStorage.getItem(KEEP_CAPTURES_KEY) === '1'; } catch (_) {}
+keepBox.addEventListener('change', () => {
+  try { localStorage.setItem(KEEP_CAPTURES_KEY, keepBox.checked ? '1' : '0'); } catch (_) {}
+});
+const keepCaptureEnabled = () => keepBox.checked;
+
+function updateCaptureButtons2() {
+  btnDownloadCaptures.disabled = btnDiscardCaptures.disabled = keptCaptures.length === 0;
+  btnDownloadCaptures.textContent = `📦 Aufnahmen herunterladen (${keptCaptures.length})`;
+}
+
+function keepCapture(label, imageBlob, result) {
+  if (!keepBox.checked) return;
+  const seq = ++keptSeq;
+  const at = new Date().toISOString();
+  const alliance = document.getElementById('allianceSelect').value;
+  Promise.resolve(imageBlob).then((blob) => {
+    if (!blob) return;
+    keptCaptures.push({ seq, label, blob, result, at, alliance });
+    updateCaptureButtons2();
+  });
+}
+
+btnDownloadCaptures.addEventListener('click', async () => {
+  const items = [...keptCaptures].sort((a, b) => a.seq - b.seq);
+  const safe = (s) => String(s).replace(/\.[a-z0-9]+$/i, '').replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 60);
+  const files = [];
+  for (const k of items) {
+    const base = `${String(k.seq).padStart(3, '0')}_${safe(k.label)}`;
+    const ext = /png/.test(k.blob.type) ? 'png' : /jpe?g/.test(k.blob.type) ? 'jpg' : 'img';
+    files.push({ name: `${base}.${ext}`, data: k.blob });
+    files.push({ name: `${base}.json`, data: JSON.stringify({ label: k.label, at: k.at, alliance: k.alliance, result: k.result }, null, 1) });
+  }
+  files.push({ name: 'manifest.json', data: JSON.stringify({
+    created: new Date().toISOString(),
+    count: items.length,
+    alliance: document.getElementById('allianceSelect').value,
+    scanner: scannerVersion,
+    ocr: document.getElementById('ocrStatusBadge').textContent,
+    userAgent: navigator.userAgent,
+  }, null, 1) });
+  log(`Packe ${items.length} Aufnahmen…`);
+  const zip = await ZipStore.build(files);
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(zip);
+  a.download = `scanner-aufnahmen-${document.getElementById('allianceSelect').value}-${stamp}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  log(`${items.length} Aufnahmen als ZIP heruntergeladen (${(zip.size / 1e6).toFixed(1)} MB).`);
+});
+
+btnDiscardCaptures.addEventListener('click', () => {
+  if (!confirm(`${keptCaptures.length} gesammelte Aufnahmen verwerfen?`)) return;
+  keptCaptures = [];
+  updateCaptureButtons2();
+});
 
 // Initialer Start
 startOcrEngine();

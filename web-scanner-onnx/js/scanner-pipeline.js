@@ -337,6 +337,10 @@
     return stableSortBy(rows, (r) => r.anchor_y);
   }
 
+  // Erkannte Textzeile mit Position (gerundet) – fuer die gesammelten Aufnahmen zur Nacharbeit
+  const rawLine = (l) => ({ text: l.text, score: Math.round(l.score * 1000) / 1000,
+    left: Math.round(l.left), top: Math.round(l.top), right: Math.round(l.right), bottom: Math.round(l.bottom) });
+
   /** Equivalent of server.py's POST /process for one RGB frame ({ w, h, data }). */
   async function processFrame(engine, image) {
     engine.timings = {};
@@ -347,7 +351,7 @@
       // nicht als Kampfkraft landen.
       return {
         width: image.w, height: image.h, mode,
-        raw_lines: lines.map((l) => ({ text: l.text, score: l.score })),
+        raw_lines: lines.map(rawLine),
         cards: [], rankings: [],
         vs: mode === 'vs' ? vsInfo(lines, image) : null,
         vs_rows: mode === 'vs' ? groupVsRows(lines, image) : [],
@@ -366,7 +370,7 @@
       width: image.w,
       height: image.h,
       mode,
-      raw_lines: [...lines, ...rescue].map((l) => ({ text: l.text, score: l.score })),
+      raw_lines: [...lines, ...rescue].map(rawLine),
       cards: mode === 'ranking' ? [] : rows,
       rankings: mode === 'ranking' ? rows : [],
       rescued, // the enlarged second pass ran (it dominates the frame time)

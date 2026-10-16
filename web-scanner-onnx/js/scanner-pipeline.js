@@ -35,6 +35,15 @@
 
   const SHIELD_RECOVERY_SCALE = 2;
   const SHIELD_MIN_SCORE = 0.7;
+  // Shield boxes ("R1"–"R5") are almost square: aspect 1.15–1.83 over all 300 shields in the 84 test
+  // captures. The rescue pass only keeps shields, so it only needs to *read* boxes of that shape —
+  // skipping the other ~75 % of the lines roughly halves the cost of the second pass.
+  const SHIELD_MAX_ASPECT = 2.5;
+  const isShieldShaped = (box) => {
+    const xs = box.map((p) => p[0]), ys = box.map((p) => p[1]);
+    const w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+    return h > 0 && w / h <= SHIELD_MAX_ASPECT;
+  };
 
   const cleanName = (text) => text.trim().replace(GENDER_ICON_PREFIX_RE, '');
   const cx = (l) => (l.left + l.right) / 2;
@@ -59,9 +68,11 @@
     return { text, score, left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) };
   }
 
-  async function ocrLines(engine, image, scale = 1) {
+  async function ocrLines(engine, image, scale = 1, options = {}) {
+    const t = performance.now();
     const src = scale === 1 ? image : LwOcrEngine.resizeLanczos(image, image.w * scale, image.h * scale);
-    const result = await engine.ocr(src);
+    if (scale !== 1) engine.lap('rescue_upscale', t);
+    const result = await engine.ocr(src, options);
     return result.map(({ box, text, score }) => toLine(
       scale === 1 ? box : box.map(([x, y]) => [x / scale, y / scale]), text, score,
     ));
@@ -70,7 +81,7 @@
   async function shieldRescue(engine, image, lines) {
     const already = lines.filter((l) => RANK_BADGE_RE.test(l.text.trim()));
     const found = [];
-    for (const l of await ocrLines(engine, image, SHIELD_RECOVERY_SCALE)) {
+    for (const l of await ocrLines(engine, image, SHIELD_RECOVERY_SCALE, { recFilter: isShieldShaped })) {
       if (!RANK_BADGE_RE.test(l.text.trim()) || l.score < SHIELD_MIN_SCORE) continue;
       if (already.some((o) => Math.abs(cy(o) - cy(l)) < 12 && Math.abs(cx(o) - cx(l)) < 25)) continue;
       found.push(l);
@@ -246,11 +257,13 @@
 
   /** Equivalent of server.py's POST /process for one RGB frame ({ w, h, data }). */
   async function processFrame(engine, image) {
+    engine.timings = {};
     const lines = await ocrLines(engine, image);
     const mode = detectMode(lines);
     let rows = buildRows(lines, mode);
     let rescue = [];
-    if (needsRescue(lines, rows, mode)) {
+    const rescued = needsRescue(lines, rows, mode);
+    if (rescued) {
       rescue = await shieldRescue(engine, image, lines);
       if (rescue.length) rows = buildRows(lines, mode, rescue);
     }
@@ -261,6 +274,8 @@
       raw_lines: [...lines, ...rescue].map((l) => ({ text: l.text, score: l.score })),
       cards: mode === 'ranking' ? [] : rows,
       rankings: mode === 'ranking' ? rows : [],
+      rescued, // the enlarged second pass ran (it dominates the frame time)
+      timings: engine.timings,
     };
   }
 

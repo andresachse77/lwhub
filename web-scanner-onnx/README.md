@@ -55,14 +55,34 @@ Betriebssystem.
 **Backend:** Standard ist WebGPU, falls der Browser es anbietet. Startet WebGPU nicht, fällt das
 Cockpit automatisch auf CPU zurück.
 
-Durchsatz in Edge auf i9-14900K und RTX 4070 mit den Captures 846×1394:
+Durchsatz in Edge auf i9-14900K und RTX 4070 mit den 84 Captures (846×1394):
 
 | Konfiguration | Durchsatz |
 |---|---|
-| WebGPU, 7 Worker (Standard bei 32 Threads) | 84 Frames in 19 s → 0,22 s/Frame |
-| CPU, 7 × 4 Threads | 84 Frames in 59 s → 0,70 s/Frame |
-| CPU, 1 × 4 Threads | 2,2 s/Frame |
-| CPU, 1 Thread (ohne COOP/COEP-Header, z. B. Safari) | 2,2–5,3 s/Frame |
+| WebGPU, 7 Worker (Standard bei 32 Threads) | 84 Frames in 14 s → 0,17 s/Frame |
+| CPU, 7 × 4 Threads | 84 Frames in 40 s → 0,48 s/Frame |
+| CPU, 1 × 4 Threads | ca. 1,7 s/Frame |
+| CPU, 1 Thread (ohne COOP/COEP-Header, z. B. Safari) | ca. 2–4 s/Frame |
+
+Was am meisten gebracht hat:
+
+- **Shield-Rescue liest nur noch Schild-förmige Boxen** (Seitenverhältnis ≤ 2,5, gemessen 1,15–1,83).
+  Dieser zweite, vergrößerte Durchlauf ist bei fast jedem Frame nötig; das halbiert seine Kosten.
+  Die Ergebnisse bleiben gleich.
+- **Scheduler:** Jeder freie Worker nimmt sofort das nächste Bild; die Ergebnisse werden trotzdem
+  in Reihenfolge übernommen.
+- **Dekodieren im Worker:** Das Dekodieren läuft per `createImageBitmap` außerhalb des Haupt-Threads,
+  das Auslesen der Pixel im Worker.
+
+Was nichts gebracht hat:
+
+- **Größere Erkennungs-Batches:** kaum schneller, aber andere Ergebnisse, weil das Auffüllen der
+  Zeilen sich ändert.
+- **Zusätzliche CPU-Worker neben WebGPU:** langsamer, weil die CPU im GPU-Modus schon die Vor- und
+  Nachbearbeitung erledigt.
+- **Mehr als 4 Threads pro Worker.**
+
+Jedes Ergebnis enthält `timings` (ms je Stufe) und `rescued` zur Analyse.
 
 URL-Parameter für Messungen: `?workers=N` und `?threads=N` überschreiben die Aufteilung.
 

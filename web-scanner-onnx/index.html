@@ -10,6 +10,11 @@
   .ocr-engine-row select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 12px; }
   #screenshotInput { display: none; }
   .workspace-split { position: relative; }
+  .ocr-active { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ocr-active[hidden] { display: none; }
+  .ocr-job { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); font-size: 11px; color: var(--text-muted); width: 112px; }
+  .ocr-job canvas { width: 100px; height: auto; border-radius: 3px; background: #000; }
+  .ocr-job-label { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .access-gate { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: var(--bg-main); }
   .access-gate[hidden] { display: none; }
   .access-gate-box { max-width: 460px; margin: 16px; padding: 24px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); text-align: center; }
@@ -177,6 +182,8 @@
               <button id="btnStopProcessing" class="btn btn-sm btn-danger" disabled title="Bildverarbeitung (Screenshots &amp; Live-Scan) sofort stoppen">🛑 Verarbeitung stoppen</button>
             </div>
           </div>
+
+          <div id="ocrActive" class="ocr-active" hidden aria-live="polite" title="Bilder, die gerade erkannt werden"></div>
 
           <div id="logBox" class="log-box"></div>
         </div>
@@ -530,14 +537,71 @@ function setProcessingProgress(completed, total, startedAt, file, isProcessing) 
   updateProcessingCountdown(completed, total);
 }
 
+// Decodes the file off the main thread; the ImageBitmap works for the OCR and for the card crops.
 function loadImageFile(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Bild konnte nicht gelesen werden')); };
-    img.src = url;
-  });
+  return createImageBitmap(file).catch(() => { throw new Error('Bild konnte nicht gelesen werden'); });
+}
+
+// "Gerade in Arbeit": thumbnail, name and running time of every frame an OCR worker is busy with.
+const ocrActiveBox = document.getElementById('ocrActive');
+const activeJobs = new Map();
+let activeJobsTimer = null;
+
+function updateActiveJobs() {
+  const now = performance.now();
+  for (const job of activeJobs.values()) job.time.textContent = `${((now - job.started) / 1000).toFixed(1)} s`;
+  ocrActiveBox.hidden = activeJobs.size === 0;
+  if (activeJobs.size === 0 && activeJobsTimer !== null) { clearInterval(activeJobsTimer); activeJobsTimer = null; }
+}
+
+function ocrTracked(source, label) {
+  const el = document.createElement('div');
+  el.className = 'ocr-job';
+  const thumb = document.createElement('canvas');
+  const sw = source.videoWidth || source.width, sh = source.videoHeight || source.height;
+  thumb.width = 100;
+  thumb.height = Math.max(1, Math.round(100 * sh / sw));
+  thumb.getContext('2d').drawImage(source, 0, 0, thumb.width, thumb.height);
+  const name = document.createElement('div');
+  name.className = 'ocr-job-label';
+  name.textContent = label;
+  name.title = label;
+  const time = document.createElement('div');
+  el.append(thumb, name, time);
+  ocrActiveBox.appendChild(el);
+  const job = { el, time, started: performance.now() };
+  activeJobs.set(job, job);
+  if (activeJobsTimer === null) activeJobsTimer = setInterval(updateActiveJobs, 200);
+  updateActiveJobs();
+  const p = ocr.process(source);
+  p.finally(() => { el.remove(); activeJobs.delete(job); updateActiveJobs(); }).catch(() => {});
+  return p;
+}
+
+// Runs OCR jobs on the worker pool: a job starts as soon as any worker is free (a slow frame no
+// longer holds up the others), while results reach onResult strictly in submission order.
+function createOrderedRunner(onResult) {
+  let submitted = 0, flushed = 0, running = 0;
+  const done = new Map();
+  const runner = {
+    onIdle: null,
+    get running() { return running; },
+    submit(meta, task) {
+      const i = submitted++;
+      running++;
+      task().then(data => ({ data }), error => ({ error })).then((r) => {
+        running--;
+        done.set(i, { meta, ...r });
+        while (done.has(flushed)) {
+          const item = done.get(flushed);
+          done.delete(flushed++);
+          try { onResult(item); } catch (e) { log(`FEHLER beim Übernehmen: ${e.message}`); }
+        }
+        runner.onIdle?.();
+      });
+    },
+  };
+  return runner;
 }
 
 // 6. Screenshots verarbeiten (ersetzt den Testlauf mit den lokalen Testbildern)
@@ -555,31 +619,32 @@ async function processFiles(fileList) {
   if (processingCountdownTimer !== null) clearInterval(processingCountdownTimer);
   processingCountdownTimer = setInterval(() => updateProcessingCountdown(0, files.length), 1000);
   log(`Verarbeite ${files.length} Screenshot(s) im Browser (${ocr.size} parallel)...`);
-  // Keep every OCR worker busy, but hand the results to the cockpit in file order.
-  const start = (file) => loadImageFile(file).then(img => ocr.process(img).then(data => ({ img, data })));
-  const inFlight = [];
-  let next = 0;
+  let next = 0, completed = 0;
   try {
-    for (let i = 0; i < files.length; i++) {
-      while (!stopProcessingRequested && next < files.length && inFlight.length < ocr.size) {
-        const p = start(files[next++]);
-        p.catch(() => {}); // handled when it's this file's turn
-        inFlight.push(p);
-      }
-      if (inFlight.length === 0) { log('Verarbeitung durch Stop-Button abgebrochen.'); break; }
-      const file = files[i];
-      setProcessingProgress(i, files.length, startedAt, file.name, true);
-      try {
-        const { img, data } = await inFlight.shift();
-        URL.revokeObjectURL(img.src);
-        processOcrResult(img, data);
-        const count = data.mode === 'ranking' ? data.rankings.length : data.cards.length;
-        log(`${file.name}: ${count} Kachel(n) erkannt (${(data.elapsed_ms / 1000).toFixed(1)} s).`);
-      } catch (e) {
-        log(`Fehler bei ${file.name}: ${e.message}`);
-      }
-      setProcessingProgress(i + 1, files.length, startedAt, file.name, false);
-    }
+    await new Promise((resolve) => {
+      const runner = createOrderedRunner(({ meta: file, data, error }) => {
+        if (error) {
+          log(`Fehler bei ${file.name}: ${error.message}`);
+        } else {
+          processOcrResult(data.img, data.data);
+          data.img.close();
+          const count = data.data.mode === 'ranking' ? data.data.rankings.length : data.data.cards.length;
+          log(`${file.name}: ${count} Kachel(n) erkannt (${(data.data.elapsed_ms / 1000).toFixed(1)} s).`);
+        }
+        completed++;
+        setProcessingProgress(completed, files.length, startedAt, file.name, false);
+      });
+      const pump = () => {
+        while (!stopProcessingRequested && next < files.length && runner.running < ocr.size) {
+          const file = files[next++];
+          runner.submit(file, () => loadImageFile(file).then(img => ocrTracked(img, file.name).then(data => ({ img, data }))));
+        }
+        if (runner.running === 0) resolve();
+      };
+      runner.onIdle = pump;
+      pump();
+    });
+    if (stopProcessingRequested) log('Verarbeitung durch Stop-Button abgebrochen.');
   } finally {
     clearInterval(processingCountdownTimer);
     processingCountdownTimer = null;
@@ -618,7 +683,6 @@ let captureStream = null;
 let captureTimer = null;
 let prevSignature = null;
 let liveQueue = [];
-let liveWorkerRunning = false;
 let liveFrameCount = 0;
 
 function frameSignature(canvas) {
@@ -656,41 +720,29 @@ function updateCaptureButtons(running) {
 }
 
 function updateLiveStatus() {
-  const state = captureStream ? 'Scan aktiv' : (liveQueue.length > 0 ? 'Gestoppt, verarbeite Rest' : 'Gestoppt');
-  captureStatusText.textContent = `${state} – ${liveFrameCount} Ansichten erfasst, ${liveQueue.length} warten auf OCR.`;
+  const busy = liveQueue.length + liveRunner.running;
+  const state = captureStream ? 'Scan aktiv' : (busy > 0 ? 'Gestoppt, verarbeite Rest' : 'Gestoppt');
+  captureStatusText.textContent = `${state} – ${liveFrameCount} Ansichten erfasst, ${liveRunner.running} in Arbeit, ${liveQueue.length} wartend.`;
 }
 
-async function drainLiveQueue() {
-  if (liveWorkerRunning) return;
-  liveWorkerRunning = true;
-  // Up to ocr.size frames in flight (one per worker); results are applied in capture order.
-  const inFlight = [];
-  try {
-    while (liveQueue.length > 0 || inFlight.length > 0) {
-      while (liveQueue.length > 0 && inFlight.length < ocr.size) {
-        const { canvas, label } = liveQueue.shift();
-        const p = ocr.process(canvas);
-        p.catch(() => {});
-        inFlight.push({ canvas, label, p });
-      }
-      updateLiveStatus();
-      const { canvas, label, p } = inFlight.shift();
-      try {
-        const data = await p;
-        processOcrResult(canvas, data);
-        const count = data.mode === 'ranking' ? data.rankings.length : data.cards.length;
-        log(`${label}: ${count} Kachel(n) erkannt (${(data.elapsed_ms / 1000).toFixed(1)} s, ${liveQueue.length} wartend).`);
-      } catch (e) {
-        log(`FEHLER bei ${label}: ${e.message}`);
-      }
-    }
-  } finally {
-    liveWorkerRunning = false;
-    updateLiveStatus();
-    updateProcessingStopButton();
-    if (!captureStream) window.cockpit.render();
+// Live frames go through the same ordered runner: every free worker takes the next queued frame.
+const liveRunner = createOrderedRunner(({ meta: { canvas, label }, data, error }) => {
+  if (error) { log(`FEHLER bei ${label}: ${error.message}`); return; }
+  processOcrResult(canvas, data);
+  const count = data.mode === 'ranking' ? data.rankings.length : data.cards.length;
+  log(`${label}: ${count} Kachel(n) erkannt (${(data.elapsed_ms / 1000).toFixed(1)} s, ${liveQueue.length} wartend).`);
+});
+
+function drainLiveQueue() {
+  while (liveQueue.length > 0 && liveRunner.running < ocr.size) {
+    const job = liveQueue.shift();
+    liveRunner.submit(job, () => ocrTracked(job.canvas, job.label));
   }
+  updateLiveStatus();
+  updateProcessingStopButton();
+  if (liveRunner.running === 0 && liveQueue.length === 0 && !captureStream) window.cockpit.render();
 }
+liveRunner.onIdle = drainLiveQueue;
 
 async function startCapture() {
   if (!ocr.ready) return;
@@ -750,7 +802,7 @@ function stopCapture() {
     ? `Live-Scan beendet. ${liveQueue.length} Ansichten werden noch verarbeitet.`
     : 'Live-Scan beendet.');
   updateLiveStatus();
-  if (!liveWorkerRunning) window.cockpit.render();
+  if (liveRunner.running === 0) window.cockpit.render();
 }
 
 btnStop.addEventListener('click', stopCapture);

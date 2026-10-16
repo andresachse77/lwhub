@@ -106,49 +106,59 @@
   function resizeLanczos(src, dw, dh) {
     const sinc = (x) => (x === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x));
     const lanczos = (x) => (x > -3 && x < 3 ? sinc(x) * sinc(x / 3) : 0);
+    // Normalised weights as flat typed arrays: `taps` weights per output pixel, starting at start[i].
     const coeffs = (inSize, outSize) => {
       const scale = inSize / outSize;
       const filterscale = Math.max(scale, 1);
       const support = 3 * filterscale;
-      const list = [];
+      const taps = Math.ceil(support) * 2 + 1;
+      const start = new Int32Array(outSize), count = new Int32Array(outSize);
+      const k = new Float64Array(outSize * taps);
       for (let i = 0; i < outSize; i++) {
         const center = (i + 0.5) * scale;
         const xmin = Math.max(Math.trunc(center - support + 0.5), 0);
         const xmax = Math.min(Math.trunc(center + support + 0.5), inSize);
-        const k = [];
         let sum = 0;
         for (let x = xmin; x < xmax; x++) {
           const wgt = lanczos((x - center + 0.5) / filterscale);
-          k.push(wgt); sum += wgt;
+          k[i * taps + x - xmin] = wgt; sum += wgt;
         }
-        list.push({ xmin, k: k.map((v) => (sum ? v / sum : 0)) });
+        if (sum) for (let x = 0; x < xmax - xmin; x++) k[i * taps + x] /= sum;
+        start[i] = xmin; count[i] = xmax - xmin;
       }
-      return list;
+      return { start, count, k, taps };
     };
     const { w, h, data } = src;
     const H = coeffs(w, dw);
     const mid = new Uint8Array(dw * h * 3);
     for (let y = 0; y < h; y++) {
+      const row = y * w;
       for (let x = 0; x < dw; x++) {
-        const { xmin, k } = H[x];
-        for (let c = 0; c < 3; c++) {
-          let s = 0;
-          for (let i = 0; i < k.length; i++) s += data[(y * w + xmin + i) * 3 + c] * k[i];
-          mid[(y * dw + x) * 3 + c] = toByte(s);
+        const n = H.count[x], kb = x * H.taps;
+        let p = (row + H.start[x]) * 3, r = 0, g = 0, b = 0;
+        for (let i = 0; i < n; i++, p += 3) {
+          const wt = H.k[kb + i];
+          r += data[p] * wt; g += data[p + 1] * wt; b += data[p + 2] * wt;
         }
+        const o = (y * dw + x) * 3;
+        mid[o] = toByte(r); mid[o + 1] = toByte(g); mid[o + 2] = toByte(b);
       }
     }
     const V = coeffs(h, dh);
     const out = new Uint8Array(dw * dh * 3);
+    const acc = new Float64Array(dw * 3);
+    const stride = dw * 3;
     for (let y = 0; y < dh; y++) {
-      const { xmin: ymin, k } = V[y];
-      for (let x = 0; x < dw; x++) {
-        for (let c = 0; c < 3; c++) {
-          let s = 0;
-          for (let i = 0; i < k.length; i++) s += mid[((ymin + i) * dw + x) * 3 + c] * k[i];
-          out[(y * dw + x) * 3 + c] = toByte(s);
-        }
+      // Accumulate whole source rows (sequential memory access) instead of walking columns.
+      acc.fill(0);
+      const n = V.count[y], kb = y * V.taps;
+      for (let i = 0; i < n; i++) {
+        const wt = V.k[kb + i];
+        const base = (V.start[y] + i) * stride;
+        for (let j = 0; j < stride; j++) acc[j] += mid[base + j] * wt;
       }
+      const o = y * stride;
+      for (let j = 0; j < stride; j++) out[o + j] = toByte(acc[j]);
     }
     return { w: dw, h: dh, data: out };
   }
@@ -523,6 +533,14 @@
       const keys = keysText.replace(/\r/g, '').split('\n');
       if (keys.length && keys[keys.length - 1] === '') keys.pop();
       this.characters = ['blank', ...keys, ' '];
+      this.timings = {};
+    }
+
+    /** Adds the time since t0 to stage `name` in this.timings (ms); returns the new t0. */
+    lap(name, t0) {
+      const now = performance.now();
+      this.timings[name] = (this.timings[name] || 0) + (now - t0);
+      return now;
     }
 
     async run(session, data, dims) {
@@ -538,10 +556,13 @@
       const rh = pyRound(Math.trunc(h * ratio) / 32) * 32;
       const rw = pyRound(Math.trunc(w * ratio) / 32) * 32;
       if (rw <= 0 || rh <= 0) return [];
+      let t = performance.now();
       const resized = resizeLinear(img, rw, rh);
       const input = new Float32Array(3 * rw * rh);
       toCHW(resized, input, 0, rw);
+      t = this.lap('det_prep', t);
       const out = await this.run(this.det, input, [1, 3, rh, rw]);
+      t = this.lap('det_infer', t);
       const [, , H, W] = out.dims;
       const pred = out.data;
       // pred > thresh, then cv2.dilate with a 2x2 kernel (anchor (1,1): looks up and to the left).
@@ -554,8 +575,9 @@
           mask[i] = seg[i] || (x > 0 && seg[i - 1]) || (y > 0 && (seg[i - W] || (x > 0 && seg[i - W - 1]))) ? 1 : 0;
         }
       }
-      const boxes = boxesFromBitmap(pred, mask, W, H, w, h);
-      return sortBoxes(filterDetBoxes(boxes, w, h));
+      const boxes = sortBoxes(filterDetBoxes(boxesFromBitmap(pred, mask, W, H, w, h), w, h));
+      this.lap('det_post', t);
+      return boxes;
     }
 
     async recognize(crops) {
@@ -567,6 +589,7 @@
         let maxRatio = imgW / imgH;
         for (const i of idx) maxRatio = Math.max(maxRatio, crops[i].w / crops[i].h);
         const width = Math.trunc(imgH * maxRatio);
+        let t = performance.now();
         const input = new Float32Array(idx.length * 3 * imgH * width); // zero padding = mid-grey
         idx.forEach((i, b) => {
           const c = crops[i];
@@ -574,7 +597,9 @@
           const rw = want > width ? width : want;
           toCHW(resizeLinear(c, rw, imgH), input, b * 3 * imgH * width, width);
         });
+        t = this.lap('rec_prep', t);
         const out = await this.run(this.rec, input, [idx.length, 3, imgH, width]);
+        t = this.lap('rec_infer', t);
         const [, T, C] = out.dims;
         const probs = out.data;
         idx.forEach((i, b) => {
@@ -588,12 +613,16 @@
           }
           results[i] = { text, score: confN ? confSum / confN : 0 };
         });
+        this.lap('rec_decode', t);
       }
       return results;
     }
 
-    /** Full RapidOCR __call__ (use_cls=False): returns [{ box: [[x,y]x4], text, score }]. */
-    async ocr(img) {
+    /**
+     * Full RapidOCR __call__ (use_cls=False): returns [{ box: [[x,y]x4], text, score }].
+     * `recFilter(box)` can skip recognition of detected boxes whose text is not needed.
+     */
+    async ocr(img, { recFilter = null } = {}) {
       const rawW = img.w, rawH = img.h;
       let work = img, ratioW = 1, ratioH = 1;
       if (Math.max(work.w, work.h) > CFG.maxSideLen) {
@@ -615,9 +644,13 @@
         work = padTopBottom(work, padTop);
       }
 
-      const boxes = await this.detect(work);
+      let boxes = await this.detect(work);
+      if (recFilter) boxes = boxes.filter(recFilter);
       if (!boxes.length) return [];
-      const recs = await this.recognize(boxes.map((b) => cropBox(work, b)));
+      const tc = performance.now();
+      const crops = boxes.map((b) => cropBox(work, b));
+      this.lap('crop', tc);
+      const recs = await this.recognize(crops);
 
       const out = [];
       boxes.forEach((box, i) => {

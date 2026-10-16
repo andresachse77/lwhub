@@ -2,7 +2,8 @@
  * Web Worker that owns the ONNX models and runs the whole server.py frame pipeline off the UI thread.
  *
  * Messages in:   { type: 'init', backend: 'wasm' | 'webgpu', threads?: number }
- *                { type: 'process', id, width, height, buffer }   (RGBA pixels, buffer transferred)
+ *                { type: 'process', id, bitmap }                   (ImageBitmap, transferred)
+ *                { type: 'process', id, width, height, buffer }   (RGBA pixels, fallback without OffscreenCanvas)
  * Messages out:  { type: 'progress', text, ratio }   model download progress
  *                { type: 'ready', backend, threads, ms }
  *                { type: 'result', id, result, ms }   result = same JSON as POST /process
@@ -91,7 +92,17 @@ self.onmessage = async (ev) => {
     try {
       if (!engine) throw new Error('OCR-Engine ist noch nicht bereit');
       const t0 = performance.now();
-      const image = LwOcrEngine.fromRGBA(new Uint8ClampedArray(msg.buffer), msg.width, msg.height);
+      let image;
+      if (msg.bitmap) {
+        // Pixel readback happens here, off the page's main thread.
+        const { width, height } = msg.bitmap;
+        const ctx = new OffscreenCanvas(width, height).getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(msg.bitmap, 0, 0);
+        msg.bitmap.close();
+        image = LwOcrEngine.fromRGBA(ctx.getImageData(0, 0, width, height).data, width, height);
+      } else {
+        image = LwOcrEngine.fromRGBA(new Uint8ClampedArray(msg.buffer), msg.width, msg.height);
+      }
       const result = await LwScannerPipeline.processFrame(engine, image);
       self.postMessage({ type: 'result', id: msg.id, result, ms: performance.now() - t0 });
     } catch (err) {

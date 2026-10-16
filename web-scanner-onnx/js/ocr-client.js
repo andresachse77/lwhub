@@ -37,13 +37,20 @@ class OcrWorkerHandle {
     });
   }
 
-  process(width, height, buffer) {
+  /**
+   * framePromise resolves to { bitmap } or { width, height, buffer } (transferred to the worker).
+   * The worker counts as busy from this call on, so concurrent callers spread over the pool.
+   */
+  process(framePromise) {
     this.queued++;
-    const run = () => new Promise((resolve, reject) => {
-      const id = this.nextId++;
-      this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ type: 'process', id, width, height, buffer }, [buffer]);
-    });
+    const run = async () => {
+      const frame = await framePromise;
+      return new Promise((resolve, reject) => {
+        const id = this.nextId++;
+        this.pending.set(id, { resolve, reject });
+        this.worker.postMessage({ type: 'process', id, ...frame }, [frame.bitmap || frame.buffer]);
+      });
+    };
     const p = this.chain.then(run, run).finally(() => { this.queued--; });
     this.chain = p.catch(() => {});
     return p;
@@ -102,6 +109,9 @@ class BrowserOcr {
       this.workers.push(...rest);
       await Promise.all(rest.map((w) => w.init(backend, threads)));
     }
+    // No extra CPU workers next to the GPU ones: in WebGPU mode the CPU already does resize, crops,
+    // upscaling and decoding for every GPU worker, so mixed pools measured slower (7 GPU + 2 CPU
+    // 0.19 s/frame, 7 GPU + 4 CPU 0.21 s, 7 GPU alone 0.17 s).
     this.readyInfo = { ...info, workers: count, ms: performance.now() - t0 };
     return this.readyInfo;
   }
@@ -111,8 +121,16 @@ class BrowserOcr {
   /** How many frames can usefully be in flight at once. */
   get size() { return this.workers.length; }
 
-  /** OCR one frame (canvas, image or ImageBitmap) on the least busy worker; resolves with the /process JSON. */
+  /**
+   * OCR one frame (canvas, image or ImageBitmap) on the least busy worker; resolves with the
+   * /process JSON. The source stays usable (a copy is handed to the worker as an ImageBitmap; the
+   * pixel readback then happens in the worker instead of on the page's main thread).
+   */
   process(source) {
+    const worker = this.workers.reduce((a, b) => (b.queued < a.queued ? b : a));
+    if (typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap === 'function') {
+      return worker.process(createImageBitmap(source).then((bitmap) => ({ bitmap })));
+    }
     const w = source.naturalWidth || source.videoWidth || source.width;
     const h = source.naturalHeight || source.videoHeight || source.height;
     const c = document.createElement('canvas');
@@ -120,7 +138,6 @@ class BrowserOcr {
     const ctx = c.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(source, 0, 0);
     const { data } = ctx.getImageData(0, 0, w, h);
-    const worker = this.workers.reduce((a, b) => (b.queued < a.queued ? b : a));
-    return worker.process(w, h, data.buffer);
+    return worker.process(Promise.resolve({ width: w, height: h, buffer: data.buffer }));
   }
 }

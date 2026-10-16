@@ -617,6 +617,7 @@ nav {
 .wache-tile .wt-top { padding:8px 10px 4px; text-align:center; }
 .wache-tile .wt-name { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wache-tile .wt-rank { font-family:'Rajdhani',sans-serif; font-size:10px; color:#b5c0db; margin-top:1px; }
+.wache-tile .wt-scan { font-size:10px; color:#8fb8ff; margin-top:2px; font-variant-numeric:tabular-nums; }
 .wache-tile .wt-btns { display:flex; border-top:1px solid var(--line); }
 .wt-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 4px; cursor:pointer; font-size:12px; font-weight:600; font-family:'Inter',sans-serif; transition:all 0.12s; user-select:none; -webkit-tap-highlight-color:transparent; border:none; background:none; color:var(--soft); }
 .wt-btn:first-child { border-right:1px solid var(--line); }
@@ -5028,10 +5029,30 @@ window.spezialSet = spezialSet;
 // ══════════════════════════════════════════════════════
 //  VS-VERWALTUNG
 // ══════════════════════════════════════════════════════
+// Gescannte VS-Wochenpunkte (Scanner) je KW – zeigt auf jeder Kachel Punkte und Platz und zaehlt
+// Spieler mit Scan-Daten als erfasst (Platz 31+ ueber 43,2 Mio hat bewusst kein Haekchen).
+let vsScanData = { kw: null, byName: new Map(), loading: false };
+async function loadVsScanData() {
+  if (!document.querySelector('[onclick="vsImportFromScanner()"]')) return; // nur mit Scanner-Feature
+  if (vsScanData.loading || vsScanData.kw === kw) return;
+  vsScanData.loading = true;
+  const forKw = kw;
+  try {
+    const token = (() => { try { return localStorage.getItem('discord_token'); } catch (_) { return null; } })();
+    const data = await fetchJson(`/scans/vs-week?year_week=${forKw}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    vsScanData = { kw: forKw, byName: new Map((data.players || []).map(p => [p.name, p])), total: (data.players || []).length, loading: false };
+  } catch (_) {
+    vsScanData = { kw: forKw, byName: new Map(), loading: false };
+  }
+  if (forKw === kw) renderVS();
+}
+
 function renderVS() {
   const grid = document.getElementById('vs-grid');
+  if (vsScanData.kw !== kw) { loadVsScanData(); }
+  const scanOf = name => (vsScanData.kw === kw ? vsScanData.byName.get(name) : null);
 
-  const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.vsUnter50||f.vsTop30||f.vsTop10); };
+  const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.vsUnter50||f.vsTop30||f.vsTop10) || !!scanOf(name); };
   const {list,splitAt} = applyEventDoneSort(members, isDone);
 
   let doneCount = 0;
@@ -5041,7 +5062,8 @@ function renderVS() {
     const unter = !!flags.vsUnter50;
     const t30 = !!flags.vsTop30;
     const t10 = !!flags.vsTop10;
-    if (unter||t30||t10) doneCount++;
+    const scan = scanOf(name);
+    if (unter||t30||t10||scan) doneCount++;
 
     const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
     const cls = unter ? 'w-dmg' : t10 ? 'w-top20' : t30 ? 'w-anm' : 'w-none';
@@ -5057,6 +5079,7 @@ function renderVS() {
       <div class="wt-top">
         <div class="wt-name">${name}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
+        ${scan ? `<div class="wt-scan" title="Gescannte VS-Wochenpunkte">📸 ${(scan.week_points / 1e6).toFixed(1).replace('.', ',')} Mio · Platz ${scan.place}</div>` : ''}
       </div>
       <div class="wt-btns">${btnUnter}${btnT30}${btnT10}</div>
     </div>`;
@@ -5161,6 +5184,7 @@ async function vsImportFromScanner() {
       toast(`${item.name}: ${err.message}`);
     }
   }
+  vsScanData.kw = null; // neu laden
   await loadEntries();
   renderVS();
   toast(`${done} / ${plan.length} ` + tr('Spieler aus dem Scanner übernommen'), 'ok');

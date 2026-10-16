@@ -1,0 +1,20 @@
+# Cross-origin isolation for the in-browser OCR: lets onnxruntime-web use SharedArrayBuffer and run
+# multi-threaded WebAssembly (several times faster than single-threaded). "credentialless" keeps
+# cross-origin loads (jsDelivr) working without requiring CORP headers. If mod_headers is missing the
+# page still works, just single-threaded.
+<IfModule mod_headers.c>
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  Header always set Cross-Origin-Embedder-Policy "credentialless"
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType application/octet-stream .onnx
+</IfModule>
+
+# Models change only with a new RapidOCR version — let browsers cache them for a week.
+<IfModule mod_expires.c>
+  <FilesMatch "\.onnx$">
+    ExpiresActive On
+    ExpiresDefault "access plus 7 days"
+  </FilesMatch>
+</IfModule>

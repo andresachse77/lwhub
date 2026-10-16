@@ -6,6 +6,7 @@
     "parity": "node parity.js"
   },
   "devDependencies": {
+    "jpeg-js": "0.4.4",
     "onnxruntime-node": "1.30.0",
     "pngjs": "7.0.0",
     "puppeteer-core": "25.11.0"

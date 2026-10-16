@@ -149,6 +149,17 @@ const MatchingEngine = {
    */
   async syncToLwHub(apiUrl, alliance, assignedPairs, newPlayers, archivePlayerIds = [], discordToken = null) {
     const entries = [];
+    // VS-Werte (Allianz-Duell) je Kachelart: hoechster Wert je Tag bzw. Woche
+    const vsValues = (tiles) => {
+      const best = {};
+      for (const t of tiles) {
+        const v = (t.card || t).vs;
+        if (!v) continue;
+        const k = `${v.type}:${v.day || ''}`;
+        if (!best[k] || v.points > best[k].points) best[k] = { type: v.type, day: v.day || null, points: v.points };
+      }
+      return Object.values(best);
+    };
 
     // 1. Zugeordnete Spieler (können mehrere Kacheln haben, z. B. Power + HQ)
     for (const [memberId, data] of assignedPairs.entries()) {
@@ -187,6 +198,8 @@ const MatchingEngine = {
         confidence: bestConfidence
       };
       if (scannedRank) entry.rank = scannedRank;
+      const vs = vsValues(tiles);
+      if (vs.length) entry.vs = vs;
       entries.push(entry);
     }
 
@@ -225,6 +238,8 @@ const MatchingEngine = {
         confidence: bestConfidence
       };
       if (scannedRank) entry.rank = scannedRank;
+      const vs = vsValues(tiles);
+      if (vs.length) entry.vs = vs;
       entries.push(entry);
     }
 

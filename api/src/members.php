@@ -1355,6 +1355,40 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                     VALUES (?, ?, ?, 'POWER', ?, ?, ?)
                 ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $powerNum, $source, $recordedAt]);
             }
+
+            // VS-Punkte (Allianz-Duell): ein Wert je Spieler, Woche und Tag (VS_DAY, game_day 1 = Mo … 6 = Sa)
+            // bzw. Woche (VS_WEEK). Ein hoeherer Wert ersetzt einen niedrigeren – VS-Punkte steigen nur.
+            foreach (($e['vs'] ?? []) as $vs) {
+                $vsType = (string)($vs['type'] ?? '');
+                if (!in_array($vsType, ['VS_DAY', 'VS_WEEK'], true) || !is_numeric($vs['points'] ?? null)) continue;
+                $vsPoints = (int)$vs['points'];
+                if ($vsPoints < 0) continue;
+                $dayIdx = array_search((string)($vs['day'] ?? ''), ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], true);
+                $gameDay = $vsType === 'VS_DAY' ? ($dayIdx === false ? null : $dayIdx + 1) : null;
+                if ($vsType === 'VS_DAY' && $gameDay === null) continue;
+                $ts = strtotime($recordedAt);
+                $yearWeek = (int)(substr(date('o', $ts), 2) . date('W', $ts)); // wie weekly_entries: 2642 = 2026 KW 42
+
+                $sel = $pdo->prepare("
+                    SELECT metric_id, value_numeric FROM player_metrics
+                    WHERE alliance = ? AND player_id = ? AND metric_type = ? AND year_week = ? AND game_day <=> ?
+                    LIMIT 1
+                ");
+                $sel->execute([$targetAlliance, $finalPlayerId, $vsType, $yearWeek, $gameDay]);
+                $existing = $sel->fetch();
+                if ($existing) {
+                    if ($vsPoints > (int)$existing['value_numeric']) {
+                        $pdo->prepare("UPDATE player_metrics SET value_numeric = ?, source = ?, recorded_at = ? WHERE metric_id = ?")
+                            ->execute([$vsPoints, $source, $recordedAt, $existing['metric_id']]);
+                    }
+                } else {
+                    $pdo->prepare("
+                        INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, value_text, source, recorded_at, year_week, game_day)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsType, $vsPoints, $vs['day'] ?? null, $source, $recordedAt, $yearWeek, $gameDay]);
+                }
+                $summary['vs'] = ($summary['vs'] ?? 0) + 1;
+            }
         }
 
         $pdo->commit();

@@ -131,3 +131,31 @@ Einstufung: 🔥 opfert (& baut auf), 📈 wächst, ➖ normal, ⚠️ stagniert
 
 Am aussagekräftigsten sind Scans am Freitag (vor dem Event), am Sonntag (danach) und einmal unter
 der Woche.
+
+## VS (Allianz-Duell)
+
+Der Scanner erkennt die VS-Rangliste („Rang → Tagesrang / Wochen-Rang“) am Spaltenkopf
+„Kommandant … Punkte“. Mit Wochentag-Leiste ist es der **Tagesrang** (der gewählte Tag ist hell
+hinterlegt), ohne ist es der **Wochen-Rang**. Layout und Testbilder stammen aus Thomas'
+Last-War-Tracker (`ParserConfig.VS_RANG`).
+
+- **Zeile:** Name, darunter das Allianz-Kürzel „[NxU1] …“, rechts die Punkte.
+- **Gegner-Allianz:** Zeilen mit fremdem Kürzel (gemischter Wochen-Rang) werden verworfen.
+  Ein Zeichen Abweichung zählt noch als eigene Allianz (OCR liest „NxU7“/„NxUi“).
+- **Cockpit:** VS-Kacheln sind eine eigene Kachelart je Tag bzw. Woche. Beim Zusammenführen
+  zählt der höchste Wert.
+- **Sync:** Gespeichert wird in `player_metrics` als `VS_DAY` (`game_day` 1 = Mo … 6 = Sa) bzw.
+  `VS_WEEK`, je Spieler, Woche (`year_week`, z. B. 2642) und Tag genau ein Wert; ein höherer Wert
+  ersetzt einen niedrigeren.
+- **Kills- und Spenden-Rangliste:** werden erkannt, aber noch nicht übernommen. Vorher wären ihre
+  Werte als Kampfkraft gezählt worden.
+
+Test gegen Thomas' Sollwerte: `node tests/vs-test.js [Pfad zu Last-War-Tracker/testdaten]`.
+Stand 17.10.2026 über 17 Seiten:
+
+| Prüfung | Ergebnis |
+|---|---|
+| Ansicht (VS, Tag oder Woche) | 17/17 |
+| Punkte | 119/119 |
+| Namen | 98/103 (I/l, 0/O, ß) |
+| Kürzel | 116/117 |

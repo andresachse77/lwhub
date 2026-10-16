@@ -89,7 +89,24 @@
     return found;
   }
 
+  // Spaltenkopf "Rang | Kommandant | <Wert>" der Ranglisten (wie ScreenClassifier in Thomas' App):
+  // "Punkte" = VS (Allianz-Duell), "Kampfkraft" = Staerke-Rangliste, "Kills", "Spendenpunkte".
+  function columnHeader(lines) {
+    const header = lines.filter((l) => /kommandant/i.test(l.text)).sort((a, b) => a.top - b.top)[0];
+    if (!header) return null;
+    const label = lines
+      .filter((l) => l !== header && l.left > header.right && Math.abs(cy(l) - cy(header)) < height(header))
+      .map((l) => l.text).join(' ').toLowerCase();
+    return { header, label };
+  }
+
   function detectMode(lines) {
+    const col = columnHeader(lines);
+    if (col) {
+      if (/spende/.test(col.label)) return 'donation'; // "Spendenpunkte" enthaelt auch "punkte"
+      if (/kills/.test(col.label)) return 'kills';
+      if (/punkte/.test(col.label)) return 'vs';
+    }
     const texts = lines.map((l) => l.text).join(' ');
     if (RANKING_HEADER_RE.test(texts)) return 'ranking';
     const exact = new Set(lines.map((l) => l.text.trim().toLowerCase()));
@@ -238,6 +255,7 @@
   }
 
   function needsRescue(lines, rows, mode) {
+    if (mode !== 'ranking' && mode !== 'members' && mode !== 'unknown') return false;
     if (mode === 'ranking') return rows.some((r) => r.rank_code === null || r.rank_code === undefined);
     for (const header of lines.filter((l) => FRACTION_RE.test(l.text.trim()))) {
       if (!lines.some((l) => RANK_BADGE_RE.test(l.text.trim()) && Math.abs(cy(l) - cy(header)) < height(header) * 1.5)) {
@@ -255,11 +273,88 @@
     return cards;
   }
 
+  // ─── VS (Allianz-Duell) ─────────────────────────────────────────────────────────────────────────
+  // Layout (Thomas' App, ParserConfig.VS_RANG): je Zeile Rang | Avatar | Name, darunter
+  // "[NxU1] Nexus United 1" | Punkte rechts. Tagesrang hat eine Wochentag-Leiste (Mo–Sa), der gewaehlte
+  // Tag ist hell hinterlegt. Unten ist die eigene Zeile fest eingeblendet (echte Werte, doppelt egal).
+  const VS_POINTS_RE = /^[0-9]{1,3}(?:[.,\s][0-9]{3})+$|^[0-9]{1,6}$/;
+  const VS_DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+  /** Helligkeit des Hintergrunds in einem Rechteck: 80-%-Wert der Pixel-Luminanz (Schrift zaehlt kaum). */
+  function boxBrightness(image, l) {
+    const x0 = Math.max(0, Math.floor(l.left)), x1 = Math.min(image.w - 1, Math.ceil(l.right));
+    const y0 = Math.max(0, Math.floor(l.top)), y1 = Math.min(image.h - 1, Math.ceil(l.bottom));
+    const vals = [];
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const i = (y * image.w + x) * 3;
+        vals.push(0.299 * image.data[i] + 0.587 * image.data[i + 1] + 0.114 * image.data[i + 2]);
+      }
+    }
+    vals.sort((a, b) => a - b);
+    return vals.length ? vals[Math.floor(vals.length * 0.8)] : 0;
+  }
+
+  function vsInfo(lines, image) {
+    const col = columnHeader(lines);
+    const dayTabs = lines.filter((l) => VS_DAYS.includes(l.text.trim()) && (!col || l.bottom < col.header.top));
+    if (dayTabs.length < 3) return { type: 'VS_WEEK', day: null };
+    const day = image ? maxBy(dayTabs, (l) => boxBrightness(image, l)).text.trim() : null;
+    return { type: 'VS_DAY', day };
+  }
+
+  function groupVsRows(lines, image) {
+    const col = columnHeader(lines);
+    const top = col ? col.header.bottom : 0;
+    const anchors = lines.filter((l) => cy(l) > top && l.left > image.w * 0.6 && VS_POINTS_RE.test(l.text.trim()));
+    const rows = [];
+    for (const anchor of anchors) {
+      const reach = height(anchor) * 2.5;
+      const tagLine = minBy(lines.filter((l) => l !== anchor && cy(l) > cy(anchor) && cy(l) - cy(anchor) < reach
+        && l.right < anchor.left && /^\s*[\[(]/.test(l.text)), (l) => cy(l) - cy(anchor));
+      const nameLine = minBy(lines.filter((l) => l !== anchor && l !== tagLine && cy(l) < cy(anchor) && cy(anchor) - cy(l) < reach
+        && l.right < anchor.left && !/^\s*[\[(]/.test(l.text)
+        && (tagLine ? Math.abs(l.left - tagLine.left) < image.w * 0.03 : l.left > image.w * 0.3)), (l) => cy(anchor) - cy(l));
+      const posLine = minBy(lines.filter((l) => RANK_POSITION_RE.test(l.text.trim()) && l.right < image.w * 0.25
+        && Math.abs(cy(l) - cy(anchor)) < reach), (l) => Math.abs(cy(l) - cy(anchor)));
+      const tag = tagLine ? (tagLine.text.match(/[\[(]\s*([^\])]+?)\s*[\])]/) || [])[1] || null : null;
+      const boxLines = [anchor, tagLine, nameLine, posLine].filter(Boolean);
+      rows.push({
+        anchor_y: anchor.top,
+        rank_position: posLine ? posLine.text.trim() : null,
+        name: nameLine ? cleanName(nameLine.text) : '',
+        alliance_tag: tag,
+        points: parseInt(anchor.text.replace(/[^0-9]/g, ''), 10),
+        confidence: { name: nameLine ? nameLine.score : null, points: anchor.score },
+        box: {
+          left: Math.min(...boxLines.map((x) => x.left)) - 10,
+          top: Math.min(...boxLines.map((x) => x.top)) - 6,
+          right: Math.max(...boxLines.map((x) => x.right)) + 10,
+          bottom: Math.max(...boxLines.map((x) => x.bottom)) + 6,
+        },
+      });
+    }
+    return stableSortBy(rows, (r) => r.anchor_y);
+  }
+
   /** Equivalent of server.py's POST /process for one RGB frame ({ w, h, data }). */
   async function processFrame(engine, image) {
     engine.timings = {};
     const lines = await ocrLines(engine, image);
     const mode = detectMode(lines);
+    if (mode === 'vs' || mode === 'kills' || mode === 'donation') {
+      // Kills- und Spenden-Ranglisten werden (noch) nicht uebernommen – nur erkannt, damit ihre Werte
+      // nicht als Kampfkraft landen.
+      return {
+        width: image.w, height: image.h, mode,
+        raw_lines: lines.map((l) => ({ text: l.text, score: l.score })),
+        cards: [], rankings: [],
+        vs: mode === 'vs' ? vsInfo(lines, image) : null,
+        vs_rows: mode === 'vs' ? groupVsRows(lines, image) : [],
+        rescued: false,
+        timings: engine.timings,
+      };
+    }
     let rows = buildRows(lines, mode);
     let rescue = [];
     const rescued = needsRescue(lines, rows, mode);
@@ -279,5 +374,5 @@
     };
   }
 
-  return { processFrame, ocrLines, detectMode, buildRows, needsRescue, shieldRescue };
+  return { processFrame, ocrLines, detectMode, buildRows, needsRescue, shieldRescue, groupVsRows, vsInfo };
 });

@@ -112,9 +112,14 @@ class CockpitState {
     let bestLevel = null;
     let statuses = [];
     let bestConfidence = 1.0;
+    const vs = {};
 
     for (const t of tiles) {
       const c = t.card || t;
+      if (c.vs) {
+        const k = this.vsKey(c);
+        if (!vs[k] || c.vs.points > vs[k].points) vs[k] = c.vs;
+      }
       if (c.power && (!bestPower || String(c.power).length >= String(bestPower).length)) {
         bestPower = c.power;
       }
@@ -134,13 +139,25 @@ class CockpitState {
       level: bestLevel,
       status: statuses.join(' • ') || null,
       confidence: bestConfidence,
+      vs: Object.values(vs),
       count: tiles.length
     };
+  }
+
+  // VS-Kacheln (Allianz-Duell) sind eine eigene Kachelart je Tag bzw. Woche – nie mit Kampfkraft vermischt.
+  vsKey(card) {
+    return card && card.vs ? `${card.vs.type}:${card.vs.day || ''}` : null;
+  }
+
+  // Beim Stapeln gleicher VS-Kacheln zaehlt der hoechste Wert (VS-Punkte steigen im Tagesverlauf nur).
+  mergeVs(target, card) {
+    if (target && target.vs && card.vs && card.vs.points > target.vs.points) target.vs = { ...target.vs, points: card.vs.points };
   }
 
   // Kachelart-Vergleich: gleiche Kampfkraft, gleiches HQ-Level oder (wenn beide wertlos) gleicher Status.
   // Wird für Kacheln ohne Namen genutzt, wo der Name als Stacking-Schlüssel fehlt.
   sameTileType(a, b) {
+    if (a.vs || b.vs) return this.vsKey(a) === this.vsKey(b);
     if (a.power && b.power) return a.power === b.power;
     if (a.level && b.level) return a.level === b.level;
     if (!a.power && !b.power && !a.level && !b.level) {
@@ -163,6 +180,7 @@ class CockpitState {
           return cardClean.length < 2 && pClean.length < 2 && this.sameTileType(card, p.card);
         }
         if (pClean !== cardClean) return false;
+        if (card.vs || p.card.vs) return this.vsKey(card) === this.vsKey(p.card);
         // Gleiche Kachelart im Pool stacken
         if (card.power && p.card.power && card.power === p.card.power) return true;
         if (card.level && p.card.level && card.level === p.card.level) return true;
@@ -175,6 +193,7 @@ class CockpitState {
         if (!poolItem.card.power && card.power) poolItem.card.power = card.power;
         if (!poolItem.card.level && card.level) poolItem.card.level = card.level;
         if (!poolItem.card.rank_code && card.rank_code) poolItem.card.rank_code = card.rank_code;
+        this.mergeVs(poolItem.card, card);
         poolId = poolItem.id;
       } else {
         poolId = 'pool_' + (++this.poolIdCounter);
@@ -217,6 +236,7 @@ class CockpitState {
         // Mitglied hat bereits Kacheln: Prüfen ob Duplikat (Stacking) oder zusätzliche Kachel (z. B. HQ)!
         const entry = this.assigned.get(memberId);
         let duplicateTile = entry.tiles.find(t => {
+          if (card.vs || t.card.vs) return this.vsKey(card) === this.vsKey(t.card);
           // Gleiche Kampfkraft
           if (card.power && t.card.power && card.power === t.card.power) return true;
           // Gleiches HQ-Level bei gleicher Kachelart
@@ -232,6 +252,7 @@ class CockpitState {
           if (!duplicateTile.card.power && card.power) duplicateTile.card.power = card.power;
           if (!duplicateTile.card.level && card.level) duplicateTile.card.level = card.level;
           if (!duplicateTile.card.rank_code && card.rank_code) duplicateTile.card.rank_code = card.rank_code;
+          this.mergeVs(duplicateTile.card, card);
           if (poolId) (duplicateTile.poolIds ||= new Set()).add(poolId);
           this.render();
           return { status: 'stacked_tile', member: match.member, tile: duplicateTile };
@@ -252,6 +273,7 @@ class CockpitState {
 
     if (existingNewPlayer) {
       let duplicateTile = existingNewPlayer.tiles.find(t => {
+        if (card.vs || t.card.vs) return this.vsKey(card) === this.vsKey(t.card);
         if (card.power && t.card.power && card.power === t.card.power) return true;
         if (card.level && t.card.level && card.level === t.card.level) return true;
         return false;
@@ -262,6 +284,7 @@ class CockpitState {
         if (!duplicateTile.card.power && card.power) duplicateTile.card.power = card.power;
         if (!duplicateTile.card.level && card.level) duplicateTile.card.level = card.level;
         if (!duplicateTile.card.rank_code && card.rank_code) duplicateTile.card.rank_code = card.rank_code;
+        this.mergeVs(duplicateTile.card, card);
       } else {
         existingNewPlayer.tiles.push({
           id: 'tile_' + (++this.tileIdCounter),
@@ -281,6 +304,7 @@ class CockpitState {
       if (cardClean.length < 2 || itemClean.length < 2) {
         return cardClean.length < 2 && itemClean.length < 2 && this.sameTileType(card, item.card);
       }
+      if (this.vsKey(card) !== this.vsKey(item.card)) return false;
       if (cardClean === itemClean) return true;
       if (window.MatchingEngine.similarity(cardClean, itemClean) >= 0.88) return true;
       return false;
@@ -290,6 +314,7 @@ class CockpitState {
       // Duplikat im Unklar-Tray -> STACKEN statt neuer Kachel!
       existingUnclear.seenCount = (existingUnclear.seenCount || 1) + incomingCount;
       if (poolId) existingUnclear.poolIds.add(poolId);
+      this.mergeVs(existingUnclear.card, card);
       if (!existingUnclear.card.power && card.power) existingUnclear.card.power = card.power;
       if (!existingUnclear.card.level && card.level) existingUnclear.card.level = card.level;
       this.render();
@@ -575,7 +600,7 @@ class CockpitState {
           // (Canvas-Pixel werden bei der HTML-Serialisierung nicht erhalten -> schwarz).
           chip.innerHTML = `
             <div class="matched-details">
-              <span class="matched-power">${t.card.power ? this.powerLabel(t.card.power) : (t.card.level ? 'HQ ' + t.card.level : '—')} ${stackBadge}</span>
+              <span class="matched-power">${this.tileValueLabel(t.card, '—')} ${stackBadge}</span>
               <span class="member-sub">${this.escapeHtml(t.card.status || '')}</span>
             </div>
             <button class="btn-detach" title="Diese Kachel lösen" onclick="window.cockpit.detachNewPlayerTile('${item.id}', '${t.id}')">✕</button>
@@ -689,6 +714,7 @@ class CockpitState {
         const agg = this.getAggregatedData(assignedData.tiles);
         const parts = [];
         if (agg.power) parts.push(`⚡ <strong>${this.powerLabel(agg.power)}</strong>`);
+        for (const v of agg.vs) parts.push(`🏆 <strong>${this.vsLabel(v)}</strong>`);
         if (agg.level) parts.push(`🏰 <strong>HQ ${agg.level}</strong>`);
         if (agg.status) parts.push(`🏷️ ${this.escapeHtml(agg.status)}`);
         scanSummaryHtml = `
@@ -725,7 +751,7 @@ class CockpitState {
 
           const stackBadge = (t.seenCount > 1) ? `<span class="badge-stack" title="${t.seenCount}x im Scan erfasst">x${t.seenCount}</span>` : '';
 
-          let tileLabel = t.card.power ? this.powerLabel(t.card.power) : (t.card.level ? 'HQ ' + t.card.level : 'Kachel');
+          let tileLabel = this.tileValueLabel(t.card, 'Kachel');
           if (t.byPower) tileLabel += ' <span class="badge-bypower" title="Name nicht lesbar – über die Kampfkraft zugeordnet">≈ per Kampfkraft</span>';
 
           // innerHTML zuerst, Canvas danach anhängen (siehe Kommentar oben) –
@@ -811,7 +837,7 @@ class CockpitState {
           <span class="ocr-card-name" title="${this.escapeHtml(item.card.name)}">${this.escapeHtml(item.card.name || '(kein Name)')}</span>
           ${stackBadge}
         </div>
-        <span class="ocr-card-power">${item.card.power ? this.powerLabel(item.card.power) : (item.card.level ? 'HQ ' + item.card.level : '?')}</span>
+        <span class="ocr-card-power">${this.tileValueLabel(item.card)}</span>
       `;
 
       const sub = document.createElement('div');
@@ -871,6 +897,19 @@ class CockpitState {
     const ctx = c.getContext('2d');
     ctx.drawImage(original, 0, 0);
     return c;
+  }
+
+  // "VS Sa · 42.1M Pkt" bzw. "VS Woche · 199.9M Pkt"
+  vsLabel(vs) {
+    const p = vs.points >= 1e6 ? `${(vs.points / 1e6).toFixed(1)}M` : vs.points >= 1e3 ? `${Math.round(vs.points / 1e3)}K` : String(vs.points);
+    return `VS ${vs.type === 'VS_WEEK' ? 'Woche' : (vs.day || 'Tag')} · ${p} Pkt`;
+  }
+
+  // Hauptwert einer Kachel: VS-Punkte, Kampfkraft oder HQ-Level
+  tileValueLabel(card, fallback = '?') {
+    if (card.vs) return this.vsLabel(card.vs);
+    if (card.power) return this.powerLabel(card.power);
+    return card.level ? 'HQ ' + card.level : fallback;
   }
 
   // "270.5M" – egal ob die Kachel aus der Mitgliederliste (Millionen) oder der Rangliste (ganze Zahl) stammt

@@ -4,4 +4,7 @@
 <button class="tab" id="tab-bp" onclick="showPage('bp')">⚗ <span data-i18n="s_bp_berufeplanner">Berufeplaner</span></button>
 <button class="tab" id="tab-r" onclick="showPage('r')">Ergebnis</button>
 <button class="tab" id="tab-v" onclick="showPage('v')">Verwaltung</button>
+<?php if (scannerTabAllowed($member)): ?>
+<button class="tab" id="tab-sc" onclick="showPage('sc')">📸 <span data-i18n="s_scanner">Scanner</span></button>
+<?php endif; ?>
 <button class="tab" id="tab-d" onclick="showPage('d')"><span data-i18n="s_dashboard">Dashboard</span></button>

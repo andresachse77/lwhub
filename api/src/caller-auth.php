@@ -137,6 +137,16 @@ function requireScannerAccess(PDO $pdo, string $alliance, ?string $claimedId = n
     ];
 }
 
+/**
+ * Menuepunkt "Scanner" in der Hauptseite (api/partials/r4-*.php): R4/R5 ohne Ehrenrolle – dieselben
+ * Leute, die requireScannerAccess() durchlaesst. Ob die Allianz den Scanner nutzt, steuert das
+ * Feature "scanner" in der Feature-Konfiguration (alliance_config).
+ */
+function scannerTabAllowed(array $member): bool {
+    return (int)($member['current_rank_code'] ?? 0) >= 4
+        && normalizeHonorRole($member['honor_role'] ?? null) === null;
+}
+
 /** GET /scans/access?alliance=X – fuer die Scanner-Seite: darf der angemeldete Nutzer scannen? */
 function handleScannerAccess(PDO $pdo, string $alliance): never {
     $caller = requireScannerAccess($pdo, $alliance);

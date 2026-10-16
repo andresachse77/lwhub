@@ -70,15 +70,12 @@ const LwhubAccess = {
    * Liefert die Antwort des Servers ({ ok, name, rank, site_admin }) oder null.
    */
   async check(apiUrl, alliance, what = 'Der Scanner') {
-    const token = this.discordToken();
-    if (!token) {
-      this.showGate('Bitte anmelden', `${what} ist nur für R4 und R5. Melde dich in lwhub mit Discord an und öffne die Seite danach erneut.`, { login: true, retry: true });
-      return null;
-    }
+    // Auch ohne Token fragen: der lokale PHP-Server (lwhub-Vorschau) laesst lokale Aufrufe durch,
+    // live antwortet der Server ohne Token mit 401 und die Seite zeigt die Anmeldung.
     let resp, data = {};
     try {
       resp = await fetch(`${apiUrl}/scans/access?alliance=${encodeURIComponent(alliance)}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: this.authHeaders(),
         signal: AbortSignal.timeout(10000),
       });
       data = await resp.json().catch(() => ({}));

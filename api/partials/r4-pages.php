@@ -477,3 +477,15 @@
   </div>
 
 </div>
+
+<?php if (scannerTabAllowed($member)): ?>
+<!-- ═══ SCANNER (web-scanner-onnx, OCR im Browser) – iframe wird erst beim ersten Oeffnen geladen ═══ -->
+<div class="page" id="page-sc">
+  <div class="scanner-frame-bar">
+    <span>📸 <span data-i18n="s_scanner">Scanner</span></span>
+    <a href="web-scanner-onnx/index.html" target="_blank" rel="noopener" data-i18n="s_scanner_open_window">In eigenem Fenster öffnen (auf der CPU schneller)</a>
+    <a href="web-scanner-onnx/trend.html" target="_blank" rel="noopener">📈 <span data-i18n="s_scanner_trend">Kampfkraft-Trend</span></a>
+  </div>
+  <iframe id="scanner-frame" data-src="web-scanner-onnx/index.html" title="Scanner" allow="display-capture"></iframe>
+</div>
+<?php endif; ?>

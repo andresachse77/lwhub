@@ -7,6 +7,14 @@
   Header always set Cross-Origin-Embedder-Policy "credentialless"
 </IfModule>
 
+# Skripte/Styles/Seiten immer beim Server nachfragen (ETag -> 304, wenn unveraendert), damit nach einem
+# Deploy nie ein alter Stand aus dem Browser-Cache weiterlaeuft. Die Modelle (.onnx) bleiben gecacht.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css|json|txt)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
 <IfModule mod_mime.c>
   AddType application/octet-stream .onnx
 </IfModule>

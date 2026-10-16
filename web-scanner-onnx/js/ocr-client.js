@@ -7,7 +7,8 @@
  * 2.9 s), so throughput comes from several frames in parallel instead. Each worker processes its
  * frames strictly one after another.
  */
-const OCR_WORKER_URL = new URL('ocr-worker.js', document.currentScript.src).href;
+// Versionsanhang (?v=…) der Seite an den Worker weitergeben, damit nach einem Deploy kein alter Stand aus dem Cache laeuft.
+const OCR_WORKER_URL = new URL('ocr-worker.js' + new URL(document.currentScript.src).search, document.currentScript.src).href;
 
 class OcrWorkerHandle {
   constructor() {

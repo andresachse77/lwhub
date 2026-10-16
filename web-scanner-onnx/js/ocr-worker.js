@@ -39,7 +39,7 @@ async function init(requested, requestedThreads) {
   const t0 = performance.now();
   backend = requested === 'webgpu' && self.navigator.gpu ? 'webgpu' : 'wasm';
   importScripts(ORT_CDN + (backend === 'webgpu' ? 'ort.webgpu.min.js' : 'ort.wasm.min.js'));
-  importScripts('ocr-engine.js', 'scanner-pipeline.js');
+  importScripts('ocr-engine.js' + self.location.search, 'scanner-pipeline.js' + self.location.search);
 
   ort.env.wasm.wasmPaths = ORT_CDN;
   // Multi-threaded WASM needs SharedArrayBuffer, i.e. a cross-origin-isolated page (see .htaccess).

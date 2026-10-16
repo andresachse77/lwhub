@@ -83,6 +83,10 @@ const LwhubAccess = {
       this.showGate('Zugang konnte nicht geprüft werden', `Die lwhub-API ist nicht erreichbar (${err.message}).`, { retry: true });
       return null;
     }
+    if (resp.status === 401 && !this.discordToken()) {
+      this.showGate('Bitte anmelden', `${what} ist nur für R4 und R5. Melde dich in lwhub mit Discord an und öffne die Seite danach erneut.`, { login: true, retry: true });
+      return null;
+    }
     if (resp.status === 401) {
       this.showGate('Anmeldung abgelaufen', 'Deine Discord-Anmeldung ist nicht mehr gültig. Melde dich in lwhub neu an und öffne die Seite danach erneut.', { login: true, retry: true });
       return null;

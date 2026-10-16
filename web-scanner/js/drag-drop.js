@@ -76,6 +76,7 @@ class CockpitState {
   // Führt einen kompletten Neu-Abgleich aller bisher gescannten Kacheln durch
   rematchAll() {
     const poolSnapshot = this.scannedCardsPool.map(item => ({
+      id: item.id,
       card: { ...item.card },
       canvas: item.canvas,
       seenCount: item.seenCount || 1
@@ -87,7 +88,7 @@ class CockpitState {
     this.markedForArchive.clear();
 
     for (const item of poolSnapshot) {
-      this.addScannedCard(item.card, item.canvas, item.seenCount, false);
+      this.addScannedCard(item.card, item.canvas, item.seenCount, false, item.id);
     }
 
     this.render();
@@ -149,7 +150,8 @@ class CockpitState {
   }
 
   // Fügt eine neue Scan-Kachel hinzu (vom OCR Engine oder Re-Match) mit Multi-Kachel- & Stacking-Logik
-  addScannedCard(card, canvas, incomingCount = 1, addToPool = true) {
+  // poolId: Pool-Eintrag, aus dem die Kachel stammt (beim Rematch); sonst wird er hier ermittelt.
+  addScannedCard(card, canvas, incomingCount = 1, addToPool = true, poolId = null) {
     const cardClean = window.MatchingEngine.cleanName(card.name);
 
     // 1. In den permanenten Session-Pool aufnehmen bzw. stacken
@@ -173,9 +175,11 @@ class CockpitState {
         if (!poolItem.card.power && card.power) poolItem.card.power = card.power;
         if (!poolItem.card.level && card.level) poolItem.card.level = card.level;
         if (!poolItem.card.rank_code && card.rank_code) poolItem.card.rank_code = card.rank_code;
+        poolId = poolItem.id;
       } else {
+        poolId = 'pool_' + (++this.poolIdCounter);
         this.scannedCardsPool.push({
-          id: 'pool_' + (++this.poolIdCounter),
+          id: poolId,
           card: { ...card },
           canvas: canvas,
           seenCount: incomingCount
@@ -195,7 +199,9 @@ class CockpitState {
         seenCount: incomingCount,
         score: match.score,
         exact: match.exact,
-        manual: false
+        byPower: !!match.byPower,
+        manual: false,
+        poolIds: new Set(poolId ? [poolId] : [])
       };
 
       if (!this.assigned.has(memberId)) {
@@ -226,6 +232,7 @@ class CockpitState {
           if (!duplicateTile.card.power && card.power) duplicateTile.card.power = card.power;
           if (!duplicateTile.card.level && card.level) duplicateTile.card.level = card.level;
           if (!duplicateTile.card.rank_code && card.rank_code) duplicateTile.card.rank_code = card.rank_code;
+          if (poolId) (duplicateTile.poolIds ||= new Set()).add(poolId);
           this.render();
           return { status: 'stacked_tile', member: match.member, tile: duplicateTile };
         } else {
@@ -282,15 +289,23 @@ class CockpitState {
     if (existingUnclear) {
       // Duplikat im Unklar-Tray -> STACKEN statt neuer Kachel!
       existingUnclear.seenCount = (existingUnclear.seenCount || 1) + incomingCount;
+      if (poolId) existingUnclear.poolIds.add(poolId);
       if (!existingUnclear.card.power && card.power) existingUnclear.card.power = card.power;
       if (!existingUnclear.card.level && card.level) existingUnclear.card.level = card.level;
       this.render();
       return { status: 'stacked_unclear', card: existingUnclear };
     }
 
-    // 5. Neuer Eintrag in den Unklar-Tray
+    // 5. Kacheln ohne lesbaren Namen, die auch über die Kampfkraft keinem Mitglied eindeutig zuzuordnen
+    //    sind, taugen nicht zum Zuordnen: nicht anzeigen. Sie bleiben im Pool – ein Rematch gegen eine
+    //    andere Mitgliederliste kann sie noch per Kampfkraft zuordnen.
+    if (cardClean.length < 2) {
+      return { status: 'dropped_nameless' };
+    }
+
+    // 6. Neuer Eintrag in den Unklar-Tray
     const cardId = 'card_' + (++this.cardIdCounter);
-    const cardObj = { id: cardId, card, canvas, seenCount: incomingCount };
+    const cardObj = { id: cardId, card, canvas, seenCount: incomingCount, poolIds: new Set(poolId ? [poolId] : []) };
     this.unclearCards.unshift(cardObj);
     this.render();
     return { status: 'unclear' };
@@ -328,7 +343,8 @@ class CockpitState {
       canvas: cardObj.canvas,
       seenCount: cardObj.seenCount || 1,
       score: 1.0,
-      manual: true
+      manual: true,
+      poolIds: cardObj.poolIds
     };
 
     if (!this.assigned.has(memberId)) {
@@ -355,7 +371,8 @@ class CockpitState {
       card: cardObj.card,
       canvas: cardObj.canvas,
       seenCount: cardObj.seenCount || 1,
-      manual: true
+      manual: true,
+      poolIds: cardObj.poolIds
     };
 
     if (targetNewPlayerId) {
@@ -376,6 +393,17 @@ class CockpitState {
     this.render();
   }
 
+  // Kachel aus dem Unklar-Tray endgültig verwerfen – auch aus dem Pool, damit ein Rematch sie nicht zurückholt
+  deleteUnclearCard(cardId) {
+    const idx = this.unclearCards.findIndex(c => c.id === cardId);
+    if (idx === -1) return;
+    const [removed] = this.unclearCards.splice(idx, 1);
+    if (removed.poolIds && removed.poolIds.size) {
+      this.scannedCardsPool = this.scannedCardsPool.filter(p => !removed.poolIds.has(p.id));
+    }
+    this.render();
+  }
+
   // Einzelne Kachel von einem Mitglied lösen
   detachTile(memberId, tileId) {
     if (!this.assigned.has(memberId)) return;
@@ -388,7 +416,8 @@ class CockpitState {
       id: 'card_' + (++this.cardIdCounter),
       card: removed.card,
       canvas: removed.canvas,
-      seenCount: removed.seenCount || 1
+      seenCount: removed.seenCount || 1,
+      poolIds: new Set(removed.poolIds || [])
     });
 
     if (entry.tiles.length === 0) {
@@ -410,7 +439,8 @@ class CockpitState {
       id: 'card_' + (++this.cardIdCounter),
       card: removed.card,
       canvas: removed.canvas,
-      seenCount: removed.seenCount || 1
+      seenCount: removed.seenCount || 1,
+      poolIds: new Set(removed.poolIds || [])
     });
 
     if (np.tiles.length === 0) {
@@ -433,7 +463,8 @@ class CockpitState {
             id: 'card_' + (++this.cardIdCounter),
             card: t.card,
             canvas: t.canvas,
-            seenCount: t.seenCount || 1
+            seenCount: t.seenCount || 1,
+            poolIds: new Set(t.poolIds || [])
           });
         }
         this.assigned.delete(memberId);
@@ -523,7 +554,7 @@ class CockpitState {
             <span class="badge-tag">${item.tiles.length} Kachel(n)</span>
           </div>
           <div class="member-sub">
-            Neuer Spieler &bull; Scan: <strong>${agg.power ? agg.power + 'M' : '—'}</strong> &bull; HQ ${agg.level || '?'}
+            Neuer Spieler &bull; Scan: <strong>${agg.power ? this.powerLabel(agg.power) : '—'}</strong> &bull; HQ ${agg.level || '?'}
           </div>
         `;
 
@@ -544,7 +575,7 @@ class CockpitState {
           // (Canvas-Pixel werden bei der HTML-Serialisierung nicht erhalten -> schwarz).
           chip.innerHTML = `
             <div class="matched-details">
-              <span class="matched-power">${t.card.power ? t.card.power + ' M' : (t.card.level ? 'HQ ' + t.card.level : '—')} ${stackBadge}</span>
+              <span class="matched-power">${t.card.power ? this.powerLabel(t.card.power) : (t.card.level ? 'HQ ' + t.card.level : '—')} ${stackBadge}</span>
               <span class="member-sub">${this.escapeHtml(t.card.status || '')}</span>
             </div>
             <button class="btn-detach" title="Diese Kachel lösen" onclick="window.cockpit.detachNewPlayerTile('${item.id}', '${t.id}')">✕</button>
@@ -649,7 +680,7 @@ class CockpitState {
       const info = document.createElement('div');
       info.className = 'member-info';
 
-      const prevPowerStr = m.current_power ? (m.current_power / 1000000).toFixed(1) + 'M' : '—';
+      const prevPowerStr = this.powerLabel(m.current_power) || '—';
       const prevHqStr = m.hq_level ? `HQ ${m.hq_level}` : '';
       const prevDetails = `LWHub: ${prevPowerStr} ${prevHqStr ? '&bull; ' + prevHqStr : ''}`;
 
@@ -657,7 +688,7 @@ class CockpitState {
       if (isAssigned && assignedData.tiles.length > 0) {
         const agg = this.getAggregatedData(assignedData.tiles);
         const parts = [];
-        if (agg.power) parts.push(`⚡ <strong>${agg.power}M</strong>`);
+        if (agg.power) parts.push(`⚡ <strong>${this.powerLabel(agg.power)}</strong>`);
         if (agg.level) parts.push(`🏰 <strong>HQ ${agg.level}</strong>`);
         if (agg.status) parts.push(`🏷️ ${this.escapeHtml(agg.status)}`);
         scanSummaryHtml = `
@@ -694,7 +725,8 @@ class CockpitState {
 
           const stackBadge = (t.seenCount > 1) ? `<span class="badge-stack" title="${t.seenCount}x im Scan erfasst">x${t.seenCount}</span>` : '';
 
-          let tileLabel = t.card.power ? t.card.power + ' M' : (t.card.level ? 'HQ ' + t.card.level : 'Kachel');
+          let tileLabel = t.card.power ? this.powerLabel(t.card.power) : (t.card.level ? 'HQ ' + t.card.level : 'Kachel');
+          if (t.byPower) tileLabel += ' <span class="badge-bypower" title="Name nicht lesbar – über die Kampfkraft zugeordnet">≈ per Kampfkraft</span>';
 
           // innerHTML zuerst, Canvas danach anhängen (siehe Kommentar oben) –
           // sonst wäre der Canvas-Inhalt nach "innerHTML +=" schwarz.
@@ -779,7 +811,7 @@ class CockpitState {
           <span class="ocr-card-name" title="${this.escapeHtml(item.card.name)}">${this.escapeHtml(item.card.name || '(kein Name)')}</span>
           ${stackBadge}
         </div>
-        <span class="ocr-card-power">${item.card.power ? item.card.power + 'M' : (item.card.level ? 'HQ ' + item.card.level : '?')}</span>
+        <span class="ocr-card-power">${item.card.power ? this.powerLabel(item.card.power) : (item.card.level ? 'HQ ' + item.card.level : '?')}</span>
       `;
 
       const sub = document.createElement('div');
@@ -788,6 +820,14 @@ class CockpitState {
 
       cardEl.appendChild(meta);
       cardEl.appendChild(sub);
+
+      const del = document.createElement('button');
+      del.className = 'ocr-card-delete';
+      del.title = 'Kachel löschen';
+      del.textContent = '🗑';
+      del.addEventListener('click', (e) => { e.stopPropagation(); this.deleteUnclearCard(item.id); });
+      del.addEventListener('mousedown', (e) => e.stopPropagation());
+      cardEl.appendChild(del);
 
       // Drag Handlers
       cardEl.addEventListener('dragstart', (e) => {
@@ -831,6 +871,11 @@ class CockpitState {
     const ctx = c.getContext('2d');
     ctx.drawImage(original, 0, 0);
     return c;
+  }
+
+  // "270.5M" – egal ob die Kachel aus der Mitgliederliste (Millionen) oder der Rangliste (ganze Zahl) stammt
+  powerLabel(power) {
+    return window.MatchingEngine.formatPower(power) || (power ? power + 'M' : null);
   }
 
   escapeHtml(str) {

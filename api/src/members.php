@@ -1171,7 +1171,11 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 $cleanP = str_replace(['M', 'm', ' '], '', $powerStr);
                 $cleanP = str_replace(',', '.', $cleanP);
                 if (is_numeric($cleanP)) {
-                    $powerNum = (int)round((float)$cleanP * 1000000);
+                    // Mitgliederliste: "270,5M" = Millionen. Staerke-Rangliste: ganze Zahl "270514649" =
+                    // absolute Kampfkraft. Ab 100000 kann es keine Millionen-Angabe mehr sein.
+                    $powerNum = (float)$cleanP >= 100000
+                        ? (int)round((float)$cleanP)
+                        : (int)round((float)$cleanP * 1000000);
                 }
             }
             if ($powerNum === null && isset($e['value_numeric']) && is_numeric($e['value_numeric'])) {

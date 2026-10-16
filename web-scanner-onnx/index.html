@@ -10,10 +10,17 @@
   .ocr-engine-row select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 12px; }
   #screenshotInput { display: none; }
   .workspace-split { position: relative; }
+  .processing-progress { margin-bottom: 12px; }
+  .processing-head { display: flex; gap: 16px; align-items: center; }
+  .processing-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .processing-remaining { display: flex; flex-direction: column; align-items: center; min-width: 88px; }
+  .processing-remaining-number { font-size: 44px; font-weight: 800; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .processing-remaining-number.done { color: var(--success); }
+  .processing-remaining-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
   .ocr-active { display: flex; flex-wrap: wrap; gap: 8px; }
   .ocr-active[hidden] { display: none; }
-  .ocr-job { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); font-size: 11px; color: var(--text-muted); width: 112px; }
-  .ocr-job canvas { width: 100px; height: auto; border-radius: 3px; background: #000; }
+  .ocr-job { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); font-size: 11px; color: var(--text-muted); max-width: 120px; }
+  .ocr-job canvas { height: 90px; width: auto; max-width: 108px; object-fit: contain; border-radius: 3px; background: #000; }
   .ocr-job-label { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .access-gate { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: var(--bg-main); }
   .access-gate[hidden] { display: none; }
@@ -126,6 +133,27 @@
 
       <div class="pane-content">
 
+        <!-- VERARBEITUNG: grosse Restzahl, Fortschritt und die Bilder, die gerade erkannt werden -->
+        <div id="processingProgress" class="processing-progress" hidden aria-live="polite">
+          <div class="processing-head">
+            <div class="processing-remaining" title="Bilder, die noch erkannt werden müssen">
+              <span id="processingRemaining" class="processing-remaining-number">0</span>
+              <span id="processingRemainingLabel" class="processing-remaining-label">Bilder übrig</span>
+            </div>
+            <div class="processing-main">
+              <div class="processing-progress-label">
+                <span id="processingProgressText">Verarbeitung wird vorbereitet…</span>
+                <span id="processingCountdown"></span>
+              </div>
+              <progress id="processingProgressBar" max="100" value="0"></progress>
+              <div class="processing-progress-actions">
+                <button id="btnStopProcessing" class="btn btn-sm btn-danger" disabled title="Bildverarbeitung (Screenshots &amp; Live-Scan) sofort stoppen">🛑 Verarbeitung stoppen</button>
+              </div>
+            </div>
+          </div>
+          <div id="ocrActive" class="ocr-active" hidden title="Bilder, die gerade erkannt werden"></div>
+        </div>
+
         <div class="unclear-tray">
           <div class="tray-header">
             <span class="tray-title">
@@ -171,19 +199,6 @@
               W&auml;hle das Spiel-Fenster aus. Scrolle langsam &ndash; ge&auml;nderte Ansichten werden automatisch erfasst.
             </div>
           </div>
-
-          <div id="processingProgress" class="processing-progress" hidden aria-live="polite">
-            <div class="processing-progress-label">
-              <span id="processingProgressText">Verarbeitung wird vorbereitet…</span>
-              <span id="processingCountdown"></span>
-            </div>
-            <progress id="processingProgressBar" max="100" value="0"></progress>
-            <div class="processing-progress-actions">
-              <button id="btnStopProcessing" class="btn btn-sm btn-danger" disabled title="Bildverarbeitung (Screenshots &amp; Live-Scan) sofort stoppen">🛑 Verarbeitung stoppen</button>
-            </div>
-          </div>
-
-          <div id="ocrActive" class="ocr-active" hidden aria-live="polite" title="Bilder, die gerade erkannt werden"></div>
 
           <div id="logBox" class="log-box"></div>
         </div>
@@ -481,7 +496,7 @@ function processOcrResult(img, result) {
         name: row.name,
         power: row.power,
         level: null,
-        status: `Rang #${row.rank_position}`,
+        status: row.rank_position ? `Rang #${row.rank_position}` : 'Rangliste',
         rank_code: row.rank_code,
         confidence: row.confidence
       }, canvas);
@@ -506,6 +521,13 @@ function updateProcessingStopButton() {
   btn.disabled = !(filesRunActive || captureTimer !== null || captureStream !== null || liveQueue.length > 0);
 }
 
+function setRemaining(n, label) {
+  const num = document.getElementById('processingRemaining');
+  num.textContent = String(n);
+  num.classList.toggle('done', n === 0);
+  document.getElementById('processingRemainingLabel').textContent = n === 0 ? 'fertig' : label;
+}
+
 function updateProcessingCountdown(completed, total) {
   const countdown = document.getElementById('processingCountdown');
   if (!countdown) return;
@@ -527,9 +549,10 @@ function setProcessingProgress(completed, total, startedAt, file, isProcessing) 
   container.hidden = false;
   bar.max = total;
   bar.value = completed;
+  setRemaining(total - completed, 'Bilder übrig');
   text.textContent = isProcessing
-    ? `Bild ${completed + 1}/${total} wird verarbeitet · ${file}`
-    : `${completed}/${total} Bilder verarbeitet · ${file}`;
+    ? `Starte ${total} Bild${total === 1 ? '' : 'er'}…`
+    : `${completed}/${total} Bilder verarbeitet · zuletzt ${file}`;
   if (completed > 0 && completed < total) {
     const averagePerImage = (Date.now() - startedAt) / 1000 / completed;
     processingEstimatedEndAt = Date.now() + (total - completed) * averagePerImage * 1000;
@@ -620,6 +643,7 @@ async function processFiles(fileList) {
   processingCountdownTimer = setInterval(() => updateProcessingCountdown(0, files.length), 1000);
   log(`Verarbeite ${files.length} Screenshot(s) im Browser (${ocr.size} parallel)...`);
   let next = 0, completed = 0;
+  setProcessingProgress(0, files.length, startedAt, files[0].name, true);
   try {
     await new Promise((resolve) => {
       const runner = createOrderedRunner(({ meta: file, data, error }) => {
@@ -723,6 +747,16 @@ function updateLiveStatus() {
   const busy = liveQueue.length + liveRunner.running;
   const state = captureStream ? 'Scan aktiv' : (busy > 0 ? 'Gestoppt, verarbeite Rest' : 'Gestoppt');
   captureStatusText.textContent = `${state} – ${liveFrameCount} Ansichten erfasst, ${liveRunner.running} in Arbeit, ${liveQueue.length} wartend.`;
+  // Same panel as for screenshots (unless a screenshot run is using it): big number = frames still open
+  if (!filesRunActive && (captureStream || busy > 0 || liveFrameCount > 0)) {
+    document.getElementById('processingProgress').hidden = false;
+    setRemaining(busy, 'Ansichten offen');
+    document.getElementById('processingProgressText').textContent = `${state} · ${liveFrameCount} Ansichten erfasst`;
+    document.getElementById('processingCountdown').textContent = '';
+    const bar = document.getElementById('processingProgressBar');
+    bar.max = Math.max(1, liveFrameCount);
+    bar.value = liveFrameCount - busy;
+  }
 }
 
 // Live frames go through the same ordered runner: every free worker takes the next queued frame.

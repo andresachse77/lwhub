@@ -39,6 +39,39 @@ const MatchingEngine = {
   },
 
   /**
+   * Kampfkraft als absolute Zahl. Mitgliederliste liefert Millionen ("270.5"), die Stärke-Rangliste
+   * die ganze Zahl ("270514649"). Werte über 10^12 stammen aus einem früheren Sync-Fehler, bei dem
+   * Ranglisten-Werte zusätzlich mit 10^6 multipliziert wurden, und werden zurückgerechnet.
+   */
+  absolutePower(value) {
+    const n = parseFloat(String(value ?? '').replace(',', '.'));
+    if (!Number.isFinite(n) || n <= 0) return null;
+    if (n >= 1e12) return n / 1e6;
+    return n >= 100000 ? n : n * 1e6;
+  },
+
+  /** Anzeige: "270.5M" für beide Quellen. */
+  formatPower(value) {
+    const abs = this.absolutePower(value);
+    return abs === null ? null : `${(abs / 1e6).toFixed(1)}M`;
+  },
+
+  /**
+   * Kachel ohne lesbaren Namen über die Kampfkraft zuordnen – nur wenn das eindeutig ist:
+   * genau ein Mitglied innerhalb 0,5 % und kein zweites innerhalb 1,5 %.
+   */
+  findMatchByPower(card, members) {
+    const power = this.absolutePower(card.power);
+    if (!power) return null;
+    const diffs = members
+      .map(m => ({ m, d: Math.abs((this.absolutePower(m.current_power) ?? Infinity) - power) / power }))
+      .sort((a, b) => a.d - b.d);
+    if (!diffs.length || diffs[0].d > 0.005) return null;
+    if (diffs.length > 1 && diffs[1].d <= 0.015) return null;
+    return { member: diffs[0].m, score: 0.8, exact: false, byPower: true };
+  },
+
+  /**
    * Findet das passendste Mitglied für eine erkannte Kachel.
    * @param {Object} card { name, power, level, ... }
    * @param {Array} members Liste von LWHub Mitgliedern
@@ -46,7 +79,7 @@ const MatchingEngine = {
    */
   findMatch(card, members) {
     const cardClean = this.cleanName(card.name);
-    if (cardClean.length < 2) return null;
+    if (cardClean.length < 2) return this.findMatchByPower(card, members);
 
     let bestMember = null;
     let bestScore = 0;

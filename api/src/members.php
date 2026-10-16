@@ -1090,6 +1090,9 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
     ensureUserActiveCharTable($pdo);
 
     $targetAlliance = !empty($body['alliance']) ? trim($body['alliance']) : $alliance;
+    // Nur R4/R5 der Ziel-Allianz (oder Site-Admins) mit von Discord bestaetigtem Token duerfen schreiben.
+    $claimedId = (string)($body['discord_id'] ?? '');
+    requireScannerAccess($pdo, $targetAlliance, preg_match('/^\d+$/', $claimedId) ? $claimedId : null);
     $entries = $body['entries'] ?? [];
     if (!is_array($entries)) jsonOut(400, ['error' => 'Ungültige Entries-Liste']);
 

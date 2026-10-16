@@ -33,6 +33,29 @@ async function main() {
     if (args.backend) {
       await page.evaluateOnNewDocument((b) => localStorage.setItem('lwhub.scanner.ocrBackend', b), args.backend);
     }
+
+    // Access gate: without a lwhub login the page must stay locked.
+    await page.goto(`${BASE}/web-scanner-onnx/`, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => document.getElementById('accessGateTitle').textContent !== 'Zugang wird geprüft…', { timeout: 30000 });
+    const gate = await page.evaluate(() => ({
+      visible: !document.getElementById('accessGate').hidden,
+      title: document.getElementById('accessGateTitle').textContent,
+      login: !document.getElementById('accessGateLogin').hidden,
+      sync: document.getElementById('btnSyncToLwHub').disabled,
+    }));
+    console.log(`gate without login: visible=${gate.visible}, "${gate.title}", login link=${gate.login}, sync disabled=${gate.sync}`);
+    if (!gate.visible || !gate.sync) process.exitCode = 1;
+
+    // For the OCR tests: a fake login, and the server's R4 check answered with "ok" (the real check
+    // needs a Discord token and runs in api/src/caller-auth.php).
+    // (A page-level fetch wrapper, not request interception: interception also stalls the OCR worker's downloads.)
+    await page.evaluateOnNewDocument(() => {
+      localStorage.setItem('discord_token', 'test-token');
+      const realFetch = window.fetch.bind(window);
+      window.fetch = (url, opts) => (String(url).includes('/scans/access')
+        ? Promise.resolve(new Response(JSON.stringify({ ok: true, name: 'Test', rank: 4, site_admin: false }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+        : realFetch(url, opts));
+    });
     const t0 = Date.now();
     await page.goto(`${BASE}/web-scanner-onnx/?${args.threads ? 'threads=' + args.threads + '&' : ''}${args.workers ? 'workers=' + args.workers : ''}`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => /OCR bereit|OCR-Fehler/.test(document.getElementById('ocrStatusBadge').textContent), { timeout: 180000 });

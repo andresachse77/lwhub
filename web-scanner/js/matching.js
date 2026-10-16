@@ -110,7 +110,11 @@ const MatchingEngine = {
   /**
    * Sendet die gematchten Daten atomar an den Batch-Sync-Endpunkt
    */
-  async syncToLwHub(apiUrl, alliance, assignedPairs, newPlayers, archivePlayerIds = []) {
+  /**
+   * @param {string|null} discordToken  Discord-Access-Token aus dem lwhub-Login; der Server prüft damit,
+   *   ob der Aufrufer R4/R5 der Allianz ist (lokaler PHP-Server ausgenommen).
+   */
+  async syncToLwHub(apiUrl, alliance, assignedPairs, newPlayers, archivePlayerIds = [], discordToken = null) {
     const entries = [];
 
     // 1. Zugeordnete Spieler (können mehrere Kacheln haben, z. B. Power + HQ)
@@ -200,9 +204,11 @@ const MatchingEngine = {
     };
 
     console.log('Synchronisiere mit LWHub:', payload);
+    const headers = { 'Content-Type': 'application/json' };
+    if (discordToken) headers.Authorization = `Bearer ${discordToken}`;
     const resp = await fetch(`${apiUrl}/scans/sync`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload)
     });
 

@@ -9,6 +9,13 @@
   .ocr-engine-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .ocr-engine-row select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 12px; }
   #screenshotInput { display: none; }
+  .workspace-split { position: relative; }
+  .access-gate { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: var(--bg-main); }
+  .access-gate[hidden] { display: none; }
+  .access-gate-box { max-width: 460px; margin: 16px; padding: 24px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); text-align: center; }
+  .access-gate-box h2 { margin: 0 0 8px; font-size: 18px; color: var(--text); }
+  .access-gate-box p { margin: 0 0 16px; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .access-gate-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -34,12 +41,25 @@
       <div id="ocrStatusBadge" class="badge-stat warning" title="Texterkennung läuft lokal in diesem Browser – Screenshots verlassen den Rechner nicht.">OCR startet…</div>
       <div id="statPoolCount" class="badge-stat">0 Kacheln im Pool</div>
       <div id="statErfasst" class="badge-stat warning">0 / 0 Erfasst</div>
-      <button id="btnSyncToLwHub" class="btn btn-success">🚀 Nach LWHub &uuml;bertragen</button>
+      <div id="userBadge" class="badge-stat" hidden></div>
+      <button id="btnSyncToLwHub" class="btn btn-success" disabled>🚀 Nach LWHub &uuml;bertragen</button>
     </div>
   </header>
 
   <!-- 2-SENKEN SPLIT SCREEN -->
   <main class="workspace-split">
+
+    <!-- ZUGANG: nur R4/R5 der Allianz (oder Site-Admins); der Server prueft das Discord-Token -->
+    <div id="accessGate" class="access-gate">
+      <div class="access-gate-box">
+        <h2 id="accessGateTitle">Zugang wird geprüft…</h2>
+        <p id="accessGateText">Der Scanner ist nur für R4 und R5 der Allianz.</p>
+        <div class="access-gate-actions">
+          <a id="accessGateLogin" class="btn btn-primary" href="/" hidden>Bei lwhub anmelden</a>
+          <button id="accessGateRetry" class="btn btn-secondary" hidden>Erneut prüfen</button>
+        </div>
+      </div>
+    </div>
 
     <!-- LINKE SENKE: Führende Mitgliederliste (scrollt unabhängig) -->
     <section class="pane pane-left">
@@ -280,9 +300,72 @@ window.cockpit.attachDropHandlers(dropzoneNew, (cardId) => {
   window.cockpit.assignCardAsNewPlayer(cardId);
 });
 
+// Zugang: lwhub-Login (Discord) aus dem localStorage der Hauptseite, Server prueft R4/R5 per Token.
+function readStorageJson(key) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (_) { return null; }
+}
+function discordToken() {
+  try { return localStorage.getItem('discord_token') || null; } catch (_) { return null; }
+}
+const lwhubAuth = readStorageJson('iny_auth_state_v1');
+const lwhubActiveChar = readStorageJson('iny_active_char_v1');
+let accessOk = false;
+
+function showAccessGate(title, text, { login = false, retry = false } = {}) {
+  accessOk = false;
+  document.getElementById('accessGate').hidden = false;
+  document.getElementById('accessGateTitle').textContent = title;
+  document.getElementById('accessGateText').textContent = text;
+  document.getElementById('accessGateLogin').hidden = !login;
+  document.getElementById('accessGateRetry').hidden = !retry;
+  document.getElementById('btnSyncToLwHub').disabled = true;
+  document.getElementById('userBadge').hidden = true;
+}
+
+async function checkScannerAccess() {
+  const alliance = document.getElementById('allianceSelect').value;
+  const token = discordToken();
+  if (!token) {
+    showAccessGate('Bitte anmelden', 'Der Scanner ist nur für R4 und R5. Melde dich in lwhub mit Discord an und öffne den Scanner danach erneut.', { login: true, retry: true });
+    return false;
+  }
+  let resp, data = {};
+  try {
+    resp = await fetch(`${activeApiUrl}/scans/access?alliance=${encodeURIComponent(alliance)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    data = await resp.json().catch(() => ({}));
+  } catch (err) {
+    showAccessGate('Zugang konnte nicht geprüft werden', `Die lwhub-API ist nicht erreichbar (${err.message}).`, { retry: true });
+    return false;
+  }
+  if (resp.status === 401) {
+    showAccessGate('Anmeldung abgelaufen', 'Deine Discord-Anmeldung ist nicht mehr gültig. Melde dich in lwhub neu an und öffne den Scanner danach erneut.', { login: true, retry: true });
+    return false;
+  }
+  if (!resp.ok || !data.ok) {
+    showAccessGate('Kein Zugriff', data.error || `Der Scanner ist nur für R4 und R5 der Allianz ${alliance}.`, { retry: true });
+    return false;
+  }
+  accessOk = true;
+  document.getElementById('accessGate').hidden = true;
+  document.getElementById('btnSyncToLwHub').disabled = false;
+  const badge = document.getElementById('userBadge');
+  badge.hidden = false;
+  badge.className = 'badge-stat success';
+  badge.textContent = data.site_admin ? '🛡️ Site-Admin' : `🛡️ ${data.name || 'Angemeldet'} · R${data.rank}`;
+  log(`Zugang für ${alliance} bestätigt (${badge.textContent.replace('🛡️ ', '')}).`);
+  await loadMembers();
+  return true;
+}
+document.getElementById('accessGateRetry').addEventListener('click', checkScannerAccess);
+
 // Allianzen laden
 async function initAlliances() {
   const sel = document.getElementById('allianceSelect');
+  // Vorauswahl: die Allianz des aktiven Chars aus lwhub
+  const preferredAlliance = lwhubActiveChar?.alliance || lwhubAuth?.active_alliance || lwhubAuth?.alliance || 'NxU1';
   for (const candidate of API_CANDIDATES) {
     try {
       const resp = await fetch(`${candidate}/alliances`, { signal: AbortSignal.timeout(2000) });
@@ -295,7 +378,7 @@ async function initAlliances() {
           const opt = document.createElement('option');
           opt.value = a.short_name;
           opt.textContent = `${a.short_name}${a.title ? ' – ' + a.title : ''}`;
-          if (a.short_name === 'NxU1') opt.selected = true;
+          if (a.short_name === preferredAlliance) opt.selected = true;
           sel.appendChild(opt);
         });
         log(`API erreichbar unter ${activeApiUrl}.`);
@@ -303,11 +386,12 @@ async function initAlliances() {
       }
     } catch (_) {}
   }
-  await loadMembers();
+  await checkScannerAccess();
 }
 
 // 2. Mitglieder von LWHub laden
 async function loadMembers() {
+  if (!accessOk) return;
   const alliance = document.getElementById('allianceSelect').value;
   log(`Lade Mitgliederliste für Allianz ${alliance} von ${activeApiUrl}...`);
   try {
@@ -353,7 +437,7 @@ if (sortSelect) {
 }
 
 document.getElementById('allianceSelect').addEventListener('change', async () => {
-  await loadMembers();
+  if (!await checkScannerAccess()) return;
   log(`Allianz gewechselt auf ${document.getElementById('allianceSelect').value}. Kacheln wurden automatisch neu abgeglichen.`);
 });
 document.getElementById('btnReloadMembers').addEventListener('click', loadMembers);
@@ -709,7 +793,7 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
   if (!confirm(confirmMsg)) return;
 
   try {
-    const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive);
+    const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, discordToken());
     const sum = res.summary;
     alert(
       `✅ Erfolgreich synchronisiert!\n\n` +

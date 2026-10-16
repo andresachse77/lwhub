@@ -18,6 +18,20 @@ den Rechner nicht. Die Seite lässt sich deshalb mit dem normalen FTP-Deploy auf
 
 Matching, Drag-and-Drop und CSS werden aus `../web-scanner/` mitgenutzt.
 
+## Zugang (nur R4/R5)
+
+- **Seite:** Der Scanner übernimmt den lwhub-Login aus dem `localStorage` (`discord_token`) und fragt
+  `GET /api/scans/access?alliance=X` mit `Authorization: Bearer <discord_token>`. Ohne Zugang bleibt
+  die Arbeitsfläche gesperrt, und es werden keine Mitglieder geladen.
+- **Server:** `api/src/caller-auth.php` prüft das Token bei Discord (`/users/@me`, 15 Minuten Cache in
+  `api_auth_cache`). Durchgelassen werden R4/R5 der Ziel-Allianz ohne Ehrenrolle sowie Site-Admins.
+  `POST /scans/sync` prüft dasselbe für die Allianz im Body. Jede Ablehnung landet in `api_auth_log`.
+- **Ausnahme:** Requests vom lokalen PHP-Server (127.0.0.1) sind wie in der übrigen API ausgenommen.
+- **Notschalter:** `define('LWHUB_SCANNER_AUTH_MODE', 'log');` (nur protokollieren) oder `'off'` in
+  `config.php`. Standard ist `'enforce'`.
+- **Altes Python-Cockpit:** `web-scanner/cockpit.html` sendet kein Token und kann deshalb nur noch
+  gegen den lokalen PHP-Server synchronisieren, nicht mehr gegen lwhub.de.
+
 Wichtig: Wer die Heuristiken in `server.py` ändert, muss die Änderung auch in `js/scanner-pipeline.js` nachziehen.
 
 ## Lokal starten

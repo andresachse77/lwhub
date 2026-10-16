@@ -109,3 +109,25 @@ Stand 16.10.2026, gemessen über alle 84 Captures:
 - Restliche Abweichungen: Leerzeichen im Status („Vor 3 Min.“ / „Vor3Min.“) und der doppelte Buchstabe
   im Leader-Namen („Emiliee“ / „Emiliiee“). Ursache sind Pixel-Unterschiede um ±1 beim
   Bild-Resize gegenüber cv2.
+
+## Kampfkraft-Trend (`trend.html`)
+
+Die Seite `trend.html` ist im Cockpit über „📈 Trend“ erreichbar. Sie ist wie der Scanner nur für
+R4/R5 und Site-Admins und lädt `GET /api/scans/power-history?alliance=X&weeks=N`
+(`api/src/power-trend.php`): je Spieler ein Wert pro Tag. Gibt es mehrere Werte an einem Tag, hat
+der genaue Ranglisten-Wert Vorrang vor dem gerundeten Wert aus der Mitgliederliste.
+
+Die Auswertung steckt in `js/power-trend.js`:
+
+| Kennzahl | Berechnung |
+|---|---|
+| Wochenzuwachs | letzter Wert der Woche gegen letzten Wert der Vorwoche |
+| Samstag-Opfer | letzter Wert Mo–Fr gegen Tiefstwert am Sa/So |
+| Wiederaufbau | Höchstwert der Folgewoche gegen das Opfer (100 % = komplett wieder aufgebaut) |
+| Bewegung / Tag | mittlere Veränderung zwischen zwei Messungen |
+
+Einstufung: 🔥 opfert (& baut auf), 📈 wächst, ➖ normal, ⚠️ stagniert (Gesprächskandidat),
+❔ zu wenig Daten (unter 6 Tagen Verlauf). Die Schwellen lassen sich in der Seite anpassen.
+
+Am aussagekräftigsten sind Scans am Freitag (vor dem Event), am Sonntag (danach) und einmal unter
+der Woche.

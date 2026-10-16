@@ -47,6 +47,7 @@
       </select>
       <button id="btnReloadMembers" class="btn btn-secondary" title="Mitgliederliste von LWHub neu laden">🔄 Neu laden</button>
       <button id="btnRematch" class="btn btn-secondary" title="Alle gescannten Kacheln neu gegen aktuelle Allianz abgleichen">⚡ Rematch</button>
+      <a id="linkTrend" class="btn btn-secondary" href="trend.html" title="Kampfkraft-Verlauf der Mitglieder: wer wächst, wer opfert am Samstag, wer stagniert">📈 Trend</a>
     </div>
 
     <div class="status-section">
@@ -214,16 +215,11 @@
 <script src="../web-scanner/js/matching.js"></script>
 <script src="../web-scanner/js/drag-drop.js"></script>
 <script src="js/ocr-client.js"></script>
+<script src="js/lwhub-access.js"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
-// Same-origin API first (lwhub.de or the local PHP router), then the known fallbacks.
-const API_CANDIDATES = [...new Set([
-  ...(location.protocol.startsWith('http') ? [`${location.origin}/api`] : []),
-  'http://127.0.0.1:8080/api',
-  'https://lwhub.de/api'
-])];
-let activeApiUrl = API_CANDIDATES[0];
+let activeApiUrl = LwhubAccess.apiCandidates()[0];
 
 window.cockpit = new CockpitState();
 const ocr = new BrowserOcr();
@@ -322,92 +318,28 @@ window.cockpit.attachDropHandlers(dropzoneNew, (cardId) => {
   window.cockpit.assignCardAsNewPlayer(cardId);
 });
 
-// Zugang: lwhub-Login (Discord) aus dem localStorage der Hauptseite, Server prueft R4/R5 per Token.
-function readStorageJson(key) {
-  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (_) { return null; }
-}
-function discordToken() {
-  try { return localStorage.getItem('discord_token') || null; } catch (_) { return null; }
-}
-const lwhubAuth = readStorageJson('iny_auth_state_v1');
-const lwhubActiveChar = readStorageJson('iny_active_char_v1');
+// Zugang: lwhub-Login (Discord), der Server prueft R4/R5 per Token (js/lwhub-access.js).
 let accessOk = false;
-
-function showAccessGate(title, text, { login = false, retry = false } = {}) {
-  accessOk = false;
-  document.getElementById('accessGate').hidden = false;
-  document.getElementById('accessGateTitle').textContent = title;
-  document.getElementById('accessGateText').textContent = text;
-  document.getElementById('accessGateLogin').hidden = !login;
-  document.getElementById('accessGateRetry').hidden = !retry;
-  document.getElementById('btnSyncToLwHub').disabled = true;
-  document.getElementById('userBadge').hidden = true;
-}
 
 async function checkScannerAccess() {
   const alliance = document.getElementById('allianceSelect').value;
-  const token = discordToken();
-  if (!token) {
-    showAccessGate('Bitte anmelden', 'Der Scanner ist nur für R4 und R5. Melde dich in lwhub mit Discord an und öffne den Scanner danach erneut.', { login: true, retry: true });
-    return false;
-  }
-  let resp, data = {};
-  try {
-    resp = await fetch(`${activeApiUrl}/scans/access?alliance=${encodeURIComponent(alliance)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(10000),
-    });
-    data = await resp.json().catch(() => ({}));
-  } catch (err) {
-    showAccessGate('Zugang konnte nicht geprüft werden', `Die lwhub-API ist nicht erreichbar (${err.message}).`, { retry: true });
-    return false;
-  }
-  if (resp.status === 401) {
-    showAccessGate('Anmeldung abgelaufen', 'Deine Discord-Anmeldung ist nicht mehr gültig. Melde dich in lwhub neu an und öffne den Scanner danach erneut.', { login: true, retry: true });
-    return false;
-  }
-  if (!resp.ok || !data.ok) {
-    showAccessGate('Kein Zugriff', data.error || `Der Scanner ist nur für R4 und R5 der Allianz ${alliance}.`, { retry: true });
-    return false;
-  }
-  accessOk = true;
-  document.getElementById('accessGate').hidden = true;
-  document.getElementById('btnSyncToLwHub').disabled = false;
-  const badge = document.getElementById('userBadge');
-  badge.hidden = false;
-  badge.className = 'badge-stat success';
-  badge.textContent = data.site_admin ? '🛡️ Site-Admin' : `🛡️ ${data.name || 'Angemeldet'} · R${data.rank}`;
-  log(`Zugang für ${alliance} bestätigt (${badge.textContent.replace('🛡️ ', '')}).`);
+  const data = await LwhubAccess.check(activeApiUrl, alliance, 'Der Scanner');
+  accessOk = !!data;
+  document.getElementById('btnSyncToLwHub').disabled = !accessOk;
+  document.getElementById('linkTrend').href = `trend.html?alliance=${encodeURIComponent(alliance)}`;
+  if (!accessOk) return false;
+  log(`Zugang für ${alliance} bestätigt (${document.getElementById('userBadge').textContent.replace('🛡️ ', '')}).`);
   await loadMembers();
   return true;
 }
 document.getElementById('accessGateRetry').addEventListener('click', checkScannerAccess);
 
-// Allianzen laden
+// Allianzen laden (Vorauswahl: Allianz des aktiven Chars aus lwhub)
 async function initAlliances() {
-  const sel = document.getElementById('allianceSelect');
-  // Vorauswahl: die Allianz des aktiven Chars aus lwhub
-  const preferredAlliance = lwhubActiveChar?.alliance || lwhubAuth?.active_alliance || lwhubAuth?.alliance || 'NxU1';
-  for (const candidate of API_CANDIDATES) {
-    try {
-      const resp = await fetch(`${candidate}/alliances`, { signal: AbortSignal.timeout(2000) });
-      if (!resp.ok) continue;
-      const data = await resp.json();
-      if (data.ok && Array.isArray(data.alliances) && data.alliances.length > 0) {
-        activeApiUrl = candidate;
-        sel.innerHTML = '';
-        data.alliances.forEach(a => {
-          const opt = document.createElement('option');
-          opt.value = a.short_name;
-          opt.textContent = `${a.short_name}${a.title ? ' – ' + a.title : ''}`;
-          if (a.short_name === preferredAlliance) opt.selected = true;
-          sel.appendChild(opt);
-        });
-        log(`API erreichbar unter ${activeApiUrl}.`);
-        break;
-      }
-    } catch (_) {}
-  }
+  const { apiUrl, alliances } = await LwhubAccess.findApi();
+  activeApiUrl = apiUrl;
+  LwhubAccess.fillAllianceSelect(document.getElementById('allianceSelect'), alliances, LwhubAccess.preferredAlliance());
+  if (alliances.length) log(`API erreichbar unter ${activeApiUrl}.`);
   await checkScannerAccess();
 }
 
@@ -879,7 +811,7 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
   if (!confirm(confirmMsg)) return;
 
   try {
-    const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, discordToken());
+    const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, LwhubAccess.discordToken());
     const sum = res.summary;
     alert(
       `✅ Erfolgreich synchronisiert!\n\n` +

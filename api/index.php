@@ -45,6 +45,7 @@ $PROTECTED_R4_NAMES = parseProtectedR4Names(getenv('INY_PROTECTED_R4_NAMES') ?: 
 require_once __DIR__ . '/src/db-setup.php';
 require_once __DIR__ . '/src/auth.php';
 require_once __DIR__ . '/src/caller-auth.php';
+require_once __DIR__ . '/src/power-trend.php';
 require_once __DIR__ . '/src/alliance.php';
 require_once __DIR__ . '/src/presence-chat.php';
 require_once __DIR__ . '/src/members.php';
@@ -221,6 +222,11 @@ try {
     // GET /scans/access – darf der angemeldete Nutzer fuer ?alliance= scannen? (R4/R5 oder Site-Admin)
     if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'access') {
         handleScannerAccess($pdo, $ALLIANCE);
+    }
+
+    // GET /scans/power-history – Kampfkraft je Spieler und Tag fuer die Trend-Seite (R4/R5)
+    if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'power-history') {
+        handlePowerHistory($pdo, $ALLIANCE);
     }
 
     // POST /scans/sync

@@ -16,6 +16,13 @@ $DB_USER   = getenv('MYSQL_USER')     ?: (defined('MYSQL_USER')     ? MYSQL_USER
 $DB_PASS   = getenv('MYSQL_PASSWORD') ?: (defined('MYSQL_PASSWORD') ? MYSQL_PASSWORD : '');
 $DB_SSL_CA = getenv('MYSQL_SSL_CA')   ?: (defined('MYSQL_SSL_CA')   ? MYSQL_SSL_CA   : '');
 
+// Auth-Pruefung (Konzept v2): 'off' = wie bisher, 'log' = nur protokollieren, 'enforce' = blockieren.
+// Standard 'log' blockiert nichts, daher muss config.php auf dem Server nicht angepasst werden.
+$AUTH_MODE = strtolower(trim((string)(getenv('LWHUB_AUTH_MODE') ?: (defined('LWHUB_AUTH_MODE') ? LWHUB_AUTH_MODE : 'log'))));
+if (!in_array($AUTH_MODE, ['off', 'log', 'enforce'], true)) {
+    $AUTH_MODE = 'log';
+}
+
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS');
@@ -83,6 +90,8 @@ try {
     ensureScannerColumns($pdo);
     ensurePlayerMetricsTable($pdo);
     ensureApiTokensTable($pdo);
+    ensureScannerV2Columns($pdo);
+    ensureApiAuthTables($pdo);
     seedProtectedAdmins($pdo, $PROTECTED_R4_NAMES);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
     try {

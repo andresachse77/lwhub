@@ -180,5 +180,52 @@ function ensureApiTokensTable(PDO $pdo): void {
     ");
 }
 
+// Konzept v2: Spalten nachruesten, alles nullable, damit der bestehende Sync-INSERT weiter funktioniert
+function ensureScannerV2Columns(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+    foreach ([
+        "ALTER TABLE player_metrics ADD COLUMN scan_id CHAR(36) NULL DEFAULT NULL",
+        "ALTER TABLE player_metrics ADD COLUMN year_week INT NULL DEFAULT NULL",
+        "ALTER TABLE player_metrics ADD COLUMN game_day TINYINT NULL DEFAULT NULL",
+        "ALTER TABLE player_metrics ADD COLUMN read_status VARCHAR(20) NULL DEFAULT NULL",
+        "ALTER TABLE player_metrics ADD COLUMN observations SMALLINT NULL DEFAULT NULL",
+        "ALTER TABLE player_metrics ADD KEY ix_metrics_scan (alliance, scan_id)",
+        "ALTER TABLE player_metrics ADD KEY ix_metrics_week (alliance, metric_type, year_week)",
+        "ALTER TABLE api_tokens ADD COLUMN created_by VARCHAR(50) NULL DEFAULT NULL",
+        "ALTER TABLE api_tokens ADD COLUMN expires_at DATETIME NULL DEFAULT NULL",
+    ] as $sql) {
+        try { $pdo->exec($sql); } catch (\PDOException) {}
+    }
+}
 
+function ensureApiAuthTables(PDO $pdo): void {
+    // Cache fuer serverseitig gepruefte Discord-Tokens (SHA-256 des Access-Tokens)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS api_auth_cache (
+            token_hash CHAR(64) NOT NULL,
+            discord_user_id VARCHAR(32) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            PRIMARY KEY (token_hash)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    // Protokoll fuer LWHUB_AUTH_MODE = 'log'
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS api_auth_log (
+            log_id BIGINT NOT NULL AUTO_INCREMENT,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            method VARCHAR(8) NOT NULL,
+            path VARCHAR(190) NOT NULL,
+            alliance VARCHAR(50) NULL,
+            claimed_discord_id VARCHAR(32) NULL,
+            verified_discord_id VARCHAR(32) NULL,
+            token_id CHAR(36) NULL,
+            verdict VARCHAR(30) NOT NULL,
+            ip VARCHAR(45) NULL,
+            PRIMARY KEY (log_id),
+            KEY ix_auth_log_time (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
 

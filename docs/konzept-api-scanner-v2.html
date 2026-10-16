@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LWHub &bull; API &amp; Scanner Konzept v2</title>
+<style>
+  :root {
+    --bg-primary: #0e1117; --bg-secondary: #161b22; --bg-tertiary: #21262d; --bg-card: #1c2128;
+    --border-color: #30363d; --accent: #58a6ff; --success: #3fb950; --warning: #d29922; --danger: #f85149;
+    --purple: #bc8cff; --text-primary: #f0f6fc; --text-secondary: #8b949e; --text-muted: #6e7681; --code-bg: #0d1117;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); line-height: 1.6; padding: 32px 16px; display: flex; justify-content: center; }
+  .container { max-width: 980px; width: 100%; }
+  .header { border-bottom: 1px solid var(--border-color); padding-bottom: 24px; margin-bottom: 36px; display: flex; flex-direction: column; gap: 12px; }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; padding: 3px 9px; border-radius: 20px; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+  .badge.blue { background: rgba(88,166,255,.15); color: var(--accent); border-color: rgba(88,166,255,.3); }
+  .badge.green { background: rgba(63,185,80,.15); color: var(--success); border-color: rgba(63,185,80,.3); }
+  .badge.purple { background: rgba(188,140,255,.15); color: var(--purple); border-color: rgba(188,140,255,.3); }
+  .badge.amber { background: rgba(210,153,34,.15); color: var(--warning); border-color: rgba(210,153,34,.3); }
+  .badge.red { background: rgba(248,81,73,.15); color: var(--danger); border-color: rgba(248,81,73,.3); }
+  h1 { font-size: 28px; font-weight: 700; color: #fff; line-height: 1.25; }
+  .subtitle { color: var(--text-secondary); font-size: 15px; }
+  section { margin-bottom: 40px; }
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h3 { font-size: 16px; font-weight: 600; color: var(--accent); margin: 20px 0 10px; }
+  p { color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; }
+  ul, ol { margin: 0 0 16px 24px; color: var(--text-secondary); font-size: 14px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text-primary); }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 16px 0; }
+  .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; }
+  .card h4 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .card p, .card ul { font-size: 13px; margin-bottom: 0; }
+  .card.ok { border-left: 4px solid var(--success); }
+  .card.warn { border-left: 4px solid var(--warning); }
+  .card.bad { border-left: 4px solid var(--danger); }
+  pre { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 14px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; color: #e6edf3; margin-bottom: 16px; }
+  code { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-tertiary); padding: 2px 5px; border-radius: 4px; color: #f0883e; }
+  pre code { background: none; padding: 0; color: inherit; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { padding: 9px 11px; text-align: left; border: 1px solid var(--border-color); vertical-align: top; color: var(--text-secondary); }
+  th { background: var(--bg-secondary); color: var(--text-primary); font-weight: 600; }
+  tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+  .y { color: var(--success); font-weight: 600; }
+  .m { color: var(--warning); font-weight: 600; }
+  .n { color: var(--danger); font-weight: 600; }
+  .note { border-left: 3px solid var(--accent); background: rgba(88,166,255,.08); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 14px 0; font-size: 13.5px; color: var(--text-secondary); }
+  .note.warn { border-left-color: var(--warning); background: rgba(210,153,34,.08); }
+  .note.bad { border-left-color: var(--danger); background: rgba(248,81,73,.08); }
+  .stage { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+  .stage-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .stage p, .stage ul { font-size: 13px; margin-bottom: 0; }
+  .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center; font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge-row">
+      <span class="badge blue">Architektur &amp; API-Konzept</span>
+      <span class="badge purple">Android &bull; Web-Scanner</span>
+      <span class="badge green">Additiv, nichts bricht</span>
+      <span class="badge amber">Stand: 2026-10-16</span>
+      <span class="badge red">v2 &ndash; ersetzt v1.0 und v1.1</span>
+    </div>
+    <h1>Integration: Thomas&rsquo; Android-App, Web-Scanner &amp; lwhub.de &ndash; v2</h1>
+    <div class="subtitle">
+      Zusammenf&uuml;hrung des ersten Konzepts (v1.0) und der &Uuml;berarbeitung von Thomas (v1.1), abgeglichen mit dem tats&auml;chlichen Code-Stand in <code>lwhub</code>, <code>web-scanner</code> und <code>Last-War-Tracker</code>. Kleiner Kern zuerst, Rest sp&auml;ter.
+    </div>
+  </div>
+
+  <!-- 0 -->
+  <section>
+    <h2><span>🧭</span> 0. Leitlinien</h2>
+    <ol>
+      <li><strong>Nichts darf kaputtgehen.</strong> Jede DB-&Auml;nderung ist additiv und nullable. Bestehende Felder, Endpunkte und Antworten bleiben gleich.</li>
+      <li><strong>Nicht stringent blockieren, sondern stufenweise.</strong> Der API-Schutz l&auml;uft zuerst im Modus &bdquo;nur protokollieren&ldquo;, erst danach wird blockiert.</li>
+      <li><strong>Pr&uuml;fen passiert im Client.</strong> Der Web-Scanner hat mit dem Cockpit bereits eine Zuordnungs-Ansicht, die App bekommt ihre Pr&uuml;fansicht mit Meilenstein&nbsp;3. Der Server bekommt deshalb vorerst <strong>keine</strong> eigene Pr&uuml;fliste.</li>
+      <li><strong>Riskante Aktionen nur mit Berechtigung.</strong> Wiederherstellen, Transfer, Neuanlage, Archivieren und R&auml;nge &auml;ndern nur mit R4/R5-Berechtigung, nie mit einem App-Token.</li>
+      <li><strong>Erst den Schutz, dann neue Funktionen.</strong> Der Sync-Endpunkt ist bereits live und offen. Das wird zuerst behoben.</li>
+    </ol>
+  </section>
+
+  <!-- 1 -->
+  <section>
+    <h2><span>🔍</span> 1. Ist-Stand im Code (wichtig f&uuml;r beide Konzepte)</h2>
+    <p>Teile von v1.0 sind seit dem Commit <code>scannerintegration</code> (13.10.) bereits umgesetzt. v1.1 tut an mehreren Stellen so, als g&auml;be es das noch nicht.</p>
+    <div class="card-grid">
+      <div class="card ok">
+        <h4>✅ Bereits vorhanden</h4>
+        <ul>
+          <li>Spalten <code>current_power</code>, <code>hq_level</code>, <code>last_scanned_at</code>, <code>last_seen_status</code> an <code>players</code> (<code>ensureScannerColumns</code>)</li>
+          <li>Tabellen <code>player_metrics</code> und <code>api_tokens</code> (<code>db-setup.php</code>). <code>api_tokens</code> wird aber nirgends gepr&uuml;ft.</li>
+          <li><code>GET /members</code> liefert die Scanner-Felder und <code>aliases</code> (aus <code>player_name_history</code>) bereits immer mit</li>
+          <li><code>POST /scans/sync</code> (<code>handleSyncScans</code>): Update, Restore, Transfer, Neuanlage, Archivieren, Rang aus der Schildzahl</li>
+          <li>Web-Scanner-Cockpit mit Drag&amp;Drop-Zuordnung und Best&auml;tigungsdialog vor dem Sync</li>
+        </ul>
+      </div>
+      <div class="card warn">
+        <h4>📱 Android-App (Stand 0.2.0)</h4>
+        <ul>
+          <li>Meilenstein 2 fertig (Erfassung/OCR), <strong>Meilenstein 3 (DB, Pr&uuml;fansicht) noch nicht begonnen</strong></li>
+          <li>Typen: <code>VS_DAY</code>, <code>VS_WEEK</code>, <code>POWER</code>, <code>KILLS</code>, <code>DONATION</code> (Woche), <code>DONATION_DAY</code>. Kein <code>MEMBERS_LIST</code>.</li>
+          <li><code>MergedEntry</code>: Name, Wert, <code>observations</code>, <code>conflicting</code>, Allianz-K&uuml;rzel</li>
+          <li>Kein Rang, keine Spiel-ID. Release-Version ohne Internet-Berechtigung.</li>
+          <li><code>MemberMatcher</code> existiert, wird aber noch nicht genutzt</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card bad" style="margin-top:4px">
+      <h4>🚨 Heute offen (unabh&auml;ngig von v1.0/v1.1)</h4>
+      <ul>
+        <li><strong>Keine Anmeldung an der API.</strong> Der Server bekommt im Body nur eine <code>discord_id</code>. Er pr&uuml;ft nicht, ob der Aufrufer diese Discord-ID wirklich besitzt. Gleichzeitig liefert <code>GET /members</code> die <code>discord_id</code> aller Mitglieder &ouml;ffentlich aus. Wer die ID eines R5 kennt, kann <code>requireR5</code> damit bestehen.</li>
+        <li><strong><code>POST /scans/sync</code> pr&uuml;ft gar nichts.</strong> Jeder kann damit Spieler anlegen, archivieren, aus dem Archiv holen, zwischen Allianzen verschieben und R&auml;nge &auml;ndern. Die Allianz kommt frei aus dem Body.</li>
+        <li><strong>Der Transfer im Sync ist unvollst&auml;ndig.</strong> Er verschiebt <code>players</code>, <code>player_identities</code> und <code>player_name_history</code>, aber <strong>nicht</strong> <code>weekly_entries</code> und <code>weekly_entry_flags</code> (anders als <code>handleTransferPlayer</code>). Die Wochenhistorie bleibt in der alten Allianz h&auml;ngen.</li>
+        <li>Restore sucht im Archiv <strong>nur nach dem Namen, &uuml;ber alle Allianzen</strong>. Transfer greift auf jeden gleichnamigen aktiven Spieler einer anderen Allianz zu.</li>
+        <li><code>player_metrics</code> speichert nur <code>POWER</code> und hat keinen Schutz gegen doppelte Uploads.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2><span>⚖️</span> 2. Vergleich v1.0 &harr; v1.1 &harr; v2</h2>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Thema</th><th>v1.0 (unser Konzept)</th><th>v1.1 (Thomas)</th><th>v2 (dieses Dokument)</th></tr></thead>
+      <tbody>
+        <tr><td>Restore / Transfer / Neuanlage</td><td>automatisch</td><td>nur Vorschlag, Server-Pr&uuml;fliste</td><td>bleibt im Sync, aber <strong>nur mit R4/R5-Berechtigung</strong>. Gepr&uuml;ft wird vorher im Client (Cockpit / App-Pr&uuml;fansicht).</td></tr>
+        <tr><td>Rang aus Scan</td><td>ja, Schildzahl R1&ndash;R5, gesch&uuml;tzt + protokolliert</td><td>nie</td><td>wie v1.0, aber <strong>nur aus der Mitgliederliste</strong> (Web-Scanner) und nur mit R4/R5-Berechtigung. Die App sendet keinen Rang.</td></tr>
+        <tr><td>Spiel-ID</td><td>&ndash;</td><td>nie verf&uuml;gbar, Zuordnung &uuml;ber Namen</td><td>&uuml;bernommen aus v1.1</td></tr>
+        <tr><td>Allianz</td><td>aus dem Body</td><td>aus dem Token</td><td>&uuml;bernommen aus v1.1: aus dem Token bzw. der gepr&uuml;ften Anmeldung</td></tr>
+        <tr><td><code>GET /members</code></td><td>Scanner-Felder immer</td><td>nur mit <code>?include=scanner</code></td><td>bleibt wie heute (Felder sind schon drin; ein Entfernen w&uuml;rde den Web-Scanner &auml;ndern)</td></tr>
+        <tr><td><code>player_metrics</code></td><td>Grundtabelle</td><td>+ <code>scan_id</code>, <code>year_week</code> NOT NULL, eindeutiger Schl&uuml;ssel</td><td>dieselben Spalten, aber <strong>nullable</strong>, eindeutiger Schl&uuml;ssel erst sp&auml;ter</td></tr>
+        <tr><td>Neue Tabellen</td><td>&ndash;</td><td><code>scan_sessions</code>, <code>player_aliases</code>, <code>scan_review_queue</code></td><td>vorerst keine. <code>player_aliases</code> optional in Phase&nbsp;5.</td></tr>
+        <tr><td>Tokens</td><td>Tabelle angelegt</td><td>Hash, Rollen, Ablauf, Allianz fix</td><td>&uuml;bernommen aus v1.1, zus&auml;tzlich Pr&uuml;fung der Discord-Anmeldung der Webseite</td></tr>
+        <tr><td>Flag-Br&uuml;cke</td><td>vollautomatisch</td><td>nur vorschlagen, zusammenf&uuml;hren, Schwellen in <code>alliance_config</code></td><td>&uuml;bernommen aus v1.1, aber erst <strong>ganz am Ende</strong>. Schwellen bleiben vorerst in <code>index.html</code>.</td></tr>
+        <tr><td>Lesequalit&auml;t (<code>read_status</code>)</td><td>&ndash;</td><td>pro Eintrag</td><td>&uuml;bernommen aus v1.1 (nullable)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <h3>Was an v1.1 gut ist und &uuml;bernommen wird</h3>
+    <ul>
+      <li>Allianz aus dem Token statt aus dem Body, Rollen <code>scanner</code>/<code>r4</code>/<code>r5</code>, Token nur gehasht, Klartext einmal anzeigen.</li>
+      <li><code>scan_id</code> pro Erfassung gegen Doppel-Uploads, <code>year_week</code>/<code>game_day</code>, <code>read_status</code>, <code>alliance_tag</code> zum Ausfiltern von Gegnern in VS-Listen.</li>
+      <li>Der Hinweis, dass <code>POST /entries</code> alle Flags eines Eintrags ersetzt. Eine Flag-Br&uuml;cke darf darum nur zusammenf&uuml;hren.</li>
+      <li>Die Festlegung, dass es keine Spiel-ID gibt.</li>
+    </ul>
+    <h3>Was an v1.1 zu invasiv ist bzw. nicht zum Code passt</h3>
+    <ul>
+      <li><strong>Server-Pr&uuml;fliste</strong> (<code>scan_review_queue</code> + neue Hub-Seite + 2 Endpunkte): doppelt, weil Web-Scanner und App selbst pr&uuml;fen. Das ist viel neuer Code ohne neuen Nutzen.</li>
+      <li><strong>Server-seitiger &Auml;hnlichkeitsabgleich und &bdquo;Umbenannt?&ldquo;-Erkennung:</strong> geh&ouml;rt in den Client, wo ein Mensch die Liste vor sich hat. Der <code>MemberMatcher</code> der App und das Cockpit decken das ab.</li>
+      <li><strong>&bdquo;Rang nie aus Scan&ldquo;</strong> widerspricht der umgesetzten Schild-Erkennung im Web-Scanner (inkl. Schutz von Protected-R4 und Ehrenmitgliedern).</li>
+      <li><strong><code>?include=scanner</code></strong> geht von einem alten Code-Stand aus. Die Felder sind schon in der Standard-Antwort.</li>
+      <li><strong><code>alliance_config</code> f&uuml;r Schwellen</strong> heisst, auch die Webseite umzubauen. Das ist sinnvoll, aber kein Teil des ersten Schritts.</li>
+    </ul>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2><span>🗄️</span> 3. Datenmodell: Bricht die Seite? (Antwort: nein, wenn so umgesetzt)</h2>
+    <p>Die Webseite liest <code>player_metrics</code>, <code>api_tokens</code> und die neuen v1.1-Tabellen nicht. Risiko entsteht nur dort, wo bestehender Server-Code in diese Tabellen schreibt.</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>&Auml;nderung aus v1.1</th><th>Risiko</th><th>Warum</th><th>v2-Entscheid</th></tr></thead>
+      <tbody>
+        <tr><td><code>player_metrics.scan_id</code> / <code>year_week</code> <strong>NOT NULL</strong></td><td class="n">bricht Sync</td><td>Der heutige <code>INSERT</code> in <code>handleSyncScans</code> setzt diese Spalten nicht. Im MySQL-Strict-Mode gibt das &bdquo;Field doesn't have a default value&ldquo;. Dann scheitert der ganze Sync mit HTTP 500 und Rollback. Ausserdem legt <code>CREATE TABLE IF NOT EXISTS</code> bei bestehender Tabelle keine Spalten an.</td><td>als <code>NULL</code> per <code>ALTER</code> nachr&uuml;sten</td></tr>
+        <tr><td><code>UNIQUE (alliance, scan_id, player_id, metric_type)</code></td><td class="n">ALTER schl&auml;gt fehl</td><td>Bestehende Zeilen h&auml;tten alle dieselbe leere <code>scan_id</code>, also Duplikate. Mit <code>NULL</code> w&auml;re es zwar erlaubt, sch&uuml;tzt dann aber nichts.</td><td>erst wenn alle Clients <code>scan_id</code> senden. Bis dahin Idempotenz im Code (vorher <code>DELETE &hellip; WHERE scan_id = ?</code>).</td></tr>
+        <tr><td><code>game_day</code>, <code>read_status</code>, <code>observations</code></td><td class="y">keins</td><td>nullable bzw. mit Default</td><td>&uuml;bernehmen</td></tr>
+        <tr><td><code>api_tokens</code>: <code>created_by</code>, <code>expires_at</code>, UNIQUE auf Hash</td><td class="y">keins</td><td>Tabelle ist leer und unbenutzt</td><td>&uuml;bernehmen</td></tr>
+        <tr><td><code>scan_sessions</code></td><td class="y">keins</td><td>neue Tabelle</td><td>vorerst nicht n&ouml;tig (die <code>scan_id</code> in <code>player_metrics</code> reicht)</td></tr>
+        <tr><td><code>player_aliases</code></td><td class="y">keins</td><td>neue Tabelle. <code>GET /members</code> m&uuml;sste sie lesen (try/catch wie heute bei der Namenshistorie).</td><td>optional, Phase&nbsp;5</td></tr>
+        <tr><td><code>scan_review_queue</code></td><td class="y">keins</td><td>neue Tabelle, aber viel Folgecode</td><td>nicht umsetzen</td></tr>
+        <tr><td>Schwellen in <code>alliance_config</code></td><td class="m">mittel</td><td>Die Webseite m&uuml;sste sie dort lesen statt fest im Code. Ein Fehler &auml;ndert sichtbare Flags.</td><td>sp&auml;ter, zusammen mit der Flag-Br&uuml;cke</td></tr>
+        <tr><td><code>GET /members</code> nur mit <code>?include=scanner</code></td><td class="m">mittel</td><td>Der Web-Scanner nutzt die Felder heute ohne Parameter</td><td>nicht umsetzen, Antwort bleibt</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <h3>Migration v2 (nur das)</h3>
+    <pre><code>-- player_metrics: Spalten nachruesten, alles nullable
+ALTER TABLE player_metrics
+    ADD COLUMN scan_id CHAR(36) NULL DEFAULT NULL,
+    ADD COLUMN year_week INT NULL DEFAULT NULL,
+    ADD COLUMN game_day TINYINT NULL DEFAULT NULL,
+    ADD COLUMN read_status VARCHAR(20) NULL DEFAULT NULL,   -- 'ok','corrected','conflicting','unreadable'
+    ADD COLUMN observations SMALLINT NULL DEFAULT NULL,
+    ADD KEY ix_metrics_scan (alliance, scan_id),
+    ADD KEY ix_metrics_week (alliance, metric_type, year_week);
+
+-- api_tokens: Verwaltung
+ALTER TABLE api_tokens
+    ADD COLUMN created_by VARCHAR(50) NULL DEFAULT NULL,
+    ADD COLUMN expires_at DATETIME NULL DEFAULT NULL;
+
+-- Discord-Anmeldung serverseitig pruefen (Cache, siehe Abschnitt 4)
+CREATE TABLE IF NOT EXISTS api_auth_cache (
+    token_hash CHAR(64) NOT NULL,          -- SHA-256 des Discord-Access-Tokens
+    discord_user_id VARCHAR(32) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    PRIMARY KEY (token_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Protokoll fuer den Modus "nur loggen"
+CREATE TABLE IF NOT EXISTS api_auth_log (
+    log_id BIGINT NOT NULL AUTO_INCREMENT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    method VARCHAR(8) NOT NULL,
+    path VARCHAR(190) NOT NULL,
+    alliance VARCHAR(50) NULL,
+    claimed_discord_id VARCHAR(32) NULL,
+    verified_discord_id VARCHAR(32) NULL,
+    token_id CHAR(36) NULL,
+    verdict VARCHAR(30) NOT NULL,          -- 'ok','no_auth','id_mismatch','role_too_low','bad_token'
+    ip VARCHAR(45) NULL,
+    PRIMARY KEY (log_id),
+    KEY ix_auth_log_time (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
+    <p>Alles im Stil der bestehenden <code>ensure&hellip;</code>-Funktionen: einzelne <code>ALTER</code> in try/catch, damit ein zweiter Lauf nichts tut.</p>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2><span>🛡️</span> 4. API-Schutz (stufenweise, ohne Bruch)</h2>
+    <p>Kernidee: Ein Schalter in <code>config.php</code> legt fest, wie streng gepr&uuml;ft wird. Gepr&uuml;ft wird von Anfang an. Blockiert wird erst, wenn das Protokoll zeigt, dass alle legitimen Aufrufe durchkommen.</p>
+    <pre><code>// config.php
+define('LWHUB_AUTH_MODE', 'log');   // 'off' | 'log' | 'enforce'</code></pre>
+    <ul>
+      <li><code>off</code>: Verhalten wie heute.</li>
+      <li><code>log</code>: Es wird gepr&uuml;ft und jede Abweichung in <code>api_auth_log</code> geschrieben. <strong>Nichts wird blockiert.</strong></li>
+      <li><code>enforce</code>: Abweichungen bekommen 401/403. Lesende Endpunkte bleiben offen (siehe unten).</li>
+    </ul>
+
+    <h3>Wer bin ich? Zwei Wege, ein Header</h3>
+    <div class="card-grid">
+      <div class="card">
+        <h4>🌐 Webseite (Browser)</h4>
+        <p>Die Webseite hat den Discord-Access-Token bereits (<code>localStorage.discord_token</code>). <code>fetchJson()</code> schickt ihn zus&auml;tzlich als <code>Authorization: Bearer &lt;discord_token&gt;</code> mit. Das ist eine zentrale Stelle, und CORS erlaubt den Header schon. Der Server fragt einmal bei Discord <code>/users/@me</code> nach und merkt sich das Ergebnis 15&nbsp;Minuten in <code>api_auth_cache</code>. Danach pr&uuml;ft er: Stimmt die <code>discord_id</code> im Body mit der gepr&uuml;ften &uuml;berein?</p>
+      </div>
+      <div class="card">
+        <h4>🤖 App &amp; Web-Scanner</h4>
+        <p><code>Authorization: Bearer lwhub_&hellip;</code> (Pr&auml;fix <code>lwhub_</code> unterscheidet ihn vom Discord-Token). Der Server sucht den SHA-256 in <code>api_tokens</code>. Allianz und Rolle kommen aus dem Token. R5 erstellt und widerruft Tokens im Admin-Bereich, der Klartext wird einmal angezeigt.</p>
+      </div>
+    </div>
+    <pre><code>// auth.php (Skizze)
+function resolveCaller(PDO $pdo, array $body): array
+// liefert ['kind' =&gt; 'discord'|'token'|'local'|'none',
+//          'discord_id' =&gt; ?, 'alliance' =&gt; ?, 'role' =&gt; 'scanner'|'r4'|'r5'|null]
+
+function authCheck(PDO $pdo, array $caller, string $need, string $alliance): void
+// $need: 'member' | 'r4' | 'r5' | 'scanner'
+// mode 'log'     -&gt; Verdict in api_auth_log, weiter
+// mode 'enforce' -&gt; jsonOut(401/403)</code></pre>
+    <p><code>isLocalRequest()</code> (lokaler Dev-Server) bleibt als Ausnahme bestehen.</p>
+
+    <h3>Was wird gesch&uuml;tzt (Reihenfolge)</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Stufe</th><th>Endpunkte</th><th>Mindestens</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>POST /scans/sync</code></td><td>Token (<code>scanner</code> nur Werte aktualisieren) bzw. R4/R5 f&uuml;r Restore, Transfer, Neuanlage, Archivieren, Rang</td></tr>
+        <tr><td>2</td><td>Alles, was heute <code>requireR5</code> nutzt (Transfer, Archiv, Admins, Allianzen)</td><td>R5, gepr&uuml;ft &uuml;ber Discord-Token statt nur Body-ID</td></tr>
+        <tr><td>3</td><td>Schreibende Mitglieder- und Wochen-Endpunkte (<code>POST/PUT/DELETE /members</code>, <code>/entries</code>, <code>/apply-rank-change</code>, Zug-Plan)</td><td>angemeldetes Mitglied bzw. R4, je nach heutiger Logik</td></tr>
+        <tr><td>sp&auml;ter</td><td>Lesende Endpunkte</td><td>bleiben offen. Optional: <code>discord_id</code> in <code>GET /members</code> nur an angemeldete Aufrufer.</td></tr>
+        <tr><td>sp&auml;ter</td><td>CORS <code>*</code> &rarr; <code>lwhub.de</code> + localhost</td><td>Erg&auml;nzung, kein Ersatz. Gegen direkte Aufrufe (curl, App) hilft CORS nicht.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note warn"><strong>Ablauf je Stufe:</strong> im Modus <code>log</code> einschalten &rarr; eine Woche Protokoll ansehen &rarr; L&uuml;cken im Frontend schliessen (z.&nbsp;B. Aufrufe ohne Header) &rarr; <code>enforce</code>. Bei Problemen zur&uuml;ck auf <code>log</code>, das ist eine Zeile in <code>config.php</code>.</div>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <h2><span>🔄</span> 5. <code>POST /scans/sync</code> v2</h2>
+    <p>Bestehender Endpunkt, bestehendes Format. Neue Felder sind optional, der Web-Scanner funktioniert ohne Anpassung weiter (bis die Auth auf <code>enforce</code> steht).</p>
+    <h3>Regeln</h3>
+    <ol>
+      <li><strong>Allianz</strong> = Allianz des Tokens bzw. die gepr&uuml;fte Allianz des angemeldeten R4/R5. <code>body.alliance</code> muss leer sein oder &uuml;bereinstimmen.</li>
+      <li><strong>Rolle <code>scanner</code></strong> (App): nur Eintr&auml;ge mit bekannter <code>player_id</code> <em>oder</em> eindeutigem exaktem Namenstreffer in der eigenen Allianz werden gespeichert. Alles andere kommt als <code>unmatched</code> zur&uuml;ck. Es wird nichts angelegt, verschoben, archiviert oder am Rang ge&auml;ndert.</li>
+      <li><strong>Rolle <code>r4</code>/<code>r5</code></strong> (Web-Scanner nach Cockpit-Pr&uuml;fung): Verhalten wie heute (Restore, Neuanlage, Archivieren, Rang aus Schild). <strong>Transfer nur <code>r5</code></strong>, und dann &uuml;ber dieselbe Funktion wie <code>handleTransferPlayer</code>, damit auch <code>weekly_entries</code> mitwandern.</li>
+      <li><strong>Restore</strong> nur aus dem Archiv der eigenen Allianz, oder wenn der Client die <code>player_id</code> ausdr&uuml;cklich mitschickt.</li>
+      <li><strong>Gegner filtern:</strong> Eintr&auml;ge mit <code>alliance_tag</code> &ne; eigenes K&uuml;rzel werden verworfen (VS-Listen).</li>
+      <li><strong>Idempotenz:</strong> Kommt eine bekannte <code>scan_id</code> erneut, werden die alten Metriken dieser <code>scan_id</code> zuerst gel&ouml;scht.</li>
+      <li><strong>Metrik je <code>scan_type</code></strong> statt fest <code>POWER</code>. <code>DONATION</code> der App wird als <code>DONATION_WEEK</code> gespeichert.</li>
+      <li><code>dry_run: true</code> f&uuml;hrt alles in der Transaktion aus und rollt am Ende zur&uuml;ck. Die Antwort zeigt, was passieren w&uuml;rde.</li>
+    </ol>
+    <h3>Request (App, Rolle <code>scanner</code>)</h3>
+    <pre><code>POST /api/scans/sync
+Authorization: Bearer lwhub_xxxxxxxxxxxxxxxx
+{
+  "scan_id": "5f2c1e0a-...",          // neu, optional – UUID pro Erfassung
+  "scan_type": "VS_WEEK",             // POWER | KILLS | VS_DAY | VS_WEEK | DONATION_DAY | DONATION_WEEK | MEMBERS_LIST
+  "year_week": 202642,                // neu, optional – Format wie weekly_entries.year_week
+  "game_day": null,                   // neu, optional – 1..7 bei *_DAY
+  "recorded_at": "2026-10-16T19:00:00Z",
+  "source": "android_app",
+  "client_version": "LW Tracker 0.5.0",
+  "dry_run": false,
+  "entries": [
+    { "name": "Lion Tooth", "player_id": "e3a89012-...", "value_numeric": 51230000,
+      "read_status": "ok", "observations": 3, "alliance_tag": "NxU1" }
+  ]
+}</code></pre>
+    <h3>Response (erweitert, alte Felder bleiben)</h3>
+    <pre><code>{
+  "ok": true,
+  "scan_id": "5f2c1e0a-...",
+  "replaced_previous_upload": false,
+  "summary": { "total": 1, "updated": 1, "created": 0, "restored": 0, "transferred": 0,
+               "archived": 0, "rank_changes": 0, "unmatched": 0, "ignored_other_alliance": 0 },
+  "details": [ { "name": "Lion Tooth", "action": "updated", "player_id": "e3a89012-..." } ],
+  "unmatched": [],
+  "conflicts": []
+}</code></pre>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <h2><span>🌉</span> 6. Flag-Br&uuml;cke (sp&auml;ter)</h2>
+    <p>Erst wenn mehrere Wochen saubere Werte in <code>player_metrics</code> liegen. Regeln aus v1.1 &uuml;bernommen:</p>
+    <ul>
+      <li>Flags werden nur <strong>vorgeschlagen</strong> und mit einem Klick &uuml;bernommen. Der Server f&uuml;hrt nur die betroffenen Schl&uuml;ssel zusammen, weil <code>POST /entries</code> sonst alle anderen Flags l&ouml;scht.</li>
+      <li>Strafen (<code>spendeUnter35k</code>, <code>vsUnter50</code>) nie aus Werten mit <code>read_status</code> <code>conflicting</code>/<code>unreadable</code>.</li>
+      <li>Von Hand gesetzte Flags gewinnen.</li>
+      <li>Schwellen erst dann nach <code>alliance_config</code> verschieben.</li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <h2><span>📅</span> 7. Fahrplan</h2>
+    <div class="stage"><div class="stage-head"><span>Phase 1 &ndash; Sync absichern</span><span class="badge red">sofort</span></div>
+      <p>Migration aus Abschnitt 3, Token-Pr&uuml;fung, <code>LWHUB_AUTH_MODE</code>, Sync-Regeln 1&ndash;4, Transfer-Bug beheben, Token-Feld im Web-Scanner-Cockpit, Token-Verwaltung f&uuml;r R5.</p></div>
+    <div class="stage"><div class="stage-head"><span>Phase 2 &ndash; Discord-Anmeldung pr&uuml;fen</span><span class="badge amber">danach</span></div>
+      <p><code>fetchJson()</code> sendet den Discord-Token. Server pr&uuml;ft mit Cache, zuerst <code>log</code>, dann <code>enforce</code> f&uuml;r R5-Endpunkte, danach f&uuml;r schreibende Endpunkte.</p></div>
+    <div class="stage"><div class="stage-head"><span>Phase 3 &ndash; Sync f&uuml;r die App</span><span class="badge blue">wenn App Meilenstein 3 steht</span></div>
+      <p>Regeln 5&ndash;8 (<code>alliance_tag</code>, <code>scan_id</code>, Metrik je Typ, <code>dry_run</code>). Testlauf mit Thomas &uuml;ber <code>dry_run</code>.</p></div>
+    <div class="stage"><div class="stage-head"><span>Phase 4 &ndash; App-Anbindung</span><span class="badge purple">Thomas</span></div>
+      <p>Eigene Build-Variante mit Internet, <code>LwHubUploader</code>, Mitgliederliste laden und <code>MemberMatcher</code> nutzen, Upload erst nach der Pr&uuml;fansicht. Alternativ JSON-Datei-Export.</p></div>
+    <div class="stage"><div class="stage-head"><span>Phase 5 &ndash; Ausbau (optional)</span><span class="badge">sp&auml;ter</span></div>
+      <p><code>player_aliases</code>, eindeutiger Schl&uuml;ssel auf <code>scan_id</code>, Auswertungen aus <code>player_metrics</code> auf der Webseite, Flag-Vorschl&auml;ge, Events (Desert Storm, Zombie Siege).</p></div>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <h2><span>❓</span> 8. Offene Punkte</h2>
+    <ol>
+      <li><strong>Spielwoche:</strong> Wann beginnt Woche/Tag (Serverzeit, Zeitzone)? Wer rechnet <code>year_week</code>: Client oder Server? Vorschlag: Server rechnet aus <code>recorded_at</code>, der Client darf &uuml;berschreiben.</li>
+      <li><strong>Mehrere Erfassungen pro Woche:</strong> Z&auml;hlt f&uuml;r Auswertungen der letzte Scan oder der h&ouml;chste Wert?</li>
+      <li><strong>Upload-Weg der App:</strong> eigene Build-Variante mit Internet oder nur JSON-Datei, die im Hub hochgeladen wird?</li>
+      <li><strong>Ehrenmitglieder:</strong> Werte speichern, aber bei Top-N auslassen?</li>
+      <li><strong>Aufbewahrung</strong> von <code>player_metrics</code> und Umgang beim Archivieren.</li>
+      <li><strong><code>discord_id</code> in <code>GET /members</code>:</strong> Wof&uuml;r braucht die Seite sie ohne Anmeldung? Erst danach entscheiden, ob sie ausgeblendet wird.</li>
+    </ol>
+  </section>
+
+  <div class="footer">
+    LWHub &bull; Konzept v2 (2026-10-16) &bull; ersetzt <code>konzept-api-scanner.html</code> (v1.0) und v1.1<br>
+    Enth&auml;lt Hinweise auf offene Sicherheitsl&uuml;cken &ndash; nicht &ouml;ffentlich auf lwhub.de ablegen, bevor Phase 1 und 2 umgesetzt sind.
+  </div>
+</div>
+</body>
+</html>

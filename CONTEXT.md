@@ -71,6 +71,8 @@ Lokaler Dev-Server: `http://127.0.0.1:8080` via `scripte/router.php` → `php -S
 ```php
 define('INY_ALLIANCE', 'NxU1');
 define('INY_PROTECTED_R4_NAMES', 'Lion Tooth');
+// optional, Standard 'log' (off | log | enforce)
+// define('LWHUB_AUTH_MODE', 'log');
 ```
 
 ---

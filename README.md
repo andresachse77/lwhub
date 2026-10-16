@@ -55,7 +55,10 @@ php -S 127.0.0.1:8080 scripte/router.php
 ```
 MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD
 INY_ALLIANCE, INY_PROTECTED_R4_NAMES
+LWHUB_AUTH_MODE   (off | log | enforce, Standard: log)
 ```
+
+`LWHUB_AUTH_MODE` kann auch in `config.php` gesetzt werden: `define('LWHUB_AUTH_MODE', 'off');`
 
 ## Deployment nach Hetzner per GitHub Actions
 

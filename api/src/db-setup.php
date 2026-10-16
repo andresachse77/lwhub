@@ -200,6 +200,23 @@ function ensureScannerV2Columns(PDO $pdo): void {
     }
 }
 
+// Haekchen "Sparwoche eingehalten" (vsSpar) in jeder Allianz mit VS-Kategorie anlegen: weekly_entry_flags
+// verweist per Fremdschluessel auf flags, ohne Eintrag dort wird das Speichern abgelehnt.
+function ensureVsSparFlag(PDO $pdo): void {
+    try {
+        $pdo->exec("
+            INSERT IGNORE INTO flags (alliance, flag_key, category_key, flag_label, flag_type, points_weight, is_active, sort_order)
+            SELECT fc.alliance, 'vsSpar', 'vs', 'vsSpar', 'b', 0, 1,
+                   COALESCE((SELECT MAX(f.sort_order) FROM flags f WHERE f.alliance = fc.alliance AND f.category_key = 'vs'), 0) + 1
+            FROM flag_categories fc
+            WHERE fc.category_key = 'vs'
+              AND NOT EXISTS (SELECT 1 FROM flags x WHERE x.alliance = fc.alliance AND x.flag_key = 'vsSpar')
+        ");
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+    }
+}
+
 function ensureApiAuthTables(PDO $pdo): void {
     // Cache fuer serverseitig gepruefte Discord-Tokens (SHA-256 des Access-Tokens)
     $pdo->exec("

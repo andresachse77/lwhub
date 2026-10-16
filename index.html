@@ -617,7 +617,9 @@ nav {
 .wache-tile .wt-top { padding:8px 10px 4px; text-align:center; }
 .wache-tile .wt-name { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wache-tile .wt-rank { font-family:'Rajdhani',sans-serif; font-size:10px; color:#b5c0db; margin-top:1px; }
-.wache-tile .wt-scan { font-size:10px; color:#8fb8ff; margin-top:2px; font-variant-numeric:tabular-nums; }
+.wache-tile .wt-scan { font-size:10px; color:#8fb8ff; margin-top:2px; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wache-tile .wt-scan.spar-over { color:#ff8a7a; }
+.wache-tile .wt-scan.spar-ok { color:#5fd38d; }
 .wache-tile .wt-btns { display:flex; border-top:1px solid var(--line); }
 .wt-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 4px; cursor:pointer; font-size:12px; font-weight:600; font-family:'Inter',sans-serif; transition:all 0.12s; user-select:none; -webkit-tap-highlight-color:transparent; border:none; background:none; color:var(--soft); }
 .wt-btn:first-child { border-right:1px solid var(--line); }
@@ -635,6 +637,7 @@ nav {
 .wt-btn.on-gold { background:rgba(240,165,0,0.15); color:var(--gold); }
 .wache-legend { display:flex; gap:16px; margin-bottom:1rem; font-size:12px; color:#c7d1ea; align-items:center; flex-wrap:wrap; }
 .wache-legend span { display:flex; align-items:center; gap:4px; }
+.wache-legend span[hidden] { display:none; }
 .wache-counter { font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:700; color:var(--gold); }
 .event-section { display:none; }
 .event-section.active { display:block; }
@@ -5033,14 +5036,21 @@ window.spezialSet = spezialSet;
 // 10 Mio ist ok, darueber gibt es keinen Bonus. Keine Top-10/Top-30-Boni, keine Strafe unter 43,2 Mio.
 // Festgelegt je Allianz und KW (alliance_config "vs_sparwochen", R4/R5 ueber POST /scans/sparwoche).
 const VS_SPAR_MAX_PER_DAY = 10000000;
+// Uebersetzung mit Platzhaltern: trf('KW {kw} …', { kw: 42 }); Zahlen und Wochentage in der UI-Sprache
+function trf(de, vars = {}) {
+  return Object.entries(vars).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), tr(de));
+}
+const uiLang = () => document.documentElement.lang || 'de';
+const fmtMio = v => (v / 1e6).toLocaleString(uiLang(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const vsDayName = d => new Date(Date.UTC(2024, 0, d)).toLocaleDateString(uiLang(), { weekday: 'short', timeZone: 'UTC' }); // 1.1.2024 = Montag
 function isSparwoche(yw = kw) {
   return String(flagConfig.vs_sparwochen ?? '').split(',').map(Number).includes(Number(yw));
 }
 async function vsToggleSparwoche() {
   const active = !isSparwoche();
   const ask = active
-    ? [`KW ${kw % 100} als Sparwoche festlegen?`, '', 'Dann gilt: höchstens 10 Mio je VS-Tag → Bonus, keine Top 10/Top 30, keine Strafe.', 'Danach „Aus Scanner übernehmen“ drücken, damit die Häkchen neu gesetzt werden.']
-    : [`Sparwoche für KW ${kw % 100} aufheben?`, '', 'Danach „Aus Scanner übernehmen“ drücken, damit die normalen Häkchen gesetzt werden.'];
+    ? [trf('KW {kw} als Sparwoche festlegen?', { kw: kw % 100 }), '', tr('Dann gilt: höchstens 10 Mio je VS-Tag → Bonus, keine Top 10/Top 30, keine Strafe.'), tr('Danach „Aus Scanner übernehmen“ drücken, damit die Häkchen neu gesetzt werden.')]
+    : [trf('Sparwoche für KW {kw} aufheben?', { kw: kw % 100 }), '', tr('Danach „Aus Scanner übernehmen“ drücken, damit die normalen Häkchen gesetzt werden.')];
   if (!confirm(ask.join(String.fromCharCode(10)))) return;
   const token = (() => { try { return localStorage.getItem('discord_token'); } catch (_) { return null; } })();
   try {
@@ -5107,11 +5117,12 @@ function renderVS() {
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
-    const btnSpar  = `<button class="wt-btn ${sparOk?'on-anm':''}" onclick="vsSet('${esc}','spar')" title="Sparwoche eingehalten (höchstens 10 Mio je VS-Tag)">${sparOk?'🐷 eingehalten':'🐷'}</button>`;
+    const btnSpar  = `<button class="wt-btn ${sparOk?'on-anm':''}" onclick="vsSet('${esc}','spar')" title="${escHtml(tr('Sparwoche eingehalten (höchstens 10 Mio je VS-Tag)'))}">${sparOk ? '🐷 ' + escHtml(tr('eingehalten')) : '🐷'}</button>`;
     const maxDay = maxDayOf(scan);
     const scanInfo = !scan ? '' : spar
-      ? `📸 max ${(maxDay / 1e6).toFixed(1).replace('.', ',')} Mio/Tag${maxDay > VS_SPAR_MAX_PER_DAY ? ' ⚠' : ''}`
-      : `📸 ${(scan.week_points / 1e6).toFixed(1).replace('.', ',')} Mio · Platz ${scan.place}`;
+      ? `📸 ${escHtml(trf('max {v} Mio/Tag', { v: fmtMio(maxDay) }))} ${maxDay > VS_SPAR_MAX_PER_DAY ? '✗' : '✓'}`
+      : `📸 ${escHtml(trf('{v} Mio · Platz {p}', { v: fmtMio(scan.week_points), p: scan.place }))}`;
+    const scanCls = spar && scan ? (maxDay > VS_SPAR_MAX_PER_DAY ? ' spar-over' : ' spar-ok') : '';
     const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="vsSet('${esc}','unter')" title="unter 43,2 Mio Punkte (Strafe)">${unter?'⚠ &lt;43,2M':'🟥'}</button>`;
     const btnT30   = `<button class="wt-btn ${t30?'on-anm':''}" onclick="vsSet('${esc}','t30')" title="Top 30">${t30?'🥈 T30':'🥈'}</button>`;
     const btnT10   = `<button class="wt-btn ${t10?'on-gold':''}" onclick="vsSet('${esc}','t10')" title="Top 10">${t10?'🏆 T10':'🏆'}</button>`;
@@ -5121,7 +5132,7 @@ function renderVS() {
       <div class="wt-top">
         <div class="wt-name">${name}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
-        ${scan ? `<div class="wt-scan" title="Gescannte VS-Punkte">${scanInfo}</div>` : ''}
+        <div class="wt-scan${scanCls}" title="${escHtml(tr(spar ? 'Höchster gescannter VS-Tageswert (Sparziel: höchstens 10 Mio)' : 'Gescannte VS-Wochenpunkte'))}">${scan ? scanInfo : '&nbsp;'}</div>
       </div>
       <div class="wt-btns">${spar ? btnSpar : btnUnter + btnT30 + btnT10}</div>
     </div>`;
@@ -5208,33 +5219,33 @@ async function vsImportFromScanner() {
     if (!same) plan.push({ name, flags, p });
   }
   if (!data.players?.length) { toast(tr('Für diese KW gibt es keine gescannten VS-Wochenpunkte.')); return; }
-  const dayNames = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-  const days = (data.days_scanned || []).map(d => dayNames[d]).join(', ') || '—';
+  const days = (data.days_scanned || []).map(vsDayName).join(', ') || '—';
   const missingSat = !(data.days_scanned || []).includes(6);
   const count = (k) => plan.filter(x => x.flags[k]).length;
   const unknown = (data.players || []).filter(p => !members.includes(p.name)).length;
+  const lastScan = data.last_scan ? new Date(data.last_scan.replace(' ', 'T')).toLocaleString(uiLang(), { dateStyle: 'short', timeStyle: 'short' }) : '?';
   const msg = [
-    `KW ${kw % 100}: ${data.players.length} Spieler mit gescannten Wochenpunkten`,
-    `Gescannte Tage: ${days} · Stand ${data.last_scan || '?'}`,
-    missingSat ? '⚠ Samstag ist noch nicht gescannt – die Wochenpunkte sind evtl. noch nicht final.' : null,
+    trf('KW {kw}: {n} Spieler mit gescannten Wochenpunkten', { kw: kw % 100, n: data.players.length }),
+    trf('Gescannte Tage: {days} · Stand {time}', { days, time: lastScan }),
+    missingSat ? tr('⚠ Samstag ist noch nicht gescannt – die Wochenpunkte sind evtl. noch nicht final.') : null,
     '',
-    spar ? '🐷 Sparwoche: höchstens 10 Mio je VS-Tag → Bonus, keine Top 10/Top 30, keine Strafe' : null,
-    `Änderungen bei ${plan.length} Spielern:`,
+    spar ? tr('🐷 Sparwoche: höchstens 10 Mio je VS-Tag → Bonus, keine Top 10/Top 30, keine Strafe') : null,
+    trf('Änderungen bei {n} Spielern:', { n: plan.length }),
     ...(spar ? (() => {
       const withDays = (data.players || []).filter(p => Object.keys(p.days || {}).length);
       const ok = withDays.filter(p => Math.max(...Object.values(p.days)) <= VS_SPAR_MAX_PER_DAY).length;
       return [
-        `• 🐷 eingehalten (alle Tage ≤ 10 Mio): ${ok} von ${withDays.length}`,
-        `• über 10 Mio an mindestens einem Tag (kein Bonus): ${withDays.length - ok}`,
+        trf('• 🐷 eingehalten (alle Tage ≤ 10 Mio): {ok} von {n}', { ok, n: withDays.length }),
+        trf('• über 10 Mio an mindestens einem Tag (kein Bonus): {n}', { n: withDays.length - ok }),
       ];
     })() : [
       `• 🏆 Top 10: ${count('vsTop10')}`,
       `• 🥈 Top 30: ${count('vsTop30')}`,
-      `• 🟥 unter 43,2 Mio: ${count('vsUnter50')}`,
+      trf('• 🟥 unter 43,2 Mio: {n}', { n: count('vsUnter50') }),
     ]),
-    unknown ? `(${unknown} gescannte Namen stehen nicht in der Mitgliederliste und werden übersprungen.)` : null,
+    unknown ? trf('({n} gescannte Namen stehen nicht in der Mitgliederliste und werden übersprungen.)', { n: unknown }) : null,
     '',
-    'VS-Häkchen dieser KW werden ersetzt, andere Häkchen bleiben. Übernehmen?',
+    tr('VS-Häkchen dieser KW werden ersetzt, andere Häkchen bleiben. Übernehmen?'),
   ].filter(l => l !== null).join(String.fromCharCode(10));
   if (!plan.length) { toast(tr('VS-Häkchen sind bereits auf dem Stand der Scanner-Daten.')); return; }
   if (!confirm(msg)) return;
@@ -5250,7 +5261,7 @@ async function vsImportFromScanner() {
   vsScanData.kw = null; // neu laden
   await loadEntries();
   renderVS();
-  toast(`${done} / ${plan.length} ` + tr('Spieler aus dem Scanner übernommen'), 'ok');
+  toast(trf('{done} / {n} Spieler aus dem Scanner übernommen', { done, n: plan.length }), 'ok');
 }
 window.vsImportFromScanner = vsImportFromScanner;
 

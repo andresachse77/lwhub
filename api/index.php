@@ -94,6 +94,7 @@ try {
     ensureApiTokensTable($pdo);
     ensureScannerV2Columns($pdo);
     ensureApiAuthTables($pdo);
+    ensureVsSparFlag($pdo);
     seedProtectedAdmins($pdo, $PROTECTED_R4_NAMES);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
     try {

@@ -310,9 +310,9 @@
 
     <div class="event-section active" data-event="w">
       <div class="wache-legend">
-        <span><span style="color:var(--red);">⚠</span> wenig Schaden (&lt;2G)</span>
-        <span><span style="color:var(--green);">⚔</span> guter Schaden</span>
-        <span><span style="color:var(--softer);">○</span> nicht dabei</span>
+        <span><span style="color:var(--red);">⚠</span> <span data-i18n="s_ev_low_damage">wenig Schaden (&lt;2G)</span></span>
+        <span><span style="color:var(--green);">⚔</span> <span data-i18n="s_ev_good_damage">guter Schaden</span></span>
+        <span><span style="color:var(--softer);">○</span> <span data-i18n="s_ev_absent">nicht dabei</span></span>
         <span style="margin-left:auto;" class="wache-counter" id="w-counter">0 / 0</span>
       </div>
       <div class="wache-grid" id="wache-grid"></div>
@@ -320,9 +320,9 @@
 
     <div class="event-section" data-event="wu">
       <div class="wache-legend">
-        <span><span style="color:var(--blue);">📋</span> Anmeldung</span>
-        <span><span style="color:var(--green);">⚔</span> Teilnahme</span>
-        <span><span style="color:var(--red);">⚠</span> Fehlen (Strafe)</span>
+        <span><span style="color:var(--blue);">📋</span> <span data-i18n="s_ev_signup">Anmeldung</span></span>
+        <span><span style="color:var(--green);">⚔</span> <span data-i18n="s_ev_participation">Teilnahme</span></span>
+        <span><span style="color:var(--red);">⚠</span> <span data-i18n="s_ev_missing_penalty">Fehlen (Strafe)</span></span>
         <span style="margin-left:auto;" class="wache-counter" id="wu-counter">0 / 0</span>
       </div>
       <div class="wache-grid" id="wueste-grid"></div>
@@ -330,7 +330,7 @@
 
     <div class="event-section" data-event="se">
       <div class="wache-legend">
-        <span><span style="color:var(--blue);">⚔</span> Teilnahme</span>
+        <span><span style="color:var(--blue);">⚔</span> <span data-i18n="s_ev_participation">Teilnahme</span></span>
         <span><span style="color:var(--green);">🏅</span> Top 50</span>
         <span><span style="color:var(--gold);">🏆</span> Top 20</span>
         <span style="margin-left:auto;" class="wache-counter" id="se-counter">0 / 0</span>
@@ -340,10 +340,10 @@
 
     <div class="event-section" data-event="vs">
       <div class="wache-legend">
-        <span class="vs-legend-normal"><span style="color:var(--red);">⚠</span> unter 43,2 Mio (Strafe)</span>
-        <span class="vs-legend-normal"><span style="color:var(--blue);">🥈</span> Top 30 (Bonus)</span>
-        <span class="vs-legend-normal"><span style="color:var(--gold);">🏆</span> Top 10 (Bonus)</span>
-        <span class="vs-legend-spar" hidden>🐷 <strong>Sparwoche:</strong> höchstens 10 Mio je VS-Tag (Ziel 7,2 Mio) → Bonus · darüber kein Bonus · keine Strafe</span>
+        <span class="vs-legend-normal"><span style="color:var(--red);">⚠</span> <span data-i18n="s_vs_legend_under">unter 43,2 Mio (Strafe)</span></span>
+        <span class="vs-legend-normal"><span style="color:var(--blue);">🥈</span> <span data-i18n="s_vs_legend_top30">Top 30 (Bonus)</span></span>
+        <span class="vs-legend-normal"><span style="color:var(--gold);">🏆</span> <span data-i18n="s_vs_legend_top10">Top 10 (Bonus)</span></span>
+        <span class="vs-legend-spar" hidden>🐷 <strong data-i18n="s_vs_sparwoche">Sparwoche</strong>: <span data-i18n="s_vs_spar_rule">höchstens 10 Mio je VS-Tag (Ziel 7,2 Mio) → Bonus · darüber kein Bonus · keine Strafe</span></span>
         <?php if (scannerTabAllowed($member)): ?>
         <button class="flt-toggle" id="vs-spar-toggle" style="margin-left:auto;" onclick="vsToggleSparwoche()" title="Diese KW als Sparwoche festlegen bzw. aufheben">🐷 <span data-i18n="s_vs_sparwoche">Sparwoche</span></button>
         <button class="flt-toggle" onclick="vsImportFromScanner()" title="Häkchen dieser KW aus den gescannten VS-Wochenpunkten setzen: Platz 1–10 Top 10, Platz 1–30 Top 30, unter 43,2 Mio Strafe">📸 <span data-i18n="s_vs_from_scanner">Aus Scanner übernehmen</span></button>
@@ -355,8 +355,8 @@
 
     <div class="event-section" data-event="sp">
       <div class="wache-legend">
-        <span><span style="color:var(--red);">⚠</span> unter 35K (Strafe)</span>
-        <span><span style="color:var(--blue);">🏅</span> Top 20 (Bonus)</span>
+        <span><span style="color:var(--red);">⚠</span> <span data-i18n="s_ev_under35k">unter 35K (Strafe)</span></span>
+        <span><span style="color:var(--blue);">🏅</span> <span data-i18n="s_ev_top20_bonus">Top 20 (Bonus)</span></span>
         <span style="margin-left:auto;" class="wache-counter" id="sp-counter">0 / 0</span>
       </div>
       <div class="wache-grid" id="spende-grid"></div>

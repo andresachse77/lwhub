@@ -1,7 +1,7 @@
 /*
  * Web Worker that owns the ONNX models and runs the whole server.py frame pipeline off the UI thread.
  *
- * Messages in:   { type: 'init', backend: 'wasm' | 'webgpu' }
+ * Messages in:   { type: 'init', backend: 'wasm' | 'webgpu', threads?: number }
  *                { type: 'process', id, width, height, buffer }   (RGBA pixels, buffer transferred)
  * Messages out:  { type: 'progress', text, ratio }   model download progress
  *                { type: 'ready', backend, threads, ms }
@@ -34,7 +34,7 @@ async function fetchWithProgress(url, label, onBytes) {
   return got === total ? out : out.slice(0, got);
 }
 
-async function init(requested) {
+async function init(requested, requestedThreads) {
   const t0 = performance.now();
   backend = requested === 'webgpu' && self.navigator.gpu ? 'webgpu' : 'wasm';
   importScripts(ORT_CDN + (backend === 'webgpu' ? 'ort.webgpu.min.js' : 'ort.wasm.min.js'));
@@ -42,7 +42,10 @@ async function init(requested) {
 
   ort.env.wasm.wasmPaths = ORT_CDN;
   // Multi-threaded WASM needs SharedArrayBuffer, i.e. a cross-origin-isolated page (see .htaccess).
-  const threads = self.crossOriginIsolated ? Math.min(4, self.navigator.hardwareConcurrency || 1) : 1;
+  const cores = self.navigator.hardwareConcurrency || 1;
+  const threads = !self.crossOriginIsolated ? 1
+    : requestedThreads ? Math.max(1, Math.min(cores, requestedThreads))
+    : Math.min(4, cores);
   ort.env.wasm.numThreads = threads;
 
   // Models are ~15 MB together; report progress since the first visit has to download them.
@@ -78,7 +81,7 @@ self.onmessage = async (ev) => {
   const msg = ev.data;
   if (msg.type === 'init') {
     try {
-      await init(msg.backend);
+      await init(msg.backend, msg.threads);
     } catch (err) {
       self.postMessage({ type: 'error', message: err && err.message ? err.message : String(err) });
     }

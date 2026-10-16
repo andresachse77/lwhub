@@ -29,14 +29,28 @@ ist sie nicht erreichbar, verwendet das Cockpit Mock-Mitglieder.
 
 ## Geschwindigkeit
 
-Gemessen in Edge mit den Captures 846×1394. Die Spanne entsteht, weil der zweite, vergrößerte
-Shield-Rescue-Durchlauf nur bei manchen Frames nötig ist.
+Mehrere Bilder werden parallel verarbeitet, in einem Pool aus Web Workern mit je eigener
+ONNX-Session. Mehr als 4 Threads pro Session bringen nichts: Auf einem i9 mit 32 Threads lag eine
+Session mit 4 Threads bei 1,7 s/Frame, mit 16 bei 1,9 s und mit 32 bei 2,9 s. Deshalb gibt es im
+Cockpit die Auswahl **CPU-Kerne** (Standard: alle logischen Prozessoren minus 1). Daraus ergibt
+sich ein Worker mit 4 Threads je 4 Kerne, höchstens 8 Worker. Jeder Worker belegt etwa 600 MB RAM.
 
-| Backend | pro Frame |
+Der Browser kennt keine P- und E-Kerne; auf welchen Kernen die Threads laufen, entscheidet das
+Betriebssystem.
+
+**Backend:** Standard ist WebGPU, falls der Browser es anbietet. Startet WebGPU nicht, fällt das
+Cockpit automatisch auf CPU zurück.
+
+Durchsatz in Edge auf i9-14900K und RTX 4070 mit den Captures 846×1394:
+
+| Konfiguration | Durchsatz |
 |---|---|
-| CPU/WASM, 4 Threads (Seite mit COOP/COEP) | 0,8–2,2 s |
-| CPU/WASM, 1 Thread (ohne Header, z. B. Safari) | 2,2–5,3 s |
-| WebGPU (experimentell, im Cockpit auswählbar) | 0,3–1,3 s |
+| WebGPU, 7 Worker (Standard bei 32 Threads) | 84 Frames in 19 s → 0,22 s/Frame |
+| CPU, 7 × 4 Threads | 84 Frames in 59 s → 0,70 s/Frame |
+| CPU, 1 × 4 Threads | 2,2 s/Frame |
+| CPU, 1 Thread (ohne COOP/COEP-Header, z. B. Safari) | 2,2–5,3 s/Frame |
+
+URL-Parameter für Messungen: `?workers=N` und `?threads=N` überschreiben die Aufteilung.
 
 Beim ersten Aufruf werden etwa 15 MB Modelle und etwa 14 MB WASM-Laufzeit geladen; danach kommen
 beide aus dem Browser-Cache.
@@ -51,7 +65,7 @@ cd web-scanner-onnx/tests
 npm install
 py -3.12 dump_reference.py         # Python-Referenz (server.py) nach reference/ schreiben
 node parity.js                     # JS-Port unter onnxruntime-node gegen die Referenz
-node browser-test.js --frames=10   # echter Browser (headless Edge), optional --backend=webgpu / --no-coi
+node browser-test.js --frames=10   # echter Browser (headless Edge), optional --backend=wasm|webgpu / --no-coi / --throughput=84
 ```
 
 Stand 16.10.2026, gemessen über alle 84 Captures:

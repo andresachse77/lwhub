@@ -2,7 +2,7 @@
 // waits for the in-browser OCR to come up, runs local captures through it and compares the rows with
 // the Python reference (reference/*.json from dump_reference.py), then drives the screenshot upload UI.
 //
-//   node browser-test.js [--backend=webgpu] [--frames=10] [--no-coi] [--headful]
+//   node browser-test.js [--backend=wasm|webgpu] [--frames=10] [--throughput=N] [--workers=N] [--threads=N] [--no-coi] [--headful]
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -34,7 +34,7 @@ async function main() {
       await page.evaluateOnNewDocument((b) => localStorage.setItem('lwhub.scanner.ocrBackend', b), args.backend);
     }
     const t0 = Date.now();
-    await page.goto(`${BASE}/web-scanner-onnx/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${BASE}/web-scanner-onnx/?${args.threads ? 'threads=' + args.threads + '&' : ''}${args.workers ? 'workers=' + args.workers : ''}`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => /OCR bereit|OCR-Fehler/.test(document.getElementById('ocrStatusBadge').textContent), { timeout: 180000 });
     const badge = await page.$eval('#ocrStatusBadge', (e) => e.textContent);
     const isolated = await page.evaluate(() => self.crossOriginIsolated);
@@ -42,6 +42,19 @@ async function main() {
     if (!/OCR bereit/.test(badge)) {
       console.log(await page.$eval('#logBox', (e) => e.innerText));
       process.exitCode = 1;
+      return;
+    }
+
+    // 0) Throughput: N screenshots through the upload UI (uses the whole worker pool), wall-clock time
+    if (args.throughput) {
+      const all = fs.readdirSync(path.resolve(__dirname, '../../web-scanner/images')).filter((f) => f.endsWith('.png')).sort();
+      const n = Math.min(Number(args.throughput), all.length);
+      const input = await page.$('#screenshotInput');
+      const t1 = Date.now();
+      await input.uploadFile(...all.slice(0, n).map((f) => path.resolve(__dirname, '../../web-scanner/images', f)));
+      await page.waitForFunction((k) => document.getElementById('processingProgressText').textContent.includes(`${k}/${k} Bilder verarbeitet`), { timeout: 600000 }, n);
+      const s = (Date.now() - t1) / 1000;
+      console.log(`throughput: ${n} frames in ${s.toFixed(1)} s = ${(s / n).toFixed(2)} s/frame, ${await page.$eval('#statPoolCount', (e) => e.textContent)}`);
       return;
     }
 

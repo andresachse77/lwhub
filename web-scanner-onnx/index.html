@@ -125,9 +125,11 @@
           <div class="ocr-engine-row" style="font-size: 11px; color: var(--text-muted);">
             <label for="ocrBackendSelect">OCR-Backend:</label>
             <select id="ocrBackendSelect">
+              <option value="webgpu">Grafikkarte (WebGPU)</option>
               <option value="wasm">CPU (WebAssembly)</option>
-              <option value="webgpu">Grafikkarte (WebGPU, experimentell)</option>
             </select>
+            <label for="ocrCoresSelect" title="Wie viele logische Prozessoren die Texterkennung nutzen darf. Je 4 Kerne wird ein Bild parallel verarbeitet.">CPU-Kerne:</label>
+            <select id="ocrCoresSelect"></select>
             <span id="ocrEngineInfo">Die Texterkennung läuft komplett in diesem Browser – kein OCR-Server nötig.</span>
           </div>
 
@@ -214,24 +216,61 @@ async function startOcrEngine() {
   ocrBadge.textContent = 'OCR startet…';
   log(`Starte Browser-OCR (${backend === 'webgpu' ? 'WebGPU' : 'WebAssembly'})…`);
   try {
-    const info = await ocr.init(backend, (text) => { ocrBadge.textContent = text; });
-    const label = info.backend === 'webgpu' ? 'WebGPU' : `CPU, ${info.threads} Thread${info.threads === 1 ? '' : 's'}`;
+    // ?threads=N (per worker) and ?workers=N override the core-based split for benchmarking.
+    const params = new URLSearchParams(location.search);
+    const info = await ocr.init(backend, (text) => { ocrBadge.textContent = text; }, {
+      cores: Number(coresSelect.value),
+      threads: Number(params.get('threads')) || undefined,
+      workers: Number(params.get('workers')) || undefined,
+    });
+    const label = (info.backend === 'webgpu' ? 'WebGPU' : `CPU, ${info.threads} Thread${info.threads === 1 ? '' : 's'}`)
+      + (info.workers > 1 ? ` × ${info.workers} parallel` : '');
     ocrBadge.className = 'badge-stat success';
     ocrBadge.textContent = `OCR bereit (${label})`;
-    if (backend === 'webgpu' && info.backend !== 'webgpu') log('WebGPU ist in diesem Browser nicht verfügbar – verwende CPU.');
+    if (backend === 'webgpu' && info.backend !== 'webgpu') {
+      log('WebGPU ist in diesem Browser nicht verfügbar – verwende CPU.');
+      backendSelect.value = 'wasm';
+    }
     log(`Browser-OCR bereit nach ${(info.ms / 1000).toFixed(1)} s (${label}).`);
     ocrButtons.forEach(b => { b.disabled = false; });
     updateCaptureButtons(captureStream !== null);
   } catch (err) {
+    if (backend === 'webgpu') {
+      // A GPU/driver that WebGPU cannot use: fall back to the CPU for this visit (choice not stored).
+      log(`WebGPU konnte nicht gestartet werden (${err.message}) – verwende CPU.`);
+      backendSelect.value = 'wasm';
+      return startOcrEngine();
+    }
     ocrBadge.className = 'badge-stat';
     ocrBadge.textContent = 'OCR-Fehler';
     log(`FEHLER: OCR-Engine konnte nicht gestartet werden: ${err.message}`);
   }
 }
 
-backendSelect.value = readStoredBackend() === 'webgpu' ? 'webgpu' : 'wasm';
+// Default: the GPU when the browser offers WebGPU (about 3x faster), otherwise the CPU.
+const storedBackend = readStoredBackend();
+backendSelect.value = ['webgpu', 'wasm'].includes(storedBackend) ? storedBackend : (navigator.gpu ? 'webgpu' : 'wasm');
 backendSelect.addEventListener('change', () => {
   storeBackend(backendSelect.value);
+  startOcrEngine();
+});
+
+// CPU-Kerne: 1 … alle logischen Prozessoren, Standard max − 1. Der Browser kennt keine P-/E-Kerne,
+// welche Kerne die Threads bekommen, entscheidet das Betriebssystem.
+const OCR_CORES_KEY = 'lwhub.scanner.ocrCores';
+const coresSelect = document.getElementById('ocrCoresSelect');
+for (let n = BrowserOcr.maxCores; n >= 1; n--) {
+  const { threads, workers } = BrowserOcr.split(n);
+  const opt = document.createElement('option');
+  opt.value = String(n);
+  opt.textContent = `${n}${n === BrowserOcr.defaultCores ? ' (max − 1)' : n === BrowserOcr.maxCores ? ' (alle)' : ''} → ${workers} × ${threads} Threads`;
+  coresSelect.appendChild(opt);
+}
+let storedCores = null;
+try { storedCores = Number(localStorage.getItem(OCR_CORES_KEY)) || null; } catch (_) {}
+coresSelect.value = String(storedCores && storedCores <= BrowserOcr.maxCores ? storedCores : BrowserOcr.defaultCores);
+coresSelect.addEventListener('change', () => {
+  try { localStorage.setItem(OCR_CORES_KEY, coresSelect.value); } catch (_) {}
   startOcrEngine();
 });
 
@@ -431,15 +470,23 @@ async function processFiles(fileList) {
   processingEstimatedEndAt = null;
   if (processingCountdownTimer !== null) clearInterval(processingCountdownTimer);
   processingCountdownTimer = setInterval(() => updateProcessingCountdown(0, files.length), 1000);
-  log(`Verarbeite ${files.length} Screenshot(s) im Browser...`);
+  log(`Verarbeite ${files.length} Screenshot(s) im Browser (${ocr.size} parallel)...`);
+  // Keep every OCR worker busy, but hand the results to the cockpit in file order.
+  const start = (file) => loadImageFile(file).then(img => ocr.process(img).then(data => ({ img, data })));
+  const inFlight = [];
+  let next = 0;
   try {
     for (let i = 0; i < files.length; i++) {
-      if (stopProcessingRequested) { log('Verarbeitung durch Stop-Button abgebrochen.'); break; }
+      while (!stopProcessingRequested && next < files.length && inFlight.length < ocr.size) {
+        const p = start(files[next++]);
+        p.catch(() => {}); // handled when it's this file's turn
+        inFlight.push(p);
+      }
+      if (inFlight.length === 0) { log('Verarbeitung durch Stop-Button abgebrochen.'); break; }
       const file = files[i];
       setProcessingProgress(i, files.length, startedAt, file.name, true);
       try {
-        const img = await loadImageFile(file);
-        const data = await ocr.process(img);
+        const { img, data } = await inFlight.shift();
         URL.revokeObjectURL(img.src);
         processOcrResult(img, data);
         const count = data.mode === 'ranking' ? data.rankings.length : data.cards.length;
@@ -479,8 +526,8 @@ rightPane.addEventListener('drop', (e) => {
 });
 
 // 7. Live Screen-Capture
-// Changed frames are captured on a fixed tick and queued; the OCR worker drains the queue one frame
-// at a time (in-browser OCR takes a few seconds per frame) and keeps draining after Stop.
+// Changed frames are captured on a fixed tick and queued; the OCR worker pool drains the queue
+// (one frame per worker at a time) and keeps draining after Stop.
 const CHANGE_THRESHOLD = 0.015;
 const MAX_LIVE_QUEUE = 40; // ~5 MB per queued frame; older frames are dropped beyond this
 let captureStream = null;
@@ -532,12 +579,20 @@ function updateLiveStatus() {
 async function drainLiveQueue() {
   if (liveWorkerRunning) return;
   liveWorkerRunning = true;
+  // Up to ocr.size frames in flight (one per worker); results are applied in capture order.
+  const inFlight = [];
   try {
-    while (liveQueue.length > 0) {
-      const { canvas, label } = liveQueue.shift();
+    while (liveQueue.length > 0 || inFlight.length > 0) {
+      while (liveQueue.length > 0 && inFlight.length < ocr.size) {
+        const { canvas, label } = liveQueue.shift();
+        const p = ocr.process(canvas);
+        p.catch(() => {});
+        inFlight.push({ canvas, label, p });
+      }
       updateLiveStatus();
+      const { canvas, label, p } = inFlight.shift();
       try {
-        const data = await ocr.process(canvas);
+        const data = await p;
         processOcrResult(canvas, data);
         const count = data.mode === 'ranking' ? data.rankings.length : data.cards.length;
         log(`${label}: ${count} Kachel(n) erkannt (${(data.elapsed_ms / 1000).toFixed(1)} s, ${liveQueue.length} wartend).`);

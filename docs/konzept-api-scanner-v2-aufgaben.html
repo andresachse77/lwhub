@@ -118,7 +118,8 @@
     <div class="task"><input type="checkbox"><div>
       <div class="t">A3 &bull; <code>resolveCaller()</code> + <code>authCheck()</code> in <code>auth.php</code></div>
       <div class="d">Bearer mit Pr&auml;fix <code>lwhub_</code>: SHA-256 in <code>api_tokens</code> suchen, <code>is_active</code> und <code>expires_at</code> pr&uuml;fen, <code>last_used_at</code> setzen. Gibt Allianz und Rolle zur&uuml;ck. Bei <code>log</code> nur in <code>api_auth_log</code> schreiben, bei <code>enforce</code> 401/403. <code>isLocalRequest()</code> bleibt Ausnahme.</div>
-      <div class="meta"><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
+      <div class="d"><strong>Stand 16.10.:</strong> Discord-Token wird für alle Scanner-Routen geprüft (<code>requireScannerAccess()</code> in <code>api/src/caller-auth.php</code>, Ablehnungen in <code>api_auth_log</code>). Offen: App-Tokens mit Präfix <code>lwhub_</code> aus <code>api_tokens</code>.</div>
+      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
     </div></div>
 
     <div class="task"><input type="checkbox"><div>
@@ -130,7 +131,8 @@
     <div class="task"><input type="checkbox"><div>
       <div class="t">A5 &bull; <code>handleSyncScans</code> an Rollen binden</div>
       <div class="d">Allianz aus dem Aufrufer statt aus <code>body.alliance</code>. <code>scanner</code>: nur Updates bei <code>player_id</code> oder exaktem Namenstreffer, Rest als <code>unmatched</code>. <code>r4</code>/<code>r5</code>: Verhalten wie heute. Archiv-Suche auf die eigene Allianz beschr&auml;nken.</div>
-      <div class="meta"><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
+      <div class="d"><strong>Stand 16.10.:</strong> <code>/scans/sync</code> nur noch für R4/R5 der Ziel-Allianz bzw. Site-Admins mit geprüftem Discord-Token. Offen: Rolle <code>scanner</code> (nur Updates, Rest <code>unmatched</code>), Archiv-Suche auf die eigene Allianz beschränken.</div>
+      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
     </div></div>
 
     <div class="task"><input type="checkbox"><div>
@@ -142,13 +144,15 @@
     <div class="task"><input type="checkbox"><div>
       <div class="t">A7 &bull; Web-Scanner-Cockpit: Token-Feld</div>
       <div class="d">Feld &bdquo;LWHub-Token&ldquo; (in <code>localStorage</code>), <code>matching.js</code> sendet <code>Authorization: Bearer &hellip;</code>. Neue Antwortfelder (<code>unmatched</code>, <code>conflicts</code>) im Ergebnis-Dialog anzeigen.</div>
-      <div class="meta"><span class="badge green">risikoarm</span><span class="badge">~1 h</span></div>
+      <div class="d"><strong>Stand 16.10.:</strong> Anders gelöst: Der Web-Scanner (<code>web-scanner-onnx</code>) übernimmt den lwhub-Login und schickt das Discord-Token mit, ein Token-Feld ist nicht nötig. Offen: <code>unmatched</code>/<code>conflicts</code> im Ergebnis-Dialog anzeigen.</div>
+      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge green">risikoarm</span><span class="badge">~1 h</span></div>
     </div></div>
 
-    <div class="task"><input type="checkbox"><div>
+    <div class="task"><input type="checkbox" checked><div>
       <div class="t">A8 &bull; Protokoll pr&uuml;fen und <code>/scans/sync</code> auf <code>enforce</code></div>
       <div class="d">Eine Woche <code>api_auth_log</code> f&uuml;r <code>/scans/sync</code> ansehen. Wenn nur noch erwartete Aufrufe mit Token kommen, f&uuml;r diesen Endpunkt blockieren.</div>
-      <div class="meta"><span class="badge blue">Kontrolle</span></div>
+      <div class="d"><strong>Stand 16.10.:</strong> Schalter <code>LWHUB_SCANNER_AUTH_MODE</code> steht standardmäßig auf <code>enforce</code>: Ohne Login 401, ohne R4/R5 403. Die Protokollwoche wurde bewusst übersprungen. Notschalter: <code>log</code> oder <code>off</code> in <code>config.php</code>.</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-16</span><span class="badge blue">Kontrolle</span></div>
     </div></div>
 
     <div class="phase">Phase 2 &ndash; Discord-Anmeldung pr&uuml;fen</div>
@@ -162,7 +166,8 @@
     <div class="task"><input type="checkbox"><div>
       <div class="t">A10 &bull; Server pr&uuml;ft Discord-Token mit Cache</div>
       <div class="d">In <code>resolveCaller()</code>: Token-Hash in <code>api_auth_cache</code> nachschlagen, sonst Discord <code>/users/@me</code> (Timeout 3&nbsp;s, 15&nbsp;min cachen). Ist Discord nicht erreichbar, im Modus <code>log</code> nur protokollieren. In <code>requireR5</code> und <code>assertHonorReadOnlyWriter</code> die gepr&uuml;fte ID mit der Body-<code>discord_id</code> vergleichen.</div>
-      <div class="meta"><span class="badge amber">mittel</span><span class="badge">~4 h</span></div>
+      <div class="d"><strong>Stand 16.10.:</strong> Für die Scanner-Routen fertig: Prüfung über Discord <code>/users/@me</code> (3 s Timeout, 15 min Cache in <code>api_auth_cache</code>), <code>Authorization</code>-Header über <code>api/.htaccess</code> weitergereicht. Offen: <code>requireR5</code> und der Ehrenrollen-Schreibschutz.</div>
+      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~4 h</span></div>
     </div></div>
 
     <div class="task"><input type="checkbox"><div>
@@ -176,14 +181,46 @@
     <div class="task"><input type="checkbox"><div>
       <div class="t">A12 &bull; Sync-Erweiterungen</div>
       <div class="d">Gegner &uuml;ber <code>alliance_tag</code> verwerfen, Idempotenz &uuml;ber <code>scan_id</code> (alte Zeilen l&ouml;schen, <code>replaced_previous_upload</code>), Metrik je <code>scan_type</code> (<code>DONATION</code> &rarr; <code>DONATION_WEEK</code>), <code>year_week</code>/<code>game_day</code>/<code>read_status</code>/<code>observations</code> speichern, <code>dry_run</code> per Rollback.</div>
-      <div class="meta"><span class="badge amber">mittel</span><span class="badge">~4 h</span></div>
+      <div class="d"><strong>Stand 16.10.:</strong> VS-Werte als <code>VS_DAY</code>/<code>VS_WEEK</code> mit <code>year_week</code>/<code>game_day</code>, ein Wert je Spieler, Woche und Tag (höherer ersetzt niedrigeren). Gegner über das Allianz-Kürzel im Web-Scanner aussortiert. Ranglisten-Kampfkraft wird nicht mehr ×10<sup>6</sup> gespeichert. Offen: <code>scan_id</code>, <code>dry_run</code>, <code>read_status</code>/<code>observations</code>, Kürzel-Filter im Hub.</div>
+      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~4 h</span></div>
     </div></div>
 
     <div class="phase">Sp&auml;ter (optional)</div>
-    <div class="task"><input type="checkbox"><div>
+    <div class="task"><input type="checkbox" checked><div>
       <div class="t">A13 &bull; Auswertungen und Flag-Vorschl&auml;ge</div>
       <div class="d">Kampfkraft-Verlauf aus <code>player_metrics</code> auf der Webseite. Flag-Vorschl&auml;ge nur zusammenf&uuml;hrend, Schwellen dann nach <code>alliance_config</code>. Optional <code>player_aliases</code>.</div>
-      <div class="meta"><span class="badge">sp&auml;ter</span></div>
+      <div class="d"><strong>Stand 16.10.:</strong> Seite „Kampfkraft-Trend“ (<code>web-scanner-onnx/trend.html</code>): Wochenzuwachs, Samstag-Opfer, Wiederaufbau, Stagnation. VS-Häkchen werden aus den Scan-Daten vorgeschlagen und erst nach Bestätigung gesetzt („Aus Scanner übernehmen“ im VS-Event, inkl. Sparwoche).</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
+    </div></div>
+  </section>
+
+  <!-- ZUSAETZLICH ERLEDIGT -->
+  <section>
+    <h2><span>✅</span> Zusätzlich erledigt am 16.10. (nicht in der Liste)</h2>
+    <div class="task"><input type="checkbox" checked><div>
+      <div class="t">Web-Scanner mit Texterkennung im Browser (<code>web-scanner-onnx/</code>)</div>
+      <div class="d">RapidOCR-Pipeline und Gruppierung aus <code>server.py</code> nach JavaScript portiert (onnxruntime-web, WebGPU oder WASM, mehrere Worker parallel). Kein Python-Server mehr nötig, läuft auf lwhub.de. Ergebnisse identisch zum Python-Server (84 Testbilder).</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
+    </div></div>
+    <div class="task"><input type="checkbox" checked><div>
+      <div class="t">Scanner im Hauptmenü (Feature „scanner“)</div>
+      <div class="d">Menüpunkt nach „Verwaltung“ für R4/R5, schaltbar in der Feature-Konfiguration, für NxU1 und NxU2 eingeschaltet. Allianz-Auswahl nur mit eigenen Allianzen (<code>/scans/my-alliances</code>).</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
+    </div></div>
+    <div class="task"><input type="checkbox" checked><div>
+      <div class="t">VS-Rangliste scannen (Tagesrang und Wochen-Rang)</div>
+      <div class="d">Erkennung nach dem Vorbild von Thomas&#39; Last-War-Tracker, getestet an seinen Sollwerten (17/17 Ansichten, 119/119 Punkte). Kills- und Spenden-Rangliste werden erkannt und nicht mehr als Kampfkraft übernommen.</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
+    </div></div>
+    <div class="task"><input type="checkbox" checked><div>
+      <div class="t">VS-Event: Häkchen aus dem Scanner und Sparwoche</div>
+      <div class="d">„Aus Scanner übernehmen“ setzt Top 10 / Top 30 / unter 43,2 Mio. Sparwoche je KW festlegbar (R4/R5): höchstens 10 Mio je VS-Tag → Bonus <code>vsSpar</code>. Kacheln zeigen Wochenpunkte und Platz.</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
+    </div></div>
+    <div class="task"><input type="checkbox" checked><div>
+      <div class="t">Kampfkraft-Fehler ×10<sup>6</sup> behoben</div>
+      <div class="d">Ranglisten-Werte wurden beim Sync zusätzlich mit 10<sup>6</sup> multipliziert. Server korrigiert, 152 Spieler und 952 Verlaufswerte in der Datenbank repariert (Backup in <code>_archiv/</code>).</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
     </div></div>
   </section>
 
@@ -253,10 +290,14 @@
     <div class="task"><input type="checkbox"><div>
       <div class="t">G1 &bull; Spielwoche und Spieltag</div>
       <div class="d">Wann beginnen Woche und Tag (Serverzeit, Zeitzone)? Eine Berechnung f&uuml;r App, Web-Scanner und Hub. Format wie <code>weekly_entries.year_week</code>.</div>
+      <div class="d"><strong>Stand 16.10.:</strong> Vorschlag umgesetzt: ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW 42/2026), Spieltag 1 = Mo … 6 = Sa aus dem gewählten Tag im VS-Tagesrang. Mit Thomas abstimmen.</div>
+      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span></div>
     </div></div>
     <div class="task"><input type="checkbox"><div>
       <div class="t">G2 &bull; Mehrere Erfassungen pro Woche</div>
       <div class="d">Z&auml;hlt der letzte Scan oder der h&ouml;chste Wert?</div>
+      <div class="d"><strong>Stand 16.10.:</strong> Für VS umgesetzt: Es zählt der höchste Wert je Spieler, Woche und Tag. Kampfkraft: Jeder Scan wird als Verlaufspunkt gespeichert.</div>
+      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span></div>
     </div></div>
     <div class="task"><input type="checkbox"><div>
       <div class="t">G3 &bull; Ehrenmitglieder, Aufbewahrung</div>

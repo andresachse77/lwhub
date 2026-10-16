@@ -219,6 +219,11 @@ try {
         }
     }
 
+    // GET /scans/my-alliances – Allianzen mit eigenen Chars (fuer die Allianz-Auswahl im Scanner)
+    if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'my-alliances') {
+        handleScannerMyAlliances($pdo);
+    }
+
     // GET /scans/access – darf der angemeldete Nutzer fuer ?alliance= scannen? (R4/R5 oder Site-Admin)
     if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'access') {
         handleScannerAccess($pdo, $ALLIANCE);

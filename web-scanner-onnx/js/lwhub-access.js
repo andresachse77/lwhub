@@ -65,6 +65,38 @@ const LwhubAccess = {
   },
 
   /**
+   * Allianz-Auswahl nur mit den Allianzen, in denen der Nutzer eigene Chars hat (GET /scans/my-alliances).
+   * Allianzen ohne R4/R5-Char sind sichtbar, aber nicht waehlbar. Ohne Login bzw. wenn der Server die
+   * volle Liste erlaubt (lokale Entwicklung), bleibt die komplette Allianzliste.
+   */
+  async fillOwnAlliances(select, apiUrl, alliances, preferred) {
+    let mine = null;
+    try {
+      const resp = await fetch(`${apiUrl}/scans/my-alliances`, { headers: this.authHeaders(), signal: AbortSignal.timeout(10000) });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok && data.ok && !data.all) mine = data.alliances;
+    } catch (_) {}
+    if (!mine || !mine.length) {
+      this.fillAllianceSelect(select, alliances, preferred);
+      return;
+    }
+    const titles = Object.fromEntries(alliances.map((a) => [a.short_name.toLowerCase(), a]));
+    const scannable = mine.filter((m) => m.can_scan).map((m) => m.alliance);
+    const chosen = scannable.find((a) => a.toLowerCase() === String(preferred).toLowerCase()) || scannable[0] || mine[0].alliance;
+    select.innerHTML = '';
+    for (const m of mine) {
+      const info = titles[m.alliance.toLowerCase()];
+      const opt = document.createElement('option');
+      opt.value = info?.short_name || m.alliance;
+      opt.textContent = `${opt.value}${info?.title ? ' – ' + info.title : ''}${m.can_scan ? '' : ' (kein R4)'}`;
+      opt.title = m.chars.map((c) => `${c.name} (R${c.rank})`).join(', ');
+      opt.disabled = !m.can_scan;
+      opt.selected = m.alliance === chosen;
+      select.appendChild(opt);
+    }
+  },
+
+  /**
    * Fragt den Server, ob der angemeldete Nutzer fuer `alliance` freigeschaltet ist, und zeigt die Sperre
    * bzw. das Nutzer-Badge an. `what` benennt das Werkzeug in den Texten ("Der Scanner", "Der Trend").
    * Liefert die Antwort des Servers ({ ok, name, rank, site_admin }) oder null.

@@ -147,6 +147,54 @@ function scannerTabAllowed(array $member): bool {
         && normalizeHonorRole($member['honor_role'] ?? null) === null;
 }
 
+/**
+ * GET /scans/my-alliances – Allianzen, in denen der (per Discord-Token gepruefte) Nutzer aktive Chars
+ * hat, mit dem Hinweis, ob er dort scannen darf (R4/R5 ohne Ehrenrolle). Die Scanner-Seiten zeigen nur
+ * diese Allianzen. Lokal (PHP-Dev-Server) ohne Token: { all: true } – dann bleibt die volle Liste.
+ */
+function handleScannerMyAlliances(PDO $pdo): never {
+    $token = requestBearerToken();
+    if ($token === '' && (isLocalRequest() || scannerAuthMode() === 'off')) {
+        jsonOut(200, ['ok' => true, 'all' => true, 'alliances' => []]);
+    }
+    $discordId = $token !== '' ? verifyDiscordToken($pdo, $token) : null;
+    if ($discordId === null) {
+        jsonOut(401, ['error' => 'Bitte zuerst in lwhub mit Discord anmelden.', 'code' => $token === '' ? 'no_token' : 'invalid_token']);
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT p.alliance, p.current_name, p.current_rank_code, p.honor_role
+        FROM players p
+        LEFT JOIN player_identities pid
+            ON pid.alliance = p.alliance AND pid.player_id = p.player_id AND pid.discord_user_id = ?
+        LEFT JOIN (
+            SELECT pul.alliance, pul.player_id, uda.discord_user_id
+            FROM player_user_links pul
+            JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+            WHERE uda.discord_user_id = ?
+        ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
+        WHERE p.is_active = 1
+          AND (pid.discord_user_id IS NOT NULL OR puld.discord_user_id IS NOT NULL)
+        ORDER BY p.alliance, p.current_name
+    ");
+    try {
+        $stmt->execute([$discordId, $discordId]);
+        $rows = $stmt->fetchAll();
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+        $rows = [];
+    }
+
+    $byAlliance = [];
+    foreach ($rows as $r) {
+        $a = $r['alliance'];
+        $byAlliance[$a] ??= ['alliance' => $a, 'chars' => [], 'can_scan' => false];
+        $byAlliance[$a]['chars'][] = ['name' => $r['current_name'], 'rank' => (int)$r['current_rank_code']];
+        if (scannerTabAllowed($r)) $byAlliance[$a]['can_scan'] = true;
+    }
+    jsonOut(200, ['ok' => true, 'all' => false, 'alliances' => array_values($byAlliance)]);
+}
+
 /** GET /scans/access?alliance=X – fuer die Scanner-Seite: darf der angemeldete Nutzer scannen? */
 function handleScannerAccess(PDO $pdo, string $alliance): never {
     $caller = requireScannerAccess($pdo, $alliance);

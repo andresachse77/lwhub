@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LWHub Scanner-Cockpit (Browser-OCR)</title>
-<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261016b">
+<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261016c">
 <style>
   .ocr-engine-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .ocr-engine-row select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 12px; }
@@ -212,10 +212,10 @@
 </div>
 
 <!-- MODULE LADEN (Matching & Drag-and-Drop teilt sich diese Seite mit dem Server-Cockpit) -->
-<script src="../web-scanner/js/matching.js?v=20261016b"></script>
-<script src="../web-scanner/js/drag-drop.js?v=20261016b"></script>
-<script src="js/ocr-client.js?v=20261016b"></script>
-<script src="js/lwhub-access.js?v=20261016b"></script>
+<script src="../web-scanner/js/matching.js?v=20261016c"></script>
+<script src="../web-scanner/js/drag-drop.js?v=20261016c"></script>
+<script src="js/ocr-client.js?v=20261016c"></script>
+<script src="js/lwhub-access.js?v=20261016c"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -338,7 +338,7 @@ document.getElementById('accessGateRetry').addEventListener('click', checkScanne
 async function initAlliances() {
   const { apiUrl, alliances } = await LwhubAccess.findApi();
   activeApiUrl = apiUrl;
-  LwhubAccess.fillAllianceSelect(document.getElementById('allianceSelect'), alliances, LwhubAccess.preferredAlliance());
+  await LwhubAccess.fillOwnAlliances(document.getElementById('allianceSelect'), apiUrl, alliances, LwhubAccess.preferredAlliance());
   if (alliances.length) log(`API erreichbar unter ${activeApiUrl}.`);
   await checkScannerAccess();
 }

@@ -113,6 +113,34 @@ function handleVsWeek(PDO $pdo, string $alliance): never {
     ]);
 }
 
+/**
+ * POST /scans/sparwoche { year_week, active } – KW als VS-Sparwoche markieren oder nicht (R4/R5, per
+ * Discord-Token geprueft). Gespeichert in alliance_config "vs_sparwochen" als kommagetrennte KW-Liste,
+ * die die Hauptseite ueber /alliance-config schon mitlaedt.
+ */
+function handleSetSparwoche(PDO $pdo, string $alliance, array $body): never {
+    $caller = requireScannerAccess($pdo, $alliance);
+    ensureAllianceConfigTable($pdo);
+    $yearWeek = (int)($body['year_week'] ?? 0);
+    if ($yearWeek < 1000 || $yearWeek > 9953) jsonOut(400, ['error' => 'Ungueltige Woche']);
+    $active = !empty($body['active']);
+
+    $stmt = $pdo->prepare("SELECT config_value FROM alliance_config WHERE alliance = ? AND config_key = 'vs_sparwochen'");
+    $stmt->execute([$alliance]);
+    $weeks = array_filter(array_map('intval', explode(',', (string)($stmt->fetchColumn() ?: ''))));
+    $weeks = array_values(array_unique($active ? [...$weeks, $yearWeek] : array_diff($weeks, [$yearWeek])));
+    sort($weeks);
+    $value = implode(',', $weeks);
+
+    $pdo->prepare("
+        INSERT INTO alliance_config (alliance, config_key, config_value, updated_by)
+        VALUES (?, 'vs_sparwochen', ?, ?)
+        ON DUPLICATE KEY UPDATE config_value = VALUES(config_value), updated_by = VALUES(updated_by), updated_at = CURRENT_TIMESTAMP
+    ")->execute([$alliance, $value, $caller['name'] ?? ($caller['site_admin'] ? 'Site-Admin' : null)]);
+
+    jsonOut(200, ['ok' => true, 'vs_sparwochen' => $value]);
+}
+
 /** Kampfkraft absolut; Werte > 10^12 stammen aus dem alten Sync-Fehler (x 10^6) und werden zurueckgerechnet. */
 function normalizeStoredPower(mixed $value): ?float {
     if ($value === null || !is_numeric($value)) return null;

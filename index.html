@@ -2407,7 +2407,7 @@ async function apiPost(data) {
 
 // ─── Gewichtungen (identisch mit Excel Formeln-Sheet Zeile 103) ───
 const W = {
-  vsUnter50: 5, vsTop30: 15, vsTop10: 5, vsAlle: 10,
+  vsUnter50: 5, vsTop30: 15, vsTop10: 5, vsAlle: 10, vsSpar: 15, // vsSpar: Sparwoche eingehalten (wie Top 30)
   spendeUnter35k: 5, spendeTop20: 5, spendeAlle: 5,
   wachePkt: 10, wacheOffline: 5, wacheBonus: 15,
   seTeilnahme: 10, seTop50: 15, seTop20: 10,
@@ -2420,7 +2420,7 @@ const W = {
 // ─── Punkte-Berechnung (1:1 aus Excel Formeln-Sheet) ───
 function calcPoints(flags) {
   const has = k => flags[k] ? 1 : 0;
-  const vsGesamt = W.vsAlle - (has('vsUnter50') * W.vsUnter50) + (has('vsTop30') * W.vsTop30) + (has('vsTop10') * W.vsTop10);
+  const vsGesamt = W.vsAlle - (has('vsUnter50') * W.vsUnter50) + (has('vsTop30') * W.vsTop30) + (has('vsTop10') * W.vsTop10) + (has('vsSpar') * W.vsSpar);
   const vsGew = Math.min(vsGesamt * 5, 140);
   const spGesamt = W.spendeAlle - (has('spendeUnter35k') * W.spendeUnter35k) + (has('spendeTop20') * W.spendeTop20);
   const spGew = spGesamt * 7;
@@ -2449,7 +2449,7 @@ const RL = {1:'Rookie',2:'Pro',3:'Elite',4:'Leader',5:'Chef'};
 
 const CATS = [
   { l:'⚔ VS', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
-    f:[{k:'vsUnter50',l:'unter 43,2 Mio',t:'r'},{k:'vsTop30',l:'Top 30',t:'b'},{k:'vsTop10',l:'Top 10',t:'b'}] },
+    f:[{k:'vsUnter50',l:'unter 43,2 Mio',t:'r'},{k:'vsTop30',l:'Top 30',t:'b'},{k:'vsTop10',l:'Top 10',t:'b'},{k:'vsSpar',l:'Sparwoche eingehalten',t:'b'}] },
   { l:'💰 Spenden', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
     f:[{k:'spendeUnter35k',l:'unter 35K',t:'r'},{k:'spendeTop20',l:'Top 20',t:'b'}] },
   { l:'🛡 Wache', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
@@ -5029,6 +5029,35 @@ window.spezialSet = spezialSet;
 // ══════════════════════════════════════════════════════
 //  VS-VERWALTUNG
 // ══════════════════════════════════════════════════════
+// ─── Sparwoche: in dieser KW halten alle ihre VS-Punkte bewusst niedrig. Ziel 7,2 Mio je VS-Tag, bis
+// 10 Mio ist ok, darueber gibt es keinen Bonus. Keine Top-10/Top-30-Boni, keine Strafe unter 43,2 Mio.
+// Festgelegt je Allianz und KW (alliance_config "vs_sparwochen", R4/R5 ueber POST /scans/sparwoche).
+const VS_SPAR_MAX_PER_DAY = 10000000;
+function isSparwoche(yw = kw) {
+  return String(flagConfig.vs_sparwochen ?? '').split(',').map(Number).includes(Number(yw));
+}
+async function vsToggleSparwoche() {
+  const active = !isSparwoche();
+  const ask = active
+    ? [`KW ${kw % 100} als Sparwoche festlegen?`, '', 'Dann gilt: höchstens 10 Mio je VS-Tag → Bonus, keine Top 10/Top 30, keine Strafe.', 'Danach „Aus Scanner übernehmen“ drücken, damit die Häkchen neu gesetzt werden.']
+    : [`Sparwoche für KW ${kw % 100} aufheben?`, '', 'Danach „Aus Scanner übernehmen“ drücken, damit die normalen Häkchen gesetzt werden.'];
+  if (!confirm(ask.join(String.fromCharCode(10)))) return;
+  const token = (() => { try { return localStorage.getItem('discord_token'); } catch (_) { return null; } })();
+  try {
+    const res = await fetchJson('/scans/sparwoche', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ year_week: kw, active }),
+    });
+    flagConfig.vs_sparwochen = res.vs_sparwochen;
+    renderVS();
+    toast(active ? tr('Sparwoche festgelegt') : tr('Sparwoche aufgehoben'), 'ok');
+  } catch (err) {
+    toast(tr('Fehler: ') + err.message);
+  }
+}
+window.vsToggleSparwoche = vsToggleSparwoche;
+
 // Gescannte VS-Wochenpunkte (Scanner) je KW – zeigt auf jeder Kachel Punkte und Platz und zaehlt
 // Spieler mit Scan-Daten als erfasst (Platz 31+ ueber 43,2 Mio hat bewusst kein Haekchen).
 let vsScanData = { kw: null, byName: new Map(), loading: false };
@@ -5052,7 +5081,14 @@ function renderVS() {
   if (vsScanData.kw !== kw) { loadVsScanData(); }
   const scanOf = name => (vsScanData.kw === kw ? vsScanData.byName.get(name) : null);
 
-  const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.vsUnter50||f.vsTop30||f.vsTop10) || !!scanOf(name); };
+  const spar = isSparwoche();
+  document.querySelectorAll('.vs-legend-normal').forEach(el => { el.hidden = spar; });
+  document.querySelectorAll('.vs-legend-spar').forEach(el => { el.hidden = !spar; });
+  const sparBtn = document.getElementById('vs-spar-toggle');
+  if (sparBtn) sparBtn.classList.toggle('on', spar);
+  const maxDayOf = scan => Math.max(0, ...Object.values(scan?.days || {}));
+
+  const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.vsUnter50||f.vsTop30||f.vsTop10||f.vsSpar) || !!scanOf(name); };
   const {list,splitAt} = applyEventDoneSort(members, isDone);
 
   let doneCount = 0;
@@ -5063,13 +5099,19 @@ function renderVS() {
     const t30 = !!flags.vsTop30;
     const t10 = !!flags.vsTop10;
     const scan = scanOf(name);
-    if (unter||t30||t10||scan) doneCount++;
+    const sparOk = !!flags.vsSpar;
+    if (unter||t30||t10||sparOk||scan) doneCount++;
 
     const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
-    const cls = unter ? 'w-dmg' : t10 ? 'w-top20' : t30 ? 'w-anm' : 'w-none';
+    const cls = spar ? (sparOk ? 'w-anm' : 'w-none') : unter ? 'w-dmg' : t10 ? 'w-top20' : t30 ? 'w-anm' : 'w-none';
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
+    const btnSpar  = `<button class="wt-btn ${sparOk?'on-anm':''}" onclick="vsSet('${esc}','spar')" title="Sparwoche eingehalten (höchstens 10 Mio je VS-Tag)">${sparOk?'🐷 eingehalten':'🐷'}</button>`;
+    const maxDay = maxDayOf(scan);
+    const scanInfo = !scan ? '' : spar
+      ? `📸 max ${(maxDay / 1e6).toFixed(1).replace('.', ',')} Mio/Tag${maxDay > VS_SPAR_MAX_PER_DAY ? ' ⚠' : ''}`
+      : `📸 ${(scan.week_points / 1e6).toFixed(1).replace('.', ',')} Mio · Platz ${scan.place}`;
     const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="vsSet('${esc}','unter')" title="unter 43,2 Mio Punkte (Strafe)">${unter?'⚠ &lt;43,2M':'🟥'}</button>`;
     const btnT30   = `<button class="wt-btn ${t30?'on-anm':''}" onclick="vsSet('${esc}','t30')" title="Top 30">${t30?'🥈 T30':'🥈'}</button>`;
     const btnT10   = `<button class="wt-btn ${t10?'on-gold':''}" onclick="vsSet('${esc}','t10')" title="Top 10">${t10?'🏆 T10':'🏆'}</button>`;
@@ -5079,9 +5121,9 @@ function renderVS() {
       <div class="wt-top">
         <div class="wt-name">${name}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
-        ${scan ? `<div class="wt-scan" title="Gescannte VS-Wochenpunkte">📸 ${(scan.week_points / 1e6).toFixed(1).replace('.', ',')} Mio · Platz ${scan.place}</div>` : ''}
+        ${scan ? `<div class="wt-scan" title="Gescannte VS-Punkte">${scanInfo}</div>` : ''}
       </div>
-      <div class="wt-btns">${btnUnter}${btnT30}${btnT10}</div>
+      <div class="wt-btns">${spar ? btnSpar : btnUnter + btnT30 + btnT10}</div>
     </div>`;
   }).join('');
 
@@ -5106,6 +5148,9 @@ async function vsSet(name, type) {
   } else if (type === 't10') {
     if (flags.vsTop10) { delete flags.vsTop10; }
     else { flags.vsTop10 = true; delete flags.vsUnter50; }
+  } else if (type === 'spar') {
+    if (flags.vsSpar) { delete flags.vsSpar; }
+    else { flags.vsSpar = true; delete flags.vsUnter50; delete flags.vsTop30; delete flags.vsTop10; }
   }
 
   e.points = calcPoints(flags);
@@ -5139,19 +5184,27 @@ async function vsImportFromScanner() {
     return;
   }
   const byName = new Map((data.players || []).map(p => [p.name, p]));
+  const spar = isSparwoche();
   const plan = [];
   for (const name of members) {
     const p = byName.get(name);
     if (!p) continue;
     const want = {};
-    if (p.place <= 10) want.vsTop10 = true;
-    if (p.place <= 30) want.vsTop30 = true;
-    if (p.week_points < VS_SCANNER_MIN_POINTS) want.vsUnter50 = true;
+    if (spar) {
+      // Sparwoche: Bonus, wenn an keinem gescannten VS-Tag mehr als 10 Mio – ohne Tageswerte keine Aussage
+      const dayValues = Object.values(p.days || {});
+      if (!dayValues.length) continue;
+      if (Math.max(...dayValues) <= VS_SPAR_MAX_PER_DAY) want.vsSpar = true;
+    } else {
+      if (p.place <= 10) want.vsTop10 = true;
+      if (p.place <= 30) want.vsTop30 = true;
+      if (p.week_points < VS_SCANNER_MIN_POINTS) want.vsUnter50 = true;
+    }
     const current = entries.find(x => x.name === name)?.flags || {};
     const flags = { ...current };
-    delete flags.vsTop10; delete flags.vsTop30; delete flags.vsUnter50;
+    delete flags.vsTop10; delete flags.vsTop30; delete flags.vsUnter50; delete flags.vsSpar;
     Object.assign(flags, want);
-    const same = ['vsTop10', 'vsTop30', 'vsUnter50'].every(k => !!current[k] === !!flags[k]);
+    const same = ['vsTop10', 'vsTop30', 'vsUnter50', 'vsSpar'].every(k => !!current[k] === !!flags[k]);
     if (!same) plan.push({ name, flags, p });
   }
   if (!data.players?.length) { toast(tr('Für diese KW gibt es keine gescannten VS-Wochenpunkte.')); return; }
@@ -5165,10 +5218,20 @@ async function vsImportFromScanner() {
     `Gescannte Tage: ${days} · Stand ${data.last_scan || '?'}`,
     missingSat ? '⚠ Samstag ist noch nicht gescannt – die Wochenpunkte sind evtl. noch nicht final.' : null,
     '',
+    spar ? '🐷 Sparwoche: höchstens 10 Mio je VS-Tag → Bonus, keine Top 10/Top 30, keine Strafe' : null,
     `Änderungen bei ${plan.length} Spielern:`,
-    `• 🏆 Top 10: ${count('vsTop10')}`,
-    `• 🥈 Top 30: ${count('vsTop30')}`,
-    `• 🟥 unter 43,2 Mio: ${count('vsUnter50')}`,
+    ...(spar ? (() => {
+      const withDays = (data.players || []).filter(p => Object.keys(p.days || {}).length);
+      const ok = withDays.filter(p => Math.max(...Object.values(p.days)) <= VS_SPAR_MAX_PER_DAY).length;
+      return [
+        `• 🐷 eingehalten (alle Tage ≤ 10 Mio): ${ok} von ${withDays.length}`,
+        `• über 10 Mio an mindestens einem Tag (kein Bonus): ${withDays.length - ok}`,
+      ];
+    })() : [
+      `• 🏆 Top 10: ${count('vsTop10')}`,
+      `• 🥈 Top 30: ${count('vsTop30')}`,
+      `• 🟥 unter 43,2 Mio: ${count('vsUnter50')}`,
+    ]),
     unknown ? `(${unknown} gescannte Namen stehen nicht in der Mitgliederliste und werden übersprungen.)` : null,
     '',
     'VS-Häkchen dieser KW werden ersetzt, andere Häkchen bleiben. Übernehmen?',

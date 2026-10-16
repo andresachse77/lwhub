@@ -234,6 +234,11 @@ try {
         handleVsWeek($pdo, $ALLIANCE);
     }
 
+    // POST /scans/sparwoche – KW als VS-Sparwoche markieren (R4/R5)
+    if ($method === 'POST' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'sparwoche') {
+        handleSetSparwoche($pdo, $ALLIANCE, $body);
+    }
+
     // GET /scans/power-history – Kampfkraft je Spieler und Tag fuer die Trend-Seite (R4/R5)
     if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'power-history') {
         handlePowerHistory($pdo, $ALLIANCE);

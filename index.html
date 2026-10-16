@@ -3477,7 +3477,8 @@ async function showPage(id, options = {}) {
   if (safeId === 'sc') {
     // Scanner erst beim ersten Oeffnen laden (OCR-Modelle ~30 MB)
     const frame = document.getElementById('scanner-frame');
-    if (frame && !frame.getAttribute('src')) frame.src = frame.dataset.src;
+    // Zeitstempel in der Adresse: eingebettete Seiten laedt Strg+F5 nicht zuverlaessig neu
+    if (frame && !frame.getAttribute('src')) frame.src = frame.dataset.src + '?t=' + Date.now();
   }
 
   const isBattleView = safeId === 'w' || safeId === 'z' || safeId === 'zv' || safeId === 'bp';

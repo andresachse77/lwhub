@@ -827,6 +827,12 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
   }
 });
 
+// Versionsstand ins Protokoll (zeigt sofort, ob noch ein alter Stand aus dem Browser-Cache laeuft)
+fetch('../deploy-version.json', { cache: 'no-store' }).then(r => r.json()).then(v => {
+  const when = v.deployed_at && !v.deployed_at.startsWith('1970') ? ` vom ${new Date(v.deployed_at).toLocaleString('de-DE')}` : '';
+  log(`Scanner-Stand ${String(v.version || '?').slice(0, 7)}${when}.`);
+}).catch(() => {});
+
 // Initialer Start
 startOcrEngine();
 initAlliances();

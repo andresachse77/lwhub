@@ -103,16 +103,16 @@
 
     <div class="phase">Phase 1 &ndash; Sync absichern (sofort)</div>
 
-    <div class="task"><input type="checkbox"><div>
+    <div class="task"><input type="checkbox" checked><div>
       <div class="t">A1 &bull; Migration in <code>db-setup.php</code></div>
       <div class="d">Nullable Spalten an <code>player_metrics</code> (<code>scan_id</code>, <code>year_week</code>, <code>game_day</code>, <code>read_status</code>, <code>observations</code> + 2 Indizes) und an <code>api_tokens</code> (<code>created_by</code>, <code>expires_at</code>). Neue Tabellen <code>api_auth_cache</code> und <code>api_auth_log</code>. Jedes <code>ALTER</code> einzeln in try/catch wie in <code>ensureScannerColumns</code>.</div>
-      <div class="meta"><span class="badge green">risikoarm</span><span class="badge">~1 h</span></div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-16</span><span class="badge green">risikoarm</span><span class="badge">~1 h</span></div>
     </div></div>
 
-    <div class="task"><input type="checkbox"><div>
+    <div class="task"><input type="checkbox" checked><div>
       <div class="t">A2 &bull; Schalter <code>LWHUB_AUTH_MODE</code></div>
-      <div class="d">In <code>config.php</code> (Standard <code>log</code>), in <code>api/index.php</code> auslesen. Bei <code>off</code> verh&auml;lt sich alles wie heute.</div>
-      <div class="meta"><span class="badge green">risikoarm</span><span class="badge">~0,5 h</span></div>
+      <div class="d">Standard <code>log</code> im Code, &uuml;berschreibbar per Umgebungsvariable oder <code>define</code> in <code>config.php</code>. In <code>api/index.php</code> als <code>$AUTH_MODE</code> ausgelesen. Bei <code>off</code> verh&auml;lt sich alles wie heute.</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-16</span><span class="badge green">risikoarm</span><span class="badge">~0,5 h</span></div>
     </div></div>
 
     <div class="task"><input type="checkbox"><div>
@@ -266,7 +266,7 @@
 
   <div class="footer">
     LWHub &bull; Aufgaben zum Konzept v2 (2026-10-16)<br>
-    H&auml;kchen werden nicht gespeichert, sie dienen nur zum Abhaken beim Lesen.
+    Vorab gesetzte H&auml;kchen markieren erledigte Aufgaben. Eigene H&auml;kchen werden nicht gespeichert.
   </div>
 </div>
 </body>

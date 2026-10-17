@@ -48,6 +48,13 @@ async function init(requested, requestedThreads) {
     : requestedThreads ? Math.max(1, Math.min(cores, requestedThreads))
     : Math.min(4, cores);
   ort.env.wasm.numThreads = threads;
+  // Hide ORT's harmless "nodes not assigned to preferred EP" warnings (shape ops run on CPU by design).
+  ort.env.logLevel = 'error';
+  // Hand ORT our own adapter: its default requestAdapter({ powerPreference }) warns on Windows, where the option is ignored.
+  if (backend === 'webgpu') {
+    const adapter = await self.navigator.gpu.requestAdapter();
+    if (adapter) ort.env.webgpu.adapter = adapter;
+  }
 
   // Models are ~15 MB together; report progress since the first visit has to download them.
   const sizes = { det: 4745517, rec: 10857958 };
@@ -70,6 +77,7 @@ async function init(requested, requestedThreads) {
   const sessionOptions = {
     executionProviders: backend === 'webgpu' ? ['webgpu', 'wasm'] : ['wasm'],
     graphOptimizationLevel: 'all',
+    logSeverityLevel: 3,
   };
   engine = await LwOcrEngine.OcrEngine.create({ ort, detModel: det, recModel: rec, keysText: keys, sessionOptions });
 

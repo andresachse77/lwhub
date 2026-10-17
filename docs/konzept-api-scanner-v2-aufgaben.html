@@ -131,6 +131,7 @@
       <li><div><b>Deployen und Token für Thomas anlegen</b> (Rest von A4, Admin &rarr; API-Tokens, Rolle <code>scanner</code>). Damit kann Thomas T4 und T5 beginnen.</div></li>
       <li><div><b>Thomas Bescheid geben:</b> Der Sync für die App ist bereit (A12). Er kann T6 bauen und mit <code>dry_run</code> testen. Dabei G1 (Spielwoche) abstimmen.</div></li>
       <li><div><b>A11 vorbereiten:</b> <code>api_auth_log</code> ansehen, dann die R5-Endpunkte auf <code>enforce</code>.</div></li>
+      <li><div><b>G4 mit Thomas klären:</b> Anmeldung pro Person in der App statt Token pro Allianz, danach A14.</div></li>
       <li><div><b>G3 klären:</b> Wie lange bleiben Scan-Werte gespeichert?</div></li>
     </ol>
   </section>
@@ -140,7 +141,8 @@
     <div class="deps">
       <div class="dep"><span>Thomas braucht einen <code>scanner</code>-Token für die Test-Allianz</span><span class="tag part">A4 erledigt · Token nach Deploy</span></div>
       <div class="dep"><span>Thomas braucht den Sync mit <code>dry_run</code>, <code>scan_id</code>, <code>alliance_tag</code>, Metrik je Typ</span><span class="tag done">bereit seit 17.10.</span></div>
-      <div class="dep"><span>Festlegung der Spielwoche (<code>year_week</code>)</span><span class="tag blue">gemeinsam, G1</span></div>
+      <div class="dep"><span>Festlegung der Spielwoche (<code>year_week</code>)</span><span class="tag done">G1, Serverzeit seit 17.10.</span></div>
+      <div class="dep"><span>App für mehrere R4/R5: Anmeldung pro Person</span><span class="tag blue">gemeinsam, G4 &rarr; A14</span></div>
     </div>
   </section>
 
@@ -247,6 +249,16 @@
       </div></details>
     </div>
 
+    <div class="phase">Phase 4 · App für mehrere R4/R5</div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A14</span>App-Anmeldung pro Person statt Token pro Allianz</div><div class="tags"><span class="tag blue">Sicherheit</span><span class="tag">wartet auf G4</span></div></div>
+      <div class="d"><b>Problem:</b> Ein App-Token gilt für genau eine Allianz und hängt an keiner Person. Wenn viele R4/R5 die App nutzen, müsste Thomas Tokens pro Allianz und Nutzer sammeln und verteilen. Hinter einem Upload stünde niemand, und wer seinen Rang verliert, könnte mit dem Token weiter hochladen. Das gilt auch für Spieler mit Chars in NxU1 und NxU2.<br>
+      <b>Vorschlag:</b> Die App meldet sich mit Discord an (OAuth mit PKCE, Redirect-URI der App in der lwhub-Discord-Anwendung eintragen). Die Allianzen kommen aus <code>GET /scans/my-alliances</code>, die Rechte prüft der Hub bei jedem Aufruf. App-Tokens bleiben nur für Tests und Automatisierung (z.&nbsp;B. Power Automate).<br>
+      <b>Am Server nötig:</b> Ein Discord-Aufrufer hat im Sync heute die vollen R4/R5-Rechte wie im Web-Scanner (anlegen, archivieren, zurückholen, Rang). Uploads mit <code>source: "android_app"</code> müssen darum immer eingeschränkt laufen wie die Rolle <code>scanner</code>: nur Werte zu bekannten Spielern, Rest als <code>unmatched</code>. Prüfen, ob <code>GET /members</code> und <code>/scans/my-alliances</code> den Discord-Token aus der App annehmen.</div>
+      <div class="open-point">Offen: Discord-Login in der App (G4) oder ein persönlicher Token, den jeder R4/R5 selbst im Hub erzeugt.</div>
+    </div>
+
     <div class="phase">Später</div>
 
     <div class="task" data-status="done">
@@ -280,7 +292,7 @@
 
     <div class="task" data-status="open">
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T4</span>Upload-Weg entscheiden, Build-Variante anlegen</div><div class="tags"><span class="tag purple">App</span></div></div>
-      <div class="d">Die Release-Version bleibt offline. Entweder eine eigene Variante (z.&nbsp;B. <code>hub</code>) mit Internet-Berechtigung oder nur JSON-Export. Token verschlüsselt speichern wie den GitHub-Token (<code>TokenStore</code>). Upload-Schalter standardmäßig aus.</div>
+      <div class="d"><b>Entschieden 17.10.:</b> eigene Hub-Variante mit Internet-Berechtigung, die direkt hochlädt. Die Release-Version bleibt offline. Anmeldung pro Person siehe A14/G4. Token verschlüsselt speichern wie den GitHub-Token (<code>TokenStore</code>). Upload-Schalter standardmäßig aus.</div>
     </div>
 
     <div class="task" data-status="open">
@@ -312,10 +324,10 @@
   <section data-owner="Gemeinsam">
     <h2>🤝 Gemeinsam klären</h2>
 
-    <div class="task" data-status="part">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G1</span>Spielwoche und Spieltag</div><div class="tags"><span class="tag part">Vorschlag umgesetzt</span></div></div>
-      <div class="d">ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW 42/2026), Spieltag 1 = Mo … 7 = So. Der Hub rechnet aus <code>recorded_at</code>, die App darf <code>year_week</code>/<code>game_day</code> mitschicken.</div>
-      <div class="open-point">Mit Thomas abstimmen: Serverzeit und Zeitzone für den Wochen- und Tageswechsel.</div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G1</span>Spielwoche und Spieltag</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
+      <div class="d">ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW 42/2026), Spieltag 1 = Mo … 7 = So, nach <b>Spielserverzeit</b> (UTC-2, bestätigt von Andre): Wechsel mit dem Reset um 00:00 Serverzeit = 02:00 UTC, also 04:00 deutscher Sommerzeit und 03:00 im Winter (Vorschlag Thomas, 17.10.). Die App schickt <code>recorded_at</code> in UTC mit „Z“. Der Hub rechnet in <code>scanGameTime()</code> um, Versatz über <code>LWHUB_GAME_UTC_OFFSET</code>. Schickt die App <code>year_week</code>/<code>game_day</code> selbst, dann auch nach Serverzeit.</div>
+      <div class="d">Seit 17.10. auch auf der Webseite: Die aktuelle KW (Wochenliste, <code>currentYearWeek()</code> in index.html) und die Ranglisten-Historie (<code>handleGetRankingHistory</code>) rechnen nach Spielserverzeit statt nach Browser- bzw. Webserver-Uhr.</div>
     </div>
 
     <div class="task" data-status="part">
@@ -328,6 +340,12 @@
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G3</span>Ehrenmitglieder, Aufbewahrung</div><div class="tags"><span class="tag part">teilweise</span></div></div>
       <div class="d">Ehrenrollen zählen nirgends mit (Wochen, Trend, VS-Platz, Teams, Zug, Event-Auswertung). Der Sync aktualisiert, archiviert und verschiebt sie nicht. Archiv-Rückkehrer kommen mit Wochen, Namen und Discord vollständig zurück.</div>
       <div class="open-point">Wie lange bleiben Scan-Werte gespeichert?</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G4</span>Anmeldung in der App für mehrere R4/R5</div><div class="tags"><span class="tag blue">gemeinsam</span></div></div>
+      <div class="d">Wie meldet sich ein R4/R5 in der App an, ohne dass Thomas Tokens verwaltet? Vorschlag: Discord-Login in der App, Allianz-Auswahl aus <code>GET /scans/my-alliances</code>, Uploads nur Werte (A14). Alternative: Jeder erzeugt im Hub selbst einen persönlichen Token, der an seine Discord-ID gebunden ist.</div>
+      <div class="open-point">Mit Thomas entscheiden, danach A14 umsetzen.</div>
     </div>
   </section>
 

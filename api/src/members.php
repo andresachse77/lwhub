@@ -934,8 +934,9 @@ function handleGetSeInactive(PDO $pdo, string $alliance): never {
 function handleGetRankingHistory(PDO $pdo, string $alliance): never {
     $weeks = max(2, min(8, (int)($_GET['weeks'] ?? 4)));
 
-    $currentKw = (int)(date('y') . date('W'));
-    $weekClosed = (int)date('N') === 7;
+    $gameNow = scanGameTime(time()); // Spielserverzeit, Woche wechselt mit dem Reset im Spiel
+    $currentKw = $gameNow['year_week'];
+    $weekClosed = $gameNow['game_day'] === 7;
 
     $stmt = $pdo->prepare("
         SELECT DISTINCT year_week FROM weekly_entries
@@ -1213,6 +1214,15 @@ function normalizeScanYearWeek(mixed $value): ?int {
     if (strlen($s) !== 4) return null;
     $week = (int)substr($s, 2);
     return $week >= 1 && $week <= 53 ? (int)$s : null;
+}
+
+// Spielwoche und Spieltag nach Spielserverzeit: Last War laeuft auf UTC-2, Tag und Woche wechseln mit dem
+// Reset um 00:00 Serverzeit (02:00 UTC). Nicht nach der Zeitzone des Webservers, sonst landet ein Scan
+// zwischen Mitternacht und Reset am falschen Tag. Abweichend: LWHUB_GAME_UTC_OFFSET (Stunden) in config.php.
+function scanGameTime(int $ts): array {
+    $offset = defined('LWHUB_GAME_UTC_OFFSET') ? (float)LWHUB_GAME_UTC_OFFSET : -2.0;
+    $t = $ts + (int)round($offset * 3600);
+    return ['year_week' => (int)(substr(gmdate('o', $t), 2) . gmdate('W', $t)), 'game_day' => (int)gmdate('N', $t)];
 }
 
 const SCAN_VALUE_TYPES = ['VS_DAY', 'VS_WEEK', 'KILLS', 'DONATION_DAY', 'DONATION_WEEK'];
@@ -1608,14 +1618,14 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 }
             }
 
-            $ts = strtotime($recordedAt);
-            $yearWeek = $yearWeekOverride ?? (int)(substr(date('o', $ts), 2) . date('W', $ts)); // wie weekly_entries: 2642 = 2026 KW 42
+            $gameTime = scanGameTime(strtotime($recordedAt));
+            $yearWeek = $yearWeekOverride ?? $gameTime['year_week']; // wie weekly_entries: 2642 = 2026 KW 42
 
             if ($powerNum !== null) {
                 $pdo->prepare("
                     INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, source, recorded_at, scan_id, year_week, game_day, read_status, observations)
                     VALUES (?, ?, ?, 'POWER', ?, ?, ?, ?, ?, ?, ?, ?)
-                ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $powerNum, $source, $recordedAt, $scanId, $yearWeek, (int)date('N', $ts), $readStatus, $observations]);
+                ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $powerNum, $source, $recordedAt, $scanId, $yearWeek, $gameTime['game_day'], $readStatus, $observations]);
             }
 
             // VS-Punkte (Allianz-Duell): ein Wert je Spieler, Woche und Tag (VS_DAY, game_day 1 = Mo … 6 = Sa)
@@ -1634,7 +1644,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                     $pdo->prepare("
                         INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, source, recorded_at, year_week, game_day, scan_id, read_status, observations)
                         VALUES (?, ?, ?, 'KILLS', ?, ?, ?, ?, ?, ?, ?, ?)
-                    ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsPoints, $source, $recordedAt, $yearWeek, (int)date('N', $ts), $scanId, $readStatus, $observations]);
+                    ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsPoints, $source, $recordedAt, $yearWeek, $gameTime['game_day'], $scanId, $readStatus, $observations]);
                     $summary[$countKey] = ($summary[$countKey] ?? 0) + 1;
                     continue;
                 }
@@ -1645,7 +1655,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                     ? (int)$vs['game_day'] : null;
                 $gameDay = match ($vsType) {
                     'VS_DAY' => $sentDay ?? ($dayIdx === false ? null : $dayIdx + 1),
-                    'DONATION_DAY' => $sentDay ?? (int)date('N', $ts), // Tagesspenden zeigen immer den aktuellen Tag
+                    'DONATION_DAY' => $sentDay ?? $gameTime['game_day'], // Tagesspenden zeigen immer den aktuellen Tag
                     default => null,
                 };
                 if ($vsType === 'VS_DAY' && $gameDay === null) continue;

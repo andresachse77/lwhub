@@ -2580,8 +2580,16 @@ function isoWeeksInYear(year) {
   return getIsoYearWeekParts(new Date(Date.UTC(year, 11, 28))).week;
 }
 
+// Spielserverzeit (UTC-2): Woche und Tag wechseln mit dem Reset im Spiel um 00:00 Serverzeit
+// (04:00 Sommerzeit, 03:00 Winterzeit), nicht nach der Uhr des Browsers. Wie scanGameTime() im Hub.
+const GAME_UTC_OFFSET_H = -2;
+function gameServerDate(now = Date.now()) {
+  const g = new Date(now + GAME_UTC_OFFSET_H * 3600000);
+  return new Date(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate());
+}
+
 function currentYearWeek() {
-  const { year, week } = getIsoYearWeekParts();
+  const { year, week } = getIsoYearWeekParts(gameServerDate());
   return (year % 100) * 100 + week;
 }
 

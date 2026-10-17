@@ -395,13 +395,14 @@ Authorization: Bearer lwhub_xxxxxxxxxxxxxxxx
     <h2><span>❓</span> 8. Offene Punkte</h2>
     <h3>Noch zu entscheiden</h3>
     <ol>
-      <li><strong>Upload-Weg der App:</strong> eigene Build-Variante mit Internet oder nur JSON-Datei, die im Hub hochgeladen wird? Entscheidet Thomas (T4).</li>
       <li><strong>Aufbewahrung</strong> von <code>player_metrics</code>: Wie lange bleiben Scan-Werte gespeichert? (G3) Beim Archivieren und Verschieben wandern sie inzwischen mit.</li>
       <li><strong><code>discord_id</code> in <code>GET /members</code>:</strong> Wof&uuml;r braucht die Seite sie ohne Anmeldung? Erst danach entscheiden, ob sie ausgeblendet wird.</li>
     </ol>
     <h3>Entschieden bzw. als Vorschlag umgesetzt</h3>
     <ul>
-      <li><strong>Spielwoche (G1):</strong> ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW&nbsp;42/2026), Spieltag 1&nbsp;=&nbsp;Mo &hellip; 7&nbsp;=&nbsp;So. Der Hub rechnet aus <code>recorded_at</code>, die App darf <code>year_week</code>/<code>game_day</code> mitschicken. Mit Thomas noch abzustimmen: Serverzeit und Zeitzone f&uuml;r den Wechsel.</li>
+      <li><strong>Spielwoche (G1):</strong> ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW&nbsp;42/2026), Spieltag 1&nbsp;=&nbsp;Mo &hellip; 7&nbsp;=&nbsp;So. Der Hub rechnet aus <code>recorded_at</code>, die App darf <code>year_week</code>/<code>game_day</code> mitschicken. Woche und Tag gelten nach <strong>Spielserverzeit</strong> (UTC-2), nicht nach der Zeitzone des Webservers. Sie wechseln mit dem Reset im Spiel um 00:00 Serverzeit (02:00 UTC). Die App schickt <code>recorded_at</code> in UTC mit &bdquo;Z&ldquo;, eine eigene Zeitzonenangabe braucht es nicht. Schickt die App <code>year_week</code>/<code>game_day</code> selbst mit, muss sie ebenfalls nach Serverzeit rechnen. Umgesetzt 17.10. in <code>scanGameTime()</code>, der Versatz ist mit <code>LWHUB_GAME_UTC_OFFSET</code> in config.php &auml;nderbar. UTC-2 best&auml;tigt (Andre, 17.10.): Reset um 04:00 deutscher Sommerzeit, 03:00 im Winter.</li>
+      <li><strong>Upload-Weg der App (T4):</strong> eigene Hub-Build-Variante mit Internet, die direkt hochl&auml;dt (Thomas, 17.10.).</li>
+      <li><strong>App-Token und Allianz:</strong> Ein Token gilt f&uuml;r genau eine Allianz. Wer f&uuml;r NxU1 und NxU2 scannt, bekommt je Allianz einen Token. Die App w&auml;hlt den Token passend zur Allianz der Erfassung. Spieler einer anderen Allianz &uuml;bernimmt ein scanner-Token nie: In VS-Listen werden sie &uuml;ber <code>alliance_tag</code> verworfen, sonst kommen sie als <code>unmatched</code> zur&uuml;ck. Verschieben bleibt R5 im Hub vorbehalten.</li>
       <li><strong>Mehrere Erfassungen pro Woche (G2):</strong> VS und Spenden: der h&ouml;chste Wert je Spieler, Woche und Tag. Kampfkraft und Kills: jeder Scan ist ein eigener Messpunkt. Mit Thomas noch zu best&auml;tigen.</li>
       <li><strong>Ehrenmitglieder (G3):</strong> Ehrenrollen z&auml;hlen nirgends mit (Wochen, Trend, VS-Platz, Teams, Zug, Event-Auswertung). Der Sync &uuml;bernimmt f&uuml;r sie keine Werte und archiviert oder verschiebt sie nicht.</li>
     </ul>

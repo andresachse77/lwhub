@@ -273,7 +273,16 @@ const MatchingEngine = {
       throw new Error(`Serverfehler (${resp.status}): ${resData.error || responseText}`);
     }
 
-    return { ok: true, count: entries.length, summary: resData.summary };
+    // Ganze Antwort weitergeben: details, unmatched (nicht zugeordnet) und conflicts (blockiert, mit reason)
+    return {
+      ok: true,
+      count: entries.length,
+      dry_run: !!resData.dry_run,
+      summary: resData.summary || {},
+      details: resData.details || [],
+      unmatched: resData.unmatched || [],
+      conflicts: resData.conflicts || []
+    };
   }
 };
 

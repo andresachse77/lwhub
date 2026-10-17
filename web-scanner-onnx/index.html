@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LWHub Scanner-Cockpit (Browser-OCR)</title>
-<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261017e">
+<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261017f">
 <style>
   .ocr-engine-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .ocr-engine-row select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 12px; }
@@ -224,8 +224,21 @@
 
 </div>
 
+<!-- Ergebnis nach dem Sync: Zahlen, darunter aufklappbar nicht zugeordnete Namen und Konflikte -->
+<dialog id="syncResultDialog" class="sync-dialog">
+  <form method="dialog" class="sync-dialog-body">
+    <h2 id="syncResultTitle">✅ Synchronisiert</h2>
+    <p id="syncResultNote" class="sync-dialog-note" hidden></p>
+    <div id="syncResultStats" class="sync-stats"></div>
+    <div id="syncResultLists"></div>
+    <div class="sync-dialog-actions">
+      <button class="btn btn-primary" value="close">Schließen</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- MODULE LADEN (Matching & Drag-and-Drop teilt sich diese Seite mit dem Server-Cockpit) -->
-<script src="../web-scanner/js/matching.js?v=20261017h"></script>
+<script src="../web-scanner/js/matching.js?v=20261017i"></script>
 <script src="../web-scanner/js/drag-drop.js?v=20261017e"></script>
 <script src="js/ocr-client.js?v=20261017e"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
@@ -438,11 +451,12 @@ function cropCanvas(img, box, pad = 6) {
 }
 
 // 4. Kacheln in Cockpit einspeisen
-// Allianz-Kuerzel vergleichen: OCR verwechselt 1/l/I/i/| und 0/O, ein Zeichen Abweichung zaehlt noch
-// als gleiche Allianz (gesehen: "NxU7" statt "NxU1").
+// Allianz-Kuerzel vergleichen wie scanAllianceTagMatches() in api/src/members.php: OCR verwechselt 1/l/I/i/|
+// und 0/O, sonst exakt. Ein Zeichen Abweichung zaehlte bis 17.10. noch als gleich – dann waren NxU1 und
+// NxU2 dieselbe Allianz. Ein falsch gelesenes "NxU7" faellt dafuer jetzt heraus.
 function sameAllianceTag(a, b) {
-  const n = (t) => String(t || '').toLowerCase().replace(/[il|]/g, '1').replace(/o/g, '0').replace(/[^a-z0-9]/g, '');
-  return MatchingEngine.levenshtein(n(a), n(b)) <= 1;
+  const n = (t) => String(t || '').trim().toLowerCase().replace(/[il|]/g, '1').replace(/o/g, '0').replace(/[^a-z0-9]/g, '');
+  return n(a) === n(b);
 }
 
 const isValueMode = (mode) => mode === 'vs' || mode === 'kills' || mode === 'donation';
@@ -928,26 +942,138 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
 
   try {
     const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, LwhubAccess.discordToken());
-    const sum = res.summary;
-    alert(
-      `✅ Erfolgreich synchronisiert!\n\n` +
-      `• Aktualisiert: ${sum.updated}\n` +
-      `• Neu angelegt: ${sum.created}\n` +
-      `• Archiviert: ${sum.archived || 0}\n` +
-      `• Wiederhergestellt: ${sum.restored || 0}\n` +
-      `• Transferiert: ${sum.transferred || 0}
-` +
-      `• VS-Werte: ${sum.vs || 0}
-` +
-      `• Kills: ${sum.kills || 0}
-` +
-      `• Spenden: ${sum.donation || 0}`
-    );
+    showSyncResult(res, alliance);
     await loadMembers();
   } catch (err) {
     alert(`Fehler beim Sync: ${err.message}`);
   }
 });
+
+// Gruende aus handleSyncScans() (api/src/members.php) als Text fuer R4/R5
+const UNMATCHED_REASONS = {
+  'no-exact-name': 'Kein Mitglied mit genau diesem Namen in der Allianz',
+  'ambiguous-name': 'Name gibt es mehrfach in der Allianz – nicht eindeutig',
+  'unknown-player-id': 'Spieler-ID unbekannt oder nicht mehr aktiv',
+};
+function conflictText(c) {
+  const ranks = c.scanned_rank != null ? ` (gescannt R${c.scanned_rank}, bleibt R${c.kept_rank})` : '';
+  switch (c.reason) {
+    case 'transfer-needs-r5': return `Spieler ist noch in ${c.from_alliance || 'einer anderen Allianz'} – Verschieben darf nur R5`;
+    case 'ambiguous-other-alliance': return `Name gibt es in mehreren anderen Allianzen (${(c.alliances || []).join(', ')}) – nicht übernommen`;
+    case 'protected-r4-member': return `Geschützter R4 – Rang wird nicht geändert${ranks}`;
+    case 'honor-role-not-in-game': return 'Hat hier eine Ehrenrolle und ist im Spiel nicht in der Allianz – nicht übernommen';
+    case 'honor-member-read-only': return `Ehrenmitglied – Rang wird nicht geändert${ranks}`;
+    case 'honor-not-archivable': return 'Ehrenmitglied – wird nicht archiviert';
+    case 'scanner-no-archive': return `${c.count || 0} Spieler nicht archiviert – das darf ein Scanner-Zugang nicht`;
+    default: return c.reason || 'Unbekannter Konflikt';
+  }
+}
+
+// Namen einer Liste in die Zwischenablage (wie "Namen kopieren" in event.html)
+async function copyNames(btn, names) {
+  const label = btn.textContent;
+  try { await navigator.clipboard.writeText(names.join('\n')); btn.textContent = '✅ Kopiert'; }
+  catch { prompt('Namen zum Kopieren:', names.join(', ')); }
+  setTimeout(() => { btn.textContent = label; }, 1500);
+}
+
+function syncResultSection(title, items, warning) {
+  const box = document.createElement('details');
+  box.className = 'sync-section' + (warning ? ' warning' : '');
+  const head = document.createElement('summary');
+  head.textContent = `${title} (${items.length})`;
+  const list = document.createElement('ul');
+  list.className = 'sync-list';
+  for (const { name, text } of items) {
+    const li = document.createElement('li');
+    if (name) {
+      const n = document.createElement('span');
+      n.className = 'sync-name';
+      n.textContent = name;
+      li.appendChild(n);
+    }
+    const r = document.createElement('span');
+    r.className = 'sync-reason';
+    r.textContent = text;
+    li.appendChild(r);
+    list.appendChild(li);
+  }
+  box.append(head);
+  const names = [...new Set(items.map((i) => i.name).filter(Boolean))];
+  if (names.length) {
+    const actions = document.createElement('div');
+    actions.className = 'sync-section-actions';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-sm btn-secondary';
+    btn.textContent = '📋 Namen kopieren';
+    btn.addEventListener('click', () => copyNames(btn, names));
+    actions.appendChild(btn);
+    box.append(actions);
+  }
+  box.append(list);
+  return box;
+}
+
+function showSyncResult(res, alliance) {
+  const sum = res.summary || {};
+  const unmatched = res.unmatched || [];
+  const conflicts = res.conflicts || [];
+  document.getElementById('syncResultTitle').textContent = res.dry_run
+    ? `🧪 Probelauf ${alliance} – nichts gespeichert`
+    : `✅ Nach LWHub (${alliance}) übertragen`;
+
+  // Hauptzahlen immer, der Rest nur, wenn etwas passiert ist
+  const stats = [
+    ['Aktualisiert', sum.updated, true],
+    ['Neu angelegt', sum.created, true],
+    ['Archiviert', sum.archived, true],
+    ['Wiederhergestellt', sum.restored],
+    ['Verschoben', sum.transferred],
+    ['Rang geändert', sum.rank_changes],
+    ['VS-Werte', sum.vs],
+    ['Kills', sum.kills],
+    ['Spenden', sum.donation],
+    ['Fremde Allianz', sum.ignored_other_alliance, false, true],
+    ['Nicht zugeordnet', unmatched.length, false, true],
+    ['Konflikte', conflicts.length, false, true],
+  ];
+  const statBox = document.getElementById('syncResultStats');
+  statBox.replaceChildren();
+  for (const [label, value, always, warn] of stats) {
+    const v = value || 0;
+    if (!v && !always) continue;
+    const tile = document.createElement('div');
+    tile.className = 'sync-stat' + (warn ? ' warning' : '');
+    const b = document.createElement('b');
+    b.textContent = v.toLocaleString('de-DE');
+    const s = document.createElement('span');
+    s.textContent = label;
+    tile.append(b, s);
+    statBox.appendChild(tile);
+  }
+
+  const note = document.getElementById('syncResultNote');
+  note.hidden = !sum.ignored_other_alliance;
+  note.textContent = sum.ignored_other_alliance
+    ? `${sum.ignored_other_alliance} Einträge mit dem Kürzel einer anderen Allianz wurden nicht übernommen.`
+    : '';
+
+  const lists = document.getElementById('syncResultLists');
+  lists.replaceChildren();
+  if (unmatched.length) {
+    lists.appendChild(syncResultSection('Nicht zugeordnet', unmatched.map((u) => ({
+      name: u.name, text: UNMATCHED_REASONS[u.reason] || u.reason || 'Kein passendes Mitglied gefunden',
+    })), true));
+  }
+  if (conflicts.length) {
+    lists.appendChild(syncResultSection('Konflikte', conflicts.map((c) => ({ name: c.name, text: conflictText(c) })), true));
+  }
+  lists.hidden = !lists.childElementCount;
+
+  const dialog = document.getElementById('syncResultDialog');
+  if (!dialog.open) dialog.showModal();
+}
 
 // Versionsstand ins Protokoll (zeigt sofort, ob noch ein alter Stand aus dem Browser-Cache laeuft)
 let scannerVersion = null;

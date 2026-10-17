@@ -12,7 +12,8 @@ const { processFrame } = require('../js/scanner-pipeline.js');
 
 const DATA = process.argv[2] || 'C:/Git/lwt/Last-War-Tracker/testdaten';
 const MODELS = path.resolve(__dirname, '../models');
-const normTag = (t) => String(t || '').toLowerCase().replace(/[il|]/g, '1').replace(/o/g, '0');
+// Wie sameAllianceTag() im Cockpit und scanAllianceTagMatches() in der API: "Kuerzel richtig" = Zeile bleibt im Filter
+const normTag = (t) => String(t || '').trim().toLowerCase().replace(/[il|]/g, '1').replace(/o/g, '0').replace(/[^a-z0-9]/g, '');
 const normName = (n) => String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
 
 function loadImage(file) {

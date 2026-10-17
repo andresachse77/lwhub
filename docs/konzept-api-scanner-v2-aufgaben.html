@@ -128,7 +128,6 @@
     <ol>
       <li><div><b>Deployen und Token für Thomas anlegen</b> (Rest von A4, Admin &rarr; API-Tokens, Rolle <code>scanner</code>). Damit kann Thomas T4 und T5 beginnen.</div></li>
       <li><div><b>Thomas Bescheid geben:</b> Der Sync für die App ist bereit (A12). Er kann T6 bauen und mit <code>dry_run</code> testen. Dabei G1 (Spielwoche) abstimmen.</div></li>
-      <li><div><b>A7 abschließen:</b> <code>unmatched</code>/<code>conflicts</code> im Ergebnis-Dialog des Web-Scanners zeigen und den Kürzel-Vergleich (<code>sameAllianceTag</code>) an den Hub angleichen. Heute gelten dort NxU1 und NxU2 als gleich.</div></li>
       <li><div><b>A11 vorbereiten:</b> <code>api_auth_log</code> ansehen, dann die R5-Endpunkte auf <code>enforce</code>.</div></li>
       <li><div><b>G3 klären:</b> Wie lange bleiben Scan-Werte gespeichert?</div></li>
     </ol>
@@ -200,10 +199,12 @@
       </div></details>
     </div>
 
-    <div class="task" data-status="part">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A7</span>Web-Scanner-Cockpit: Anmeldung und Ergebnis</div><div class="tags"><span class="tag part">teilweise</span><span class="tag">~1 h</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A7</span>Web-Scanner-Cockpit: Anmeldung und Ergebnis</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
       <div class="d">Anders gelöst als geplant: Der Web-Scanner übernimmt den lwhub-Login und schickt das Discord-Token mit, ein Token-Feld ist nicht nötig.</div>
-      <div class="open-point"><code>unmatched</code>/<code>conflicts</code> im Ergebnis-Dialog anzeigen. <code>sameAllianceTag()</code> an den Hub angleichen (NxU1 &ne; NxU2).</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>17.10. abends</time>Ergebnis-Dialog statt <code>alert()</code>: Zahlen, aufklappbar „Nicht zugeordnet“ und „Konflikte“ mit deutschem Text je <code>reason</code>, Namen kopierbar. <code>syncToLwHub()</code> gibt <code>summary</code>, <code>details</code>, <code>unmatched</code>, <code>conflicts</code> zurück. <code>sameAllianceTag()</code> wie <code>scanAllianceTagMatches()</code> (NxU1 &ne; NxU2; ein falsch gelesenes „NxU7“ fällt jetzt heraus, vs-test 116/117). Probelauf mit <code>dry_run</code> gegen den lokalen Server.</p>
+      </div></details>
     </div>
 
     <div class="task" data-status="done">

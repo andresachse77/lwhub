@@ -50,10 +50,15 @@ async function init(requested, requestedThreads) {
   ort.env.wasm.numThreads = threads;
   // Hide ORT's harmless "nodes not assigned to preferred EP" warnings (shape ops run on CPU by design).
   ort.env.logLevel = 'error';
-  // Hand ORT our own adapter: its default requestAdapter({ powerPreference }) warns on Windows, where the option is ignored.
-  if (backend === 'webgpu') {
-    const adapter = await self.navigator.gpu.requestAdapter();
-    if (adapter) ort.env.webgpu.adapter = adapter;
+  // ORT's wasm core requests its adapter with a hard-coded powerPreference, which Chrome ignores on
+  // Windows and warns about once per worker. Strip the option there; behaviour is unchanged.
+  if (backend === 'webgpu' && /Windows/.test(self.navigator.userAgent)) {
+    const gpu = self.navigator.gpu;
+    const requestAdapter = gpu.requestAdapter.bind(gpu);
+    gpu.requestAdapter = (options) => {
+      const { powerPreference, ...rest } = options || {};
+      return requestAdapter(rest);
+    };
   }
 
   // Models are ~15 MB together; report progress since the first visit has to download them.

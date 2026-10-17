@@ -50,9 +50,11 @@ function handleListApiTokens(PDO $pdo, string $alliance): never {
 
     $stmt = $pdo->prepare("
         SELECT t.token_id, t.alliance, t.client_name, t.role, t.created_by, t.created_at,
-               t.last_used_at, t.expires_at, t.is_active, dpc.discord_username AS created_by_name
+               t.last_used_at, t.expires_at, t.is_active,
+               -- Profil-Cache hat eine Zeile je Allianz: nur die neueste, sonst doppelte Token-Zeilen
+               (SELECT dpc.discord_username FROM discord_profile_cache dpc
+                 WHERE dpc.discord_user_id = t.created_by ORDER BY dpc.updated_at DESC LIMIT 1) AS created_by_name
         FROM api_tokens t
-        LEFT JOIN discord_profile_cache dpc ON dpc.discord_user_id = t.created_by
         WHERE t.alliance = ?
         ORDER BY t.is_active DESC, t.created_at DESC
     ");

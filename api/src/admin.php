@@ -6,11 +6,15 @@ function handleGetAdmins(PDO $pdo, string $discordId): never {
     requireR5($pdo, $discordId);
     ensureSiteAdminsTable($pdo);
 
+    // discord_profile_cache hat eine Zeile je Allianz: ein JOIN zeigte Admins in mehreren Allianzen
+    // (z. B. Lion Tooth in NxU1 und NxU2) doppelt. Darum nur die neueste Profilzeile je Discord-ID.
     $stmt = $pdo->query("
         SELECT sa.discord_user_id, sa.granted_by, sa.note, sa.granted_at,
-               dpc.discord_username AS username, dpc.discord_avatar AS avatar
+               (SELECT dpc.discord_username FROM discord_profile_cache dpc
+                 WHERE dpc.discord_user_id = sa.discord_user_id ORDER BY dpc.updated_at DESC LIMIT 1) AS username,
+               (SELECT dpc.discord_avatar FROM discord_profile_cache dpc
+                 WHERE dpc.discord_user_id = sa.discord_user_id ORDER BY dpc.updated_at DESC LIMIT 1) AS avatar
         FROM site_admins sa
-        LEFT JOIN discord_profile_cache dpc ON dpc.discord_user_id = sa.discord_user_id
         ORDER BY sa.granted_at
     ");
     $rows = $stmt->fetchAll();

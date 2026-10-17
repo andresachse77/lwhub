@@ -899,9 +899,12 @@ class CockpitState {
     return c;
   }
 
-  // "VS Sa · 42.1M Pkt" bzw. "VS Woche · 199.9M Pkt"
+  // "VS Sa · 42.1M Pkt", "VS Woche · 199.9M Pkt", "Kills · 29.8M", "Spenden Woche · 140K"
   vsLabel(vs) {
     const p = vs.points >= 1e6 ? `${(vs.points / 1e6).toFixed(1)}M` : vs.points >= 1e3 ? `${Math.round(vs.points / 1e3)}K` : String(vs.points);
+    if (vs.type === 'KILLS') return `Kills · ${p}`;
+    if (vs.type === 'DONATION_WEEK') return `Spenden Woche · ${p}`;
+    if (vs.type === 'DONATION_DAY') return `Spenden Tag · ${p}`;
     return `VS ${vs.type === 'VS_WEEK' ? 'Woche' : (vs.day || 'Tag')} · ${p} Pkt`;
   }
 

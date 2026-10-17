@@ -337,6 +337,56 @@
     return stableSortBy(rows, (r) => r.anchor_y);
   }
 
+  // ─── Kills- und Spenden-Rangliste (Reiter in der Staerke-Rangliste) ────────────────────────────
+  // Je Zeile Platz | Avatar | Schild | Name | Wert rechts, Name und Wert auf derselben Hoehe (anders als
+  // bei VS, wo der Name ueber dem Wert steht). Kills sind oft achtstellig, ohne Trennzeichen. Unten ist
+  // die eigene Zeile fest eingeblendet (echte Werte, doppelt egal). Spenden haben die Reiter
+  // "Täglich" | "Wöchentlich", der gewaehlte ist hell hinterlegt.
+  const VALUE_RE = /^[0-9]{1,3}(?:[.,\s][0-9]{3})+$|^[0-9]{1,12}$/;
+
+  function valueInfo(lines, image, mode) {
+    if (mode === 'kills') return { type: 'KILLS', day: null };
+    const tabs = lines.filter((l) => /^t[äa]glich$|^w[öo]chentlich$/i.test(l.text.trim()));
+    if (tabs.length < 2 || !image) return { type: 'DONATION_WEEK', day: null };
+    const picked = maxBy(tabs, (l) => boxBrightness(image, l)).text.trim();
+    return { type: /^t/i.test(picked) ? 'DONATION_DAY' : 'DONATION_WEEK', day: null };
+  }
+
+  function groupValueRows(lines, image) {
+    const col = columnHeader(lines);
+    const top = col ? col.header.bottom : 0;
+    const anchors = lines.filter((l) => cy(l) > top && l.left > image.w * 0.6 && VALUE_RE.test(l.text.trim()));
+    const rows = [];
+    for (const anchor of anchors) {
+      const reach = height(anchor) * 1.2;
+      const nameLine = minBy(lines.filter((l) => l !== anchor && Math.abs(cy(l) - cy(anchor)) < reach
+        && l.right < anchor.left && l.left > image.w * 0.3 && !RANK_BADGE_RE.test(l.text.trim())),
+      (l) => Math.abs(cy(l) - cy(anchor)));
+      const posLine = minBy(lines.filter((l) => RANK_POSITION_RE.test(l.text.trim()) && l.right < image.w * 0.25
+        && Math.abs(cy(l) - cy(anchor)) < height(anchor) * 2.5), (l) => Math.abs(cy(l) - cy(anchor)));
+      // Am Bildrand angeschnittene Zeilen liefern keinen oder nur einen Rest-Namen ("3", "R", "K3") –
+      // die Zeile ist in der Nachbar-Aufnahme vollstaendig.
+      const name = nameLine ? cleanName(nameLine.text) : '';
+      if (name.replace(/[^\p{L}\p{N}]/gu, '').length < 3) continue;
+      const boxLines = [anchor, nameLine, posLine].filter(Boolean);
+      rows.push({
+        anchor_y: anchor.top,
+        rank_position: posLine ? posLine.text.trim() : null,
+        name,
+        alliance_tag: null,
+        points: parseInt(anchor.text.replace(/[^0-9]/g, ''), 10),
+        confidence: { name: nameLine ? nameLine.score : null, points: anchor.score },
+        box: {
+          left: Math.min(...boxLines.map((x) => x.left)) - 10,
+          top: Math.min(...boxLines.map((x) => x.top)) - 6,
+          right: Math.max(...boxLines.map((x) => x.right)) + 10,
+          bottom: Math.max(...boxLines.map((x) => x.bottom)) + 6,
+        },
+      });
+    }
+    return stableSortBy(rows, (r) => r.anchor_y);
+  }
+
   // Erkannte Textzeile mit Position (gerundet) – fuer die gesammelten Aufnahmen zur Nacharbeit
   const rawLine = (l) => ({ text: l.text, score: Math.round(l.score * 1000) / 1000,
     left: Math.round(l.left), top: Math.round(l.top), right: Math.round(l.right), bottom: Math.round(l.bottom) });
@@ -347,14 +397,14 @@
     const lines = await ocrLines(engine, image);
     const mode = detectMode(lines);
     if (mode === 'vs' || mode === 'kills' || mode === 'donation') {
-      // Kills- und Spenden-Ranglisten werden (noch) nicht uebernommen – nur erkannt, damit ihre Werte
-      // nicht als Kampfkraft landen.
+      // VS, Kills und Spenden laufen als Wert-Kacheln (vs_rows + vs.type) durch Cockpit und Sync,
+      // nie als Kampfkraft.
       return {
         width: image.w, height: image.h, mode,
         raw_lines: lines.map(rawLine),
         cards: [], rankings: [],
-        vs: mode === 'vs' ? vsInfo(lines, image) : null,
-        vs_rows: mode === 'vs' ? groupVsRows(lines, image) : [],
+        vs: mode === 'vs' ? vsInfo(lines, image) : valueInfo(lines, image, mode),
+        vs_rows: mode === 'vs' ? groupVsRows(lines, image) : groupValueRows(lines, image),
         rescued: false,
         timings: engine.timings,
       };
@@ -378,5 +428,5 @@
     };
   }
 
-  return { processFrame, ocrLines, detectMode, buildRows, needsRescue, shieldRescue, groupVsRows, vsInfo };
+  return { processFrame, ocrLines, detectMode, buildRows, needsRescue, shieldRescue, groupVsRows, vsInfo, groupValueRows, valueInfo };
 });

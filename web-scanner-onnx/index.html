@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LWHub Scanner-Cockpit (Browser-OCR)</title>
-<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261017b">
+<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261017c">
 <style>
   .ocr-engine-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .ocr-engine-row select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 12px; }
@@ -220,11 +220,11 @@
 </div>
 
 <!-- MODULE LADEN (Matching & Drag-and-Drop teilt sich diese Seite mit dem Server-Cockpit) -->
-<script src="../web-scanner/js/matching.js?v=20261017b"></script>
-<script src="../web-scanner/js/drag-drop.js?v=20261017b"></script>
-<script src="js/ocr-client.js?v=20261017b"></script>
-<script src="js/lwhub-access.js?v=20261017b"></script>
-<script src="js/zip-store.js?v=20261017b"></script>
+<script src="../web-scanner/js/matching.js?v=20261017c"></script>
+<script src="../web-scanner/js/drag-drop.js?v=20261017c"></script>
+<script src="js/ocr-client.js?v=20261017c"></script>
+<script src="js/lwhub-access.js?v=20261017c"></script>
+<script src="js/zip-store.js?v=20261017c"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -436,12 +436,13 @@ function sameAllianceTag(a, b) {
   return MatchingEngine.levenshtein(n(a), n(b)) <= 1;
 }
 
-const ignoredScreensLogged = new Set();
-const resultCount = (r) => r.mode === 'ranking' ? r.rankings.length : r.mode === 'vs' ? r.vs_rows.length : r.cards.length;
+const isValueMode = (mode) => mode === 'vs' || mode === 'kills' || mode === 'donation';
+const resultCount = (r) => r.mode === 'ranking' ? r.rankings.length : isValueMode(r.mode) ? r.vs_rows.length : r.cards.length;
 
 function processOcrResult(img, result) {
-  if (result.mode === 'vs') {
-    // VS (Allianz-Duell): beim gemischten Wochen-Rang stehen auch Spieler der Gegner-Allianz in der Liste
+  if (isValueMode(result.mode)) {
+    // VS (Allianz-Duell): beim gemischten Wochen-Rang stehen auch Spieler der Gegner-Allianz in der Liste.
+    // Kills und Spenden (Staerke-Rangliste) laufen als gleiche Wert-Kacheln, nur ohne Allianz-Kuerzel.
     const alliance = document.getElementById('allianceSelect').value;
     for (const row of result.vs_rows) {
       if (row.alliance_tag && !sameAllianceTag(row.alliance_tag, alliance)) continue;
@@ -454,13 +455,6 @@ function processOcrResult(img, result) {
         rank_position: row.rank_position,
         confidence: row.confidence
       }, cropCanvas(img, row.box, 4));
-    }
-    return;
-  }
-  if (result.mode === 'kills' || result.mode === 'donation') {
-    if (!ignoredScreensLogged.has(result.mode)) {
-      ignoredScreensLogged.add(result.mode);
-      log(`${result.mode === 'kills' ? 'Kills' : 'Spenden'}-Rangliste erkannt – wird (noch) nicht übernommen. Für Kampfkraft den Reiter „Kampfkraft“ wählen.`);
     }
     return;
   }
@@ -866,7 +860,11 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
       `• Wiederhergestellt: ${sum.restored || 0}\n` +
       `• Transferiert: ${sum.transferred || 0}
 ` +
-      `• VS-Werte: ${sum.vs || 0}`
+      `• VS-Werte: ${sum.vs || 0}
+` +
+      `• Kills: ${sum.kills || 0}
+` +
+      `• Spenden: ${sum.donation || 0}`
     );
     await loadMembers();
   } catch (err) {

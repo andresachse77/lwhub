@@ -201,6 +201,7 @@ function ensureScannerV2Columns(PDO $pdo): void {
         "ALTER TABLE player_metrics ADD KEY ix_metrics_week (alliance, metric_type, year_week)",
         "ALTER TABLE api_tokens ADD COLUMN created_by VARCHAR(50) NULL DEFAULT NULL",
         "ALTER TABLE api_tokens ADD COLUMN expires_at DATETIME NULL DEFAULT NULL",
+        "ALTER TABLE api_tokens ADD UNIQUE KEY uq_token_hash (token_hash)",
     ] as $sql) {
         try { $pdo->exec($sql); } catch (\PDOException) {}
     }

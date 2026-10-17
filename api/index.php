@@ -54,6 +54,7 @@ require_once __DIR__ . '/src/members.php';
 require_once __DIR__ . '/src/entries.php';
 require_once __DIR__ . '/src/access-requests.php';
 require_once __DIR__ . '/src/admin.php';
+require_once __DIR__ . '/src/api-tokens.php';
 require_once __DIR__ . '/src/archive.php';
 require_once __DIR__ . '/src/my-chars.php';
 require_once __DIR__ . '/src/teams.php';
@@ -63,7 +64,8 @@ require_once __DIR__ . '/src/zug.php';
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $scriptDir  = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
 $path       = parse_url($requestUri, PHP_URL_PATH) ?? '/';
-if ($scriptDir !== '' && str_starts_with($path, $scriptDir)) {
+// Nur ganze Segmente abschneiden: sonst wird aus /api-tokens "-tokens"
+if ($scriptDir !== '' && ($path === $scriptDir || str_starts_with($path, $scriptDir . '/'))) {
     $path = substr($path, strlen($scriptDir));
 }
 $path     = '/' . ltrim($path, '/');
@@ -331,6 +333,19 @@ try {
     // DELETE /admins/{discord_id}
     if ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'admins') {
         handleRevokeAdmin($pdo, $segments[1], $body);
+    }
+
+    // GET /api-tokens?alliance= – App-Tokens der Allianz (nur R5 dieser Allianz, ohne Hash)
+    if ($method === 'GET' && $path === '/api-tokens') {
+        handleListApiTokens($pdo, $ALLIANCE);
+    }
+    // POST /api-tokens – Token anlegen, Klartext steht nur in dieser Antwort
+    if ($method === 'POST' && $path === '/api-tokens') {
+        handleCreateApiToken($pdo, $ALLIANCE, $body);
+    }
+    // DELETE /api-tokens/{token_id} – widerrufen (is_active = 0)
+    if ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'api-tokens') {
+        handleRevokeApiToken($pdo, $ALLIANCE, $segments[1], $body);
     }
 
     // GET /my-chars

@@ -539,34 +539,11 @@ function handleTransferPlayer(PDO $pdo, string $fromAlliance, string $nameEncode
 
     $playerId = $player['player_id'];
 
-    for ($r = 1; $r <= 5; $r++) {
-        $pdo->prepare("INSERT IGNORE INTO ranks (alliance, rank_code) VALUES (?, ?)")->execute([$toAlliance, $r]);
-    }
-
+    // Gleiche Funktion wie der Scanner-Sync (Konzept v2, A6): Wochen samt Flags, Namen, Discord- und
+    // Konto-Verknuepfung, aktiver Charakter und Scan-Werte wandern mit.
     $pdo->beginTransaction();
     try {
-        $pdo->exec("SET FOREIGN_KEY_CHECKS=0");
-
-        foreach (['players', 'player_identities', 'player_name_history'] as $tbl) {
-            try {
-                $pdo->prepare("UPDATE `{$tbl}` SET alliance = ? WHERE alliance = ? AND player_id = ?")
-                    ->execute([$toAlliance, $fromAlliance, $playerId]);
-            } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        }
-        try {
-            $pdo->prepare("UPDATE weekly_entry_flags wef
-                JOIN weekly_entries we ON wef.alliance = we.alliance AND wef.entry_id = we.entry_id
-                SET wef.alliance = ?
-                WHERE wef.alliance = ? AND we.player_id = ?")
-                ->execute([$toAlliance, $fromAlliance, $playerId]);
-        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        try {
-            $pdo->prepare("UPDATE weekly_entries SET alliance = ? WHERE alliance = ? AND player_id = ?")
-                ->execute([$toAlliance, $fromAlliance, $playerId]);
-        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-
-        $pdo->exec("SET FOREIGN_KEY_CHECKS=1");
-
+        movePlayerToAlliance($pdo, $playerId, $fromAlliance, $toAlliance);
         $pdo->commit();
         jsonOut(200, ['ok' => true, 'player_id' => $playerId, 'to_alliance' => $toAlliance]);
     } catch (\PDOException $e) {
@@ -1149,6 +1126,8 @@ function moveWeeklyEntries(PDO $pdo, string $playerId, string $fromAlliance, str
 // players.alliance direkt umzuschreiben – das brach bis 17.10. den ganzen Sync ab, sobald der Spieler auch nur
 // einen Namens-Eintrag hatte. Darum: Spieler in der Ziel-Allianz anlegen, Abhaengiges umhaengen, alte Zeile
 // loeschen. Was im Ziel schon existiert (gleiche Woche), gilt dort; der doppelte alte Eintrag entfaellt.
+// Auch das R5-Werkzeug "Spieler verschieben" (handleTransferPlayer) nutzt diese Funktion. Der Aufrufer
+// oeffnet die Transaktion.
 function movePlayerToAlliance(PDO $pdo, string $playerId, string $fromAlliance, string $toAlliance): void {
     for ($r = 1; $r <= 5; $r++) {
         $pdo->prepare("INSERT IGNORE INTO ranks (alliance, rank_code) VALUES (?, ?)")->execute([$toAlliance, $r]);
@@ -1170,9 +1149,11 @@ function movePlayerToAlliance(PDO $pdo, string $playerId, string $fromAlliance, 
         ->execute([$fromAlliance, $playerId]);
     $pdo->prepare("DELETE FROM weekly_entries WHERE alliance = ? AND player_id = ?")->execute([$fromAlliance, $playerId]);
 
-    try {
-        $pdo->prepare("UPDATE user_active_char SET alliance = ? WHERE alliance = ? AND player_id = ?")->execute([$toAlliance, $fromAlliance, $playerId]);
-    } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    foreach (['user_active_char', 'player_metrics'] as $tbl) {
+        try {
+            $pdo->prepare("UPDATE `$tbl` SET alliance = ? WHERE alliance = ? AND player_id = ?")->execute([$toAlliance, $fromAlliance, $playerId]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
     $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$fromAlliance, $playerId]);
 }
 
@@ -1190,18 +1171,21 @@ function scanNameKey(string $name): string {
  * Reihenfolge: gleicher Name in der Ziel-Allianz, gleicher Name in einer anderen Allianz, dann gleicher
  * Vergleichsschluessel (scanNameKey) – zuerst in der Ziel-Allianz. Beim Vergleichsschluessel nur, wenn genau
  * ein archivierter Spieler passt und der Archiv-Name in der Ziel-Allianz nicht schon vergeben ist.
+ * $allowed(alliance) grenzt ein, aus welchen Archiven geholt werden darf (Konzept v2, A5: nur Allianzen, in
+ * denen der Aufrufer selbst R4/R5 ist).
  */
-function findArchivedPlayerForScan(PDO $pdo, string $name, string $targetAlliance): ?array {
+function findArchivedPlayerForScan(PDO $pdo, string $name, string $targetAlliance, callable $allowed): ?array {
     $cols = "archive_id, alliance, player_id, current_name, current_rank_code, player_created_at";
-    $stmt = $pdo->prepare("SELECT $cols FROM archived_players WHERE current_name = ? ORDER BY alliance = ? DESC, archived_at DESC LIMIT 1");
+    $stmt = $pdo->prepare("SELECT $cols FROM archived_players WHERE current_name = ? ORDER BY alliance = ? DESC, archived_at DESC");
     $stmt->execute([$name, $targetAlliance]);
-    $exact = $stmt->fetch();
-    if ($exact) return $exact;
+    foreach ($stmt->fetchAll() as $exact) {
+        if ($allowed($exact['alliance'])) return $exact;
+    }
 
     $key = scanNameKey($name);
     if (strlen($key) < 3) return null;
     $all = $pdo->query("SELECT $cols, archived_at FROM archived_players ORDER BY archived_at DESC")->fetchAll();
-    $matches = array_values(array_filter($all, fn($a) => scanNameKey((string)$a['current_name']) === $key));
+    $matches = array_values(array_filter($all, fn($a) => scanNameKey((string)$a['current_name']) === $key && $allowed($a['alliance'])));
     if (!$matches) return null;
     $home = array_values(array_filter($matches, fn($a) => $a['alliance'] === $targetAlliance));
     $pool = $home ?: $matches;
@@ -1211,6 +1195,27 @@ function findArchivedPlayerForScan(PDO $pdo, string $name, string $targetAllianc
     $taken->execute([$targetAlliance, $pool[0]['current_name'], $pool[0]['player_id']]);
     return $taken->fetch() ? null : $pool[0];
 }
+
+// Allianz-Kuerzel aus einer VS-Liste ("[NxU1]") gegen die eigene Allianz. OCR-Verwechslungen (I/l/1, O/0,
+// Klammern) gleicht die Normalisierung aus; sonst exakt, denn Schwester-Allianzen unterscheiden sich oft nur
+// in einer Ziffer (NxU1/NxU2).
+function scanAllianceTagMatches(string $tag, string $alliance): bool {
+    $n = fn(string $t) => preg_replace('/[^a-z0-9]/', '', strtr(strtolower(trim($t)), ['i' => '1', 'l' => '1', '|' => '1', 'o' => '0'])) ?? '';
+    return $n($tag) === $n($alliance);
+}
+
+// Spielwoche wie weekly_entries.year_week (2642 = 2026 KW 42). Die App darf 202642 schicken.
+function normalizeScanYearWeek(mixed $value): ?int {
+    if ($value === null || $value === '' || !is_numeric($value)) return null;
+    $s = (string)(int)$value;
+    if (strlen($s) === 6) $s = substr($s, 2);
+    if (strlen($s) !== 4) return null;
+    $week = (int)substr($s, 2);
+    return $week >= 1 && $week <= 53 ? (int)$s : null;
+}
+
+const SCAN_VALUE_TYPES = ['VS_DAY', 'VS_WEEK', 'KILLS', 'DONATION_DAY', 'DONATION_WEEK'];
+const SCAN_READ_STATUSES = ['ok', 'corrected', 'conflicting', 'unreadable'];
 
 function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protectedNames = []): never {
     set_time_limit(120);
@@ -1243,6 +1248,37 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
     $source = trim($body['source'] ?? 'scanner');
     $recordedAt = !empty($body['recorded_at']) ? date('Y-m-d H:i:s', strtotime($body['recorded_at'])) : date('Y-m-d H:i:s');
 
+    // Konzept v2, A12 (App-Format): scan_type fuer die ganze Erfassung, Wert in entries[].value_numeric.
+    // Ohne scan_type gilt das Web-Scanner-Format (power_str, vs[]) wie bisher.
+    $scanType = strtoupper(trim((string)($body['scan_type'] ?? '')));
+    if ($scanType === 'DONATION') $scanType = 'DONATION_WEEK'; // Typname der App
+    if ($scanType !== '' && !in_array($scanType, [...SCAN_VALUE_TYPES, 'POWER', 'MEMBERS_LIST'], true)) {
+        jsonOut(400, ['error' => "Unbekannter scan_type: {$scanType}"]);
+    }
+    // scan_id: dieselbe Erfassung erneut hochgeladen -> alte Werte dieser scan_id ersetzen
+    $scanId = trim((string)($body['scan_id'] ?? ''));
+    if ($scanId !== '' && !preg_match('/^[0-9a-fA-F-]{8,36}$/', $scanId)) jsonOut(400, ['error' => 'Ungültige scan_id']);
+    $scanId = $scanId !== '' ? strtolower($scanId) : null;
+    $yearWeekOverride = normalizeScanYearWeek($body['year_week'] ?? null);
+    $bodyGameDay = isset($body['game_day']) && is_numeric($body['game_day']) && (int)$body['game_day'] >= 1 && (int)$body['game_day'] <= 7
+        ? (int)$body['game_day'] : null;
+
+    // Verschieben aus einer anderen Allianz nur fuer R5 (Konzept v2, A6). Andere Allianzen (Verschieben,
+    // Archiv) nur, wo der Aufrufer selbst R4/R5 ohne Ehrenrolle ist; App-Tokens nur ihre eigene Allianz.
+    $canTransfer = !$scannerOnly && (int)($caller['rank'] ?? 0) >= 5;
+    $managed = [];
+    $canManage = function (string $other) use ($pdo, $caller, $targetAlliance, &$managed): bool {
+        if (strcasecmp($other, $targetAlliance) === 0) return true;
+        if (!empty($caller['token_id'])) return false;
+        $id = $caller['discord_id'] ?? null;
+        if ($id === null) return ($caller['can_scan'] ?? false) === true; // lokal bzw. Modus off
+        if (!array_key_exists($other, $managed)) {
+            $m = getDiscordMember($pdo, $other, $id, true);
+            $managed[$other] = $m !== null && empty($m['site_viewer']) && normalizeHonorRole($m['honor_role'] ?? null) === null;
+        }
+        return $managed[$other];
+    };
+
     $summary = [
         'total' => count($entries),
         'updated' => 0,
@@ -1252,7 +1288,9 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
         'archived' => 0,
         'rank_changes' => 0,
         'unmatched' => 0,
+        'ignored_other_alliance' => 0,
     ];
+    $replacedPrevious = false;
     $details = [];
     $conflicts = [];
     $unmatched = [];
@@ -1295,6 +1333,12 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
 
     $pdo->beginTransaction();
     try {
+        if ($scanId !== null) {
+            $del = $pdo->prepare("DELETE FROM player_metrics WHERE alliance = ? AND scan_id = ?");
+            $del->execute([$targetAlliance, $scanId]);
+            $replacedPrevious = $del->rowCount() > 0;
+        }
+
         // Process any members to archive
         foreach ($archivePlayerIds as $archTarget) {
             $archTarget = trim((string)$archTarget);
@@ -1318,6 +1362,26 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
         foreach ($entries as $e) {
             $name = trim($e['name'] ?? '');
             if ($name === '') continue;
+
+            // Gegner aus VS-Listen: Kuerzel einer anderen Allianz -> verwerfen
+            $tag = trim((string)($e['alliance_tag'] ?? ''));
+            if ($tag !== '' && !scanAllianceTagMatches($tag, $targetAlliance)) {
+                $summary['ignored_other_alliance']++;
+                $details[] = ['name' => $name, 'action' => 'ignored_other_alliance', 'alliance_tag' => $tag];
+                continue;
+            }
+
+            $readStatus = in_array($e['read_status'] ?? null, SCAN_READ_STATUSES, true) ? $e['read_status'] : null;
+            $observations = isset($e['observations']) && is_numeric($e['observations'])
+                ? max(0, min(32767, (int)$e['observations'])) : null;
+
+            // App-Format: value_numeric ist der Wert des scan_type, bei Werte-Listen also keine Kampfkraft
+            if (in_array($scanType, SCAN_VALUE_TYPES, true)) {
+                if (isset($e['value_numeric']) && is_numeric($e['value_numeric'])) {
+                    $e['vs'] = [...($e['vs'] ?? []), ['type' => $scanType, 'points' => $e['value_numeric'], 'game_day' => $e['game_day'] ?? $bodyGameDay]];
+                }
+                unset($e['value_numeric']);
+            }
 
             $playerId = !empty($e['player_id']) ? trim($e['player_id']) : null;
             $powerStr = trim((string)($e['power_str'] ?? ''));
@@ -1424,7 +1488,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 $summary['updated']++;
                 $details[] = ['name' => $name, 'action' => 'updated', 'player_id' => $finalPlayerId, 'rank' => $finalRank];
             } else {
-                $arch = findArchivedPlayerForScan($pdo, $name, $targetAlliance);
+                $arch = findArchivedPlayerForScan($pdo, $name, $targetAlliance, $canManage);
 
                 if ($arch) {
                     $finalPlayerId = $arch['player_id'];
@@ -1461,11 +1525,22 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 } else {
                     // Ehren-Eintraege nie verschieben: der Ehren-R4 einer Gast-Allianz behaelt dort seine Rolle,
                     // auch wenn ihn seine Heimat-Allianz scannt (dort bekommt er einen eigenen Eintrag).
-                    $otherStmt = $pdo->prepare("SELECT player_id, alliance, current_rank_code, honor_role FROM players WHERE current_name = ? AND is_active = 1 AND " . sqlNoHonor('') . " LIMIT 1");
-                    $otherStmt->execute([$name]);
-                    $other = $otherStmt->fetch();
+                    // Nur Allianzen, in denen der Aufrufer selbst R4/R5 ist; Spieler fremder Allianzen bleiben
+                    // unangetastet (dann Neuanlage hier). Verschieben selbst nur fuer R5.
+                    $otherStmt = $pdo->prepare("SELECT player_id, alliance, current_rank_code, honor_role FROM players WHERE current_name = ? AND is_active = 1 AND alliance <> ? AND " . sqlNoHonor(''));
+                    $otherStmt->execute([$name, $targetAlliance]);
+                    $others = array_values(array_filter($otherStmt->fetchAll(), fn($o) => $canManage($o['alliance'])));
+                    $other = $others[0] ?? null;
+                    if (count($others) > 1) {
+                        $conflicts[] = ['name' => $name, 'blocked' => true, 'reason' => 'ambiguous-other-alliance', 'alliances' => array_column($others, 'alliance')];
+                        continue;
+                    }
+                    if ($other && !$canTransfer) {
+                        $conflicts[] = ['name' => $name, 'blocked' => true, 'reason' => 'transfer-needs-r5', 'from_alliance' => $other['alliance']];
+                        continue;
+                    }
 
-                    if ($other && $other['alliance'] !== $targetAlliance) {
+                    if ($other) {
                         $finalPlayerId = $other['player_id'];
                         $oldRank = (int)$other['current_rank_code'];
                         [$finalRank, $blocked, $reason] = $resolveScanRank($name, $requestedRank, $oldRank, normalizeHonorRole($other['honor_role'] ?? null), $finalPlayerId);
@@ -1532,11 +1607,14 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 }
             }
 
+            $ts = strtotime($recordedAt);
+            $yearWeek = $yearWeekOverride ?? (int)(substr(date('o', $ts), 2) . date('W', $ts)); // wie weekly_entries: 2642 = 2026 KW 42
+
             if ($powerNum !== null) {
                 $pdo->prepare("
-                    INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, source, recorded_at)
-                    VALUES (?, ?, ?, 'POWER', ?, ?, ?)
-                ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $powerNum, $source, $recordedAt]);
+                    INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, source, recorded_at, scan_id, year_week, game_day, read_status, observations)
+                    VALUES (?, ?, ?, 'POWER', ?, ?, ?, ?, ?, ?, ?, ?)
+                ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $powerNum, $source, $recordedAt, $scanId, $yearWeek, (int)date('N', $ts), $readStatus, $observations]);
             }
 
             // VS-Punkte (Allianz-Duell): ein Wert je Spieler, Woche und Tag (VS_DAY, game_day 1 = Mo … 6 = Sa)
@@ -1545,27 +1623,28 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
             // Events wie dem Kriegszonen-Duell. Spenden (DONATION_DAY/_WEEK) wie VS: hoechster Wert je Tag/Woche.
             foreach (($e['vs'] ?? []) as $vs) {
                 $vsType = (string)($vs['type'] ?? '');
-                if (!in_array($vsType, ['VS_DAY', 'VS_WEEK', 'KILLS', 'DONATION_DAY', 'DONATION_WEEK'], true)
+                if (!in_array($vsType, SCAN_VALUE_TYPES, true)
                     || !is_numeric($vs['points'] ?? null)) continue;
                 $vsPoints = (int)$vs['points'];
                 if ($vsPoints < 0) continue;
-                $ts = strtotime($recordedAt);
-                $yearWeek = (int)(substr(date('o', $ts), 2) . date('W', $ts)); // wie weekly_entries: 2642 = 2026 KW 42
                 $countKey = $vsType === 'KILLS' ? 'kills' : (str_starts_with($vsType, 'DONATION') ? 'donation' : 'vs');
 
                 if ($vsType === 'KILLS') {
                     $pdo->prepare("
-                        INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, source, recorded_at, year_week, game_day)
-                        VALUES (?, ?, ?, 'KILLS', ?, ?, ?, ?, ?)
-                    ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsPoints, $source, $recordedAt, $yearWeek, (int)date('N', $ts)]);
+                        INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, source, recorded_at, year_week, game_day, scan_id, read_status, observations)
+                        VALUES (?, ?, ?, 'KILLS', ?, ?, ?, ?, ?, ?, ?, ?)
+                    ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsPoints, $source, $recordedAt, $yearWeek, (int)date('N', $ts), $scanId, $readStatus, $observations]);
                     $summary[$countKey] = ($summary[$countKey] ?? 0) + 1;
                     continue;
                 }
 
+                // Spieltag: App schickt game_day (1 = Mo … 7 = So), der Web-Scanner den Reiter ("Mo" … "Sa")
                 $dayIdx = array_search((string)($vs['day'] ?? ''), ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], true);
+                $sentDay = isset($vs['game_day']) && is_numeric($vs['game_day']) && (int)$vs['game_day'] >= 1 && (int)$vs['game_day'] <= 7
+                    ? (int)$vs['game_day'] : null;
                 $gameDay = match ($vsType) {
-                    'VS_DAY' => $dayIdx === false ? null : $dayIdx + 1,
-                    'DONATION_DAY' => (int)date('N', $ts), // Tagesspenden zeigen immer den aktuellen Tag
+                    'VS_DAY' => $sentDay ?? ($dayIdx === false ? null : $dayIdx + 1),
+                    'DONATION_DAY' => $sentDay ?? (int)date('N', $ts), // Tagesspenden zeigen immer den aktuellen Tag
                     default => null,
                 };
                 if ($vsType === 'VS_DAY' && $gameDay === null) continue;
@@ -1578,15 +1657,16 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 $sel->execute([$targetAlliance, $finalPlayerId, $vsType, $yearWeek, $gameDay]);
                 $existing = $sel->fetch();
                 if ($existing) {
+                    // Der Wert gehoert dann zu dieser Erfassung (scan_id): ein erneuter Upload ersetzt ihn
                     if ($vsPoints > (int)$existing['value_numeric']) {
-                        $pdo->prepare("UPDATE player_metrics SET value_numeric = ?, source = ?, recorded_at = ? WHERE metric_id = ?")
-                            ->execute([$vsPoints, $source, $recordedAt, $existing['metric_id']]);
+                        $pdo->prepare("UPDATE player_metrics SET value_numeric = ?, source = ?, recorded_at = ?, scan_id = ?, read_status = ?, observations = ? WHERE alliance = ? AND metric_id = ?")
+                            ->execute([$vsPoints, $source, $recordedAt, $scanId, $readStatus, $observations, $targetAlliance, $existing['metric_id']]);
                     }
                 } else {
                     $pdo->prepare("
-                        INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, value_text, source, recorded_at, year_week, game_day)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsType, $vsPoints, $vs['day'] ?? null, $source, $recordedAt, $yearWeek, $gameDay]);
+                        INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, value_text, source, recorded_at, year_week, game_day, scan_id, read_status, observations)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsType, $vsPoints, $vs['day'] ?? null, $source, $recordedAt, $yearWeek, $gameDay, $scanId, $readStatus, $observations]);
                 }
                 $summary[$countKey] = ($summary[$countKey] ?? 0) + 1;
             }
@@ -1595,7 +1675,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
         // dry_run: alles ausfuehren, dann zurueckrollen – die Antwort zeigt, was passieren wuerde
         if ($dryRun) $pdo->rollBack();
         else $pdo->commit();
-        jsonOut(200, ['ok' => true, 'dry_run' => $dryRun, 'summary' => $summary, 'details' => $details, 'unmatched' => $unmatched, 'conflicts' => $conflicts]);
+        jsonOut(200, ['ok' => true, 'dry_run' => $dryRun, 'scan_id' => $scanId, 'replaced_previous_upload' => $replacedPrevious, 'summary' => $summary, 'details' => $details, 'unmatched' => $unmatched, 'conflicts' => $conflicts]);
     } catch (\Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         jsonOut(500, ['error' => 'Fehler beim Synchronisieren: ' . $e->getMessage()]);

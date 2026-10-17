@@ -132,7 +132,7 @@
         <div class="header-scan-actions">
           <button id="btnHeaderStart" class="btn btn-sm btn-primary" disabled>▶️ Scan starten</button>
           <button id="btnHeaderStop" class="btn btn-sm btn-danger" disabled>🛑 Scan stoppen</button>
-          <button id="btnHeaderFiles" class="btn btn-sm btn-secondary" disabled>📂 Screenshots</button>
+          <button id="btnHeaderFiles" class="btn btn-sm btn-secondary" disabled>📂 Screenshots / Video</button>
         </div>
       </div>
 
@@ -194,8 +194,8 @@
           <div class="controls-row">
             <button id="btnStartCapture" class="btn" disabled>Fenster w&auml;hlen &amp; Scan starten</button>
             <button id="btnStopCapture" class="btn btn-danger" disabled>Scan stoppen</button>
-            <button id="btnPickFiles" class="btn btn-secondary" disabled>Screenshots laden</button>
-            <input type="file" id="screenshotInput" accept="image/*" multiple>
+            <button id="btnPickFiles" class="btn btn-secondary" disabled>Screenshots / Video laden</button>
+            <input type="file" id="screenshotInput" accept="image/*,video/*" multiple>
           </div>
 
           <div class="controls-row" style="font-size: 12px; color: var(--text-muted);">
@@ -684,7 +684,10 @@ function createOrderedRunner(onResult) {
 
 // 6. Screenshots verarbeiten (ersetzt den Testlauf mit den lokalen Testbildern)
 async function processFiles(fileList) {
-  const files = Array.from(fileList).filter(f => f.type.startsWith('image/'))
+  const all = Array.from(fileList);
+  const videos = all.filter(isVideoFile);
+  if (videos.length > 0) await processVideos(videos);
+  const files = all.filter(f => f.type.startsWith('image/'))
     .sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }));
   if (filesRunActive || files.length === 0 || !ocr.ready) return;
   filesRunActive = true;
@@ -729,6 +732,154 @@ async function processFiles(fileList) {
   } finally {
     clearInterval(processingCountdownTimer);
     processingCountdownTimer = null;
+    filesRunActive = false;
+    fileButtons.forEach(b => { b.disabled = !ocr.ready; });
+    if (stopProcessingRequested) document.getElementById('processingProgressText').textContent = 'Verarbeitung gestoppt.';
+    updateProcessingStopButton();
+  }
+}
+
+// 6b. Bildschirmaufnahme als Video (z. B. iPhone: Safari kann den Bildschirm nicht live teilen)
+// The video is stepped through by seeking instead of being played, so processing never drops
+// frames and the scroll speed while recording only matters as far as consecutive kept views still
+// overlap. A frame where the list rests is kept at once; while scrolling, the stillest frame of
+// each short window is kept.
+const VIDEO_STEP_S = 0.1;
+const VIDEO_STILL = 0.004;
+const VIDEO_MAX_GAP_S = 0.3;
+
+function isVideoFile(f) {
+  return f.type.startsWith('video/') || /\.(mov|mp4|m4v|webm)$/i.test(f.name);
+}
+
+async function openVideo(file) {
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.src = URL.createObjectURL(file);
+  try {
+    await new Promise((resolve, reject) => {
+      video.addEventListener('loadeddata', resolve, { once: true });
+      video.addEventListener('error', () => reject(new Error('Video konnte nicht gelesen werden (Format von diesem Browser nicht unterstützt?)')), { once: true });
+    });
+    // iOS Safari only delivers frames for seeking once the video has played.
+    await video.play().catch(() => {});
+    video.pause();
+    return video;
+  } catch (err) {
+    closeVideo(video);
+    throw err;
+  }
+}
+
+function closeVideo(video) {
+  URL.revokeObjectURL(video.src);
+  video.removeAttribute('src');
+  video.load();
+}
+
+function seekVideo(video, t) {
+  if (Math.abs(video.currentTime - t) < 1e-3) return Promise.resolve();
+  return new Promise((resolve) => {
+    video.addEventListener('seeked', resolve, { once: true });
+    video.currentTime = t;
+  });
+}
+
+function setVideoProgress(name, t, duration, kept, open) {
+  document.getElementById('processingProgress').hidden = false;
+  setRemaining(open, 'Ansichten offen');
+  document.getElementById('processingProgressText').textContent =
+    `${name}: ${Math.round(t)}/${Math.round(duration)} s durchsucht · ${kept} Ansichten erfasst`;
+  document.getElementById('processingCountdown').textContent = '';
+  const bar = document.getElementById('processingProgressBar');
+  bar.max = duration;
+  bar.value = Math.min(t, duration);
+}
+
+async function processVideos(files) {
+  if (filesRunActive || !ocr.ready) return;
+  filesRunActive = true;
+  stopProcessingRequested = false;
+  const fileButtons = [document.getElementById('btnPickFiles'), document.getElementById('btnHeaderFiles')];
+  fileButtons.forEach(b => { b.disabled = true; });
+  updateProcessingStopButton();
+
+  const runner = createOrderedRunner(({ meta: { canvas, label }, data, error }) => {
+    if (error) { log(`Fehler bei ${label}: ${error.message}`); return; }
+    processOcrResult(canvas, data);
+    if (keepCaptureEnabled()) keepCapture(`${label}.png`, new Promise((resolve) => canvas.toBlob(resolve, 'image/png')), data);
+    log(`${label}: ${resultCount(data)} Kachel(n) erkannt (${(data.elapsed_ms / 1000).toFixed(1)} s).`);
+  });
+  let wake = null;
+  let onProgress = () => {};
+  runner.onIdle = () => { onProgress(); const w = wake; wake = null; w?.(); };
+  const waitUntil = async (cond) => { while (!cond()) await new Promise((r) => { wake = r; }); };
+
+  try {
+    for (const file of files) {
+      if (stopProcessingRequested) break;
+      let video;
+      try {
+        video = await openVideo(file);
+      } catch (err) {
+        log(`${file.name}: ${err.message}`);
+        continue;
+      }
+      try {
+        const duration = video.duration;
+        if (!Number.isFinite(duration) || duration <= 0) {
+          log(`${file.name}: Videolänge unbekannt – bitte als MP4 oder MOV aufnehmen.`);
+          continue;
+        }
+        log(`Video ${file.name}: ${duration.toFixed(1)} s, ${video.videoWidth}×${video.videoHeight} – suche geänderte Ansichten (${ocr.size} parallel)…`);
+        const base = file.name.replace(/\.[^.]+$/, '');
+        let t = 0, kept = 0, prevSig = null, lastKeptSig = null, cand = null;
+        onProgress = () => setVideoProgress(file.name, t, duration, kept, runner.running);
+
+        const keep = async (c) => {
+          await seekVideo(video, c.t);
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext('2d').drawImage(video, 0, 0);
+          lastKeptSig = c.sig;
+          await waitUntil(() => runner.running < ocr.size || stopProcessingRequested);
+          if (stopProcessingRequested) return;
+          kept++;
+          const label = `${base} ${c.t.toFixed(1)} s`;
+          runner.submit({ canvas, label }, () => ocrTracked(canvas, label));
+        };
+
+        for (; t < duration && !stopProcessingRequested; t += VIDEO_STEP_S) {
+          await seekVideo(video, t);
+          const sig = frameSignature(video);
+          const motion = prevSig ? signatureDifference(prevSig, sig) : 1;
+          prevSig = sig;
+          if (lastKeptSig && signatureDifference(lastKeptSig, sig) < CHANGE_THRESHOLD) {
+            cand = null;
+          } else {
+            if (!cand) cand = { t, sig, motion, since: t };
+            else if (motion < cand.motion) cand = { t, sig, motion, since: cand.since };
+            if (motion < VIDEO_STILL || t - cand.since >= VIDEO_MAX_GAP_S) {
+              await keep(cand);
+              cand = null;
+            }
+          }
+          onProgress();
+        }
+        if (cand && !stopProcessingRequested) await keep(cand);
+        log(`Video ${file.name}: ${kept} Ansichten an die Texterkennung übergeben.`);
+      } finally {
+        closeVideo(video);
+      }
+    }
+    await waitUntil(() => runner.running === 0);
+    onProgress();
+    if (stopProcessingRequested) log('Verarbeitung durch Stop-Button abgebrochen.');
+    reportRankGaps();
+  } finally {
     filesRunActive = false;
     fileButtons.forEach(b => { b.disabled = !ocr.ready; });
     if (stopProcessingRequested) document.getElementById('processingProgressText').textContent = 'Verarbeitung gestoppt.';
@@ -791,6 +942,18 @@ const btnStop = document.getElementById('btnStopCapture');
 const btnHeaderStart = document.getElementById('btnHeaderStart');
 const btnHeaderStop = document.getElementById('btnHeaderStop');
 const captureStatusText = document.getElementById('captureStatusText');
+
+// Safari on iPhone/iPad (and most mobile browsers) cannot share the screen with a web page:
+// hide the live scan there and point to the video import instead.
+const canCaptureScreen = !!navigator.mediaDevices?.getDisplayMedia;
+if (!canCaptureScreen) {
+  [btnStart, btnStop, btnHeaderStart, btnHeaderStop].forEach(b => { b.style.display = 'none'; });
+  document.getElementById('btnHeaderFiles').textContent = '🎬 Video / Screenshots';
+  captureStatusText.textContent = 'Live-Scan geht in diesem Browser nicht (z. B. Safari auf dem iPhone). Stattdessen: '
+    + 'Bildschirmaufnahme im Kontrollzentrum starten, im Spiel durch die Liste scrollen (darf zügig sein), '
+    + 'Aufnahme beenden und das Video hier über „Screenshots / Video laden“ auswählen.';
+  log('Dieser Browser kann den Bildschirm nicht live teilen – bitte eine Bildschirmaufnahme als Video hochladen.');
+}
 
 function updateCaptureButtons(running) {
   btnStart.disabled = running || !ocr.ready;

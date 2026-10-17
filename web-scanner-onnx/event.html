@@ -53,14 +53,14 @@
 
   <header class="top-bar">
     <div class="brand-section">
-      <div class="brand-title"><span>🎯</span> Event-Auswertung</div>
-      <label for="allianceSelect" style="color:var(--text-muted); font-size:12px;">Allianz:</label>
+      <div class="brand-title"><span>🎯</span> <span data-i18n="ev_title">Event-Auswertung</span></div>
+      <label for="allianceSelect" style="color:var(--text-muted); font-size:12px;" data-i18n="ev_alliance">Allianz:</label>
       <select id="allianceSelect" class="alliance-selector"><option value="NxU1">NxU1</option></select>
     </div>
     <div class="status-section">
       <div id="userBadge" class="badge-stat" hidden></div>
-      <a id="linkTrend" class="btn btn-secondary" href="trend.html">📈 Trend</a>
-      <a id="linkScanner" class="btn btn-secondary" href="./">📸 Scanner</a>
+      <a id="linkTrend" class="btn btn-secondary" href="trend.html">📈 <span data-i18n="ev_trend">Trend</span></a>
+      <a id="linkScanner" class="btn btn-secondary" href="./">📸 <span data-i18n="ev_scanner">Scanner</span></a>
     </div>
   </header>
 
@@ -78,35 +78,29 @@
 
     <div class="ev-wrap">
       <section class="panel">
-        <h2>Wer war beim Event dabei?</h2>
-        <p class="muted">
-          Vergleicht je Spieler <strong>Kills</strong> und <strong>Kampfkraft</strong> vor und nach dem Event.
-          Vorher zählt der letzte Scan vor dem Start, nachher der letzte Scan bis kurz nach dem Ende.
-          Gestiegene Kills heißen: hat gekämpft. Gesunkene Kampfkraft heißt: hat Truppen verloren.
-          Scannt deshalb <strong>kurz vor dem Start</strong> und <strong>direkt nach dem Ende, vor dem Heilen</strong>
-          (Stärke-Rangliste: Reiter „Kampfkraft“ und „Kills“).
-        </p>
+        <h2 data-i18n="ev_intro_h">Wer war beim Event dabei?</h2>
+        <p class="muted" data-i18n-html="ev_intro"></p>
       </section>
 
       <section class="panel">
         <div class="controls">
-          <label>Tag <input type="date" id="evDate"></label>
-          <label>Start <input type="time" id="evStart" value="16:00"></label>
-          <label>Ende <input type="time" id="evEnd" value="20:00"></label>
-          <label title="So lange nach dem Ende zählen Scans noch als „nachher“">Nachlauf (Min.) <input type="number" id="evAfter" min="0" max="720" step="15" value="90"></label>
-          <label title="Kills-Zuwachs, ab dem es als Kämpfen zählt">Kills ab <input type="number" id="thKills" min="0" step="1000" value="1"></label>
-          <label title="Kampfkraft-Verlust, ab dem es als Verluste zählt">Verlust ab (%) <input type="number" id="thLoss" min="0" step="0.1" value="0.3"></label>
-          <button id="btnReload" class="btn btn-secondary">↻ Neu laden</button>
+          <label><span data-i18n="ev_day">Tag</span> <input type="date" id="evDate"></label>
+          <label><span data-i18n="ev_start">Start</span> <input type="time" id="evStart" value="16:00"></label>
+          <label><span data-i18n="ev_end">Ende</span> <input type="time" id="evEnd" value="20:00"></label>
+          <label data-i18n-title="ev_after_t"><span data-i18n="ev_after">Nachlauf (Min.)</span> <input type="number" id="evAfter" min="0" max="720" step="15" value="90"></label>
+          <label data-i18n-title="ev_kills_t"><span data-i18n="ev_kills_min">Kills ab</span> <input type="number" id="thKills" min="0" step="1000" value="1"></label>
+          <label data-i18n-title="ev_loss_t"><span data-i18n="ev_loss_min">Verlust ab (%)</span> <input type="number" id="thLoss" min="0" step="0.1" value="0.3"></label>
+          <button id="btnReload" class="btn btn-secondary">↻ <span data-i18n="ev_reload">Neu laden</span></button>
         </div>
         <div class="summary" id="scanTimes" style="margin-top:10px;"></div>
       </section>
 
       <section class="panel">
-        <div class="summary" id="summary"><span class="muted">Lade…</span></div>
+        <div class="summary" id="summary"><span class="muted" data-i18n="ev_loading">Lade…</span></div>
         <div class="controls" style="margin-top:10px;">
           <div class="filter-pills" id="verdictPills"></div>
-          <input id="searchInput" class="input-search" placeholder="🔍 Spieler filtern…">
-          <button id="btnCopy" class="btn btn-secondary" title="Namen der gefilterten Liste kopieren (z. B. für Discord)">📋 Namen kopieren</button>
+          <input id="searchInput" class="input-search" data-i18n-ph="ev_search" placeholder="🔍 Spieler filtern…">
+          <button id="btnCopy" class="btn btn-secondary" data-i18n-title="ev_copy_t">📋 <span data-i18n="ev_copy">Namen kopieren</span></button>
         </div>
       </section>
 
@@ -121,23 +115,44 @@
 
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script>
+// ─── Sprache wie im lwhub-Portal: localStorage iny_lang_v1 (gleiche Domain), ?lang= ueberschreibt.
+// Texte aus denselben Sprachdateien wie das Portal (locales/<lang>.json, Schluessel ev_*), Deutsch als Rueckfall.
+const LANG = (() => {
+  let l = new URLSearchParams(location.search).get('lang');
+  if (!l) { try { l = localStorage.getItem('iny_lang_v1'); } catch {} }
+  l = String(l || 'de').trim().toLowerCase();
+  return ['de', 'en', 'it', 'fr', 'pl', 'es', 'zh'].includes(l) ? l : 'de';
+})();
+const NUM_LOCALE = { de: 'de-DE', en: 'en-GB', it: 'it-IT', fr: 'fr-FR', pl: 'pl-PL', es: 'es-ES', zh: 'zh-CN' }[LANG];
+let STR = {}, STR_DE = {};
+async function loadStrings() {
+  const get = (l) => fetch(`../locales/${l}.json`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : {}).then((j) => j.strings || {}).catch(() => ({}));
+  [STR_DE, STR] = await Promise.all([get('de'), LANG === 'de' ? Promise.resolve(null) : get(LANG)]);
+  STR = STR || STR_DE;
+}
+const t = (k, vars = {}) => String(STR[k] ?? STR_DE[k] ?? k).replace(/\{(\w+)\}/g, (_, v) => vars[v] ?? '');
+function applyStaticI18n() {
+  document.documentElement.lang = LANG;
+  document.title = `LWHub ${t('ev_title')}`;
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
+}
+
 let activeApiUrl = LwhubAccess.apiCandidates()[0];
 let raw = null;
 let rows = [];
 let verdictFilter = 'all';
 let sortKey = 'kills', sortDir = 1;
 
-const VERDICTS = {
-  both: { icon: '🔥', label: 'gekämpft + Verluste', order: 0 },
-  kills: { icon: '⚔', label: 'gekämpft', order: 1 },
-  losses: { icon: '🩸', label: 'nur Verluste', order: 2 },
-  none: { icon: '⚠️', label: 'keine Änderung', order: 3 },
-  unknown: { icon: '❔', label: 'nicht gescannt', order: 4 },
-};
+// Bezeichnungen erst nach loadStrings() lesen (label ist ein Getter)
+const VERDICTS = Object.fromEntries([['both', '🔥'], ['kills', '⚔'], ['losses', '🩸'], ['none', '⚠️'], ['unknown', '❔']]
+  .map(([k, icon], order) => [k, { icon, order, get label() { return t(`ev_v_${k}`); } }]));
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const mio = (v) => v == null ? '—' : `${(v / 1e6).toFixed(1)}M`;
-const num = (v) => v == null ? '—' : Math.round(v).toLocaleString('de-DE');
+const num = (v) => v == null ? '—' : Math.round(v).toLocaleString(NUM_LOCALE);
 const signed = (v, f) => v == null ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : '±'}${f(Math.abs(v))}`;
 const signClass = (v) => v == null ? '' : v > 0 ? 'pos' : v < 0 ? 'neg' : '';
 const hhmm = (at) => at ? at.slice(11, 16) : '—';
@@ -168,26 +183,26 @@ function render() {
   const scans = raw.scans;
   const chip = (t, kind) => `<span class="scan-chip ${t >= raw.start.slice(0, 16) ? 'after' : ''}">${kind} ${t.slice(11)}</span>`;
   document.getElementById('scanTimes').innerHTML =
-    '<span class="muted">Scans im Fenster:</span>' +
-    (scans.power.map((t) => chip(t, 'KK')).join('') + scans.kills.map((t) => chip(t, 'Kills')).join('') || '<span class="muted">keine</span>') +
-    (scans.power.concat(scans.kills).some((t) => t >= raw.start.slice(0, 16)) ? '' : '<span class="muted">– noch kein Scan nach dem Start (grün = nachher).</span>');
+    `<span class="muted">${t('ev_scans_in_window')}</span>` +
+    (scans.power.map((x) => chip(x, t('ev_kk'))).join('') + scans.kills.map((x) => chip(x, t('ev_kills'))).join('') || `<span class="muted">${t('ev_none')}</span>`) +
+    (scans.power.concat(scans.kills).some((x) => x >= raw.start.slice(0, 16)) ? '' : `<span class="muted">${t('ev_no_after')}</span>`);
 
   const part = counted.filter((r) => r.participated).length;
   const known = counted.filter((r) => r.verdict !== 'unknown').length;
   const killsSum = counted.reduce((s, r) => s + (r.dk > 0 ? r.dk : 0), 0);
   const lossSum = counted.reduce((s, r) => s + (r.dp < 0 ? -r.dp : 0), 0);
   document.getElementById('summary').innerHTML =
-    `<span class="badge-stat">${counted.length} Mitglieder</span>` +
-    `<span class="badge-stat">${known} ausgewertet</span>` +
-    `<span class="badge-stat">✅ ${part} dabei</span>` +
-    `<span class="badge-stat">⚔ ${mio(killsSum)} Kills</span>` +
-    `<span class="badge-stat">🩸 ${mio(lossSum)} Kampfkraft verloren</span>` +
-    (rows.length > counted.length ? `<span class="muted">Ehrenrollen (${rows.length - counted.length}) sind ausgegraut und zählen nicht mit.</span>` : '');
+    `<span class="badge-stat">${t('ev_members', { n: counted.length })}</span>` +
+    `<span class="badge-stat">${t('ev_evaluated', { n: known })}</span>` +
+    `<span class="badge-stat">${t('ev_joined', { n: part })}</span>` +
+    `<span class="badge-stat">${t('ev_kills_sum', { v: mio(killsSum) })}</span>` +
+    `<span class="badge-stat">${t('ev_loss_sum', { v: mio(lossSum) })}</span>` +
+    (rows.length > counted.length ? `<span class="muted">${t('ev_honor_note', { n: rows.length - counted.length })}</span>` : '');
 
   const counts = Object.fromEntries(Object.keys(VERDICTS).map((k) => [k, counted.filter((r) => r.verdict === k).length]));
   document.getElementById('verdictPills').innerHTML =
-    `<button class="pill-btn ${verdictFilter === 'all' ? 'active' : ''}" data-v="all">Alle (${counted.length})</button>` +
-    `<button class="pill-btn ${verdictFilter === 'yes' ? 'active' : ''}" data-v="yes">✅ dabei (${part})</button>` +
+    `<button class="pill-btn ${verdictFilter === 'all' ? 'active' : ''}" data-v="all">${t('ev_all')} (${counted.length})</button>` +
+    `<button class="pill-btn ${verdictFilter === 'yes' ? 'active' : ''}" data-v="yes">${t('ev_yes')} (${part})</button>` +
     Object.entries(VERDICTS).map(([k, v]) =>
       `<button class="pill-btn ${verdictFilter === k ? 'active' : ''}" data-v="${k}">${v.icon} ${v.label} (${counts[k]})</button>`).join('');
 
@@ -201,12 +216,12 @@ function render() {
   }[sortKey];
   list.sort((a, b) => { const ka = key(a), kb = key(b); return (ka < kb ? -1 : ka > kb ? 1 : 0) * sortDir; });
 
-  const th = (k, label, cls = '') => `<th class="${cls}" data-sort="${k}" title="Sortieren">${label}${sortKey === k ? (sortDir > 0 ? ' ▾' : ' ▴') : ''}</th>`;
+  const th = (k, label, cls = '') => `<th class="${cls}" data-sort="${k}" title="${t('ev_sort')}">${label}${sortKey === k ? (sortDir > 0 ? ' ▾' : ' ▴') : ''}</th>`;
   document.getElementById('evTable').innerHTML =
-    `<thead><tr>${th('name', 'Spieler')}${th('kills', 'Kills +', 'num')}<th class="num">Kills vorher → nachher</th>` +
-    `${th('loss', 'Kampfkraft Δ', 'num')}${th('power', 'Kampfkraft vorher → nachher', 'num')}${th('verdict', 'Einstufung')}</tr></thead><tbody>` +
+    `<thead><tr>${th('name', t('ev_th_player'))}${th('kills', t('ev_th_kills'), 'num')}<th class="num">${t('ev_th_kills_ba')}</th>` +
+    `${th('loss', t('ev_th_power_d'), 'num')}${th('power', t('ev_th_power_ba'), 'num')}${th('verdict', t('ev_th_verdict'))}</tr></thead><tbody>` +
     list.map((r) => `<tr class="${r.honor_role ? 'honor' : ''}">
-      <td><span class="rank-badge r${r.rank}">R${r.rank}</span> ${esc(r.name)}${r.honor_role ? ' <span class="muted">(Ehrenrolle)</span>' : ''}</td>
+      <td><span class="rank-badge r${r.rank}">R${r.rank}</span> ${esc(r.name)}${r.honor_role ? ` <span class="muted">(${t('ev_honor')})</span>` : ''}</td>
       <td class="num ${signClass(r.dk)}">${signed(r.dk, num)}</td>
       <td class="num"><span title="${esc(r.kills.before?.at || '')}">${num(r.kills.before?.v)}</span> <span class="dim">→</span> <span title="${esc(r.kills.after?.at || '')}">${num(r.kills.after?.v)}</span> <span class="dim">${hhmm(r.kills.after?.at)}</span></td>
       <td class="num ${signClass(r.dp)}">${signed(r.dp, mio)}${r.dpPct != null ? ` <span class="dim">(${r.dpPct > 0 ? '+' : ''}${r.dpPct.toFixed(1)} %)</span>` : ''}</td>
@@ -228,6 +243,8 @@ function saveForm() {
     start: document.getElementById('evStart').value,
     end: document.getElementById('evEnd').value,
   });
+  const langParam = new URLSearchParams(location.search).get('lang');
+  if (langParam) params.set('lang', langParam);
   history.replaceState(null, '', `?${params}`);
   try { localStorage.setItem('lwhub_event_form_v1', JSON.stringify(Object.fromEntries(params))); } catch {}
 }
@@ -237,7 +254,7 @@ async function load() {
   const alliance = document.getElementById('allianceSelect').value;
   document.getElementById('linkScanner').href = `./`;
   document.getElementById('linkTrend').href = `trend.html?alliance=${encodeURIComponent(alliance)}`;
-  const data = await LwhubAccess.check(activeApiUrl, alliance, 'Die Event-Auswertung', { view: true });
+  const data = await LwhubAccess.check(activeApiUrl, alliance, t('ev_gate_what'), { view: true });
   if (!data) return;
   const date = document.getElementById('evDate').value;
   let endDate = date;
@@ -255,7 +272,7 @@ async function load() {
   const resp = await fetch(`${activeApiUrl}/scans/event-compare?${qs}`, { headers: LwhubAccess.authHeaders() });
   const body = await resp.json().catch(() => ({}));
   if (!resp.ok || !body.ok) {
-    document.getElementById('summary').innerHTML = `<span class="neg">Auswertung konnte nicht geladen werden: ${esc(body.error || resp.status)}</span>`;
+    document.getElementById('summary').innerHTML = `<span class="neg">${t('ev_load_error', { e: esc(body.error || resp.status) })}</span>`;
     return;
   }
   raw = body;
@@ -282,12 +299,14 @@ document.getElementById('btnReload').addEventListener('click', load);
 document.getElementById('accessGateRetry').addEventListener('click', load);
 document.getElementById('btnCopy').addEventListener('click', async () => {
   const names = filtered().map((r) => r.name).join('\n');
-  try { await navigator.clipboard.writeText(names); document.getElementById('btnCopy').textContent = '✅ Kopiert'; }
-  catch { prompt('Namen kopieren:', names.replace(/\n/g, ', ')); }
-  setTimeout(() => { document.getElementById('btnCopy').textContent = '📋 Namen kopieren'; }, 1500);
+  try { await navigator.clipboard.writeText(names); document.getElementById('btnCopy').textContent = `✅ ${t('ev_copied')}`; }
+  catch { prompt(t('ev_copy_prompt'), names.replace(/\n/g, ', ')); }
+  setTimeout(() => { document.getElementById('btnCopy').textContent = `📋 ${t('ev_copy')}`; }, 1500);
 });
 
 (async () => {
+  await loadStrings();
+  applyStaticI18n();
   const url = new URLSearchParams(location.search);
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('lwhub_event_form_v1') || '{}') || {}; } catch {}

@@ -30,7 +30,7 @@ function requestBearerToken(): string {
 
 /** Discord-User-ID zum Access-Token, oder null wenn Discord es nicht (mehr) akzeptiert. */
 function verifyDiscordToken(PDO $pdo, string $token): ?string {
-    if ($token === '' || str_starts_with($token, 'lwhub_')) return null; // App-Tokens (A4) noch nicht unterstuetzt
+    if ($token === '' || str_starts_with($token, API_TOKEN_PREFIX)) return null; // App-Tokens: resolveApiToken()
     $hash = hash('sha256', $token);
 
     $stmt = $pdo->prepare('SELECT discord_user_id FROM api_auth_cache WHERE token_hash = ? AND expires_at > NOW()');
@@ -76,17 +76,54 @@ function verifyDiscordToken(PDO $pdo, string $token): ?string {
     return $id;
 }
 
-function logAuthDecision(PDO $pdo, string $verdict, string $alliance, ?string $claimedId, ?string $verifiedId): void {
+/**
+ * App-Token (Praefix lwhub_, Konzept v2 A3/A4) aus api_tokens. Liefert
+ * ['token_id', 'alliance', 'role', 'client_name'] oder ['error' => 'unknown_token'|'token_revoked'|'token_expired'].
+ * Bei Erfolg wird last_used_at gesetzt (einmal pro Request).
+ */
+function resolveApiToken(PDO $pdo, string $token): array {
+    static $cache = [];
+    if (isset($cache[$token])) return $cache[$token];
+    if (!str_starts_with($token, API_TOKEN_PREFIX)) return $cache[$token] = ['error' => 'unknown_token'];
+
+    $stmt = $pdo->prepare('
+        SELECT token_id, alliance, role, client_name, is_active, expires_at, expires_at <= NOW() AS expired
+        FROM api_tokens WHERE token_hash = ? LIMIT 1
+    ');
+    $stmt->execute([hash('sha256', $token)]);
+    $row = $stmt->fetch();
+    if (!$row) return $cache[$token] = ['error' => 'unknown_token'];
+    if (!(int)$row['is_active']) return $cache[$token] = ['error' => 'token_revoked', 'token_id' => $row['token_id']];
+    if ($row['expires_at'] !== null && (int)$row['expired']) return $cache[$token] = ['error' => 'token_expired', 'token_id' => $row['token_id']];
+
+    $pdo->prepare('UPDATE api_tokens SET last_used_at = NOW() WHERE token_id = ?')->execute([$row['token_id']]);
+    return $cache[$token] = [
+        'token_id'    => $row['token_id'],
+        'alliance'    => $row['alliance'],
+        'role'        => isset(API_TOKEN_ROLES[$row['role']]) ? $row['role'] : 'scanner',
+        'client_name' => $row['client_name'],
+    ];
+}
+
+/** Allianz des App-Tokens im Request, oder null (kein bzw. ungueltiges App-Token). */
+function requestApiTokenAlliance(PDO $pdo): ?string {
+    $token = requestBearerToken();
+    if (!str_starts_with($token, API_TOKEN_PREFIX)) return null;
+    return resolveApiToken($pdo, $token)['alliance'] ?? null;
+}
+
+function logAuthDecision(PDO $pdo, string $verdict, string $alliance, ?string $claimedId, ?string $verifiedId, ?string $tokenId = null): void {
     try {
         $pdo->prepare('
-            INSERT INTO api_auth_log (method, path, alliance, claimed_discord_id, verified_discord_id, verdict, ip)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO api_auth_log (method, path, alliance, claimed_discord_id, verified_discord_id, token_id, verdict, ip)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ')->execute([
             substr($_SERVER['REQUEST_METHOD'] ?? '', 0, 8),
             substr((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), 0, 190),
             $alliance,
             $claimedId,
             $verifiedId,
+            $tokenId,
             $verdict,
             substr($_SERVER['REMOTE_ADDR'] ?? '', 0, 45),
         ]);
@@ -235,17 +272,20 @@ function siteViewerMember(string $discordId): array {
  * Allianzen, in denen sie selbst R4/R5 sind – sonst schauen sie nur zu.
  * $view = true (Kampfkraft-Trend, VS-Wochenwerte, Zugangspruefung der Trend-Seite): lesend, dann auch
  * Ehren-R4 und Site-Admins in jeder Allianz.
+ * App-Token (lwhub_...): gilt nur fuer seine eigene Allianz. Rolle r4/r5 wie ein R4/R5, Rolle scanner nur
+ * lesend ($view) oder wo der Endpunkt sie ausdruecklich zulaesst ($allowScannerRole: Sync mit
+ * eingeschraenkten Rechten). Das Ergebnis traegt dann 'token_id' und 'token_role'.
  * Lokale Requests (PHP-Dev-Server auf 127.0.0.1) sind wie ueberall in der API ausgenommen.
  * Gibt den Aufrufer zurueck; bei fehlender Berechtigung 401/403 (im Modus 'log' nur protokolliert).
  */
-function requireScannerAccess(PDO $pdo, string $alliance, ?string $claimedId = null, bool $view = false): array {
+function requireScannerAccess(PDO $pdo, string $alliance, ?string $claimedId = null, bool $view = false, bool $allowScannerRole = false): array {
     $mode = scannerAuthMode();
     if ($mode === 'off' || isLocalRequest()) {
         return ['discord_id' => null, 'name' => 'Lokaler Zugriff', 'rank' => 5, 'site_admin' => false, 'alliance' => $alliance, 'can_scan' => true];
     }
 
-    $deny = function (int $status, string $verdict, string $message, ?string $verifiedId) use ($pdo, $alliance, $claimedId, $mode): array {
-        logAuthDecision($pdo, $verdict, $alliance, $claimedId, $verifiedId);
+    $deny = function (int $status, string $verdict, string $message, ?string $verifiedId, ?string $tokenId = null) use ($pdo, $alliance, $claimedId, $mode): array {
+        logAuthDecision($pdo, $verdict, $alliance, $claimedId, $verifiedId, $tokenId);
         if ($mode === 'enforce') jsonOut($status, ['error' => $message, 'code' => $verdict]);
         return ['discord_id' => $verifiedId, 'name' => null, 'rank' => null, 'site_admin' => false, 'alliance' => $alliance];
     };
@@ -253,6 +293,33 @@ function requireScannerAccess(PDO $pdo, string $alliance, ?string $claimedId = n
     $token = requestBearerToken();
     if ($token === '') {
         return $deny(401, 'no_token', 'Bitte zuerst in lwhub mit Discord anmelden.', null);
+    }
+    if (str_starts_with($token, API_TOKEN_PREFIX)) {
+        $app = resolveApiToken($pdo, $token);
+        if (isset($app['error'])) {
+            $message = match ($app['error']) {
+                'token_revoked' => 'Der API-Token wurde widerrufen.',
+                'token_expired' => 'Der API-Token ist abgelaufen.',
+                default         => 'Unbekannter API-Token.',
+            };
+            return $deny(401, $app['error'], $message, null, $app['token_id'] ?? null);
+        }
+        if (strcasecmp($app['alliance'], $alliance) !== 0) {
+            return $deny(403, 'token_alliance', "Der API-Token gilt nur fuer die Allianz {$app['alliance']}.", null, $app['token_id']);
+        }
+        if ($app['role'] === 'scanner' && !$view && !$allowScannerRole) {
+            return $deny(403, 'role_too_low', 'Ein scanner-Token darf das nicht.', null, $app['token_id']);
+        }
+        return [
+            'discord_id' => null,
+            'name'       => $app['client_name'],
+            'rank'       => API_TOKEN_ROLES[$app['role']] >= 4 ? API_TOKEN_ROLES[$app['role']] : null,
+            'site_admin' => false,
+            'alliance'   => $app['alliance'],
+            'can_scan'   => $app['role'] !== 'scanner' || $allowScannerRole,
+            'token_id'   => $app['token_id'],
+            'token_role' => $app['role'],
+        ];
     }
     $verifiedId = verifyDiscordToken($pdo, $token);
     if ($verifiedId === null) {

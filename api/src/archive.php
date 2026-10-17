@@ -16,6 +16,56 @@ function handleGetArchivedPlayers(PDO $pdo, string $discordId): never {
     jsonOut(200, ['ok' => true, 'players' => $stmt->fetchAll()]);
 }
 
+/**
+ * Holt die archivierten Daten eines Spielers zurueck – Wochen-Eintraege samt Flags, Namens-Historie und
+ * Discord-Verknuepfung – und loescht danach alle Archiv-Zeilen dieses archive_id. Der Spieler selbst muss
+ * schon wieder in players stehen. $alliance ist die Allianz, in der er jetzt aktiv ist; wie beim
+ * Allianz-Wechsel (handleTransferPlayer) wandert seine Historie dorthin mit.
+ * Genutzt vom Wiederherstellen-Knopf (archive.php) und vom Scanner-Sync (members.php handleSyncScans).
+ */
+function restoreArchivedPlayerData(PDO $pdo, string $archiveId, string $alliance): void {
+    $entries = $pdo->prepare("SELECT * FROM archived_weekly_entries WHERE archive_id = ?");
+    $entries->execute([$archiveId]);
+    foreach ($entries->fetchAll() as $entry) {
+        try {
+            $ins = $pdo->prepare("INSERT IGNORE INTO weekly_entries (alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $ins->execute([$alliance, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $entry['base_rank_code'], $entry['final_rank_code'], $entry['afk']]);
+            // Gibt es die Woche schon (neuer Eintrag seit der Rueckkehr), bleibt der neue – dann keine Flags anhaengen
+            if ($ins->rowCount() === 0) continue;
+            $flags = $pdo->prepare("SELECT flag_key FROM archived_entry_flags WHERE archive_id = ? AND entry_id = ?");
+            $flags->execute([$archiveId, $entry['entry_id']]);
+            foreach ($flags->fetchAll() as $flag) {
+                $pdo->prepare("INSERT IGNORE INTO weekly_entry_flags (alliance, entry_id, flag_key) VALUES (?, ?, ?)")
+                    ->execute([$alliance, $entry['entry_id'], $flag['flag_key']]);
+            }
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
+
+    $history = $pdo->prepare("SELECT * FROM archived_name_history WHERE archive_id = ?");
+    $history->execute([$archiveId]);
+    foreach ($history->fetchAll() as $h) {
+        try {
+            $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, ?)")
+                ->execute([$alliance, $h['name_event_id'], $h['player_id'], $h['player_name'], $h['valid_from_yw']]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
+
+    $ids = $pdo->prepare("SELECT * FROM archived_player_identities WHERE archive_id = ?");
+    $ids->execute([$archiveId]);
+    foreach ($ids->fetchAll() as $id) {
+        try {
+            $pdo->prepare("INSERT IGNORE INTO player_identities (alliance, identity_id, player_id, discord_user_id) VALUES (?, ?, ?, ?)")
+                ->execute([$alliance, $id['identity_id'], $id['player_id'], $id['discord_user_id']]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
+
+    $pdo->prepare("DELETE FROM archived_entry_flags WHERE archive_id = ?")->execute([$archiveId]);
+    $pdo->prepare("DELETE FROM archived_weekly_entries WHERE archive_id = ?")->execute([$archiveId]);
+    $pdo->prepare("DELETE FROM archived_name_history WHERE archive_id = ?")->execute([$archiveId]);
+    $pdo->prepare("DELETE FROM archived_player_identities WHERE archive_id = ?")->execute([$archiveId]);
+    $pdo->prepare("DELETE FROM archived_players WHERE archive_id = ?")->execute([$archiveId]);
+}
+
 function handleRestorePlayer(PDO $pdo, string $archiveIdEncoded, array $body): never {
     $archiveId = rawurldecode($archiveIdEncoded);
     try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
@@ -37,46 +87,7 @@ function handleRestorePlayer(PDO $pdo, string $archiveIdEncoded, array $body): n
     try {
         $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, created_at) VALUES (?, ?, ?, ?, 1, ?)")
             ->execute([$archived['alliance'], $archived['player_id'], $archived['current_name'], $archived['current_rank_code'], $archived['player_created_at']]);
-
-        $entries = $pdo->prepare("SELECT * FROM archived_weekly_entries WHERE archive_id = ?");
-        $entries->execute([$archiveId]);
-        foreach ($entries->fetchAll() as $entry) {
-            try {
-                $pdo->prepare("INSERT IGNORE INTO weekly_entries (alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?)")
-                    ->execute([$entry['alliance'], $entry['entry_id'], $entry['year_week'], $entry['player_id'], $entry['base_rank_code'], $entry['final_rank_code'], $entry['afk']]);
-                $flags = $pdo->prepare("SELECT flag_key FROM archived_entry_flags WHERE archive_id = ? AND entry_id = ?");
-                $flags->execute([$archiveId, $entry['entry_id']]);
-                foreach ($flags->fetchAll() as $flag) {
-                    $pdo->prepare("INSERT IGNORE INTO weekly_entry_flags (alliance, entry_id, flag_key) VALUES (?, ?, ?)")
-                        ->execute([$entry['alliance'], $entry['entry_id'], $flag['flag_key']]);
-                }
-            } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        }
-
-        $history = $pdo->prepare("SELECT * FROM archived_name_history WHERE archive_id = ?");
-        $history->execute([$archiveId]);
-        foreach ($history->fetchAll() as $h) {
-            try {
-                $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, ?)")
-                    ->execute([$h['alliance'], $h['name_event_id'], $h['player_id'], $h['player_name'], $h['valid_from_yw']]);
-            } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        }
-
-        $ids = $pdo->prepare("SELECT * FROM archived_player_identities WHERE archive_id = ?");
-        $ids->execute([$archiveId]);
-        foreach ($ids->fetchAll() as $id) {
-            try {
-                $pdo->prepare("INSERT IGNORE INTO player_identities (alliance, identity_id, player_id, discord_user_id) VALUES (?, ?, ?, ?)")
-                    ->execute([$id['alliance'], $id['identity_id'], $id['player_id'], $id['discord_user_id']]);
-            } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        }
-
-        $pdo->prepare("DELETE FROM archived_entry_flags WHERE archive_id = ?")->execute([$archiveId]);
-        $pdo->prepare("DELETE FROM archived_weekly_entries WHERE archive_id = ?")->execute([$archiveId]);
-        $pdo->prepare("DELETE FROM archived_name_history WHERE archive_id = ?")->execute([$archiveId]);
-        $pdo->prepare("DELETE FROM archived_player_identities WHERE archive_id = ?")->execute([$archiveId]);
-        $pdo->prepare("DELETE FROM archived_players WHERE archive_id = ?")->execute([$archiveId]);
-
+        restoreArchivedPlayerData($pdo, $archiveId, $archived['alliance']);
         $pdo->commit();
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {

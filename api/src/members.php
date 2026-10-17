@@ -1082,6 +1082,42 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
     jsonOut(200, ['ok' => true]);
 }
 
+// Vergleichsschluessel fuer Namen aus dem Scanner: OCR verwechselt Gross/klein, I/l/1, O/0 und liest
+// Umlaute ohne Punkte bzw. ß als B ("LMNTRIX" fuer "LMNTRiX", "Muller214" fuer "Müller214").
+function scanNameKey(string $name): string {
+    $s = strtr(trim($name), ['Ä' => 'a', 'Ö' => 'o', 'Ü' => 'u', 'ä' => 'a', 'ö' => 'o', 'ü' => 'u', 'ß' => 'b', 'Ø' => '0', 'ø' => '0']);
+    $s = strtolower($s); // nur ASCII; andere Schriften bleiben, wie sie sind (beide Seiten gleich behandelt)
+    $s = preg_replace('/[^\p{L}\p{N}]/u', '', $s) ?? '';
+    return strtr($s, ['i' => '1', 'l' => '1', '|' => '1', 'o' => '0']);
+}
+
+/**
+ * Archivierten Spieler zu einem gescannten Namen finden, der in der Ziel-Allianz nicht aktiv ist.
+ * Reihenfolge: gleicher Name in der Ziel-Allianz, gleicher Name in einer anderen Allianz, dann gleicher
+ * Vergleichsschluessel (scanNameKey) – zuerst in der Ziel-Allianz. Beim Vergleichsschluessel nur, wenn genau
+ * ein archivierter Spieler passt und der Archiv-Name in der Ziel-Allianz nicht schon vergeben ist.
+ */
+function findArchivedPlayerForScan(PDO $pdo, string $name, string $targetAlliance): ?array {
+    $cols = "archive_id, alliance, player_id, current_name, current_rank_code, player_created_at";
+    $stmt = $pdo->prepare("SELECT $cols FROM archived_players WHERE current_name = ? ORDER BY alliance = ? DESC, archived_at DESC LIMIT 1");
+    $stmt->execute([$name, $targetAlliance]);
+    $exact = $stmt->fetch();
+    if ($exact) return $exact;
+
+    $key = scanNameKey($name);
+    if (strlen($key) < 3) return null;
+    $all = $pdo->query("SELECT $cols, archived_at FROM archived_players ORDER BY archived_at DESC")->fetchAll();
+    $matches = array_values(array_filter($all, fn($a) => scanNameKey((string)$a['current_name']) === $key));
+    if (!$matches) return null;
+    $home = array_values(array_filter($matches, fn($a) => $a['alliance'] === $targetAlliance));
+    $pool = $home ?: $matches;
+    if (count(array_unique(array_column($pool, 'player_id'))) !== 1) return null;
+
+    $taken = $pdo->prepare("SELECT 1 FROM players WHERE alliance = ? AND current_name = ? AND player_id <> ? LIMIT 1");
+    $taken->execute([$targetAlliance, $pool[0]['current_name'], $pool[0]['player_id']]);
+    return $taken->fetch() ? null : $pool[0];
+}
+
 function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protectedNames = []): never {
     set_time_limit(120);
     ensureScannerColumns($pdo);
@@ -1242,21 +1278,23 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 $summary['updated']++;
                 $details[] = ['name' => $name, 'action' => 'updated', 'player_id' => $finalPlayerId, 'rank' => $finalRank];
             } else {
-                $archStmt = $pdo->prepare("SELECT archive_id, player_id, current_name, current_rank_code FROM archived_players WHERE current_name = ? ORDER BY archived_at DESC LIMIT 1");
-                $archStmt->execute([$name]);
-                $arch = $archStmt->fetch();
+                $arch = findArchivedPlayerForScan($pdo, $name, $targetAlliance);
 
                 if ($arch) {
                     $finalPlayerId = $arch['player_id'];
                     $oldRank = (int)$arch['current_rank_code'];
+                    // Der Name aus dem Archiv ist die richtige Schreibweise; der gescannte kann eine OCR-Variante sein
+                    $name = $arch['current_name'];
                     [$finalRank, $blocked, $reason] = $resolveScanRank($name, $requestedRank, $oldRank, null, null);
 
                     $pdo->prepare("
-                        INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, current_power, hq_level, last_scanned_at, last_seen_status)
-                        VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+                        INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, current_power, hq_level, last_scanned_at, last_seen_status, created_at)
+                        VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, COALESCE(?, NOW()))
                         ON DUPLICATE KEY UPDATE is_active = 1, current_rank_code = VALUES(current_rank_code), current_power = VALUES(current_power), hq_level = VALUES(hq_level), last_scanned_at = VALUES(last_scanned_at), last_seen_status = VALUES(last_seen_status)
-                    ")->execute([$targetAlliance, $finalPlayerId, $name, $finalRank, $powerNum, $levelNum, $recordedAt, $statusStr]);
-                    $pdo->prepare("DELETE FROM archived_players WHERE archive_id = ?")->execute([$arch['archive_id']]);
+                    ")->execute([$targetAlliance, $finalPlayerId, $name, $finalRank, $powerNum, $levelNum, $recordedAt, $statusStr, $arch['player_created_at']]);
+                    // Wochen-Eintraege, Namens-Historie und Discord-Verknuepfung mit zurueckholen (wie der
+                    // Wiederherstellen-Knopf); bis 17.10. blieben sie verwaist im Archiv liegen.
+                    restoreArchivedPlayerData($pdo, $arch['archive_id'], $targetAlliance);
 
                     if ($blocked || $finalRank !== $oldRank) {
                         logRankChange($pdo, $targetAlliance, [

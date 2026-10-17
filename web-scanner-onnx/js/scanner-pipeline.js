@@ -147,6 +147,8 @@
   function groupRankingRows(lines, extraBadges = []) {
     const anchors = lines.filter((l) => RAW_POWER_RE.test(l.text.trim()));
     const typical = typicalHeight(anchors);
+    const rankHeight = typicalHeight(lines.filter((l) => RANK_POSITION_RE.test(l.text.trim())
+      && anchors.some((a) => l.right < a.left && Math.abs(cy(l) - cy(a)) < height(a) * 1.5)));
     const badgePool = [...lines, ...extraBadges];
     const rows = [];
     for (const anchor of anchors) {
@@ -159,6 +161,7 @@
 
       const positionLine = maxBy(lines.filter((l) => l !== anchor
         && RANK_POSITION_RE.test(l.text.trim())
+        && isFullRankNumber(l, rankHeight)
         && sameRow(l)
         && l.right < anchor.left
         && (badgeLine === null || l.right < badgeLine.left)), (l) => l.left);
@@ -273,6 +276,12 @@
   // Rand ueber ein Viertel der Bildbreite hinaus (rechts ~285 px bei 1118 px Breite).
   const isRankColumn = (l, image) => RANK_POSITION_RE.test(l.text.trim()) && cx(l) < image.w * 0.25;
 
+  // Flache Ziffern in der Platz-Spalte sind keine Platznummer: eine hinter der eigenen Zeile angeschnittene
+  // ("561" statt 11) oder eine Verzierung im Avatar ("000"). NxU1 17.10.: 23 bzw. 7 px gegen ~38 px. Ein
+  // einziger solcher Ausreisser liess das Cockpit "Platz 85–560 nicht erfasst" melden.
+  const isFullRankNumber = (l, rankHeight) => height(l) >= rankHeight * CLIPPED_NUMBER_RATIO;
+  const rankColumnHeight = (lines, image) => typicalHeight(lines.filter((l) => isRankColumn(l, image)));
+
   function stableSortBy(list, key) {
     return list.map((x, i) => [x, i]).sort((a, b) => key(a[0]) - key(b[0]) || a[1] - b[1]).map((p) => p[0]);
   }
@@ -346,6 +355,7 @@
     const anchors = lines.filter((l) => cy(l) > top && l.left > image.w * 0.6 && VS_POINTS_RE.test(l.text.trim()));
     const typical = typicalHeight(anchors);
     const tagHeight = typicalHeight(lines.filter((l) => cy(l) > top && /^\s*[\[(]/.test(l.text)));
+    const rankHeight = rankColumnHeight(lines, image);
     const rows = [];
     for (const anchor of anchors) {
       if (isClippedNumber(anchor, typical)) continue;
@@ -356,7 +366,7 @@
         && l.right < anchor.left && !/^\s*[\[(]/.test(l.text)
         && (tagLine ? Math.abs(l.left - tagLine.left) < image.w * 0.03 : l.left > image.w * 0.3)), (l) => cy(anchor) - cy(l));
       if (col && isClippedVsName(anchor, nameLine, tagLine, top, tagHeight, typical)) continue;
-      const posLine = minBy(lines.filter((l) => isRankColumn(l, image)
+      const posLine = minBy(lines.filter((l) => isRankColumn(l, image) && isFullRankNumber(l, rankHeight)
         && Math.abs(cy(l) - cy(anchor)) < reach), (l) => Math.abs(cy(l) - cy(anchor)));
       const tag = tagLine ? (tagLine.text.match(/[\[(]\s*([^\])]+?)\s*[\])]/) || [])[1] || null : null;
       const boxLines = [anchor, tagLine, nameLine, posLine].filter(Boolean);
@@ -398,6 +408,7 @@
     const top = col ? col.header.bottom : 0;
     const anchors = lines.filter((l) => cy(l) > top && l.left > image.w * 0.6 && VALUE_RE.test(l.text.trim()));
     const typical = typicalHeight(anchors);
+    const rankHeight = rankColumnHeight(lines, image);
     const rows = [];
     for (const anchor of anchors) {
       if (isClippedNumber(anchor, typical)) continue;
@@ -405,7 +416,7 @@
       const nameLine = minBy(lines.filter((l) => l !== anchor && Math.abs(cy(l) - cy(anchor)) < reach
         && l.right < anchor.left && l.left > image.w * 0.3 && !RANK_BADGE_RE.test(l.text.trim())),
       (l) => Math.abs(cy(l) - cy(anchor)));
-      const posLine = minBy(lines.filter((l) => isRankColumn(l, image)
+      const posLine = minBy(lines.filter((l) => isRankColumn(l, image) && isFullRankNumber(l, rankHeight)
         && Math.abs(cy(l) - cy(anchor)) < height(anchor) * 2.5), (l) => Math.abs(cy(l) - cy(anchor)));
       // Am Bildrand angeschnittene Zeilen liefern keinen oder nur einen Rest-Namen ("3", "R", "K3") –
       // die Zeile ist in der Nachbar-Aufnahme vollstaendig.
@@ -439,7 +450,8 @@
     const top = col ? col.header.bottom : 0;
     const values = lines.filter((l) => cy(l) > top && l.left > image.w * 0.6 && valueRe.test(l.text.trim()));
     const reach = typicalHeight(values) * 2.5;
-    return lines.filter((l) => cy(l) > top && isRankColumn(l, image) && !values.some((v) => Math.abs(cy(v) - cy(l)) < reach))
+    const rankHeight = rankColumnHeight(lines, image);
+    return lines.filter((l) => cy(l) > top && isRankColumn(l, image) && isFullRankNumber(l, rankHeight) && !values.some((v) => Math.abs(cy(v) - cy(l)) < reach))
       .map((l) => l.text.trim());
   }
 

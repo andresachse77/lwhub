@@ -214,6 +214,11 @@ def group_ranking_rows(lines: list[Line], extra_badges: list[Line] = ()):
     heights = sorted(a.height for a in anchors)
     typical = heights[len(heights) // 2] if heights else 0
     anchors = [a for a in anchors if not (len(re.sub(r"[^0-9]", "", a.text)) > 1 and a.height < typical * 0.7)]
+    # Flat digits in the position column are not a position: a number clipped behind the pinned own
+    # row ("561" for 11) or avatar decoration ("000"). Same rule as isFullRankNumber() in scanner-pipeline.js.
+    rank_heights = sorted(l.height for l in lines if RANK_POSITION_RE.match(l.text.strip())
+                          and any(l.right < a.left and abs(l.cy - a.cy) < a.height * 1.5 for a in anchors))
+    rank_typical = rank_heights[len(rank_heights) // 2] if rank_heights else 0
     badge_pool = list(lines) + list(extra_badges)
     rows = []
     for anchor in anchors:
@@ -231,6 +236,7 @@ def group_ranking_rows(lines: list[Line], extra_badges: list[Line] = ()):
             l for l in lines
             if l is not anchor
             and RANK_POSITION_RE.match(l.text.strip())
+            and l.height >= rank_typical * 0.7
             and abs(l.cy - anchor.cy) < row_height * 0.6
             and l.right < anchor.left
             and (badge_line is None or l.right < badge_line.left)

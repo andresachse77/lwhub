@@ -712,14 +712,16 @@ class CockpitState {
       let scanSummaryHtml = '';
       if (isAssigned && assignedData.tiles.length > 0) {
         const agg = this.getAggregatedData(assignedData.tiles);
+        // Ein Wert je Zeile: mit Kills und Spenden werden es schnell sechs Werte, in einer Zeile unlesbar
+        const vsIcon = (v) => v.type === 'KILLS' ? '⚔️' : /^DONATION/.test(v.type) ? '🎁' : '🏆';
         const parts = [];
         if (agg.power) parts.push(`⚡ <strong>${this.powerLabel(agg.power)}</strong>`);
-        for (const v of agg.vs) parts.push(`🏆 <strong>${this.vsLabel(v)}</strong>`);
+        for (const v of agg.vs) parts.push(`${vsIcon(v)} <strong>${this.vsLabel(v)}</strong>`);
         if (agg.level) parts.push(`🏰 <strong>HQ ${agg.level}</strong>`);
         if (agg.status) parts.push(`🏷️ ${this.escapeHtml(agg.status)}`);
         scanSummaryHtml = `
           <div class="scan-summary-tag" title="Zusammengeführte Scandaten aus ${agg.count} Kachel(n)">
-            ${parts.join(' &bull; ')}
+            ${parts.map((p) => `<span class="scan-summary-item">${p}</span>`).join('')}
             <span class="badge-tag">${agg.count} Kachel(n)</span>
           </div>
         `;

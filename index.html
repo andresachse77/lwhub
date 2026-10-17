@@ -2536,6 +2536,17 @@ function calcRanking(points, rank) {
 
 const RC = {1:'#f0a500',2:'#2ecb7a',3:'#4a9eff',4:'#e05545',5:'#9b6dff'};
 const RL = {1:'Rookie',2:'Pro',3:'Elite',4:'Leader',5:'Chef'};
+const DEFAULT_RL = { ...RL };
+
+// Rangnamen je Allianz (alliance_config rank_name_1..5, leer = Standard). RL wird ueberschrieben, damit alle
+// Anzeigen "R3 · Elite" automatisch den Namen der Allianz zeigen; Elemente mit data-rank-name werden nachgezogen.
+function applyRankNames(config = flagConfig) {
+  for (let r = 1; r <= 5; r++) {
+    const custom = String(config?.['rank_name_' + r] ?? '').trim().slice(0, 30);
+    RL[r] = custom || (r === 5 ? tr('s_chef') : DEFAULT_RL[r]);
+  }
+  document.querySelectorAll('[data-rank-name]').forEach(el => { el.textContent = RL[el.dataset.rankName] || el.textContent; });
+}
 
 const CATS = [
   { l:'⚔ VS', t:'b', bg:'rgba(74,158,255,0.06)', bc:'rgba(74,158,255,0.15)', lc:'#6aabff',
@@ -2991,7 +3002,7 @@ function openEditor(name){
   const fixed=isFixed(name);
   edRank=fixed?fixedRank(name):(PREV[name]||3);
 
-  document.getElementById('editorName').textContent=name+(fixed?' · '+(R5.has(name)?'R5 Chef':'R4 Leader'):'');
+  document.getElementById('editorName').textContent=name+(fixed?' · '+(R5.has(name)?'R5 '+RL[5]:'R4 '+RL[4]):'');
   document.getElementById('editor').style.display='block';
 
   // Rank btns
@@ -3001,7 +3012,7 @@ function openEditor(name){
   });
   const fn=document.getElementById('fixedNote');
   fn.style.display=fixed?'block':'none';
-  if(fixed) fn.textContent=(R5.has(name)?'R5 – Chef':'R4 – Leader')+' · Rank ist fix';
+  if(fixed) fn.textContent=(R5.has(name)?'R5 – '+RL[5]:'R4 – '+RL[4])+' · Rank ist fix';
 
   // Flag categories
   document.getElementById('flagCats').innerHTML=CATS.map(cat=>{
@@ -3532,6 +3543,7 @@ async function injectR4Tabs(discordId) {
       window.applyI18n(document.getElementById('r4-tab-btns'));
       window.applyI18n(document.getElementById('r4-pages-container'));
     }
+    applyRankNames();
     initR4Listeners();
     updateFeatureTabVisibility();
     updatePointsGuideVisibility();
@@ -3564,6 +3576,7 @@ async function showPage(id, options = {}) {
     if (id === 'z' && !isFeatureEnabled('zug')) return 'm';
     if (id === 'zv' && !isFeatureEnabled('zug')) return 'm';
     if (id === 'bp' && !isFeatureEnabled('berufe')) return 'm';
+    if (id === 'r' && !isFeatureEnabled('ergebnis')) return 'm';
     if (id === 'p' && !isPointsGuideVisible()) return 'm';
     if (id === 'sc' && (!document.getElementById('tab-sc') || !isFeatureEnabled('scanner'))) return 'm';
     return id;
@@ -5476,6 +5489,7 @@ const FEATURE_CAT_DEFS = [
   { key:'afk',     icon:'⏸', label:'AFK',                   sub:'s_afk_sperrt_rang_aenderung' },
   { key:'berufe',  icon:'⚗', label:'s_berufe_label',        sub:'s_ingenieur_kriegsherr_von_mitgliedern_und_r4_pflegbar' },
   { key:'scanner', icon:'📸', label:'s_scanner',             sub:'s_scanner_feature_sub' },
+  { key:'ergebnis', icon:'📊', label:'s_ergebnis',           sub:'s_ergebnis_feature_sub' },
 ];
 
 function isFeatureEnabled(key) {
@@ -5546,6 +5560,21 @@ function renderFeatureToggles(containerId, alliance, config) {
       <input id="${escHtml(correctionInputId)}" type="number" min="0" max="998" value="${combatCorrection}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
       <button onclick="saveCombatPowerCorrection('${escHtml(alliance)}','${escHtml(correctionInputId)}')" class="v-btn save" style="min-width:88px;">${escHtml(tr('s_speichern'))}</button>
     </div>` +
+    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap;">
+      <div style="flex:1;min-width:180px;">
+        <div style="font-size:13px;font-weight:500;">🏷 ${escHtml(tr('s_rank_names'))}</div>
+        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_rank_names_sub'))}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">` +
+      [1, 2, 3, 4, 5].map(r => {
+        const fallback = r === 5 ? tr('s_chef') : DEFAULT_RL[r];
+        const value = String(config?.['rank_name_' + r] ?? '').trim();
+        return `<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--soft);">R${r}
+          <input id="${escHtml(containerId)}-rank-name-${r}" type="text" maxlength="30" value="${escHtml(value)}" placeholder="${escHtml(fallback)}" style="width:96px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;"></label>`;
+      }).join('') +
+      `</div>
+      <button onclick="saveRankNames('${escHtml(alliance)}','${escHtml(containerId)}')" class="v-btn save" style="min-width:88px;">${escHtml(tr('s_speichern'))}</button>
+    </div>` +
     `</div>`;
 }
 
@@ -5615,6 +5644,7 @@ async function loadFlagConfig(allianceOverride) {
     updateEventTabVisibility();
     updateFeatureTabVisibility();
     updatePointsGuideVisibility();
+    applyRankNames();
   } catch (_) {
     if (allianceOverride) return {};
     // keep current feature config (empty object means everything is disabled)
@@ -5746,6 +5776,35 @@ async function saveBerufeMaxIngenieure(alliance, inputId) {
   }
 }
 window.saveBerufeMaxIngenieure = saveBerufeMaxIngenieure;
+
+async function saveRankNames(alliance, containerId) {
+  const discordId = authMember?.discord_id || '';
+  const names = {};
+  for (let r = 1; r <= 5; r++) {
+    names['rank_name_' + r] = String(document.getElementById(`${containerId}-rank-name-${r}`)?.value || '').trim().slice(0, 30);
+  }
+  try {
+    await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance || '')}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ discord_id: discordId, config: names })
+    });
+    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
+    if (isCurrentAllianceTarget(alliance)) {
+      flagConfig = { ...adminFlagConfigCache[alliance] };
+      applyRankNames();
+      if (document.getElementById('page-v')?.classList.contains('active')) {
+        renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+      }
+    }
+    renderAdminFlagConfig();
+    renderAllianceFeaturesModal();
+    toast(tr('s_rank_names_saved'), 'ok');
+  } catch (err) {
+    toast(tr('Fehler: ') + err.message, 'err');
+  }
+}
+window.saveRankNames = saveRankNames;
 
 async function saveCombatPowerCorrection(alliance, inputId) {
   const discordId = authMember?.discord_id || '';
@@ -5900,6 +5959,10 @@ function updateFeatureTabVisibility() {
   }
 
   if (document.getElementById('tab-sc')) setTabVisible('tab-sc', isFeatureEnabled('scanner'));
+  // Ergebnis (Rang-Empfehlungen aus Punkten): veraltet, seit R2/R3 dem Beruf folgen – nur noch per Schalter
+  if (document.getElementById('tab-r')) setTabVisible('tab-r', isFeatureEnabled('ergebnis'));
+  setElementVisible('page-r', isFeatureEnabled('ergebnis'));
+  if (!isFeatureEnabled('ergebnis') && document.getElementById('page-r')?.classList.contains('active')) showPage('m');
 
   setElementVisible('page-z', isFeatureEnabled('zug'));
   setElementVisible('page-zv', isFeatureEnabled('zug'));
@@ -6109,11 +6172,11 @@ function renderVerwaltung(filter=''){
           <div style="margin-bottom:10px;">
             <div class="vlabel">${escHtml(tr('Rang'))}</div>
             <select class="v-rank-sel" id="v-edit-rank">
-              <option value="1" ${role===1?'selected':''}>1 · Rookie</option>
-              <option value="2" ${role===2?'selected':''}>2 · Pro</option>
-              <option value="3" ${role===3?'selected':''}>3 · Elite</option>
-              <option value="4" ${role===4?'selected':''}>4 · Leader (R4)</option>
-              <option value="5" ${role===5?'selected':''}>5 · ${escHtml(tr('Chef'))} (R5)</option>
+              <option value="1" ${role===1?'selected':''}>1 · ${escHtml(RL[1])}</option>
+              <option value="2" ${role===2?'selected':''}>2 · ${escHtml(RL[2])}</option>
+              <option value="3" ${role===3?'selected':''}>3 · ${escHtml(RL[3])}</option>
+              <option value="4" ${role===4?'selected':''}>4 · ${escHtml(RL[4])} (R4)</option>
+              <option value="5" ${role===5?'selected':''}>5 · ${escHtml(RL[5])} (R5)</option>
             </select>
           </div>
           <div style="margin-bottom:10px;">

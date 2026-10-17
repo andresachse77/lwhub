@@ -265,11 +265,11 @@
 
     <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--soft);margin-bottom:8px;">Rank</div>
     <div class="rank-selector" id="rankRow">
-      <div class="rk-btn" data-r="1"><div class="rk-num">1</div><div class="rk-lbl">Rookie</div></div>
-      <div class="rk-btn" data-r="2"><div class="rk-num">2</div><div class="rk-lbl">Pro</div></div>
-      <div class="rk-btn on" data-r="3"><div class="rk-num">3</div><div class="rk-lbl">Elite</div></div>
-      <div class="rk-btn" data-r="4"><div class="rk-num">4</div><div class="rk-lbl">Leader</div></div>
-      <div class="rk-btn" data-r="5"><div class="rk-num">5</div><div class="rk-lbl">Chef</div></div>
+      <div class="rk-btn" data-r="1"><div class="rk-num">1</div><div class="rk-lbl" data-rank-name="1">Rookie</div></div>
+      <div class="rk-btn" data-r="2"><div class="rk-num">2</div><div class="rk-lbl" data-rank-name="2">Pro</div></div>
+      <div class="rk-btn on" data-r="3"><div class="rk-num">3</div><div class="rk-lbl" data-rank-name="3">Elite</div></div>
+      <div class="rk-btn" data-r="4"><div class="rk-num">4</div><div class="rk-lbl" data-rank-name="4">Leader</div></div>
+      <div class="rk-btn" data-r="5"><div class="rk-num">5</div><div class="rk-lbl" data-rank-name="5">Chef</div></div>
     </div>
     <div class="fixed-note" id="fixedNote"></div>
 
@@ -412,11 +412,11 @@
         <div>
           <div class="vlabel" data-i18n="s_rang">Rang</div>
           <div style="display:flex;gap:6px;">
-            <button class="vrank-btn" data-vr="1">1 · Rookie</button>
-            <button class="vrank-btn" data-vr="2">2 · Pro</button>
-            <button class="vrank-btn on" data-vr="3">3 · Elite</button>
-            <button class="vrank-btn" data-vr="4">4 · Leader</button>
-            <button class="vrank-btn" data-vr="5">5 · <span data-i18n="s_chef">Chef</span></button>
+            <button class="vrank-btn" data-vr="1">1 · <span data-rank-name="1">Rookie</span></button>
+            <button class="vrank-btn" data-vr="2">2 · <span data-rank-name="2">Pro</span></button>
+            <button class="vrank-btn on" data-vr="3">3 · <span data-rank-name="3">Elite</span></button>
+            <button class="vrank-btn" data-vr="4">4 · <span data-rank-name="4">Leader</span></button>
+            <button class="vrank-btn" data-vr="5">5 · <span data-rank-name="5">Chef</span></button>
             <button class="vrank-btn" data-vr="honor" title="Gast aus einer anderen Allianz: sieht alles wie ein R4, ändert nichts, zählt nirgends mit">👁 <span data-i18n="s_ehren_r4">Ehren-R4</span></button>
           </div>
         </div>
@@ -486,6 +486,18 @@
       <div class="panel-sub">Legt fest welche Features erfasst und ausgewertet werden</div>
     </div>
     <div id="v-flag-config"><div class="empty">Lade …</div></div>
+  </div>
+
+  <!-- DOKUMENTE: Planung API, Scanner und Android-App -->
+  <div class="panel" style="margin-top:1rem;">
+    <div class="panel-head">
+      <div class="panel-title">📄 <span data-i18n="s_docs_title">Konzept &amp; Aufgaben</span></div>
+      <div class="panel-sub" data-i18n="s_docs_sub">API, Scanner und Android-App: Planung und Stand</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="wt-btn" href="docs/konzept-api-scanner-v2.html" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">📐 <span data-i18n="s_docs_concept">Konzept v2</span></a>
+      <a class="wt-btn" href="docs/konzept-api-scanner-v2-aufgaben.html" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">✅ <span data-i18n="s_docs_tasks">Aufgabenliste</span></a>
+    </div>
   </div>
 
 </div>

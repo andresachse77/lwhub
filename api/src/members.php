@@ -1082,6 +1082,53 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
     jsonOut(200, ['ok' => true]);
 }
 
+// Wochen-Eintraege (samt Flags) eines Spielers in eine andere Allianz verschieben: in der Ziel-Allianz neu
+// anlegen (insertWeeklyEntryWithFlags, archive.php), dann in der alten loeschen – die Fremdschluessel lassen
+// kein Umschreiben der Allianz zu. Wochen, die er im Ziel schon hat, bleiben in der alten Allianz.
+function moveWeeklyEntries(PDO $pdo, string $playerId, string $fromAlliance, string $toAlliance): void {
+    $rows = $pdo->prepare("SELECT * FROM weekly_entries WHERE alliance = ? AND player_id = ?");
+    $rows->execute([$fromAlliance, $playerId]);
+    $flags = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?");
+    foreach ($rows->fetchAll() as $entry) {
+        $flags->execute([$fromAlliance, $entry['entry_id']]);
+        if (!insertWeeklyEntryWithFlags($pdo, $toAlliance, $entry, array_column($flags->fetchAll(), 'flag_key'))) continue;
+        $pdo->prepare("DELETE FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?")->execute([$fromAlliance, $entry['entry_id']]);
+        $pdo->prepare("DELETE FROM weekly_entries WHERE alliance = ? AND entry_id = ?")->execute([$fromAlliance, $entry['entry_id']]);
+    }
+}
+
+// Spieler samt Historie in eine andere Allianz verschieben (Sync: er ist noch in einer anderen Allianz aktiv,
+// z. B. ein Urlauber kommt zurueck). Die Fremdschluessel auf players (Allianz + Spieler, RESTRICT) verbieten,
+// players.alliance direkt umzuschreiben – das brach bis 17.10. den ganzen Sync ab, sobald der Spieler auch nur
+// einen Namens-Eintrag hatte. Darum: Spieler in der Ziel-Allianz anlegen, Abhaengiges umhaengen, alte Zeile
+// loeschen. Was im Ziel schon existiert (gleiche Woche), gilt dort; der doppelte alte Eintrag entfaellt.
+function movePlayerToAlliance(PDO $pdo, string $playerId, string $fromAlliance, string $toAlliance): void {
+    for ($r = 1; $r <= 5; $r++) {
+        $pdo->prepare("INSERT IGNORE INTO ranks (alliance, rank_code) VALUES (?, ?)")->execute([$toAlliance, $r]);
+    }
+    $cols = array_values(array_diff(array_column($pdo->query("SHOW COLUMNS FROM players")->fetchAll(), 'Field'), ['alliance']));
+    $list = implode(', ', array_map(fn($c) => "`$c`", $cols));
+    $pdo->prepare("INSERT INTO players (alliance, $list) SELECT ?, $list FROM players WHERE alliance = ? AND player_id = ?")
+        ->execute([$toAlliance, $fromAlliance, $playerId]);
+
+    foreach (['player_identities', 'player_name_history', 'player_user_links'] as $tbl) {
+        try {
+            $pdo->prepare("UPDATE IGNORE `$tbl` SET alliance = ? WHERE alliance = ? AND player_id = ?")->execute([$toAlliance, $fromAlliance, $playerId]);
+            $pdo->prepare("DELETE FROM `$tbl` WHERE alliance = ? AND player_id = ?")->execute([$fromAlliance, $playerId]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
+
+    moveWeeklyEntries($pdo, $playerId, $fromAlliance, $toAlliance);
+    $pdo->prepare("DELETE wef FROM weekly_entry_flags wef JOIN weekly_entries we ON wef.alliance = we.alliance AND wef.entry_id = we.entry_id WHERE we.alliance = ? AND we.player_id = ?")
+        ->execute([$fromAlliance, $playerId]);
+    $pdo->prepare("DELETE FROM weekly_entries WHERE alliance = ? AND player_id = ?")->execute([$fromAlliance, $playerId]);
+
+    try {
+        $pdo->prepare("UPDATE user_active_char SET alliance = ? WHERE alliance = ? AND player_id = ?")->execute([$toAlliance, $fromAlliance, $playerId]);
+    } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$fromAlliance, $playerId]);
+}
+
 // Vergleichsschluessel fuer Namen aus dem Scanner: OCR verwechselt Gross/klein, I/l/1, O/0 und liest
 // Umlaute ohne Punkte bzw. ß als B ("LMNTRIX" fuer "LMNTRiX", "Muller214" fuer "Müller214").
 function scanNameKey(string $name): string {
@@ -1322,12 +1369,9 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                         $oldRank = (int)$other['current_rank_code'];
                         [$finalRank, $blocked, $reason] = $resolveScanRank($name, $requestedRank, $oldRank, normalizeHonorRole($other['honor_role'] ?? null), $finalPlayerId);
 
-                        $pdo->prepare("UPDATE players SET alliance = ?, current_rank_code = ?, current_power = COALESCE(?, current_power), hq_level = COALESCE(?, hq_level), last_scanned_at = ?, last_seen_status = COALESCE(?, last_seen_status) WHERE player_id = ?")
-                            ->execute([$targetAlliance, $finalRank, $powerNum, $levelNum, $recordedAt, $statusStr, $finalPlayerId]);
-                        try {
-                            $pdo->prepare("UPDATE player_identities SET alliance = ? WHERE player_id = ?")->execute([$targetAlliance, $finalPlayerId]);
-                            $pdo->prepare("UPDATE player_name_history SET alliance = ? WHERE player_id = ?")->execute([$targetAlliance, $finalPlayerId]);
-                        } catch (\PDOException) {}
+                        movePlayerToAlliance($pdo, $finalPlayerId, $other['alliance'], $targetAlliance);
+                        $pdo->prepare("UPDATE players SET current_rank_code = ?, current_power = COALESCE(?, current_power), hq_level = COALESCE(?, hq_level), last_scanned_at = ?, last_seen_status = COALESCE(?, last_seen_status) WHERE alliance = ? AND player_id = ?")
+                            ->execute([$finalRank, $powerNum, $levelNum, $recordedAt, $statusStr, $targetAlliance, $finalPlayerId]);
 
                         if ($blocked || $finalRank !== $oldRank) {
                             logRankChange($pdo, $targetAlliance, [

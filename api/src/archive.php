@@ -17,6 +17,28 @@ function handleGetArchivedPlayers(PDO $pdo, string $discordId): never {
 }
 
 /**
+ * Einen Wochen-Eintrag samt Flags in einer Allianz anlegen (Archiv-Rueckholung, Allianz-Wechsel im Sync).
+ * Die Woche wird bei Bedarf angelegt (Fremdschluessel auf week_periods, wie beim Speichern in entries.php),
+ * Flags nur, wenn die Allianz das Flag kennt. Hat der Spieler die Woche dort schon, bleibt der vorhandene
+ * Eintrag und der uebergebene wird verworfen (false). Kein INSERT IGNORE: ein anderer Fehler bricht ab,
+ * statt die Woche still zu verlieren (bis 17.10. gingen so Wochen in Allianzen ohne alte week_periods verloren).
+ */
+function insertWeeklyEntryWithFlags(PDO $pdo, string $alliance, array $entry, array $flagKeys): bool {
+    $have = $pdo->prepare("SELECT 1 FROM weekly_entries WHERE alliance = ? AND player_id = ? AND year_week = ? LIMIT 1");
+    $have->execute([$alliance, $entry['player_id'], $entry['year_week']]);
+    if ($have->fetch()) return false;
+    $pdo->prepare("INSERT INTO week_periods (alliance, year_week) VALUES (?, ?) ON DUPLICATE KEY UPDATE year_week = VALUES(year_week)")
+        ->execute([$alliance, $entry['year_week']]);
+    $pdo->prepare("INSERT INTO weekly_entries (alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?)")
+        ->execute([$alliance, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $entry['base_rank_code'], $entry['final_rank_code'], $entry['afk'] ?? 0]);
+    foreach ($flagKeys as $flagKey) {
+        $pdo->prepare("INSERT INTO weekly_entry_flags (alliance, entry_id, flag_key) SELECT ?, ?, flag_key FROM flags WHERE alliance = ? AND flag_key = ?")
+            ->execute([$alliance, $entry['entry_id'], $alliance, $flagKey]);
+    }
+    return true;
+}
+
+/**
  * Holt die archivierten Daten eines Spielers zurueck – Wochen-Eintraege samt Flags, Namens-Historie und
  * Discord-Verknuepfung – und loescht danach alle Archiv-Zeilen dieses archive_id. Der Spieler selbst muss
  * schon wieder in players stehen. $alliance ist die Allianz, in der er jetzt aktiv ist; wie beim
@@ -26,19 +48,10 @@ function handleGetArchivedPlayers(PDO $pdo, string $discordId): never {
 function restoreArchivedPlayerData(PDO $pdo, string $archiveId, string $alliance): void {
     $entries = $pdo->prepare("SELECT * FROM archived_weekly_entries WHERE archive_id = ?");
     $entries->execute([$archiveId]);
+    $flags = $pdo->prepare("SELECT flag_key FROM archived_entry_flags WHERE archive_id = ? AND entry_id = ?");
     foreach ($entries->fetchAll() as $entry) {
-        try {
-            $ins = $pdo->prepare("INSERT IGNORE INTO weekly_entries (alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $ins->execute([$alliance, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $entry['base_rank_code'], $entry['final_rank_code'], $entry['afk']]);
-            // Gibt es die Woche schon (neuer Eintrag seit der Rueckkehr), bleibt der neue – dann keine Flags anhaengen
-            if ($ins->rowCount() === 0) continue;
-            $flags = $pdo->prepare("SELECT flag_key FROM archived_entry_flags WHERE archive_id = ? AND entry_id = ?");
-            $flags->execute([$archiveId, $entry['entry_id']]);
-            foreach ($flags->fetchAll() as $flag) {
-                $pdo->prepare("INSERT IGNORE INTO weekly_entry_flags (alliance, entry_id, flag_key) VALUES (?, ?, ?)")
-                    ->execute([$alliance, $entry['entry_id'], $flag['flag_key']]);
-            }
-        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+        $flags->execute([$archiveId, $entry['entry_id']]);
+        insertWeeklyEntryWithFlags($pdo, $alliance, $entry, array_column($flags->fetchAll(), 'flag_key'));
     }
 
     $history = $pdo->prepare("SELECT * FROM archived_name_history WHERE archive_id = ?");

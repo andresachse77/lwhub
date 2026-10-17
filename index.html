@@ -1475,6 +1475,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <button class="admin-nav-tab" onclick="adminShowTab('archive',this)">Archiv</button>
       <button class="admin-nav-tab" onclick="adminShowTab('transfer',this)">Transfer</button>
       <button class="admin-nav-tab" onclick="adminShowTab('admins',this)">Admins</button>
+      <button class="admin-nav-tab" onclick="adminShowTab('tokens',this)">API-Tokens</button>
       <button class="admin-nav-tab" onclick="adminShowTab('flags',this)">✨ Features</button>
     </div>
 
@@ -1560,6 +1561,31 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       </div>
     </div>
 
+    <!-- API-Tokens (Konzept v2, A4) -->
+    <div class="admin-page" id="admin-section-tokens">
+      <div class="section-head">
+        <div>
+          <div class="section-title">API-Tokens</div>
+          <div class="section-sub">Zugänge für die Android-App und den Web-Scanner. Nur R5 der Allianz legt Tokens an und widerruft sie.</div>
+        </div>
+        <button class="btn btn-gold" onclick="openCreateApiToken()">+ Token anlegen</button>
+      </div>
+      <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;">
+        <label style="font-size:13px;color:var(--soft);">Allianz:</label>
+        <select id="api-tokens-alliance" onchange="loadApiTokens()" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:13px;">
+          <option value="">Lade …</option>
+        </select>
+      </div>
+      <div class="card" style="overflow-x:auto">
+        <table class="archive-table" id="api-tokens-table">
+          <thead>
+            <tr><th>Name</th><th>Rolle</th><th>Erstellt von</th><th>Erstellt</th><th>Zuletzt benutzt</th><th>Läuft ab</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="api-tokens-tbody"><tr><td colspan="8" class="empty">Lade …</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Features -->
     <div class="admin-page" id="admin-section-flags">
       <div class="section-head">
@@ -1581,6 +1607,48 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 </div>
 
 <!-- ── Admin Modals ── -->
+<div class="modal-bg hidden" id="modal-create-api-token">
+  <div class="modal">
+    <div class="modal-title">API-Token anlegen</div>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="api-token-name" maxlength="100" placeholder="z.B. Android-App Thomas" autocomplete="off">
+      <div class="hint">Wofür ist der Token? Erscheint in der Liste und im Protokoll.</div>
+    </div>
+    <div class="field">
+      <label>Rolle</label>
+      <select id="api-token-role">
+        <option value="scanner">Scanner – nur Werte für bekannte Spieler</option>
+        <option value="r4">R4 – wie R4 im Web-Scanner</option>
+        <option value="r5">R5 – wie R5 im Web-Scanner</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Ablaufdatum (optional)</label>
+      <input type="date" id="api-token-expires">
+      <div class="hint">Leer = unbegrenzt gültig. Abgelaufene Tokens werden abgewiesen.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-api-token')">Abbrechen</button>
+      <button class="btn btn-gold" onclick="submitCreateApiToken()">Anlegen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg hidden" id="modal-api-token-created">
+  <div class="modal">
+    <div class="modal-title">Token angelegt</div>
+    <div class="hint" style="color:var(--red);margin-bottom:10px">Dieser Token wird nicht wieder angezeigt. Kopiere ihn jetzt und gib ihn nur an die vorgesehene Person weiter.</div>
+    <div class="field" data-i18n-skip="1">
+      <input type="text" id="api-token-plain" readonly style="font-family:monospace;font-size:12px" onfocus="this.select()">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="copyApiToken(this)">Kopieren</button>
+      <button class="btn btn-gold" onclick="closeApiTokenCreated()">Schließen</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg hidden" id="modal-grant-admin">
   <div class="modal">
     <div class="modal-title">Admin vergeben</div>
@@ -6824,6 +6892,7 @@ function adminShowTab(name, btn) {
   btn?.classList.add('active');
   if (name === 'transfer') loadTransferAlliances();
   if (name === 'flags') adminInitFlagsTab();
+  if (name === 'tokens') adminInitApiTokensTab();
 }
 
 // ── Admin Feature Config ──
@@ -7135,6 +7204,126 @@ async function revokeAdmin(targetDiscordId, displayName) {
     });
     toast(`${tr('Admin-Recht von')} ${displayName} ${tr('entzogen')}`, 'ok');
     await loadAdmins();
+  } catch (e) { toast(tr('Fehler: ') + e.message, 'err'); }
+}
+
+// ── API-Tokens (Konzept v2, A4) ──
+// Der Server laesst nur R5 der gewaehlten Allianz zu; vorausgewaehlt ist die Allianz des aktiven Chars.
+async function adminInitApiTokensTab() {
+  const sel = document.getElementById('api-tokens-alliance');
+  if (!sel) return;
+  if (_adminAlliances.length === 0) await loadAlliances();
+  let prev = sel.value;
+  if (!prev) {
+    try { prev = JSON.parse(localStorage.getItem('iny_active_char_v1') || 'null')?.alliance || ''; } catch (_) {}
+  }
+  sel.innerHTML = _adminAlliances.map(a =>
+    `<option value="${escHtml(a.short_name)}" ${a.short_name === prev ? 'selected' : ''}>${escHtml(a.short_name)}</option>`
+  ).join('');
+  if (!sel.value && _adminAlliances.length) sel.value = _adminAlliances[0].short_name;
+  await loadApiTokens();
+}
+
+function apiTokenRoleLabel(role) {
+  return { scanner: tr('Scanner'), r4: 'R4', r5: 'R5' }[role] || role;
+}
+
+async function loadApiTokens() {
+  const tbody = document.getElementById('api-tokens-tbody');
+  const alliance = document.getElementById('api-tokens-alliance')?.value || '';
+  if (!tbody || !alliance) return;
+  tbody.innerHTML = '<tr><td colspan="8" class="empty"><span class="spin">↻</span> ' + escHtml(tr('Lade …')) + '</td></tr>';
+  try {
+    const data = await adminApi(`/api-tokens?alliance=${encodeURIComponent(alliance)}&discord_id=${encodeURIComponent(authMember?.discord_id || '')}`);
+    const tokens = data.tokens || [];
+    if (!tokens.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">' + escHtml(tr('Noch keine Tokens für diese Allianz.')) + '</td></tr>'; return; }
+    const day = v => v ? escHtml(String(v).slice(0, 16)) : '';
+    tbody.innerHTML = tokens.map(t => {
+      const status = !t.is_active
+        ? `<span style="color:var(--red)">${escHtml(tr('Widerrufen'))}</span>`
+        : t.expired
+          ? `<span style="color:var(--soft)">${escHtml(tr('Abgelaufen'))}</span>`
+          : `<span style="color:var(--green)">${escHtml(tr('Aktiv'))}</span>`;
+      return `<tr${t.is_active ? '' : ' style="opacity:.55"'}>
+        <td><strong>${escHtml(t.client_name)}</strong><div style="color:var(--softer);font-size:11px;font-family:monospace">${escHtml(String(t.token_id).slice(0, 8))}</div></td>
+        <td>${escHtml(apiTokenRoleLabel(t.role))}</td>
+        <td style="color:var(--soft);font-size:12px">${escHtml(t.created_by_name || t.created_by || '-')}</td>
+        <td style="color:var(--soft);font-size:12px">${day(t.created_at)}</td>
+        <td style="color:var(--soft);font-size:12px">${t.last_used_at ? day(t.last_used_at) : escHtml(tr('nie'))}</td>
+        <td style="color:var(--soft);font-size:12px">${t.expires_at ? day(t.expires_at) : escHtml(tr('unbegrenzt'))}</td>
+        <td>${status}</td>
+        <td>${t.is_active ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" onclick="revokeApiToken(${escHtml(JSON.stringify(t.token_id))}, ${escHtml(JSON.stringify(t.client_name))})">${escHtml(tr('Widerrufen'))}</button>` : ''}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">${escHtml(tr('Fehler: ') + e.message)}</td></tr>`;
+  }
+}
+
+function openCreateApiToken() {
+  document.getElementById('api-token-name').value = '';
+  document.getElementById('api-token-role').value = 'scanner';
+  document.getElementById('api-token-expires').value = '';
+  openModal('modal-create-api-token');
+}
+
+async function submitCreateApiToken() {
+  const alliance = document.getElementById('api-tokens-alliance')?.value || '';
+  const clientName = document.getElementById('api-token-name').value.trim();
+  if (!clientName) { toast(tr('Bitte einen Namen eingeben'), 'err'); return; }
+  try {
+    const data = await adminApi('/api-tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        discord_id: authMember?.discord_id,
+        alliance,
+        client_name: clientName,
+        role: document.getElementById('api-token-role').value,
+        expires_at: document.getElementById('api-token-expires').value || null
+      })
+    });
+    closeModal('modal-create-api-token');
+    document.getElementById('api-token-plain').value = data.token || '';
+    openModal('modal-api-token-created');
+    await loadApiTokens();
+  } catch (e) { toast(tr('Fehler: ') + e.message, 'err'); }
+}
+
+function copyApiToken(btn) {
+  const input = document.getElementById('api-token-plain');
+  const text = input?.value || '';
+  if (!text) return;
+  const done = () => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ ' + tr('Kopiert');
+    setTimeout(() => { btn.textContent = orig; }, 1800);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => input.select());
+  } else {
+    input.select();
+    try { document.execCommand('copy'); done(); } catch (_) {}
+  }
+}
+
+function closeApiTokenCreated() {
+  // Klartext nicht im DOM stehen lassen – er wird nie wieder angezeigt
+  document.getElementById('api-token-plain').value = '';
+  closeModal('modal-api-token-created');
+}
+
+async function revokeApiToken(tokenId, clientName) {
+  if (!confirm(`${tr('Token widerrufen?')}\n\n${clientName}`)) return;
+  const alliance = document.getElementById('api-tokens-alliance')?.value || '';
+  try {
+    await adminApi(`/api-tokens/${encodeURIComponent(tokenId)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discord_id: authMember?.discord_id, alliance })
+    });
+    toast(tr('Token widerrufen'), 'ok');
+    await loadApiTokens();
   } catch (e) { toast(tr('Fehler: ') + e.message, 'err'); }
 }
 

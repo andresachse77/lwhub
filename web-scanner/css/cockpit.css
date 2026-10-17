@@ -768,6 +768,7 @@ html, body {
 .sync-dialog {
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
+  margin: auto; /* der globale Reset (* { margin: 0 }) nimmt dem Dialog sonst die Zentrierung */
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 8px;

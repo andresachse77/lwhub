@@ -521,7 +521,7 @@
     "s_nur_lesezugriff_ehrenrolle": "只读访问（荣誉角色）：不允许更改。",
     "s_zur_vorwoche": "对比上周",
     "s_api_tokens": "API 令牌",
-    "s_api_tokens_sub": "用于安卓应用和网页扫描器的访问令牌。只有联盟 R5 可以创建和撤销令牌。",
+    "s_api_tokens_sub": "用于安卓应用和网页扫描器的访问令牌。只有联盟 R5 和网站运营者可以创建和撤销令牌。",
     "s_plus_token_anlegen": "+ 创建令牌",
     "s_api_token_anlegen": "创建 API 令牌",
     "s_allianz_doppelpunkt": "联盟：",

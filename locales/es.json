@@ -521,7 +521,7 @@
     "s_nur_lesezugriff_ehrenrolle": "Solo lectura (rol honorario): no se permiten cambios.",
     "s_zur_vorwoche": "vs sem. anterior",
     "s_api_tokens": "Tokens de API",
-    "s_api_tokens_sub": "Accesos para la app de Android y el escáner web. Solo el R5 de la alianza crea y revoca tokens.",
+    "s_api_tokens_sub": "Accesos para la app de Android y el escáner web. Solo el R5 de la alianza y el operador del sitio crean y revocan tokens.",
     "s_plus_token_anlegen": "+ Crear token",
     "s_api_token_anlegen": "Crear token de API",
     "s_allianz_doppelpunkt": "Alianza:",

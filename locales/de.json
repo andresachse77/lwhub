@@ -530,7 +530,7 @@
     "s_nur_lesezugriff_ehrenrolle": "Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.",
     "s_zur_vorwoche": "zur Vorwoche",
     "s_api_tokens": "API-Tokens",
-    "s_api_tokens_sub": "Zugänge für die Android-App und den Web-Scanner. Nur R5 der Allianz legt Tokens an und widerruft sie.",
+    "s_api_tokens_sub": "Zugänge für die Android-App und den Web-Scanner. Nur R5 der Allianz und der Betreiber legen Tokens an und widerrufen sie.",
     "s_plus_token_anlegen": "+ Token anlegen",
     "s_api_token_anlegen": "API-Token anlegen",
     "s_allianz_doppelpunkt": "Allianz:",

@@ -521,7 +521,7 @@
     "s_nur_lesezugriff_ehrenrolle": "Tylko odczyt (rola honorowa): zmiany są niedozwolone.",
     "s_zur_vorwoche": "vs poprz. tyg.",
     "s_api_tokens": "Tokeny API",
-    "s_api_tokens_sub": "Dostęp dla aplikacji Android i skanera web. Tylko R5 sojuszu tworzy i unieważnia tokeny.",
+    "s_api_tokens_sub": "Dostęp dla aplikacji Android i skanera web. Tylko R5 sojuszu i operator serwisu tworzą i unieważniają tokeny.",
     "s_plus_token_anlegen": "+ Utwórz token",
     "s_api_token_anlegen": "Utwórz token API",
     "s_allianz_doppelpunkt": "Sojusz:",

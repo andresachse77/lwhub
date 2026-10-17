@@ -521,7 +521,7 @@
     "s_nur_lesezugriff_ehrenrolle": "Accès en lecture seule (rôle honoraire) : les modifications ne sont pas autorisées.",
     "s_zur_vorwoche": "vs sem. préc.",
     "s_api_tokens": "Jetons API",
-    "s_api_tokens_sub": "Accès pour l'application Android et le scanner web. Seul le R5 de l'alliance crée et révoque les jetons.",
+    "s_api_tokens_sub": "Accès pour l'application Android et le scanner web. Seuls le R5 de l'alliance et l'exploitant du site créent et révoquent les jetons.",
     "s_plus_token_anlegen": "+ Créer un jeton",
     "s_api_token_anlegen": "Créer un jeton API",
     "s_allianz_doppelpunkt": "Alliance :",

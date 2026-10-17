@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ─── App-Tokens fuer Android-App und Web-Scanner (Konzept v2, A4) ────────────────────────────────
-// R5 einer Allianz legt Tokens fuer genau diese Allianz an und widerruft sie. Gespeichert wird nur der
+// R5 einer Allianz (oder der Betreiber) legt Tokens fuer genau diese Allianz an und widerruft sie. Gespeichert wird nur der
 // SHA-256 des Klartexts; der Klartext steht genau einmal in der Antwort von POST /api-tokens.
 // Geprueft werden die Tokens in caller-auth.php (resolveApiToken).
 
@@ -10,19 +10,26 @@ const API_TOKEN_PREFIX = 'lwhub_';
 const API_TOKEN_ROLES = ['scanner' => 1, 'r4' => 4, 'r5' => 5];
 
 /**
- * R5 genau dieser Allianz (ohne Ehrenrolle). requireR5 laesst Site-Admins in jeder Allianz durch –
- * Tokens gibt es aber nur fuer die eigene Allianz, darum hier zusaetzlich der eigene Char.
+ * R5 genau dieser Allianz (ohne Ehrenrolle) oder der Betreiber (Site-Admin) – wie bei den
+ * Feature-Schaltern (requireFeatureAdmin) darf er Tokens auch in Allianzen ohne eigenen Char verwalten,
+ * z. B. den App-Token fuer Thomas. Der Betreiber nur mit von Discord bestaetigter Anmeldung, auch im
+ * Modus 'log': ein Token gibt Rechte in der Allianz.
  * Liefert ['discord_id' => geprueft bzw. behauptet, 'rank' => int].
  */
 function requireApiTokenAdmin(PDO $pdo, string $alliance, string $discordId): array {
     if ($alliance === '') jsonOut(400, ['error' => 'Allianz fehlt']);
-    requireR5($pdo, $discordId, $alliance);
     if (isLocalRequest()) return ['discord_id' => $discordId !== '' ? $discordId : null, 'rank' => 5];
 
-    $id = resolveCallerId($pdo, $alliance, $discordId)['id'];
+    $caller = resolveCallerId($pdo, $alliance, $discordId);
+    if ($caller['verified'] && isSiteAdmin($pdo, $caller['id'])) {
+        return ['discord_id' => $caller['id'], 'rank' => 5];
+    }
+
+    requireR5($pdo, $discordId, $alliance);
+    $id = $caller['id'];
     $member = $id !== '' ? getDiscordMember($pdo, $alliance, $id, true) : null;
     if (!$member || normalizeHonorRole($member['honor_role'] ?? null) !== null || safeRank((int)$member['current_rank_code']) < 5) {
-        jsonOut(403, ['error' => "Nur R5 der Allianz {$alliance} darf API-Tokens verwalten."]);
+        jsonOut(403, ['error' => "Nur R5 der Allianz {$alliance} oder der Betreiber (mit Discord-Anmeldung) darf API-Tokens verwalten."]);
     }
     return ['discord_id' => $id, 'rank' => safeRank((int)$member['current_rank_code'])];
 }

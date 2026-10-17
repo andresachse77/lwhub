@@ -530,7 +530,7 @@
     "s_nur_lesezugriff_ehrenrolle": "Read-only access (honor role): changes are not allowed.",
     "s_zur_vorwoche": "vs last week",
     "s_api_tokens": "API tokens",
-    "s_api_tokens_sub": "Access for the Android app and the web scanner. Only R5 of the alliance can create and revoke tokens.",
+    "s_api_tokens_sub": "Access for the Android app and the web scanner. Only R5 of the alliance and the site operator can create and revoke tokens.",
     "s_plus_token_anlegen": "+ Create token",
     "s_api_token_anlegen": "Create API token",
     "s_allianz_doppelpunkt": "Alliance:",

@@ -1220,9 +1220,23 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
     ensureUserActiveCharTable($pdo);
 
     $targetAlliance = !empty($body['alliance']) ? trim($body['alliance']) : $alliance;
-    // Nur R4/R5 der Ziel-Allianz (oder Site-Admins) mit von Discord bestaetigtem Token duerfen schreiben.
+    // App-Token: die Allianz kommt aus dem Token, body.alliance muss leer sein oder passen.
+    $tokenAlliance = requestApiTokenAlliance($pdo);
+    if ($tokenAlliance !== null) {
+        if (!empty($body['alliance']) && strcasecmp(trim($body['alliance']), $tokenAlliance) !== 0) {
+            $targetAlliance = trim($body['alliance']); // requireScannerAccess lehnt ab und protokolliert
+        } else {
+            $targetAlliance = $tokenAlliance;
+        }
+    }
+    // Nur R4/R5 der Ziel-Allianz (oder Site-Admins) mit von Discord bestaetigtem Token duerfen schreiben,
+    // dazu App-Tokens der Allianz. Rolle scanner nur eingeschraenkt (siehe $scannerOnly).
     $claimedId = (string)($body['discord_id'] ?? '');
-    requireScannerAccess($pdo, $targetAlliance, preg_match('/^\d+$/', $claimedId) ? $claimedId : null);
+    $caller = requireScannerAccess($pdo, $targetAlliance, preg_match('/^\d+$/', $claimedId) ? $claimedId : null, false, true);
+    // Rolle scanner (Konzept v2, A5): nur Werte bei bekannter player_id oder eindeutigem exaktem Namen in
+    // der eigenen Allianz. Nichts anlegen, zurueckholen, verschieben, archivieren, kein Rang. Rest -> unmatched.
+    $scannerOnly = ($caller['token_role'] ?? null) === 'scanner';
+    $dryRun = !empty($body['dry_run']);
     $entries = $body['entries'] ?? [];
     if (!is_array($entries)) jsonOut(400, ['error' => 'Ungültige Entries-Liste']);
 
@@ -1237,9 +1251,11 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
         'transferred' => 0,
         'archived' => 0,
         'rank_changes' => 0,
+        'unmatched' => 0,
     ];
     $details = [];
     $conflicts = [];
+    $unmatched = [];
 
     // Resolve a scanned shield number (R1–R5) against the stored rank:
     // - protected R4 names always stay at rank 4; blocked deviations -> conflict + rank_change_log
@@ -1272,6 +1288,10 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
 
     $archivePlayerIds = $body['archive_player_ids'] ?? [];
     if (!is_array($archivePlayerIds)) $archivePlayerIds = [];
+    if ($scannerOnly && $archivePlayerIds) {
+        $conflicts[] = ['blocked' => true, 'reason' => 'scanner-no-archive', 'count' => count($archivePlayerIds)];
+        $archivePlayerIds = [];
+    }
 
     $pdo->beginTransaction();
     try {
@@ -1326,10 +1346,30 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
 
             // Rank code from the golden shield number (R1–R5), never from the rank name.
             // null = shield number not readable in this scan -> existing rank is kept.
-            $requestedRank = isset($e['rank']) ? safeRank($e['rank']) : null;
+            $requestedRank = isset($e['rank']) && !$scannerOnly ? safeRank($e['rank']) : null;
 
             $player = null;
-            if ($playerId) {
+            if ($scannerOnly) {
+                // Nur aktive Spieler der eigenen Allianz; Name exakt (auch Gross-/Kleinschreibung) und eindeutig
+                if ($playerId) {
+                    $stmt = $pdo->prepare("SELECT player_id, current_name, alliance, current_rank_code, honor_role FROM players WHERE alliance = ? AND player_id = ? AND is_active = 1 LIMIT 1");
+                    $stmt->execute([$targetAlliance, $playerId]);
+                    $player = $stmt->fetch() ?: null;
+                }
+                $reason = $playerId ? 'unknown-player-id' : 'no-exact-name';
+                if (!$player && !$playerId) {
+                    $stmt = $pdo->prepare("SELECT player_id, current_name, alliance, current_rank_code, honor_role FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1");
+                    $stmt->execute([$targetAlliance, $name]);
+                    $hits = array_values(array_filter($stmt->fetchAll(), fn($r) => $r['current_name'] === $name));
+                    if (count($hits) === 1) $player = $hits[0];
+                    elseif (count($hits) > 1) $reason = 'ambiguous-name';
+                }
+                if (!$player) {
+                    $summary['unmatched']++;
+                    $unmatched[] = ['name' => $name, 'player_id' => $playerId, 'reason' => $reason];
+                    continue;
+                }
+            } elseif ($playerId) {
                 $stmt = $pdo->prepare("SELECT player_id, current_name, alliance, current_rank_code, honor_role FROM players WHERE alliance = ? AND player_id = ? LIMIT 1");
                 $stmt->execute([$targetAlliance, $playerId]);
                 $player = $stmt->fetch();
@@ -1552,8 +1592,10 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
             }
         }
 
-        $pdo->commit();
-        jsonOut(200, ['ok' => true, 'summary' => $summary, 'details' => $details, 'conflicts' => $conflicts]);
+        // dry_run: alles ausfuehren, dann zurueckrollen – die Antwort zeigt, was passieren wuerde
+        if ($dryRun) $pdo->rollBack();
+        else $pdo->commit();
+        jsonOut(200, ['ok' => true, 'dry_run' => $dryRun, 'summary' => $summary, 'details' => $details, 'unmatched' => $unmatched, 'conflicts' => $conflicts]);
     } catch (\Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         jsonOut(500, ['error' => 'Fehler beim Synchronisieren: ' . $e->getMessage()]);

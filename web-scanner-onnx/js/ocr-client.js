@@ -9,6 +9,11 @@
  */
 // Versionsanhang (?v=…) der Seite an den Worker weitergeben, damit nach einem Deploy kein alter Stand aus dem Cache laeuft.
 const OCR_WORKER_URL = new URL('ocr-worker.js' + new URL(document.currentScript.src).search, document.currentScript.src).href;
+// A frame that takes longer than this counts as stuck (seen with WebGPU on iPad: no error, no
+// result); the worker is then replaced by a CPU one and the frame retried there.
+const OCR_FRAME_TIMEOUT_MS = 90000;
+
+class OcrHangError extends Error {}
 
 class OcrWorkerHandle {
   constructor() {
@@ -17,10 +22,11 @@ class OcrWorkerHandle {
     this.nextId = 1;
     this.chain = Promise.resolve();
     this.queued = 0;
+    this.dead = false;
   }
 
   init(backend, threads, onProgress) {
-    return new Promise((resolve, reject) => {
+    const ready = new Promise((resolve, reject) => {
       this.worker.onmessage = (ev) => {
         const msg = ev.data;
         if (msg.type === 'progress') onProgress?.(msg.text, msg.ratio);
@@ -37,19 +43,28 @@ class OcrWorkerHandle {
       this.worker.onerror = (ev) => reject(new Error(ev.message || 'OCR-Worker konnte nicht gestartet werden'));
       this.worker.postMessage({ type: 'init', backend, threads });
     });
+    // Frames handed over before init finished wait for it.
+    this.chain = ready.then(() => {}, () => {});
+    return ready;
   }
 
   /**
    * framePromise resolves to { bitmap } or { width, height, buffer } (transferred to the worker).
    * The worker counts as busy from this call on, so concurrent callers spread over the pool.
    */
-  process(framePromise) {
+  process(framePromise, timeoutMs) {
     this.queued++;
     const run = async () => {
       const frame = await framePromise;
+      if (this.dead) throw new Error('OCR-Worker wurde neu gestartet');
       return new Promise((resolve, reject) => {
         const id = this.nextId++;
-        this.pending.set(id, { resolve, reject });
+        const timer = setTimeout(() => {
+          if (!this.pending.delete(id)) return;
+          reject(new OcrHangError(`OCR hing länger als ${Math.round(timeoutMs / 1000)} s`));
+        }, timeoutMs);
+        const settle = (fn) => (v) => { clearTimeout(timer); fn(v); };
+        this.pending.set(id, { resolve: settle(resolve), reject: settle(reject) });
         this.worker.postMessage({ type: 'process', id, ...frame }, [frame.bitmap || frame.buffer]);
       });
     };
@@ -59,6 +74,7 @@ class OcrWorkerHandle {
   }
 
   terminate() {
+    this.dead = true;
     this.worker.terminate();
     for (const { reject } of this.pending.values()) reject(new Error('OCR-Engine wurde neu gestartet'));
     this.pending.clear();
@@ -102,11 +118,13 @@ class BrowserOcr {
     const plan = BrowserOcr.split(cores || BrowserOcr.defaultCores);
     threads = threads || plan.threads;
     const count = Math.max(1, workers || plan.workers);
+    this.threads = threads;
     const handle = () => {
       const w = new OcrWorkerHandle();
       w.onNotice = (text) => this.onNotice?.(text);
       return w;
     };
+    this.newHandle = handle;
 
     const first = handle();
     this.workers.push(first);
@@ -134,10 +152,30 @@ class BrowserOcr {
    * /process JSON. The source stays usable (a copy is handed to the worker as an ImageBitmap; the
    * pixel readback then happens in the worker instead of on the page's main thread).
    */
-  process(source) {
+  process(source, retry = true) {
     const worker = this.workers.reduce((a, b) => (b.queued < a.queued ? b : a));
+    return worker.process(BrowserOcr.frameOf(source), OCR_FRAME_TIMEOUT_MS).catch((err) => {
+      if (!(err instanceof OcrHangError)) throw err;
+      this.replaceHung(worker, err.message);
+      if (!retry) throw err;
+      return this.process(source, false);
+    });
+  }
+
+  /** Swaps a stuck worker for a fresh CPU one; frames still queued on the old one fail. */
+  replaceHung(worker, reason) {
+    const i = this.workers.indexOf(worker);
+    if (i < 0) return;
+    worker.terminate();
+    const fresh = this.newHandle();
+    this.workers[i] = fresh;
+    fresh.init('wasm', this.threads).catch((err) => this.onNotice?.(`OCR-Worker konnte nicht neu starten: ${err.message}`));
+    this.onNotice?.(`${reason} – OCR-Worker auf der CPU neu gestartet, das Bild wird wiederholt.`);
+  }
+
+  static frameOf(source) {
     if (typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap === 'function') {
-      return worker.process(createImageBitmap(source).then((bitmap) => ({ bitmap })));
+      return createImageBitmap(source).then((bitmap) => ({ bitmap }));
     }
     const w = source.naturalWidth || source.videoWidth || source.width;
     const h = source.naturalHeight || source.videoHeight || source.height;
@@ -146,6 +184,6 @@ class BrowserOcr {
     const ctx = c.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(source, 0, 0);
     const { data } = ctx.getImageData(0, 0, w, h);
-    return worker.process(Promise.resolve({ width: w, height: h, buffer: data.buffer }));
+    return Promise.resolve({ width: w, height: h, buffer: data.buffer });
   }
 }

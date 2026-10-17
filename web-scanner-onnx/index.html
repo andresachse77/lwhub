@@ -240,7 +240,7 @@
 <!-- MODULE LADEN (Matching & Drag-and-Drop teilt sich diese Seite mit dem Server-Cockpit) -->
 <script src="js/matching.js?v=20261017j"></script>
 <script src="js/drag-drop.js?v=20261017f"></script>
-<script src="js/ocr-client.js?v=20261017h"></script>
+<script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
 
@@ -313,9 +313,13 @@ async function startOcrEngine() {
   }
 }
 
-// Default: the GPU when the browser offers WebGPU (about 3x faster), otherwise the CPU.
+// Default: the GPU when the browser offers WebGPU (about 3x faster), otherwise the CPU. Not on
+// iPhone/iPad: WebGPU there loses its device or stalls after a few full-size frames.
+const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const storedBackend = readStoredBackend();
-backendSelect.value = ['webgpu', 'wasm'].includes(storedBackend) ? storedBackend : (navigator.gpu ? 'webgpu' : 'wasm');
+backendSelect.value = ['webgpu', 'wasm'].includes(storedBackend) ? storedBackend
+  : (navigator.gpu && !isAppleMobile ? 'webgpu' : 'wasm');
 backendSelect.addEventListener('change', () => {
   storeBackend(backendSelect.value);
   startOcrEngine();
@@ -741,32 +745,38 @@ async function processFiles(fileList) {
 }
 
 // 6b. Bildschirmaufnahme als Video (z. B. iPhone: Safari kann den Bildschirm nicht live teilen)
-// The video is stepped through by seeking instead of being played, so processing never drops
-// frames and the scroll speed while recording only matters as far as consecutive kept views still
-// overlap. A frame where the list rests is kept at once; while scrolling, the stillest frame of
-// each short window is kept.
+// The video plays (muted, off-screen) and every presented frame is looked at; whenever all OCR
+// workers are busy the video pauses, so processing never drops views and the scroll speed while
+// recording only matters as far as consecutive kept views still overlap. Playing instead of
+// seeking: iOS Safari often draws seeked frames of a paused video as black.
+// A frame where the list rests is kept at once; while scrolling, the stillest frame of each short
+// window is kept.
 const VIDEO_STEP_S = 0.1;
 const VIDEO_STILL = 0.004;
 const VIDEO_MAX_GAP_S = 0.3;
+const VIDEO_RATE = 2;
 
 function isVideoFile(f) {
   return f.type.startsWith('video/') || /\.(mov|mp4|m4v|webm)$/i.test(f.name);
 }
 
 async function openVideo(file) {
+  if (!('requestVideoFrameCallback' in HTMLVideoElement.prototype)) {
+    throw new Error('Dieser Browser kann Videos nicht Bild für Bild auslesen – bitte einen aktuellen Browser verwenden.');
+  }
   const video = document.createElement('video');
   video.muted = true;
   video.playsInline = true;
   video.preload = 'auto';
+  // In the DOM (but invisible) so Safari keeps decoding and presenting frames.
+  video.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;';
+  document.body.appendChild(video);
   video.src = URL.createObjectURL(file);
   try {
     await new Promise((resolve, reject) => {
       video.addEventListener('loadeddata', resolve, { once: true });
       video.addEventListener('error', () => reject(new Error('Video konnte nicht gelesen werden (Format von diesem Browser nicht unterstützt?)')), { once: true });
     });
-    // iOS Safari only delivers frames for seeking once the video has played.
-    await video.play().catch(() => {});
-    video.pause();
     return video;
   } catch (err) {
     closeVideo(video);
@@ -775,17 +785,32 @@ async function openVideo(file) {
 }
 
 function closeVideo(video) {
+  video.pause();
   URL.revokeObjectURL(video.src);
   video.removeAttribute('src');
   video.load();
+  video.remove();
 }
 
-function seekVideo(video, t) {
-  if (Math.abs(video.currentTime - t) < 1e-3) return Promise.resolve();
+// Resolves with the media time of the next presented frame, or null once the video has ended.
+function nextVideoFrame(video) {
   return new Promise((resolve) => {
-    video.addEventListener('seeked', resolve, { once: true });
-    video.currentTime = t;
+    if (video.ended) { resolve(null); return; }
+    const onEnded = () => { video.cancelVideoFrameCallback(id); resolve(null); };
+    video.addEventListener('ended', onEnded, { once: true });
+    const id = video.requestVideoFrameCallback((_, meta) => {
+      video.removeEventListener('ended', onEnded);
+      resolve(meta.mediaTime);
+    });
   });
+}
+
+function drawVideoFrame(video) {
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  return canvas;
 }
 
 function setVideoProgress(name, t, duration, kept, open) {
@@ -836,33 +861,40 @@ async function processVideos(files) {
         }
         log(`Video ${file.name}: ${duration.toFixed(1)} s, ${video.videoWidth}×${video.videoHeight} – suche geänderte Ansichten (${ocr.size} parallel)…`);
         const base = file.name.replace(/\.[^.]+$/, '');
-        let t = 0, kept = 0, prevSig = null, lastKeptSig = null, cand = null;
+        let t = 0, kept = 0, nextSample = 0, prevSig = null, lastKeptSig = null, cand = null;
         onProgress = () => setVideoProgress(file.name, t, duration, kept, runner.running);
 
+        const play = () => video.play().catch((err) => { throw new Error(`Video lässt sich nicht abspielen (${err.message})`); });
         const keep = async (c) => {
-          await seekVideo(video, c.t);
-          const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          canvas.getContext('2d').drawImage(video, 0, 0);
           lastKeptSig = c.sig;
-          await waitUntil(() => runner.running < ocr.size || stopProcessingRequested);
-          if (stopProcessingRequested) return;
+          if (runner.running >= ocr.size) {
+            video.pause();
+            await waitUntil(() => runner.running < ocr.size || stopProcessingRequested);
+            if (stopProcessingRequested) return;
+            if (!video.ended) await play();
+          }
           kept++;
           const label = `${base} ${c.t.toFixed(1)} s`;
-          runner.submit({ canvas, label }, () => ocrTracked(canvas, label));
+          runner.submit({ canvas: c.canvas, label }, () => ocrTracked(c.canvas, label));
         };
 
-        for (; t < duration && !stopProcessingRequested; t += VIDEO_STEP_S) {
-          await seekVideo(video, t);
+        video.playbackRate = VIDEO_RATE;
+        await play();
+        for (;;) {
+          const mediaTime = await nextVideoFrame(video);
+          if (mediaTime === null || stopProcessingRequested) break;
+          if (mediaTime < nextSample) continue;
+          t = mediaTime;
+          nextSample = t + VIDEO_STEP_S;
           const sig = frameSignature(video);
           const motion = prevSig ? signatureDifference(prevSig, sig) : 1;
           prevSig = sig;
           if (lastKeptSig && signatureDifference(lastKeptSig, sig) < CHANGE_THRESHOLD) {
             cand = null;
           } else {
-            if (!cand) cand = { t, sig, motion, since: t };
-            else if (motion < cand.motion) cand = { t, sig, motion, since: cand.since };
+            if (!cand || motion < cand.motion) {
+              cand = { t, sig, motion, since: cand ? cand.since : t, canvas: drawVideoFrame(video) };
+            }
             if (motion < VIDEO_STILL || t - cand.since >= VIDEO_MAX_GAP_S) {
               await keep(cand);
               cand = null;
@@ -871,7 +903,11 @@ async function processVideos(files) {
           onProgress();
         }
         if (cand && !stopProcessingRequested) await keep(cand);
+        t = duration;
+        onProgress();
         log(`Video ${file.name}: ${kept} Ansichten an die Texterkennung übergeben.`);
+      } catch (err) {
+        log(`${file.name}: ${err.message}`);
       } finally {
         closeVideo(video);
       }

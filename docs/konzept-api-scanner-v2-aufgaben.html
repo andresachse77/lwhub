@@ -6,313 +6,418 @@
 <title>LWHub &bull; Aufgaben Konzept v2</title>
 <style>
   :root {
-    --bg-primary: #0e1117; --bg-secondary: #161b22; --bg-tertiary: #21262d; --bg-card: #1c2128;
-    --border-color: #30363d; --accent: #58a6ff; --success: #3fb950; --warning: #d29922; --danger: #f85149;
-    --purple: #bc8cff; --text-primary: #f0f6fc; --text-secondary: #8b949e; --text-muted: #6e7681; --code-bg: #0d1117;
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    --bg: #0e1117; --bg-2: #161b22; --bg-3: #21262d; --border: #30363d; --border-soft: #262c34;
+    --accent: #58a6ff; --success: #3fb950; --warning: #d29922; --danger: #f85149; --purple: #bc8cff;
+    --text: #f0f6fc; --text-2: #8b949e; --text-3: #6e7681;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); line-height: 1.6; padding: 32px 16px; display: flex; justify-content: center; }
-  .container { max-width: 980px; width: 100%; }
-  .header { border-bottom: 1px solid var(--border-color); padding-bottom: 24px; margin-bottom: 36px; display: flex; flex-direction: column; gap: 12px; }
-  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; padding: 3px 9px; border-radius: 20px; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
-  .badge.blue { background: rgba(88,166,255,.15); color: var(--accent); border-color: rgba(88,166,255,.3); }
-  .badge.green { background: rgba(63,185,80,.15); color: var(--success); border-color: rgba(63,185,80,.3); }
-  .badge.purple { background: rgba(188,140,255,.15); color: var(--purple); border-color: rgba(188,140,255,.3); }
-  .badge.amber { background: rgba(210,153,34,.15); color: var(--warning); border-color: rgba(210,153,34,.3); }
-  .badge.red { background: rgba(248,81,73,.15); color: var(--danger); border-color: rgba(248,81,73,.3); }
-  h1 { font-size: 28px; font-weight: 700; color: #fff; line-height: 1.25; }
-  .subtitle { color: var(--text-secondary); font-size: 15px; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.55; padding: 40px 16px 56px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  code { font-family: var(--mono); font-size: 12px; background: var(--bg-3); padding: 1px 5px; border-radius: 4px; color: #f0883e; overflow-wrap: anywhere; }
+  strong { color: var(--text); }
+
+  /* Kopf */
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  h1 { font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -.3px; }
+  .subtitle { color: var(--text-2); font-size: 14.5px; margin-top: 8px; max-width: 640px; }
+  .meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-2); background: var(--bg-2); }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  /* Fortschritt */
+  .progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 28px 0 32px; }
+  .prog { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .prog-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .prog-name { font-size: 13px; color: var(--text-2); }
+  .prog-num { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .prog-num small { font-size: 13px; color: var(--text-3); font-weight: 500; }
+  .bar { height: 6px; background: var(--bg-3); border-radius: 999px; overflow: hidden; margin-top: 10px; display: flex; }
+  .bar span { display: block; height: 100%; }
+  .bar .b-done { background: var(--success); }
+  .bar .b-part { background: var(--warning); }
+  .prog-legend { font-size: 11.5px; color: var(--text-3); margin-top: 7px; }
+
+  /* Abschnitte */
   section { margin-bottom: 40px; }
-  h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  h3 { font-size: 16px; font-weight: 600; color: var(--accent); margin: 20px 0 10px; }
-  p { color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; }
-  ul, ol { margin: 0 0 16px 24px; color: var(--text-secondary); font-size: 14px; }
-  li { margin-bottom: 6px; }
-  strong { color: var(--text-primary); }
-  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 16px 0; }
-  .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; }
-  .card h4 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-  .card p, .card ul { font-size: 13px; margin-bottom: 0; }
-  .card.ok { border-left: 4px solid var(--success); }
-  .card.warn { border-left: 4px solid var(--warning); }
-  .card.bad { border-left: 4px solid var(--danger); }
-  pre { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 14px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; color: #e6edf3; margin-bottom: 16px; }
-  code { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-tertiary); padding: 2px 5px; border-radius: 4px; color: #f0883e; }
-  pre code { background: none; padding: 0; color: inherit; }
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
-  th, td { padding: 9px 11px; text-align: left; border: 1px solid var(--border-color); vertical-align: top; color: var(--text-secondary); }
-  th { background: var(--bg-secondary); color: var(--text-primary); font-weight: 600; }
-  tr:nth-child(even) td { background: rgba(255,255,255,.02); }
-  .y { color: var(--success); font-weight: 600; }
-  .m { color: var(--warning); font-weight: 600; }
-  .n { color: var(--danger); font-weight: 600; }
-  .note { border-left: 3px solid var(--accent); background: rgba(88,166,255,.08); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 14px 0; font-size: 13.5px; color: var(--text-secondary); }
-  .note.warn { border-left-color: var(--warning); background: rgba(210,153,34,.08); }
-  .note.bad { border-left-color: var(--danger); background: rgba(248,81,73,.08); }
-  .stage { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
-  .stage-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-  .stage p, .stage ul { font-size: 13px; margin-bottom: 0; }
-  .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center; font-size: 12px; color: var(--text-muted); }
-</style>
-<style>
-  .who { display:flex; gap:10px; align-items:center; margin: 8px 0 14px; }
-  .task { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; display: grid; grid-template-columns: 22px 1fr; gap: 10px; }
-  .task input { margin-top: 4px; width: 16px; height: 16px; accent-color: var(--success); }
-  .task .t { font-weight: 600; font-size: 14px; color: var(--text-primary); }
-  .task .d { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
-  .task .meta { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
-  .phase { font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-muted); margin: 22px 0 8px; }
+  h2 { font-size: 19px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h2 .count { font-size: 12px; font-weight: 500; color: var(--text-3); }
+  .phase { font-size: 11.5px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--text-3); margin: 22px 0 8px; display: flex; align-items: center; gap: 10px; }
+  .phase::after { content: ""; flex: 1; height: 1px; background: var(--border-soft); }
+
+  /* Als naechstes */
+  .next { background: linear-gradient(180deg, rgba(88,166,255,.09), rgba(88,166,255,.03)); border: 1px solid rgba(88,166,255,.3); border-radius: 12px; padding: 18px 20px; margin-bottom: 36px; }
+  .next h2 { margin-bottom: 10px; }
+  .next ol { list-style: none; counter-reset: n; display: grid; gap: 10px; }
+  .next li { counter-increment: n; display: grid; grid-template-columns: 26px 1fr; gap: 10px; font-size: 14px; color: var(--text-2); }
+  .next li::before { content: counter(n); width: 22px; height: 22px; border-radius: 50%; background: rgba(88,166,255,.18); color: var(--accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; margin-top: 1px; }
+  .next li b { color: var(--text); font-weight: 600; }
+
+  /* Abhaengigkeiten */
+  .deps { display: grid; gap: 8px; }
+  .dep { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 13.5px; color: var(--text-2); }
+
+  /* Filter */
+  .toolbar { position: sticky; top: 0; z-index: 2; background: rgba(14,17,23,.92); backdrop-filter: blur(6px); padding: 10px 0; margin-bottom: 8px; display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--border-soft); }
+  .toolbar button { font: inherit; font-size: 13px; color: var(--text-2); background: var(--bg-2); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  .toolbar button:hover { color: var(--text); }
+  .toolbar button[aria-pressed="true"] { color: var(--text); border-color: var(--accent); background: rgba(88,166,255,.12); }
+  .toolbar button span { color: var(--text-3); margin-left: 4px; font-variant-numeric: tabular-nums; }
+
+  /* Aufgaben */
+  .task { background: var(--bg-2); border: 1px solid var(--border); border-left: 3px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+  .task[data-status="done"] { border-left-color: var(--success); }
+  .task[data-status="part"] { border-left-color: var(--warning); }
+  .task-head { display: flex; align-items: flex-start; gap: 10px; }
+  .icon { flex: none; width: 18px; height: 18px; border-radius: 50%; margin-top: 2px; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .task[data-status="done"] .icon { background: var(--success); color: #0e1117; }
+  .task[data-status="done"] .icon::before { content: "✓"; }
+  .task[data-status="part"] .icon { border: 2px solid var(--warning); background: conic-gradient(var(--warning) 0 50%, transparent 50% 100%); }
+  .task[data-status="open"] .icon { border: 2px solid var(--text-3); }
+  .t { font-weight: 600; font-size: 14.5px; flex: 1; min-width: 0; }
+  .t .id { font-family: var(--mono); font-size: 12px; color: var(--text-3); margin-right: 6px; font-weight: 500; }
+  .task[data-status="done"] .t { color: var(--text-2); }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--border); color: var(--text-2); }
+  .tag.done { color: var(--success); border-color: rgba(63,185,80,.35); background: rgba(63,185,80,.1); }
+  .tag.part { color: var(--warning); border-color: rgba(210,153,34,.35); background: rgba(210,153,34,.1); }
+  .tag.purple { color: var(--purple); border-color: rgba(188,140,255,.35); background: rgba(188,140,255,.1); }
+  .tag.blue { color: var(--accent); border-color: rgba(88,166,255,.35); background: rgba(88,166,255,.1); }
+  .d { font-size: 13px; color: var(--text-2); margin: 6px 0 0 28px; }
+  .open-point { font-size: 13px; color: var(--text-2); margin: 8px 0 0 28px; padding: 7px 10px; border-radius: 6px; background: rgba(210,153,34,.08); border: 1px solid rgba(210,153,34,.22); }
+  .open-point::before { content: "Offen: "; color: var(--warning); font-weight: 600; }
+  details { margin: 8px 0 0 28px; }
+  summary { font-size: 12.5px; color: var(--accent); cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; user-select: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸"; font-size: 10px; transition: transform .15s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  .log { margin: 8px 0 0 5px; border-left: 2px solid var(--border); padding-left: 14px; display: grid; gap: 8px; }
+  .log p { font-size: 12.5px; color: var(--text-2); position: relative; }
+  .log p::before { content: ""; position: absolute; left: -20px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--bg-2); border: 2px solid var(--text-3); }
+  .log time { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-3); }
+  .hidden { display: none !important; }
+
+  .footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--border-soft); text-align: center; font-size: 12px; color: var(--text-3); }
+  @media (max-width: 560px) {
+    h1 { font-size: 24px; }
+    .task-head { flex-wrap: wrap; }
+    .tags { width: 100%; justify-content: flex-start; padding-left: 28px; }
+    .d, .open-point, details { margin-left: 0; }
+  }
 </style>
 </head>
 <body>
 <div class="container">
 
-  <div class="header">
-    <div class="badge-row">
-      <span class="badge blue">Aufgabenliste</span>
-      <span class="badge green">Andre: lwhub &amp; Web-Scanner</span>
-      <span class="badge purple">Thomas: Android-App</span>
-      <span class="badge amber">Stand: 2026-10-17</span>
+  <header>
+    <div class="eyebrow">Aufgabenliste</div>
+    <h1>API- &amp; Scanner-Konzept v2</h1>
+    <p class="subtitle">Wer macht was in welcher Reihenfolge. Begründungen und Details stehen in <code>konzept-api-scanner-v2.html</code>.</p>
+    <div class="meta-row">
+      <span class="chip"><b>Andre</b> · lwhub &amp; Web-Scanner</span>
+      <span class="chip"><b>Thomas</b> · Android-App</span>
+      <span class="chip">Stand <b>17.10.2026</b></span>
     </div>
-    <h1>Aufgaben zum API- &amp; Scanner-Konzept v2</h1>
-    <div class="subtitle">Begr&uuml;ndungen und Details stehen in <code>konzept-api-scanner-v2.html</code>. Hier steht nur, wer was in welcher Reihenfolge tut.</div>
+  </header>
+
+  <div class="progress-grid" id="progress"></div>
+
+  <section class="next">
+    <h2>🎯 Als Nächstes</h2>
+    <ol>
+      <li><div><b>Deployen und Token für Thomas anlegen</b> (Rest von A4, Admin &rarr; API-Tokens, Rolle <code>scanner</code>). Damit kann Thomas T4 und T5 beginnen.</div></li>
+      <li><div><b>Thomas Bescheid geben:</b> Der Sync für die App ist bereit (A12). Er kann T6 bauen und mit <code>dry_run</code> testen. Dabei G1 (Spielwoche) abstimmen.</div></li>
+      <li><div><b>A7 abschließen:</b> <code>unmatched</code>/<code>conflicts</code> im Ergebnis-Dialog des Web-Scanners zeigen und den Kürzel-Vergleich (<code>sameAllianceTag</code>) an den Hub angleichen. Heute gelten dort NxU1 und NxU2 als gleich.</div></li>
+      <li><div><b>A11 vorbereiten:</b> <code>api_auth_log</code> ansehen, dann die R5-Endpunkte auf <code>enforce</code>.</div></li>
+      <li><div><b>G3 klären:</b> Wie lange bleiben Scan-Werte gespeichert?</div></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>🔗 Abhängigkeiten</h2>
+    <div class="deps">
+      <div class="dep"><span>Thomas braucht einen <code>scanner</code>-Token für die Test-Allianz</span><span class="tag part">A4 erledigt · Token nach Deploy</span></div>
+      <div class="dep"><span>Thomas braucht den Sync mit <code>dry_run</code>, <code>scan_id</code>, <code>alliance_tag</code>, Metrik je Typ</span><span class="tag done">bereit seit 17.10.</span></div>
+      <div class="dep"><span>Festlegung der Spielwoche (<code>year_week</code>)</span><span class="tag blue">gemeinsam, G1</span></div>
+    </div>
+  </section>
+
+  <div class="toolbar" role="toolbar" aria-label="Filter">
+    <button type="button" data-filter="all" aria-pressed="true">Alle<span></span></button>
+    <button type="button" data-filter="open" aria-pressed="false">Offen<span></span></button>
+    <button type="button" data-filter="part" aria-pressed="false">Teilweise<span></span></button>
+    <button type="button" data-filter="done" aria-pressed="false">Erledigt<span></span></button>
   </div>
 
-  <section>
-    <h2><span>🔗</span> Abh&auml;ngigkeiten auf einen Blick</h2>
-    <div class="table-wrap">
-    <table>
-      <thead><tr><th>Thomas braucht von Andre</th><th>wann</th></tr></thead>
-      <tbody>
-        <tr><td>Einen <code>scanner</code>-Token f&uuml;r die Test-Allianz</td><td>nach A4</td></tr>
-        <tr><td>Den Sync mit <code>dry_run</code>, <code>scan_id</code>, <code>alliance_tag</code>, Metrik je Typ</td><td>nach A12</td></tr>
-        <tr><td>Festlegung der Spielwoche (<code>year_week</code>)</td><td>gemeinsam, G1</td></tr>
-      </tbody>
-    </table>
-    </div>
-    <p>Thomas kann die Aufgaben T1&ndash;T3 sofort und unabh&auml;ngig vom Hub angehen. Andre kann Phase&nbsp;1 und 2 ohne Thomas umsetzen.</p>
-  </section>
-
   <!-- ANDRE -->
-  <section>
-    <h2><span>🧑‍💻</span> Aufgaben f&uuml;r Andre (lwhub &amp; Web-Scanner)</h2>
+  <section data-owner="Andre">
+    <h2>🧑‍💻 Andre <span class="count">lwhub &amp; Web-Scanner</span></h2>
 
-    <div class="phase">Phase 1 &ndash; Sync absichern (sofort)</div>
+    <div class="phase">Phase 1 · Sync absichern</div>
 
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">A1 &bull; Migration in <code>db-setup.php</code></div>
-      <div class="d">Nullable Spalten an <code>player_metrics</code> (<code>scan_id</code>, <code>year_week</code>, <code>game_day</code>, <code>read_status</code>, <code>observations</code> + 2 Indizes) und an <code>api_tokens</code> (<code>created_by</code>, <code>expires_at</code>). Neue Tabellen <code>api_auth_cache</code> und <code>api_auth_log</code>. Jedes <code>ALTER</code> einzeln in try/catch wie in <code>ensureScannerColumns</code>.</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-16</span><span class="badge green">risikoarm</span><span class="badge">~1 h</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A1</span>Migration in <code>db-setup.php</code></div><div class="tags"><span class="tag done">erledigt 16.10.</span></div></div>
+      <div class="d">Nullable Spalten an <code>player_metrics</code> (<code>scan_id</code>, <code>year_week</code>, <code>game_day</code>, <code>read_status</code>, <code>observations</code> + 2 Indizes) und an <code>api_tokens</code> (<code>created_by</code>, <code>expires_at</code>). Neue Tabellen <code>api_auth_cache</code> und <code>api_auth_log</code>.</div>
+    </div>
 
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">A2 &bull; Schalter <code>LWHUB_AUTH_MODE</code></div>
-      <div class="d">Standard <code>log</code> im Code, &uuml;berschreibbar per Umgebungsvariable oder <code>define</code> in <code>config.php</code>. In <code>api/index.php</code> als <code>$AUTH_MODE</code> ausgelesen. Bei <code>off</code> verh&auml;lt sich alles wie heute.</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-16</span><span class="badge green">risikoarm</span><span class="badge">~0,5 h</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A2</span>Schalter <code>LWHUB_AUTH_MODE</code></div><div class="tags"><span class="tag done">erledigt 16.10.</span></div></div>
+      <div class="d">Standard <code>log</code>, überschreibbar per Umgebungsvariable oder <code>define</code> in <code>config.php</code>. Bei <code>off</code> verhält sich alles wie vorher.</div>
+    </div>
 
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">A3 &bull; <code>resolveCaller()</code> + <code>authCheck()</code> in <code>auth.php</code></div>
-      <div class="d">Bearer mit Pr&auml;fix <code>lwhub_</code>: SHA-256 in <code>api_tokens</code> suchen, <code>is_active</code> und <code>expires_at</code> pr&uuml;fen, <code>last_used_at</code> setzen. Gibt Allianz und Rolle zur&uuml;ck. Bei <code>log</code> nur in <code>api_auth_log</code> schreiben, bei <code>enforce</code> 401/403. <code>isLocalRequest()</code> bleibt Ausnahme.</div>
-      <div class="d"><strong>Stand 16.10.:</strong> Discord-Token wird für alle Scanner-Routen geprüft (<code>requireScannerAccess()</code> in <code>api/src/caller-auth.php</code>, Ablehnungen in <code>api_auth_log</code>). Offen: App-Tokens mit Präfix <code>lwhub_</code> aus <code>api_tokens</code>.</div>
-      <div class="d"><strong>Stand 17.10.:</strong> App-Tokens werden geprüft (<code>resolveApiToken()</code> in <code>caller-auth.php</code>): Hash in <code>api_tokens</code>, <code>is_active</code>, <code>expires_at</code>, <code>last_used_at</code>. <code>requireScannerAccess()</code> nimmt sie nur für ihre eigene Allianz an (sonst 403 <code>token_alliance</code>). <code>r4</code>/<code>r5</code> wie R4/R5, <code>scanner</code> nur lesend und im Sync eingeschränkt. Ablehnungen stehen mit <code>token_id</code> in <code>api_auth_log</code>.</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-17</span><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A3</span><code>resolveCaller()</code> + <code>authCheck()</code></div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
+      <div class="d">Discord-Token und App-Tokens (<code>lwhub_</code>) werden an allen Scanner-Routen geprüft (<code>requireScannerAccess()</code> in <code>caller-auth.php</code>). Ablehnungen stehen in <code>api_auth_log</code>.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>16.10.</time>Discord-Token für alle Scanner-Routen geprüft, Ablehnungen in <code>api_auth_log</code>.</p>
+        <p><time>17.10.</time><code>resolveApiToken()</code>: Hash in <code>api_tokens</code>, <code>is_active</code>, <code>expires_at</code>, <code>last_used_at</code>. Tokens gelten nur für ihre Allianz (sonst 403 <code>token_alliance</code>). <code>r4</code>/<code>r5</code> wie R4/R5, <code>scanner</code> nur lesend und im Sync eingeschränkt.</p>
+      </div></details>
+    </div>
 
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">A4 &bull; Token-Verwaltung f&uuml;r R5</div>
-      <div class="d">Endpunkte <code>GET/POST/DELETE /api-tokens</code> (mit <code>requireR5</code>) und ein kleiner Block im Admin-Bereich: Name, Rolle, Ablaufdatum, Klartext einmal anzeigen, widerrufen. Danach Token f&uuml;r Thomas und f&uuml;r den eigenen Web-Scanner erstellen.</div>
-      <div class="d"><strong>Stand 17.10.:</strong> <code>GET/POST/DELETE /api-tokens</code> in <code>api/src/api-tokens.php</code>, nur für R5 genau dieser Allianz (Site-Admins ohne eigenen R5-Char dort nicht). Klartext <code>lwhub_</code> + 32 Byte Zufall nur in der Antwort, gespeichert wird der SHA-256 (UNIQUE). Widerrufen setzt <code>is_active = 0</code>. Admin-Unterseite „API-Tokens“ mit Liste, Formular und Kopieren-Dialog. Offen: Token für Thomas nach dem Deploy anlegen.</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-17</span><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A4</span>Token-Verwaltung für R5</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
+      <div class="d"><code>GET/POST/DELETE /api-tokens</code> nur für R5 genau dieser Allianz. Klartext <code>lwhub_</code> + 32 Byte Zufall nur einmal in der Antwort, gespeichert wird der SHA-256. Admin-Unterseite „API-Tokens“ mit Liste, Formular und Kopieren-Dialog.</div>
+      <div class="open-point">Token für Thomas nach dem Deploy anlegen.</div>
+    </div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">A5 &bull; <code>handleSyncScans</code> an Rollen binden</div>
-      <div class="d">Allianz aus dem Aufrufer statt aus <code>body.alliance</code>. <code>scanner</code>: nur Updates bei <code>player_id</code> oder exaktem Namenstreffer, Rest als <code>unmatched</code>. <code>r4</code>/<code>r5</code>: Verhalten wie heute. Archiv-Suche auf die eigene Allianz beschr&auml;nken.</div>
-      <div class="d"><strong>Stand 16.10.:</strong> <code>/scans/sync</code> nur noch für R4/R5 der Ziel-Allianz bzw. Site-Admins mit geprüftem Discord-Token. Offen: Rolle <code>scanner</code> (nur Updates, Rest <code>unmatched</code>), Archiv-Suche auf die eigene Allianz beschränken.</div>
-      <div class="d"><strong>Stand 17.10.:</strong> Mit App-Token kommt die Allianz aus dem Token, <code>body.alliance</code> muss leer sein oder passen. Rolle <code>scanner</code>: nur Updates bei <code>player_id</code> oder eindeutigem exaktem Namen (aktive Spieler der eigenen Allianz), Rest in <code>unmatched</code>. Kein Archivieren, Zurückholen, Verschieben, Anlegen, kein Rang. Offen: Archiv-Suche für <code>r4</code>/<code>r5</code> auf die eigene Allianz beschränken.</div>
-      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A5</span><code>handleSyncScans</code> an Rollen binden</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
+      <div class="d">Die Allianz kommt aus dem Token bzw. dem geprüften Aufrufer. Rolle <code>scanner</code>: nur Updates bei <code>player_id</code> oder eindeutigem exaktem Namen, Rest <code>unmatched</code>; nichts anlegen, verschieben, archivieren, kein Rang. Archiv und andere Allianzen nur, wo der Aufrufer selbst R4/R5 ist.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>16.10.</time><code>/scans/sync</code> nur für R4/R5 der Ziel-Allianz mit geprüftem Discord-Token.</p>
+        <p><time>17.10.</time>Allianz aus dem App-Token, <code>body.alliance</code> muss leer sein oder passen. Rolle <code>scanner</code> eingeschränkt.</p>
+        <p><time>17.10. abends</time>Archiv-Suche und Suche nach aktiven Spielern anderer Allianzen nur in Allianzen, in denen der Aufrufer R4/R5 ohne Ehrenrolle ist (App-Tokens: nur ihre Allianz). Spieler fremder Allianzen bleiben unangetastet. Nicht umgesetzt: Zurückholen über eine mitgeschickte <code>player_id</code> aus fremden Archiven.</p>
+      </div></details>
+    </div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">A6 &bull; Transfer-Bug im Sync beheben</div>
-      <div class="d">Die Transfer-Logik aus <code>handleTransferPlayer</code> in eine interne Funktion auslagern (z.&nbsp;B. <code>transferPlayerInternal</code>). Sync und R5-Tool nutzen beide diese Funktion, damit <code>weekly_entries</code> und <code>weekly_entry_flags</code> mitwandern. Im Sync nur mit <code>r5</code>.</div>
-      <div class="meta"><span class="badge amber">mittel</span><span class="badge">~2 h</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A6</span>Transfer-Bug im Sync beheben</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
+      <div class="d">Sync und R5-Werkzeug nutzen beide <code>movePlayerToAlliance()</code>: Wochen samt Flags, Namen, Discord- und Konto-Verknüpfung, aktiver Charakter und Scan-Werte wandern mit. Im Sync verschiebt nur R5, R4 bekommt den Konflikt <code>transfer-needs-r5</code>.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>17.10.</time>Sync bricht nicht mehr mit Fremdschlüssel-Fehler ab, Wochen und Flags wandern mit. Ehrenrollen werden nie verschoben.</p>
+        <p><time>17.10. abends</time><code>handleTransferPlayer</code> auf die gemeinsame Funktion umgestellt (vorher <code>FOREIGN_KEY_CHECKS=0</code>). <code>player_metrics</code> wandern mit. Probeläufe mit ROLLBACK: R5 lokal, Lion Tooth (R4 in beiden: blockiert), Emiliiee (R5 nur NxU1: NxU2 unangetastet), Starfighter (R5 NxU2: verschiebt), R5-Werkzeug.</p>
+      </div></details>
+    </div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">A7 &bull; Web-Scanner-Cockpit: Token-Feld</div>
-      <div class="d">Feld &bdquo;LWHub-Token&ldquo; (in <code>localStorage</code>), <code>matching.js</code> sendet <code>Authorization: Bearer &hellip;</code>. Neue Antwortfelder (<code>unmatched</code>, <code>conflicts</code>) im Ergebnis-Dialog anzeigen.</div>
-      <div class="d"><strong>Stand 16.10.:</strong> Anders gelöst: Der Web-Scanner (<code>web-scanner-onnx</code>) übernimmt den lwhub-Login und schickt das Discord-Token mit, ein Token-Feld ist nicht nötig. Offen: <code>unmatched</code>/<code>conflicts</code> im Ergebnis-Dialog anzeigen.</div>
-      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge green">risikoarm</span><span class="badge">~1 h</span></div>
-    </div></div>
+    <div class="task" data-status="part">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A7</span>Web-Scanner-Cockpit: Anmeldung und Ergebnis</div><div class="tags"><span class="tag part">teilweise</span><span class="tag">~1 h</span></div></div>
+      <div class="d">Anders gelöst als geplant: Der Web-Scanner übernimmt den lwhub-Login und schickt das Discord-Token mit, ein Token-Feld ist nicht nötig.</div>
+      <div class="open-point"><code>unmatched</code>/<code>conflicts</code> im Ergebnis-Dialog anzeigen. <code>sameAllianceTag()</code> an den Hub angleichen (NxU1 &ne; NxU2).</div>
+    </div>
 
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">A8 &bull; Protokoll pr&uuml;fen und <code>/scans/sync</code> auf <code>enforce</code></div>
-      <div class="d">Eine Woche <code>api_auth_log</code> f&uuml;r <code>/scans/sync</code> ansehen. Wenn nur noch erwartete Aufrufe mit Token kommen, f&uuml;r diesen Endpunkt blockieren.</div>
-      <div class="d"><strong>Stand 16.10.:</strong> Schalter <code>LWHUB_SCANNER_AUTH_MODE</code> steht standardmäßig auf <code>enforce</code>: Ohne Login 401, ohne R4/R5 403. Die Protokollwoche wurde bewusst übersprungen. Notschalter: <code>log</code> oder <code>off</code> in <code>config.php</code>.</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-16</span><span class="badge blue">Kontrolle</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A8</span><code>/scans/sync</code> auf <code>enforce</code></div><div class="tags"><span class="tag done">erledigt 16.10.</span></div></div>
+      <div class="d"><code>LWHUB_SCANNER_AUTH_MODE</code> steht standardmäßig auf <code>enforce</code>: ohne Login 401, ohne R4/R5 403. Die Protokollwoche wurde bewusst übersprungen. Notschalter: <code>log</code> oder <code>off</code> in <code>config.php</code>.</div>
+    </div>
 
-    <div class="phase">Phase 2 &ndash; Discord-Anmeldung pr&uuml;fen</div>
+    <div class="phase">Phase 2 · Discord-Anmeldung prüfen</div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">A9 &bull; <code>fetchJson()</code> sendet den Discord-Token</div>
-      <div class="d">In <code>index.html</code> bei jedem Aufruf <code>Authorization: Bearer &lt;discord_token&gt;</code> mitsenden, wenn vorhanden. Eine zentrale Stelle, sonst keine &Auml;nderung am Frontend.</div>
-      <div class="meta"><span class="badge green">risikoarm</span><span class="badge">~0,5 h</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A9</span><code>fetchJson()</code> sendet den Discord-Token</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
+      <div class="d"><code>fetchJson</code>, <code>adminApi</code> und der Char-Switcher senden Discord-Token und <code>X-Discord-Id</code>.</div>
+    </div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">A10 &bull; Server pr&uuml;ft Discord-Token mit Cache</div>
-      <div class="d">In <code>resolveCaller()</code>: Token-Hash in <code>api_auth_cache</code> nachschlagen, sonst Discord <code>/users/@me</code> (Timeout 3&nbsp;s, 15&nbsp;min cachen). Ist Discord nicht erreichbar, im Modus <code>log</code> nur protokollieren. In <code>requireR5</code> und <code>assertHonorReadOnlyWriter</code> die gepr&uuml;fte ID mit der Body-<code>discord_id</code> vergleichen.</div>
-      <div class="d"><strong>Stand 16.10.:</strong> Für die Scanner-Routen fertig: Prüfung über Discord <code>/users/@me</code> (3 s Timeout, 15 min Cache in <code>api_auth_cache</code>), <code>Authorization</code>-Header über <code>api/.htaccess</code> weitergereicht. Offen: <code>requireR5</code> und der Ehrenrollen-Schreibschutz.</div>
-      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~4 h</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A10</span>Server prüft Discord-Token mit Cache</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
+      <div class="d">Prüfung über Discord <code>/users/@me</code> (3 s Timeout, 15 min Cache in <code>api_auth_cache</code>). Zentrale Schreibprüfung <code>requireAllianceWriter()</code>; <code>requireR5</code> und <code>assertHonorReadOnlyWriter</code> nutzen die geprüfte ID. Ehrenrollen und Site-Admins ohne eigenen Char werden in jedem Modus abgewiesen.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>16.10.</time>Für die Scanner-Routen fertig, <code>Authorization</code>-Header über <code>api/.htaccess</code> weitergereicht.</p>
+        <p><time>17.10.</time><code>requireR5</code> und Ehrenrollen-Schreibschutz über die geprüfte ID. <code>requireR5</code> gilt nur noch für R5 genau dieser Allianz.</p>
+      </div></details>
+    </div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">A11 &bull; Stufenweise auf <code>enforce</code></div>
-      <div class="d">Zuerst die R5-Endpunkte, dann die schreibenden Mitglieder-/Wochen-/Zug-Endpunkte. Pro Stufe eine Woche <code>log</code> vorher. Lesende Endpunkte bleiben offen.</div>
-      <div class="meta"><span class="badge blue">Kontrolle</span></div>
-    </div></div>
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A11</span>Stufenweise auf <code>enforce</code></div><div class="tags"><span class="tag blue">Kontrolle</span></div></div>
+      <div class="d">Zuerst die R5-Endpunkte, dann die schreibenden Mitglieder-, Wochen- und Zug-Endpunkte. Pro Stufe vorher eine Woche <code>log</code>. Lesende Endpunkte bleiben offen. Heute steht <code>LWHUB_AUTH_MODE</code> noch auf <code>log</code>.</div>
+    </div>
 
-    <div class="phase">Phase 3 &ndash; Sync f&uuml;r die App</div>
+    <div class="phase">Phase 3 · Sync für die App</div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">A12 &bull; Sync-Erweiterungen</div>
-      <div class="d">Gegner &uuml;ber <code>alliance_tag</code> verwerfen, Idempotenz &uuml;ber <code>scan_id</code> (alte Zeilen l&ouml;schen, <code>replaced_previous_upload</code>), Metrik je <code>scan_type</code> (<code>DONATION</code> &rarr; <code>DONATION_WEEK</code>), <code>year_week</code>/<code>game_day</code>/<code>read_status</code>/<code>observations</code> speichern, <code>dry_run</code> per Rollback.</div>
-      <div class="d"><strong>Stand 16.10.:</strong> VS-Werte als <code>VS_DAY</code>/<code>VS_WEEK</code> mit <code>year_week</code>/<code>game_day</code>, ein Wert je Spieler, Woche und Tag (höherer ersetzt niedrigeren). Gegner über das Allianz-Kürzel im Web-Scanner aussortiert. Ranglisten-Kampfkraft wird nicht mehr ×10<sup>6</sup> gespeichert. Offen: <code>scan_id</code>, <code>dry_run</code>, <code>read_status</code>/<code>observations</code>, Kürzel-Filter im Hub.</div>
-      <div class="d"><strong>Stand 17.10.:</strong> <code>dry_run: true</code> führt den Sync aus und rollt am Ende zurück, die Antwort enthält <code>dry_run</code>, <code>unmatched</code> und <code>summary.unmatched</code>. Offen: <code>scan_id</code>, <code>read_status</code>/<code>observations</code>, Kürzel-Filter im Hub.</div>
-      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~4 h</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A12</span>Sync-Erweiterungen</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
+      <div class="d">App-Format nach Konzept Abschnitt 5: <code>scan_type</code> mit <code>value_numeric</code> (<code>DONATION</code> &rarr; <code>DONATION_WEEK</code>), <code>scan_id</code> ersetzt einen früheren Upload (<code>replaced_previous_upload</code>), <code>year_week</code>/<code>game_day</code>/<code>read_status</code>/<code>observations</code> gespeichert, Gegner über <code>alliance_tag</code> verworfen, <code>dry_run</code> per Rollback. Web-Scanner-Format unverändert.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>16.10.</time>VS-Werte als <code>VS_DAY</code>/<code>VS_WEEK</code>, ein Wert je Spieler, Woche und Tag (höherer ersetzt niedrigeren). Ranglisten-Kampfkraft nicht mehr ×10<sup>6</sup>.</p>
+        <p><time>17.10.</time><code>dry_run</code> mit <code>unmatched</code> in der Antwort. <code>KILLS</code> und <code>DONATION_WEEK</code>/<code>DONATION_DAY</code> für den Web-Scanner.</p>
+        <p><time>17.10. abends</time>App-Format, <code>scan_id</code>, <code>read_status</code>/<code>observations</code>, Kürzel-Filter im Hub (OCR-tolerant, aber NxU1 &ne; NxU2, <code>summary.ignored_other_alliance</code>). <code>year_week</code> als 2642 oder 202642. Probeläufe mit ROLLBACK über einen <code>scanner</code>-Token.</p>
+      </div></details>
+    </div>
 
-    <div class="phase">Sp&auml;ter (optional)</div>
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">A13 &bull; Auswertungen und Flag-Vorschl&auml;ge</div>
-      <div class="d">Kampfkraft-Verlauf aus <code>player_metrics</code> auf der Webseite. Flag-Vorschl&auml;ge nur zusammenf&uuml;hrend, Schwellen dann nach <code>alliance_config</code>. Optional <code>player_aliases</code>.</div>
-      <div class="d"><strong>Stand 16.10.:</strong> Seite „Kampfkraft-Trend“ (<code>web-scanner-onnx/trend.html</code>): Wochenzuwachs, Samstag-Opfer, Wiederaufbau, Stagnation. VS-Häkchen werden aus den Scan-Daten vorgeschlagen und erst nach Bestätigung gesetzt („Aus Scanner übernehmen“ im VS-Event, inkl. Sparwoche).</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
-    </div></div>
-  </section>
+    <div class="phase">Später</div>
 
-  <!-- ZUSAETZLICH ERLEDIGT -->
-  <section>
-    <h2><span>✅</span> Zusätzlich erledigt am 16.10. (nicht in der Liste)</h2>
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">Web-Scanner mit Texterkennung im Browser (<code>web-scanner-onnx/</code>)</div>
-      <div class="d">RapidOCR-Pipeline und Gruppierung aus <code>server.py</code> nach JavaScript portiert (onnxruntime-web, WebGPU oder WASM, mehrere Worker parallel). Kein Python-Server mehr nötig, läuft auf lwhub.de. Ergebnisse identisch zum Python-Server (84 Testbilder).</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
-    </div></div>
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">Scanner im Hauptmenü (Feature „scanner“)</div>
-      <div class="d">Menüpunkt nach „Verwaltung“ für R4/R5, schaltbar in der Feature-Konfiguration, für NxU1 und NxU2 eingeschaltet. Allianz-Auswahl nur mit eigenen Allianzen (<code>/scans/my-alliances</code>).</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
-    </div></div>
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">VS-Rangliste scannen (Tagesrang und Wochen-Rang)</div>
-      <div class="d">Erkennung nach dem Vorbild von Thomas&#39; Last-War-Tracker, getestet an seinen Sollwerten (17/17 Ansichten, 119/119 Punkte). Kills- und Spenden-Rangliste werden erkannt und nicht mehr als Kampfkraft übernommen.</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
-    </div></div>
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">VS-Event: Häkchen aus dem Scanner und Sparwoche</div>
-      <div class="d">„Aus Scanner übernehmen“ setzt Top 10 / Top 30 / unter 43,2 Mio. Sparwoche je KW festlegbar (R4/R5): höchstens 10 Mio je VS-Tag → Bonus <code>vsSpar</code>. Kacheln zeigen Wochenpunkte und Platz.</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
-    </div></div>
-    <div class="task"><input type="checkbox" checked><div>
-      <div class="t">Kampfkraft-Fehler ×10<sup>6</sup> behoben</div>
-      <div class="d">Ranglisten-Werte wurden beim Sync zusätzlich mit 10<sup>6</sup> multipliziert. Server korrigiert, 152 Spieler und 952 Verlaufswerte in der Datenbank repariert (Backup in <code>_archiv/</code>).</div>
-      <div class="meta"><span class="badge green">erledigt 2026-10-16</span></div>
-    </div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A13</span>Auswertungen und Flag-Vorschläge</div><div class="tags"><span class="tag done">erledigt 16.10.</span></div></div>
+      <div class="d">Seite „Kampfkraft-Trend“ (<code>web-scanner-onnx/trend.html</code>): Wochenzuwachs, Samstag-Opfer, Wiederaufbau, Stagnation. VS-Häkchen werden aus den Scan-Daten vorgeschlagen und erst nach Bestätigung gesetzt.</div>
+    </div>
   </section>
 
   <!-- THOMAS -->
-  <section>
-    <h2><span>📱</span> Aufgaben f&uuml;r Thomas (Android-App)</h2>
+  <section data-owner="Thomas">
+    <h2>📱 Thomas <span class="count">Android-App</span></h2>
 
-    <div class="phase">Sofort, unabh&auml;ngig vom Hub</div>
+    <div class="phase">Sofort, unabhängig vom Hub</div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">T1 &bull; Meilenstein 3 fertigstellen</div>
-      <div class="d">Datenbank, Pr&uuml;fansicht mit Korrekturen, Speichern. Voraussetzung f&uuml;r alles Weitere: Hochgeladen wird nur, was in der App gepr&uuml;ft wurde. Damit braucht der Hub keine eigene Pr&uuml;fliste.</div>
-      <div class="meta"><span class="badge purple">App</span></div>
-    </div></div>
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T1</span>Meilenstein 3 fertigstellen</div><div class="tags"><span class="tag purple">App</span></div></div>
+      <div class="d">Datenbank, Prüfansicht mit Korrekturen, Speichern. Hochgeladen wird nur, was in der App geprüft wurde. Damit braucht der Hub keine eigene Prüfliste.</div>
+    </div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">T2 &bull; Gegner in VS-Listen ausfiltern</div>
-      <div class="d">Mit dem <code>alliance</code>-K&uuml;rzel aus <code>MergedEntry</code> schon in der App nur die eigene Allianz behalten. Der Hub filtert zus&auml;tzlich.</div>
-      <div class="meta"><span class="badge purple">App</span></div>
-    </div></div>
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T2</span>Gegner in VS-Listen ausfiltern</div><div class="tags"><span class="tag purple">App</span></div></div>
+      <div class="d">Mit dem <code>alliance</code>-Kürzel aus <code>MergedEntry</code> schon in der App nur die eigene Allianz behalten. Der Hub filtert zusätzlich (seit 17.10.).</div>
+    </div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">T3 &bull; Export-Format JSON festlegen</div>
-      <div class="d">Ein JSON pro Erfassung, genau im Format des Sync-Requests (Konzept v2, Abschnitt 5): <code>scan_id</code> (UUID pro Erfassung, bleibt bei Wiederholung gleich), <code>scan_type</code>, <code>year_week</code>, <code>game_day</code>, <code>recorded_at</code>, <code>source: "android_app"</code>, <code>client_version</code>, <code>entries[]</code> mit <code>name</code>, <code>player_id</code> (wenn bekannt), <code>value_numeric</code>, <code>read_status</code>, <code>observations</code>, <code>alliance_tag</code>. <strong>Kein</strong> <code>rank</code>, <strong>kein</strong> <code>alliance</code>. Typname <code>DONATION</code> darf bleiben, der Hub &uuml;bersetzt.</div>
-      <div class="meta"><span class="badge purple">App</span></div>
-    </div></div>
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T3</span>Export-Format JSON festlegen</div><div class="tags"><span class="tag purple">App</span></div></div>
+      <div class="d">Ein JSON pro Erfassung im Format des Sync-Requests (Konzept v2, Abschnitt 5): <code>scan_id</code> (UUID, bleibt bei Wiederholung gleich), <code>scan_type</code>, <code>year_week</code>, <code>game_day</code>, <code>recorded_at</code>, <code>source: "android_app"</code>, <code>client_version</code>, <code>entries[]</code> mit <code>name</code>, <code>player_id</code>, <code>value_numeric</code>, <code>read_status</code>, <code>observations</code>, <code>alliance_tag</code>. <strong>Kein</strong> <code>rank</code>, <strong>kein</strong> <code>alliance</code>. <code>DONATION</code> darf bleiben.</div>
+    </div>
 
-    <div class="phase">Nach A4 (Token vorhanden)</div>
+    <div class="phase">Nach A4 · Token vorhanden</div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">T4 &bull; Upload-Weg entscheiden und Build-Variante anlegen</div>
-      <div class="d">Die Release-Version bleibt offline. Entweder eine eigene Variante (z.&nbsp;B. <code>hub</code>) mit Internet-Berechtigung, oder nur JSON-Datei-Export. Token verschl&uuml;sselt speichern wie den GitHub-Token (<code>TokenStore</code>). Upload-Schalter standardm&auml;ssig aus.</div>
-      <div class="meta"><span class="badge purple">App</span></div>
-    </div></div>
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T4</span>Upload-Weg entscheiden, Build-Variante anlegen</div><div class="tags"><span class="tag purple">App</span></div></div>
+      <div class="d">Die Release-Version bleibt offline. Entweder eine eigene Variante (z.&nbsp;B. <code>hub</code>) mit Internet-Berechtigung oder nur JSON-Export. Token verschlüsselt speichern wie den GitHub-Token (<code>TokenStore</code>). Upload-Schalter standardmäßig aus.</div>
+    </div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">T5 &bull; Mitgliederliste laden und <code>MemberMatcher</code> anschliessen</div>
-      <div class="d"><code>GET /api/members</code> mit Token laden (<code>id</code>, <code>name</code>, <code>aliases</code>). Daraus <code>KnownAlias</code> bauen und in der Pr&uuml;fansicht die Treffer vorschlagen. Best&auml;tigte Zuordnungen schicken die <code>player_id</code> mit.</div>
-      <div class="meta"><span class="badge purple">App</span></div>
-    </div></div>
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T5</span>Mitgliederliste laden, <code>MemberMatcher</code> anschließen</div><div class="tags"><span class="tag purple">App</span></div></div>
+      <div class="d"><code>GET /api/members</code> mit Token laden (<code>id</code>, <code>name</code>, <code>aliases</code>). Daraus <code>KnownAlias</code> bauen und in der Prüfansicht Treffer vorschlagen. Bestätigte Zuordnungen schicken die <code>player_id</code> mit.</div>
+    </div>
 
-    <div class="phase">Nach A12 (Sync f&uuml;r die App bereit)</div>
+    <div class="phase">Nach A12 · Sync bereit</div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">T6 &bull; <code>LwHubUploader</code></div>
-      <div class="d">Sendet das JSON aus T3 an <code>POST /api/scans/sync</code>. Zuerst mit <code>dry_run: true</code> und das Ergebnis anzeigen (aktualisiert / <code>unmatched</code> / verworfen), dann mit Best&auml;tigung echt senden. Bei Netzfehler mit derselben <code>scan_id</code> wiederholen.</div>
-      <div class="meta"><span class="badge purple">App</span></div>
-    </div></div>
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T6</span><code>LwHubUploader</code></div><div class="tags"><span class="tag purple">App</span><span class="tag done">freigegeben</span></div></div>
+      <div class="d">Sendet das JSON aus T3 an <code>POST /api/scans/sync</code>. Zuerst mit <code>dry_run: true</code> und das Ergebnis anzeigen (aktualisiert / <code>unmatched</code> / verworfen), dann nach Bestätigung echt senden. Bei Netzfehler mit derselben <code>scan_id</code> wiederholen.</div>
+    </div>
 
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">T7 &bull; Testlauf mit Andre</div>
-      <div class="d">Eine echte Erfassung pro Typ (POWER, VS_WEEK, DONATION) gegen die Test-Allianz, erst <code>dry_run</code>, dann echt. Doppel-Upload testen (gleiche <code>scan_id</code> darf keine doppelten Werte erzeugen).</div>
-      <div class="meta"><span class="badge blue">gemeinsam</span></div>
-    </div></div>
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T7</span>Testlauf mit Andre</div><div class="tags"><span class="tag blue">gemeinsam</span></div></div>
+      <div class="d">Eine echte Erfassung pro Typ (POWER, VS_WEEK, DONATION) gegen die Test-Allianz, erst <code>dry_run</code>, dann echt. Doppel-Upload testen: gleiche <code>scan_id</code> darf keine doppelten Werte erzeugen.</div>
+    </div>
 
-    <div class="phase">Sp&auml;ter</div>
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">T8 &bull; Events (Meilenstein 7)</div>
+    <div class="phase">Später</div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T8</span>Events (Meilenstein 7)</div><div class="tags"><span class="tag">später</span></div></div>
       <div class="d">Desert Storm / Zombie Siege, sobald Screenshots vorliegen. Zusatzdaten (Task Force, Wellen) in <code>extra_json</code>.</div>
-      <div class="meta"><span class="badge">sp&auml;ter</span></div>
-    </div></div>
+    </div>
   </section>
 
   <!-- GEMEINSAM -->
-  <section>
-    <h2><span>🤝</span> Gemeinsam kl&auml;ren</h2>
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">G1 &bull; Spielwoche und Spieltag</div>
-      <div class="d">Wann beginnen Woche und Tag (Serverzeit, Zeitzone)? Eine Berechnung f&uuml;r App, Web-Scanner und Hub. Format wie <code>weekly_entries.year_week</code>.</div>
-      <div class="d"><strong>Stand 16.10.:</strong> Vorschlag umgesetzt: ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW 42/2026), Spieltag 1 = Mo … 6 = Sa aus dem gewählten Tag im VS-Tagesrang. Mit Thomas abstimmen.</div>
-      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span></div>
-    </div></div>
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">G2 &bull; Mehrere Erfassungen pro Woche</div>
-      <div class="d">Z&auml;hlt der letzte Scan oder der h&ouml;chste Wert?</div>
-      <div class="d"><strong>Stand 16.10.:</strong> Für VS umgesetzt: Es zählt der höchste Wert je Spieler, Woche und Tag. Kampfkraft: Jeder Scan wird als Verlaufspunkt gespeichert.</div>
-      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span></div>
-    </div></div>
-    <div class="task"><input type="checkbox"><div>
-      <div class="t">G3 &bull; Ehrenmitglieder, Aufbewahrung</div>
-      <div class="d">Werte von Ehrenmitgliedern speichern, aber bei Top-N auslassen? Wie lange bleiben Metriken gespeichert, was passiert beim Archivieren?</div>
-    </div></div>
+  <section data-owner="Gemeinsam">
+    <h2>🤝 Gemeinsam klären</h2>
+
+    <div class="task" data-status="part">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G1</span>Spielwoche und Spieltag</div><div class="tags"><span class="tag part">Vorschlag umgesetzt</span></div></div>
+      <div class="d">ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW 42/2026), Spieltag 1 = Mo … 7 = So. Der Hub rechnet aus <code>recorded_at</code>, die App darf <code>year_week</code>/<code>game_day</code> mitschicken.</div>
+      <div class="open-point">Mit Thomas abstimmen: Serverzeit und Zeitzone für den Wochen- und Tageswechsel.</div>
+    </div>
+
+    <div class="task" data-status="part">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G2</span>Mehrere Erfassungen pro Woche</div><div class="tags"><span class="tag part">teilweise</span></div></div>
+      <div class="d">VS und Spenden: Es zählt der höchste Wert je Spieler, Woche und Tag. Kampfkraft und Kills: Jeder Scan ist ein eigener Messpunkt. Ein erneuter Upload mit derselben <code>scan_id</code> ersetzt die Werte dieser Erfassung.</div>
+      <div class="open-point">Mit Thomas bestätigen.</div>
+    </div>
+
+    <div class="task" data-status="part">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G3</span>Ehrenmitglieder, Aufbewahrung</div><div class="tags"><span class="tag part">teilweise</span></div></div>
+      <div class="d">Ehrenrollen zählen nirgends mit (Wochen, Trend, VS-Platz, Teams, Zug, Event-Auswertung). Der Sync aktualisiert, archiviert und verschiebt sie nicht. Archiv-Rückkehrer kommen mit Wochen, Namen und Discord vollständig zurück.</div>
+      <div class="open-point">Wie lange bleiben Scan-Werte gespeichert?</div>
+    </div>
   </section>
 
-  <div class="footer">
-    LWHub &bull; Aufgaben zum Konzept v2 (2026-10-17)<br>
-    Vorab gesetzte H&auml;kchen markieren erledigte Aufgaben. Eigene H&auml;kchen werden nicht gespeichert.
-  </div>
+  <!-- ZUSAETZLICH -->
+  <section data-owner="Extra">
+    <h2>✨ Zusätzlich erledigt <span class="count">nicht in der ursprünglichen Liste</span></h2>
+
+    <div class="phase">17.10.</div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">Event-Auswertung Vorher/Nachher</div><div class="tags"><span class="tag done">17.10.</span></div></div>
+      <div class="d"><code>web-scanner-onnx/event.html</code> und <code>GET /scans/event-compare</code>: je Spieler Kills und Kampfkraft vor und nach einem Zeitraum (z.&nbsp;B. Kriegszonen-Duell), eingestuft als gekämpft, Verluste, keine Änderung, nicht gescannt. In allen 7 Sprachen.</div>
+    </div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">Ehren-R4 und Betreiber nur als Zuschauer</div><div class="tags"><span class="tag done">17.10.</span></div></div>
+      <div class="d">Ehren-R4 sehen die Gast-Allianz wie ein R4, dürfen aber nichts ändern (im Server erzwungen). Betreiber können Allianzen ohne eigenen Char ansehen. Ehren-R4 mit Heimat-Allianz (<code>players.honor_home</code>) anlegbar.</div>
+    </div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">Sync: Rückkehrer aus Archiv und anderer Allianz</div><div class="tags"><span class="tag done">17.10.</span></div></div>
+      <div class="d"><code>restoreArchivedPlayerData()</code> holt Wochen, Namens-Historie und Discord mit zurück (OCR-toleranter Namensvergleich, nur bei eindeutigem Treffer). 10 verwaiste Archiv-Einträge repariert.</div>
+    </div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">Scanner: angeschnittene Zeilen, Platznummern, Lückenhinweis</div><div class="tags"><span class="tag done">17.10.</span></div></div>
+      <div class="d">Halb verdeckte Zeilen werden verworfen, zweistellige Platznummern gelesen (97&nbsp;% statt 31&nbsp;%). Das Cockpit meldet nicht erfasste Plätze je Liste in einem eigenen Kasten.</div>
+    </div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">Kills- und Spenden-Rangliste übernehmen</div><div class="tags"><span class="tag done">17.10.</span></div></div>
+      <div class="d">Die Reiter „Kills“ und „Spende“ laufen wie VS durch Cockpit und Sync. Getestet an 61 NxU1-Aufnahmen, alle 84 Spieler erkannt.</div>
+    </div>
+
+    <div class="phase">16.10.</div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">Web-Scanner mit Texterkennung im Browser</div><div class="tags"><span class="tag done">16.10.</span></div></div>
+      <div class="d">RapidOCR-Pipeline aus <code>server.py</code> nach JavaScript portiert (<code>web-scanner-onnx/</code>, WebGPU oder WASM, mehrere Worker). Kein Python-Server mehr nötig. Ergebnisse identisch zum Python-Server (84 Testbilder).</div>
+    </div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">Scanner im Hauptmenü</div><div class="tags"><span class="tag done">16.10.</span></div></div>
+      <div class="d">Menüpunkt für R4/R5, schaltbar in der Feature-Konfiguration, für NxU1 und NxU2 eingeschaltet. Allianz-Auswahl nur mit eigenen Allianzen.</div>
+    </div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">VS-Rangliste scannen</div><div class="tags"><span class="tag done">16.10.</span></div></div>
+      <div class="d">Tagesrang und Wochen-Rang nach dem Vorbild von Thomas' Last-War-Tracker, getestet an seinen Sollwerten (17/17 Ansichten, 119/119 Punkte).</div>
+    </div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">VS-Event: Häkchen aus dem Scanner und Sparwoche</div><div class="tags"><span class="tag done">16.10.</span></div></div>
+      <div class="d">„Aus Scanner übernehmen“ setzt Top 10 / Top 30 / unter 43,2 Mio. Sparwoche je KW: höchstens 10 Mio je VS-Tag &rarr; Bonus <code>vsSpar</code>.</div>
+    </div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">Kampfkraft-Fehler ×10<sup>6</sup> behoben</div><div class="tags"><span class="tag done">16.10.</span></div></div>
+      <div class="d">Server korrigiert, 152 Spieler und 952 Verlaufswerte repariert (Backup in <code>_archiv/</code>).</div>
+    </div>
+  </section>
+
+  <div class="footer">LWHub · Aufgaben zum Konzept v2 · Stand 17.10.2026</div>
 </div>
+
+<script>
+(function () {
+  // Fortschritt je Person aus den Aufgaben berechnen ("Zusaetzlich erledigt" zaehlt nicht mit)
+  var html = '';
+  ['Andre', 'Thomas', 'Gemeinsam'].forEach(function (owner) {
+    var tasks = document.querySelectorAll('section[data-owner="' + owner + '"] .task');
+    var done = 0, part = 0;
+    tasks.forEach(function (t) { if (t.dataset.status === 'done') done++; else if (t.dataset.status === 'part') part++; });
+    var n = tasks.length || 1;
+    html += '<div class="prog"><div class="prog-top"><span class="prog-name">' + owner + '</span>'
+      + '<span class="prog-num">' + done + '<small> / ' + tasks.length + '</small></span></div>'
+      + '<div class="bar"><span class="b-done" style="width:' + (done / n * 100) + '%"></span>'
+      + '<span class="b-part" style="width:' + (part / n * 100) + '%"></span></div>'
+      + '<div class="prog-legend">' + done + ' erledigt · ' + part + ' teilweise · ' + (tasks.length - done - part) + ' offen</div></div>';
+  });
+  document.getElementById('progress').innerHTML = html;
+
+  // Filter nach Status; leere Phasen und Abschnitte ausblenden
+  var all = document.querySelectorAll('.task');
+  var buttons = document.querySelectorAll('.toolbar button');
+  buttons.forEach(function (b) {
+    var f = b.dataset.filter, c = 0;
+    all.forEach(function (t) { if (f === 'all' || t.dataset.status === f) c++; });
+    b.querySelector('span').textContent = c;
+    b.addEventListener('click', function () {
+      buttons.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      all.forEach(function (t) { t.classList.toggle('hidden', f !== 'all' && t.dataset.status !== f); });
+      document.querySelectorAll('.phase').forEach(function (p) {
+        var el = p.nextElementSibling, visible = false;
+        while (el && el.classList.contains('task')) { if (!el.classList.contains('hidden')) visible = true; el = el.nextElementSibling; }
+        p.classList.toggle('hidden', !visible);
+      });
+      document.querySelectorAll('section[data-owner]').forEach(function (s) {
+        s.classList.toggle('hidden', !s.querySelector('.task:not(.hidden)'));
+      });
+    });
+  });
+})();
+</script>
 </body>
 </html>

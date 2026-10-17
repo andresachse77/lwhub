@@ -1,8 +1,8 @@
 // End-to-end test in a real browser (headless Edge/Chrome via puppeteer-core): loads the cockpit,
-// waits for the in-browser OCR to come up, runs local captures through it and compares the rows with
-// the Python reference (reference/*.json from dump_reference.py), then drives the screenshot upload UI.
+// waits for the in-browser OCR to come up, runs local captures through it and prints the recognised
+// rows (--verbose), then drives the screenshot upload UI.
 //
-//   node browser-test.js [--backend=wasm|webgpu] [--frames=10] [--throughput=N] [--workers=N] [--threads=N] [--no-coi] [--headful]
+//   node browser-test.js [--backend=wasm|webgpu] [--frames=10] [--throughput=N] [--workers=N] [--threads=N] [--no-coi] [--headful] [--verbose]
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -15,8 +15,7 @@ const BROWSER = [
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
 ].find((p) => fs.existsSync(p));
-const REF = path.join(__dirname, 'reference');
-const FIELDS = ['name', 'power', 'rank_code', 'level', 'status', 'rank_position'];
+const IMAGES = path.resolve(__dirname, '../../web-scanner/images');
 
 async function main() {
   const server = spawn(process.execPath, [path.join(__dirname, 'serve.js'), String(PORT)], { stdio: 'ignore', env: { ...process.env, ...(args['no-coi'] ? { NO_COI: '1' } : {}) } });
@@ -81,13 +80,12 @@ async function main() {
       return;
     }
 
-    // 1) Result parity on local captures
-    const names = fs.existsSync(REF) ? fs.readdirSync(REF).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5)).sort() : [];
+    // 1) OCR on local captures
+    const names = fs.existsSync(IMAGES) ? fs.readdirSync(IMAGES).filter((f) => f.endsWith('.png')).sort() : [];
     const step = Math.max(1, Math.floor(names.length / (Number(args.frames) || 10)));
     const picked = names.filter((_, i) => i % step === 0).slice(0, Number(args.frames) || 10);
-    let rows = 0, same = 0, frameMs = 0;
+    let rows = 0, frameMs = 0;
     for (const name of picked) {
-      const ref = JSON.parse(fs.readFileSync(path.join(REF, name + '.json'), 'utf8'));
       const res = await page.evaluate(async (url) => {
         const img = new Image();
         img.src = url;
@@ -95,26 +93,19 @@ async function main() {
         return ocr.process(img);
       }, `${BASE}/web-scanner/images/${name}`);
       const got = res.mode === 'ranking' ? res.rankings : res.cards;
-      const diffs = [];
-      if (res.mode !== ref.mode) diffs.push(`mode ${ref.mode}->${res.mode}`);
-      if (got.length !== ref.rows.length) diffs.push(`rows ${ref.rows.length}->${got.length}`);
-      ref.rows.forEach((r, i) => {
-        rows++;
-        const d = FIELDS.filter((f) => (r[f] ?? null) !== (got[i]?.[f] ?? null));
-        if (d.length) diffs.push(`row ${i}: ` + d.map((f) => `${f} ${JSON.stringify(r[f])}->${JSON.stringify(got[i]?.[f])}`).join(', '));
-        else same++;
-      });
+      rows += got.length;
       frameMs += res.elapsed_ms;
-      console.log(`${name}: ${(res.elapsed_ms / 1000).toFixed(2)} s, ${res.mode}, ${got.length} rows${diffs.length ? '\n    ' + diffs.join('\n    ') : ''}`);
+      console.log(`${name}: ${(res.elapsed_ms / 1000).toFixed(2)} s, ${res.mode}, ${got.length} rows`);
+      if (args.verbose) got.forEach((r) => console.log(`    ${r.rank_position ?? ''} ${r.name} | ${r.power} | ${r.rank_code ?? ''} ${r.level ?? ''} | ${r.status ?? ''}`));
     }
     if (picked.length) {
-      console.log(`parity: ${same}/${rows} rows identical to Python, avg ${(frameMs / picked.length / 1000).toFixed(2)} s/frame`);
+      console.log(`ocr: ${rows} rows in ${picked.length} frames, avg ${(frameMs / picked.length / 1000).toFixed(2)} s/frame`);
     }
 
     // 2) UI path: screenshot upload -> cards in the pool
     if (picked.length) {
       const input = await page.$('#screenshotInput');
-      await input.uploadFile(...picked.slice(0, 2).map((n) => path.resolve(__dirname, '../../web-scanner/images', n)));
+      await input.uploadFile(...picked.slice(0, 2).map((n) => path.join(IMAGES, n)));
       await page.waitForFunction(() => /2\/2 Bilder verarbeitet/.test(document.getElementById('processingProgressText').textContent), { timeout: 120000 });
       const pool = await page.$eval('#statPoolCount', (e) => e.textContent);
       console.log(`upload UI: ${pool}`);

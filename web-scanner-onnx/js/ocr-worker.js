@@ -1,12 +1,12 @@
 /*
- * Web Worker that owns the ONNX models and runs the whole server.py frame pipeline off the UI thread.
+ * Web Worker that owns the ONNX models and runs the whole frame pipeline off the UI thread.
  *
  * Messages in:   { type: 'init', backend: 'wasm' | 'webgpu', threads?: number }
  *                { type: 'process', id, bitmap }                   (ImageBitmap, transferred)
  *                { type: 'process', id, width, height, buffer }   (RGBA pixels, fallback without OffscreenCanvas)
  * Messages out:  { type: 'progress', text, ratio }   model download progress
  *                { type: 'ready', backend, threads, ms }
- *                { type: 'result', id, result, ms }   result = same JSON as POST /process
+ *                { type: 'result', id, result, ms }   result = processFrame() JSON
  *                { type: 'error', id?, message }
  */
 /* global ort, LwOcrEngine, LwScannerPipeline */
@@ -73,7 +73,7 @@ async function init(requested, requestedThreads) {
   };
   engine = await LwOcrEngine.OcrEngine.create({ ort, detModel: det, recModel: rec, keysText: keys, sessionOptions });
 
-  // Warm-up, like server.py's _warmup(): the first real frame should not pay for kernel setup.
+  // Warm-up: the first real frame should not pay for kernel setup.
   await engine.ocr({ w: 64, h: 64, data: new Uint8Array(64 * 64 * 3) });
   self.postMessage({ type: 'ready', backend, threads: backend === 'wasm' ? threads : null, ms: performance.now() - t0 });
 }

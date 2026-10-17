@@ -1,10 +1,10 @@
 /*
- * 1:1 port of the frame-processing logic in web-scanner/server.py (POST /process): OCR the frame,
- * detect which screen it shows, group the text lines into member cards / leaderboard rows, and run
- * the enlarged shield-rescue pass when a rank badge is missing. The result has exactly the JSON shape
- * the server returns, so the cockpit consumes it unchanged.
+ * Frame processing: OCR the frame, detect which screen it shows, group the text lines into member
+ * cards / leaderboard rows, and run the enlarged shield-rescue pass when a rank badge is missing.
  *
- * The comments explaining *why* each heuristic exists live in server.py; keep both in sync.
+ * Started as a port of the old Python server (web-scanner/server.py, removed after 4871b61 — see
+ * `git show 4871b61:web-scanner/server.py` for its comments on the early heuristics). This file is
+ * now the only implementation.
  * Depends on LwOcrEngine (ocr-engine.js). Works in browser workers and in Node.
  */
 (function (root, factory) {
@@ -459,7 +459,7 @@
   const rawLine = (l) => ({ text: l.text, score: Math.round(l.score * 1000) / 1000,
     left: Math.round(l.left), top: Math.round(l.top), right: Math.round(l.right), bottom: Math.round(l.bottom) });
 
-  /** Equivalent of server.py's POST /process for one RGB frame ({ w, h, data }). */
+  /** Processes one RGB frame ({ w, h, data }). */
   async function processFrame(engine, image) {
     engine.timings = {};
     const lines = await ocrLines(engine, image);

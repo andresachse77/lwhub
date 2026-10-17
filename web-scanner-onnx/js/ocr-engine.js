@@ -1,11 +1,11 @@
 /*
- * JavaScript port of the RapidOCR 1.4.4 pipeline that web-scanner/server.py runs in Python:
+ * JavaScript port of the RapidOCR 1.4.4 pipeline:
  * PP-OCRv4 text detection (DB) + PP-OCRv4 text recognition (CTC), same ONNX models, same
  * pre-/post-processing parameters (rapidocr_onnxruntime/config.yaml), angle classifier skipped
- * exactly like server.py does (use_cls=False — screenshots are always upright).
+ * (use_cls=False — screenshots are always upright).
  *
  * Runs unchanged in the browser (onnxruntime-web, inside a Web Worker) and in Node
- * (onnxruntime-node, for the parity test against the Python server). The ONNX runtime is injected,
+ * (onnxruntime-node, for the tests). The ONNX runtime is injected,
  * so this file has no dependencies of its own. OpenCV-only steps (resize, findContours, minAreaRect,
  * warpPerspective) are re-implemented here with the same semantics.
  *
@@ -102,7 +102,7 @@
   }
 
   // PIL Image.resize(..., Image.LANCZOS): separable Lanczos-3, horizontal pass first, 8-bit
-  // intermediate — used for server.py's enlarged shield-rescue pass.
+  // intermediate — used for the enlarged shield-rescue pass.
   function resizeLanczos(src, dw, dh) {
     const sinc = (x) => (x === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x));
     const lanczos = (x) => (x > -3 && x < 3 ? sinc(x) * sinc(x / 3) : 0);

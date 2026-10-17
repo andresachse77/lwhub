@@ -1,7 +1,7 @@
 # Scanner-Cockpit mit Browser-OCR (ONNX)
 
-Gleiches Cockpit wie `web-scanner/cockpit.html`, aber die Texterkennung läuft komplett im Browser
-(onnxruntime-web in einem Web Worker). Es gibt keinen Python-OCR-Server, und die Screenshots verlassen
+Scanner-Cockpit, dessen Texterkennung komplett im Browser läuft
+(onnxruntime-web in einem Web Worker). Es gibt keinen OCR-Server, und die Screenshots verlassen
 den Rechner nicht. Die Seite lässt sich deshalb mit dem normalen FTP-Deploy auf lwhub.de betreiben:
 `https://lwhub.de/web-scanner-onnx/`.
 
@@ -9,14 +9,14 @@ den Rechner nicht. Die Seite lässt sich deshalb mit dem normalen FTP-Deploy auf
 
 | Datei | Inhalt |
 |---|---|
-| `js/ocr-engine.js` | Port von RapidOCR 1.4.4: PP-OCRv4-Detektion und -Erkennung, dieselben Modelle und Parameter wie `server.py` (ohne Winkel-Klassifikator) |
-| `js/scanner-pipeline.js` | 1:1-Port der Gruppierung aus `web-scanner/server.py` (Karten, Rangliste, Leader-Banner, Shield-Rescue). Liefert dasselbe JSON wie `POST /process` |
+| `js/ocr-engine.js` | Port von RapidOCR 1.4.4: PP-OCRv4-Detektion und -Erkennung, Modelle und Parameter aus `rapidocr_onnxruntime` (ohne Winkel-Klassifikator) |
+| `js/scanner-pipeline.js` | Gruppierung der erkannten Zeilen (Karten, Rangliste, Leader-Banner, Shield-Rescue). Einzige Implementierung; der alte Python-Server `web-scanner/server.py` ist entfernt (letzter Stand: `git show 4871b61:web-scanner/server.py`) |
 | `js/ocr-worker.js` | Web Worker: lädt onnxruntime-web 1.30.0 von jsDelivr und die Modelle aus `models/` |
-| `js/ocr-client.js` | `BrowserOcr.process(canvas)` als Ersatz für den alten Aufruf `fetch(OCR_SERVER + '/process')` |
+| `js/ocr-client.js` | `BrowserOcr.process(canvas)`: verteilt Bilder auf den Worker-Pool |
 | `models/` | `ch_PP-OCRv4_det_infer.onnx`, `ch_PP-OCRv4_rec_infer.onnx` (aus `rapidocr_onnxruntime`), `ppocr_keys_v1.txt` (Zeichenliste aus den Metadaten des Erkennungsmodells) |
 | `.htaccess` | COOP/COEP-Header, damit WASM mehrere Threads nutzen kann |
 
-Matching, Drag-and-Drop und CSS werden aus `../web-scanner/` mitgenutzt.
+Matching, Drag-and-Drop und CSS liegen in `../web-scanner/` (`js/`, `css/`).
 
 ## Zugang (nur R4/R5)
 
@@ -29,10 +29,6 @@ Matching, Drag-and-Drop und CSS werden aus `../web-scanner/` mitgenutzt.
 - **Ausnahme:** Requests vom lokalen PHP-Server (127.0.0.1) sind wie in der übrigen API ausgenommen.
 - **Notschalter:** `define('LWHUB_SCANNER_AUTH_MODE', 'log');` (nur protokollieren) oder `'off'` in
   `config.php`. Standard ist `'enforce'`.
-- **Altes Python-Cockpit:** `web-scanner/cockpit.html` sendet kein Token und kann deshalb nur noch
-  gegen den lokalen PHP-Server synchronisieren, nicht mehr gegen lwhub.de.
-
-Wichtig: Wer die Heuristiken in `server.py` ändert, muss die Änderung auch in `js/scanner-pipeline.js` nachziehen.
 
 ## Lokal starten
 
@@ -97,18 +93,12 @@ ausgeschlossen, auf einem frischen Clone laufen die Tests deshalb ins Leere.
 ```
 cd web-scanner-onnx/tests
 npm install
-py -3.12 dump_reference.py         # Python-Referenz (server.py) nach reference/ schreiben
-node parity.js                     # JS-Port unter onnxruntime-node gegen die Referenz
-node browser-test.js --frames=10   # echter Browser (headless Edge), optional --backend=wasm|webgpu / --no-coi / --throughput=84
+node browser-test.js --frames=10   # echter Browser (headless Edge), optional --backend=wasm|webgpu / --no-coi / --throughput=84 / --verbose
+node vs-test.js [Pfad]             # VS-Rangliste gegen Thomas' Sollwerte (siehe unten)
 ```
 
-Stand 16.10.2026, gemessen über alle 84 Captures:
-
-- Modus und Zeilenzahl: 84/84 identisch
-- Kampfkraft, Rang-Code und Level: 100 % identisch
-- Restliche Abweichungen: Leerzeichen im Status („Vor 3 Min.“ / „Vor3Min.“) und der doppelte Buchstabe
-  im Leader-Namen („Emiliee“ / „Emiliiee“). Ursache sind Pixel-Unterschiede um ±1 beim
-  Bild-Resize gegenüber cv2.
+Der alte Python-Server ist keine Referenz mehr. Soll-Ergebnisse für die Mitgliederliste gibt es
+noch nicht; `browser-test.js` zeigt die erkannten Zeilen nur an (`--verbose`).
 
 ## Kampfkraft-Trend (`trend.html`)
 

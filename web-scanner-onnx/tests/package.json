@@ -1,10 +1,7 @@
 {
   "name": "lwhub-web-scanner-onnx-tests",
   "private": true,
-  "description": "Parity test: browser OCR port (js/) vs. Python RapidOCR server (web-scanner/server.py)",
-  "scripts": {
-    "parity": "node parity.js"
-  },
+  "description": "Tests for the browser OCR scanner (js/)",
   "devDependencies": {
     "jpeg-js": "0.4.4",
     "onnxruntime-node": "1.30.0",

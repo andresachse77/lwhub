@@ -16,7 +16,7 @@ den Rechner nicht. Die Seite lässt sich deshalb mit dem normalen FTP-Deploy auf
 | `models/` | `ch_PP-OCRv4_det_infer.onnx`, `ch_PP-OCRv4_rec_infer.onnx` (aus `rapidocr_onnxruntime`), `ppocr_keys_v1.txt` (Zeichenliste aus den Metadaten des Erkennungsmodells) |
 | `.htaccess` | COOP/COEP-Header, damit WASM mehrere Threads nutzen kann |
 
-Matching, Drag-and-Drop und CSS liegen in `../web-scanner/` (`js/`, `css/`).
+Matching (`js/matching.js`), Drag-and-Drop (`js/drag-drop.js`) und `css/cockpit.css` lagen früher in `../web-scanner/`.
 
 ## Zugang (nur R4/R5)
 
@@ -87,13 +87,14 @@ beide aus dem Browser-Cache.
 
 ## Tests (`tests/`)
 
-Die Tests brauchen die lokalen Captures in `web-scanner/images/`. Dieser Ordner ist per gitignore
-ausgeschlossen, auf einem frischen Clone laufen die Tests deshalb ins Leere.
+`browser-test.js` nimmt die Bilder aus einer ZIP von „Aufnahmen herunterladen“ im Cockpit:
+standardmäßig die neueste `scanner-aufnahmen-*.zip` in `Downloads`, sonst `--zip=PFAD`. Die ZIP wird
+nur in einen temporären Ordner entpackt und danach gelöscht; im Repo liegen keine Testbilder.
 
 ```
 cd web-scanner-onnx/tests
 npm install
-node browser-test.js --frames=10   # echter Browser (headless Edge), optional --backend=wasm|webgpu / --no-coi / --throughput=84 / --verbose
+node browser-test.js --frames=10   # echter Browser (headless Edge), optional --zip=PFAD / --backend=wasm|webgpu / --no-coi / --throughput=84 / --verbose
 node vs-test.js [Pfad]             # VS-Rangliste gegen Thomas' Sollwerte (siehe unten)
 ```
 

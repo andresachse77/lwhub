@@ -2,9 +2,14 @@
 // waits for the in-browser OCR to come up, runs local captures through it and prints the recognised
 // rows (--verbose), then drives the screenshot upload UI.
 //
-//   node browser-test.js [--backend=wasm|webgpu] [--frames=10] [--throughput=N] [--workers=N] [--threads=N] [--no-coi] [--headful] [--verbose]
-const { spawn } = require('child_process');
+// Captures come from a ZIP saved with "Aufnahmen herunterladen" in the cockpit: --zip=PATH, default
+// the newest scanner-aufnahmen-*.zip in ~/Downloads. It is unpacked into a temp folder that is
+// removed afterwards — no capture copies in the repo.
+//
+//   node browser-test.js [--zip=PATH] [--backend=wasm|webgpu] [--frames=10] [--throughput=N] [--workers=N] [--threads=N] [--no-coi] [--headful] [--verbose]
+const { spawn, execFileSync } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
 
@@ -15,7 +20,24 @@ const BROWSER = [
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
 ].find((p) => fs.existsSync(p));
-const IMAGES = path.resolve(__dirname, '../../web-scanner/images');
+function newestCaptureZip() {
+  const dir = path.join(os.homedir(), 'Downloads');
+  if (!fs.existsSync(dir)) return null;
+  const zips = fs.readdirSync(dir).filter((f) => /^scanner-aufnahmen-.*\.zip$/.test(f))
+    .map((f) => path.join(dir, f)).sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+  return zips[0] || null;
+}
+const ZIP = typeof args.zip === 'string' ? path.resolve(args.zip) : newestCaptureZip();
+const IMAGES = fs.mkdtempSync(path.join(os.tmpdir(), 'lwhub-scanner-test-'));
+if (ZIP) {
+  // Windows' own tar (bsdtar) unpacks ZIPs; Git Bash's GNU tar on PATH does not.
+  const tar = process.platform === 'win32' ? path.join(process.env.SystemRoot || 'C:/Windows', 'System32', 'tar.exe') : 'unzip';
+  execFileSync(tar, process.platform === 'win32' ? ['-xf', ZIP, '-C', IMAGES] : ['-q', ZIP, '-d', IMAGES]);
+  console.log(`captures: ${ZIP}`);
+} else {
+  console.log('captures: none (no --zip and no scanner-aufnahmen-*.zip in Downloads)');
+}
+const listImages = () => fs.readdirSync(IMAGES).filter((f) => f.endsWith('.png')).sort();
 
 async function main() {
   const server = spawn(process.execPath, [path.join(__dirname, 'serve.js'), String(PORT)], { stdio: 'ignore', env: { ...process.env, ...(args['no-coi'] ? { NO_COI: '1' } : {}) } });
@@ -69,11 +91,11 @@ async function main() {
 
     // 0) Throughput: N screenshots through the upload UI (uses the whole worker pool), wall-clock time
     if (args.throughput) {
-      const all = fs.readdirSync(path.resolve(__dirname, '../../web-scanner/images')).filter((f) => f.endsWith('.png')).sort();
+      const all = listImages();
       const n = Math.min(Number(args.throughput), all.length);
       const input = await page.$('#screenshotInput');
       const t1 = Date.now();
-      await input.uploadFile(...all.slice(0, n).map((f) => path.resolve(__dirname, '../../web-scanner/images', f)));
+      await input.uploadFile(...all.slice(0, n).map((f) => path.join(IMAGES, f)));
       await page.waitForFunction((k) => document.getElementById('processingProgressText').textContent.includes(`${k}/${k} Bilder verarbeitet`), { timeout: 600000 }, n);
       const s = (Date.now() - t1) / 1000;
       console.log(`throughput: ${n} frames in ${s.toFixed(1)} s = ${(s / n).toFixed(2)} s/frame, ${await page.$eval('#statPoolCount', (e) => e.textContent)}`);
@@ -81,7 +103,7 @@ async function main() {
     }
 
     // 1) OCR on local captures
-    const names = fs.existsSync(IMAGES) ? fs.readdirSync(IMAGES).filter((f) => f.endsWith('.png')).sort() : [];
+    const names = listImages();
     const step = Math.max(1, Math.floor(names.length / (Number(args.frames) || 10)));
     const picked = names.filter((_, i) => i % step === 0).slice(0, Number(args.frames) || 10);
     let rows = 0, frameMs = 0;
@@ -91,7 +113,7 @@ async function main() {
         img.src = url;
         await img.decode();
         return ocr.process(img);
-      }, `${BASE}/web-scanner/images/${name}`);
+      }, 'data:image/png;base64,' + fs.readFileSync(path.join(IMAGES, name)).toString('base64'));
       const got = res.mode === 'ranking' ? res.rankings : res.cards;
       rows += got.length;
       frameMs += res.elapsed_ms;
@@ -116,4 +138,6 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main()
+  .catch((e) => { console.error(e); process.exitCode = 1; })
+  .finally(() => fs.rmSync(IMAGES, { recursive: true, force: true }));

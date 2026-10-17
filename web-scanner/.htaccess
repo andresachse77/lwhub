@@ -1,7 +1,0 @@
-# Skripte/Styles/Seiten immer beim Server nachfragen (ETag -> 304, wenn unveraendert), damit nach einem
-# Deploy nie ein alter Stand aus dem Browser-Cache weiterlaeuft.
-<IfModule mod_headers.c>
-  <FilesMatch "\.(html|js|css|json)$">
-    Header set Cache-Control "no-cache"
-  </FilesMatch>
-</IfModule>

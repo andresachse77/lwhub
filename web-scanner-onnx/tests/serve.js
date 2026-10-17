@@ -1,6 +1,6 @@
 // Minimal static server for local testing of the browser OCR, with the same cross-origin-isolation
 // headers as ../.htaccess (needed for multi-threaded WASM). Serves the lwhub repo root, so the page
-// is at http://127.0.0.1:8796/web-scanner-onnx/ and ../web-scanner/ resolves like on lwhub.de.
+// is at http://127.0.0.1:8796/web-scanner-onnx/ like on lwhub.de.
 // The PHP API is not served here — the cockpit falls back to https://lwhub.de/api or mock members.
 //
 //   node serve.js [port]

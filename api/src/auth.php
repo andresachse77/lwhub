@@ -85,6 +85,7 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
                AND dpc.discord_user_id = COALESCE(pid.discord_user_id, puld.discord_user_id)
             WHERE p.alliance = ? AND p.is_active = 1 {$rankFilter}
               AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
+            ORDER BY p.current_rank_code DESC, p.current_name ASC
             LIMIT 1
         ";
     }
@@ -111,6 +112,7 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
         ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
         WHERE p.alliance = ? AND p.is_active = 1 {$rankFilter}
                     AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
+        ORDER BY p.current_rank_code DESC, p.current_name ASC
         LIMIT 1
     ";
 }
@@ -156,19 +158,58 @@ function getDiscordMemberByActiveChar(PDO $pdo, string $alliance, string $discor
     }
 }
 
+/**
+ * Hoechster Rang einer Person (Discord-ID) in einer Allianz ueber alle ihre aktiven Chars ohne Ehrenrolle.
+ * Viele spielen mehrere Accounts; die Discord-ID fasst sie zu einer Person zusammen.
+ */
+function personRankInAlliance(PDO $pdo, string $alliance, string $discordId): ?int {
+    if ($alliance === '' || $discordId === '') return null;
+    try {
+        $stmt = $pdo->prepare("
+            SELECT MAX(p.current_rank_code)
+            FROM players p
+            LEFT JOIN player_identities pid ON pid.alliance = p.alliance AND pid.player_id = p.player_id
+            LEFT JOIN player_user_links pul ON pul.alliance = p.alliance AND pul.player_id = p.player_id
+            LEFT JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
+            WHERE p.alliance = ? AND p.is_active = 1 AND " . sqlNoHonor() . "
+              AND (pid.discord_user_id = ? OR uda.discord_user_id = ?)
+        ");
+        $stmt->execute([$alliance, $discordId, $discordId]);
+        $rank = $stmt->fetchColumn();
+        return $rank !== false && $rank !== null ? (int)$rank : null;
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+        return null;
+    }
+}
+
+/**
+ * Rechte gelten fuer die Person, nicht fuer den gerade aktiven Char: current_rank_code wird auf den hoechsten
+ * Rang der Person in der Allianz angehoben (Hebrios R3 + Balduranos R4 -> R4 auch als Hebrios). Der Rang des
+ * Chars selbst bleibt in char_rank_code fuer die Anzeige. Ehrenrollen werden nicht angehoben.
+ */
+function withPersonRank(PDO $pdo, string $alliance, string $discordId, ?array $member): ?array {
+    if (!$member || normalizeHonorRole($member['honor_role'] ?? null) !== null) return $member;
+    $own = (int)$member['current_rank_code'];
+    $member['char_rank_code'] = $own;
+    $person = personRankInAlliance($pdo, $alliance, $discordId);
+    if ($person !== null && $person > $own) $member['current_rank_code'] = $person;
+    return $member;
+}
+
 function getDiscordMember(PDO $pdo, string $alliance, string $discordId, bool $leadershipOnly = false): ?array {
     $activeMember = getDiscordMemberByActiveChar($pdo, $alliance, $discordId, $leadershipOnly);
-    if ($activeMember) return $activeMember;
+    if ($activeMember) return withPersonRank($pdo, $alliance, $discordId, $activeMember);
 
     try {
         $stmt = $pdo->prepare(getDiscordMemberSql(true, $leadershipOnly));
             $stmt->execute([$alliance, $discordId, $discordId]);
-        return $stmt->fetch() ?: null;
+        return withPersonRank($pdo, $alliance, $discordId, $stmt->fetch() ?: null);
     } catch (\PDOException $e) {
         if (!isOptionalTableError($e)) throw $e;
         $stmt = $pdo->prepare(getDiscordMemberSql(false, $leadershipOnly));
             $stmt->execute([$alliance, $discordId, $discordId]);
-        return $stmt->fetch() ?: null;
+        return withPersonRank($pdo, $alliance, $discordId, $stmt->fetch() ?: null);
     }
 }
 
@@ -248,13 +289,14 @@ function getDiscordMemberAcrossAlliances(PDO $pdo, string $discordId, bool $lead
     try {
         $stmt = $pdo->prepare(getDiscordMemberAcrossAlliancesSql(true, $leadershipOnly));
             $stmt->execute([$discordId, $discordId, $discordId]);
-        return $stmt->fetch() ?: null;
+        $member = $stmt->fetch() ?: null;
     } catch (\PDOException $e) {
         if (!isOptionalTableError($e)) throw $e;
         $stmt = $pdo->prepare(getDiscordMemberAcrossAlliancesSql(false, $leadershipOnly));
             $stmt->execute([$discordId, $discordId, $discordId]);
-        return $stmt->fetch() ?: null;
+        $member = $stmt->fetch() ?: null;
     }
+    return withPersonRank($pdo, (string)($member['alliance'] ?? ''), $discordId, $member);
 }
 
 function getMemberByNameSql(bool $withCache): string {

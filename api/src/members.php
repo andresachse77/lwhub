@@ -232,9 +232,10 @@ function handleMemberHistory(PDO $pdo, string $alliance): never {
         }
     }
 
-    $rank = safeRank((int)$member['current_rank_code']);
+    // Angezeigt wird der Rang dieses Chars, die Rechte richten sich nach der Person (withPersonRank)
+    $rank = safeRank((int)($member['char_rank_code'] ?? $member['current_rank_code']));
     $honorRole = normalizeHonorRole($member['honor_role'] ?? null);
-    $effectiveRank = effectiveRankForAccess($rank, $honorRole);
+    $effectiveRank = effectiveRankForAccess(safeRank((int)$member['current_rank_code']), $honorRole);
     $resolvedRole = roleFromMemberState($rank, $honorRole);
     $canWrite = memberCanWrite($honorRole);
     jsonOut(200, [

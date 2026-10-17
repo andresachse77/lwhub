@@ -47,6 +47,7 @@ require_once __DIR__ . '/src/db-setup.php';
 require_once __DIR__ . '/src/auth.php';
 require_once __DIR__ . '/src/caller-auth.php';
 require_once __DIR__ . '/src/power-trend.php';
+require_once __DIR__ . '/src/event-compare.php';
 require_once __DIR__ . '/src/alliance.php';
 require_once __DIR__ . '/src/presence-chat.php';
 require_once __DIR__ . '/src/members.php';
@@ -244,6 +245,11 @@ try {
     // GET /scans/power-history – Kampfkraft je Spieler und Tag fuer die Trend-Seite (R4/R5)
     if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'power-history') {
         handlePowerHistory($pdo, $ALLIANCE);
+    }
+
+    // GET /scans/event-compare – Kampfkraft und Kills vor/nach einem Event (Ansehen wie der Trend)
+    if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'event-compare') {
+        handleEventCompare($pdo, $ALLIANCE);
     }
 
     // POST /scans/sync

@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LWHub Event-Auswertung</title>
+<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261017c">
+<style>
+  .ev-main { flex: 1; overflow: auto; position: relative; padding: 16px; }
+  .ev-wrap { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  .panel { background: var(--bg-pane); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .panel h2 { font-size: 14px; margin-bottom: 8px; }
+  .muted { color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+  .summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+  .controls label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .controls input { background: var(--bg-main); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 12px; }
+  .controls input[type=number] { width: 72px; }
+  .controls .input-search { min-width: 180px; }
+  .scan-chip { font-size: 11px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--border); color: var(--text-muted); }
+  .scan-chip.after { border-color: var(--success); color: var(--success); }
+  .table-scroll { overflow-x: auto; }
+  table.ev { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.ev th, table.ev td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; vertical-align: middle; }
+  table.ev th { position: sticky; top: 0; background: var(--bg-header); color: var(--text-muted); font-weight: 600; cursor: pointer; user-select: none; }
+  table.ev td.num, table.ev th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.ev tr:hover td { background: var(--bg-card); }
+  table.ev tr.honor td { opacity: 0.55; }
+  .pos { color: var(--success); }
+  .neg { color: var(--danger); }
+  .dim { color: var(--text-dim); }
+  .verdict { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; border: 1px solid; }
+  .verdict.both { color: #f0883e; border-color: #f0883e; background: rgba(240, 136, 62, 0.12); }
+  .verdict.kills { color: var(--success); border-color: var(--success); background: var(--success-soft); }
+  .verdict.losses { color: var(--warning); border-color: var(--warning); background: rgba(210, 153, 34, 0.12); }
+  .verdict.none { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+  .verdict.unknown { color: var(--text-dim); border-color: var(--border); border-style: dashed; }
+  .access-gate { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: var(--bg-main); }
+  .access-gate[hidden] { display: none; }
+  .access-gate-box { max-width: 460px; margin: 16px; padding: 24px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); text-align: center; }
+  .access-gate-box h2 { margin: 0 0 8px; font-size: 18px; }
+  .access-gate-box p { margin: 0 0 16px; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .access-gate-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  @media (max-width: 760px) {
+    .top-bar { height: auto; flex-wrap: wrap; gap: 8px; padding: 8px 16px; }
+    .brand-section { flex-wrap: wrap; gap: 8px; }
+    .ev-main { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app-container">
+
+  <header class="top-bar">
+    <div class="brand-section">
+      <div class="brand-title"><span>🎯</span> Event-Auswertung</div>
+      <label for="allianceSelect" style="color:var(--text-muted); font-size:12px;">Allianz:</label>
+      <select id="allianceSelect" class="alliance-selector"><option value="NxU1">NxU1</option></select>
+    </div>
+    <div class="status-section">
+      <a id="linkTrend" class="btn btn-secondary" href="trend.html">📈 Trend</a>
+      <a id="linkScanner" class="btn btn-secondary" href="./">📸 Scanner</a>
+    </div>
+  </header>
+
+  <main class="ev-main">
+    <div id="accessGate" class="access-gate">
+      <div class="access-gate-box">
+        <h2 id="accessGateTitle">Zugang wird geprüft…</h2>
+        <p id="accessGateText">Die Event-Auswertung ist nur für R4 und R5 der Allianz.</p>
+        <div class="access-gate-actions">
+          <a id="accessGateLogin" class="btn btn-primary" href="/" hidden>Bei lwhub anmelden</a>
+          <button id="accessGateRetry" class="btn btn-secondary" hidden>Erneut prüfen</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ev-wrap">
+      <section class="panel">
+        <h2>Wer war beim Event dabei?</h2>
+        <p class="muted">
+          Vergleicht je Spieler <strong>Kills</strong> und <strong>Kampfkraft</strong> vor und nach dem Event.
+          Vorher zählt der letzte Scan vor dem Start, nachher der letzte Scan bis kurz nach dem Ende.
+          Gestiegene Kills heißen: hat gekämpft. Gesunkene Kampfkraft heißt: hat Truppen verloren.
+          Scannt deshalb <strong>kurz vor dem Start</strong> und <strong>direkt nach dem Ende, vor dem Heilen</strong>
+          (Stärke-Rangliste: Reiter „Kampfkraft“ und „Kills“).
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="controls">
+          <label>Tag <input type="date" id="evDate"></label>
+          <label>Start <input type="time" id="evStart" value="16:00"></label>
+          <label>Ende <input type="time" id="evEnd" value="20:00"></label>
+          <label title="So lange nach dem Ende zählen Scans noch als „nachher“">Nachlauf (Min.) <input type="number" id="evAfter" min="0" max="720" step="15" value="90"></label>
+          <label title="Kills-Zuwachs, ab dem es als Kämpfen zählt">Kills ab <input type="number" id="thKills" min="0" step="1000" value="1"></label>
+          <label title="Kampfkraft-Verlust, ab dem es als Verluste zählt">Verlust ab (%) <input type="number" id="thLoss" min="0" step="0.1" value="0.3"></label>
+          <button id="btnReload" class="btn btn-secondary">↻ Neu laden</button>
+        </div>
+        <div class="summary" id="scanTimes" style="margin-top:10px;"></div>
+      </section>
+
+      <section class="panel">
+        <div class="summary" id="summary"><span class="muted">Lade…</span></div>
+        <div class="controls" style="margin-top:10px;">
+          <div class="filter-pills" id="verdictPills"></div>
+          <input id="searchInput" class="input-search" placeholder="🔍 Spieler filtern…">
+          <button id="btnCopy" class="btn btn-secondary" title="Namen der gefilterten Liste kopieren (z. B. für Discord)">📋 Namen kopieren</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="table-scroll">
+          <table class="ev" id="evTable"></table>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="js/lwhub-access.js?v=20261017h"></script>
+<script>
+let activeApiUrl = LwhubAccess.apiCandidates()[0];
+let raw = null;
+let rows = [];
+let verdictFilter = 'all';
+let sortKey = 'kills', sortDir = 1;
+
+const VERDICTS = {
+  both: { icon: '🔥', label: 'gekämpft + Verluste', order: 0 },
+  kills: { icon: '⚔', label: 'gekämpft', order: 1 },
+  losses: { icon: '🩸', label: 'nur Verluste', order: 2 },
+  none: { icon: '⚠️', label: 'keine Änderung', order: 3 },
+  unknown: { icon: '❔', label: 'nicht gescannt', order: 4 },
+};
+
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mio = (v) => v == null ? '—' : `${(v / 1e6).toFixed(1)}M`;
+const num = (v) => v == null ? '—' : Math.round(v).toLocaleString('de-DE');
+const signed = (v, f) => v == null ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : '±'}${f(Math.abs(v))}`;
+const signClass = (v) => v == null ? '' : v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+const hhmm = (at) => at ? at.slice(11, 16) : '—';
+const pad = (n) => String(n).padStart(2, '0');
+const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+
+function evaluate(p) {
+  const th = { kills: Number(document.getElementById('thKills').value) || 0, loss: Number(document.getElementById('thLoss').value) || 0 };
+  const dk = p.kills.before && p.kills.after ? p.kills.after.v - p.kills.before.v : null;
+  const dp = p.power.before && p.power.after ? p.power.after.v - p.power.before.v : null;
+  const dpPct = dp != null && p.power.before.v ? dp / p.power.before.v * 100 : null;
+  const fought = dk != null && dk >= Math.max(1, th.kills);
+  const lost = dpPct != null && -dpPct >= th.loss;
+  let verdict;
+  if (fought && lost) verdict = 'both';
+  else if (fought) verdict = 'kills';
+  else if (lost) verdict = 'losses';
+  else if (dk == null && dp == null) verdict = 'unknown';
+  else verdict = 'none';
+  return { ...p, dk, dp, dpPct, verdict, participated: fought || lost };
+}
+
+function render() {
+  if (!raw) return;
+  rows = raw.players.map(evaluate);
+  const counted = rows.filter((r) => !r.honor_role);
+
+  const scans = raw.scans;
+  const chip = (t, kind) => `<span class="scan-chip ${t >= raw.start.slice(0, 16) ? 'after' : ''}">${kind} ${t.slice(11)}</span>`;
+  document.getElementById('scanTimes').innerHTML =
+    '<span class="muted">Scans im Fenster:</span>' +
+    (scans.power.map((t) => chip(t, 'KK')).join('') + scans.kills.map((t) => chip(t, 'Kills')).join('') || '<span class="muted">keine</span>') +
+    (scans.power.concat(scans.kills).some((t) => t >= raw.start.slice(0, 16)) ? '' : '<span class="muted">– noch kein Scan nach dem Start (grün = nachher).</span>');
+
+  const part = counted.filter((r) => r.participated).length;
+  const known = counted.filter((r) => r.verdict !== 'unknown').length;
+  const killsSum = counted.reduce((s, r) => s + (r.dk > 0 ? r.dk : 0), 0);
+  const lossSum = counted.reduce((s, r) => s + (r.dp < 0 ? -r.dp : 0), 0);
+  document.getElementById('summary').innerHTML =
+    `<span class="badge-stat">${counted.length} Mitglieder</span>` +
+    `<span class="badge-stat">${known} ausgewertet</span>` +
+    `<span class="badge-stat">✅ ${part} dabei</span>` +
+    `<span class="badge-stat">⚔ ${mio(killsSum)} Kills</span>` +
+    `<span class="badge-stat">🩸 ${mio(lossSum)} Kampfkraft verloren</span>` +
+    (rows.length > counted.length ? `<span class="muted">Ehrenrollen (${rows.length - counted.length}) sind ausgegraut und zählen nicht mit.</span>` : '');
+
+  const counts = Object.fromEntries(Object.keys(VERDICTS).map((k) => [k, counted.filter((r) => r.verdict === k).length]));
+  document.getElementById('verdictPills').innerHTML =
+    `<button class="pill-btn ${verdictFilter === 'all' ? 'active' : ''}" data-v="all">Alle (${counted.length})</button>` +
+    `<button class="pill-btn ${verdictFilter === 'yes' ? 'active' : ''}" data-v="yes">✅ dabei (${part})</button>` +
+    Object.entries(VERDICTS).map(([k, v]) =>
+      `<button class="pill-btn ${verdictFilter === k ? 'active' : ''}" data-v="${k}">${v.icon} ${v.label} (${counts[k]})</button>`).join('');
+
+  const list = filtered();
+  const key = {
+    name: (r) => r.name.toLowerCase(),
+    kills: (r) => -(r.dk ?? -Infinity),
+    loss: (r) => r.dpPct ?? Infinity,
+    power: (r) => -(r.power.before?.v ?? 0),
+    verdict: (r) => VERDICTS[r.verdict].order * 1e12 - (r.dk ?? 0),
+  }[sortKey];
+  list.sort((a, b) => { const ka = key(a), kb = key(b); return (ka < kb ? -1 : ka > kb ? 1 : 0) * sortDir; });
+
+  const th = (k, label, cls = '') => `<th class="${cls}" data-sort="${k}" title="Sortieren">${label}${sortKey === k ? (sortDir > 0 ? ' ▾' : ' ▴') : ''}</th>`;
+  document.getElementById('evTable').innerHTML =
+    `<thead><tr>${th('name', 'Spieler')}${th('kills', 'Kills +', 'num')}<th class="num">Kills vorher → nachher</th>` +
+    `${th('loss', 'Kampfkraft Δ', 'num')}${th('power', 'Kampfkraft vorher → nachher', 'num')}${th('verdict', 'Einstufung')}</tr></thead><tbody>` +
+    list.map((r) => `<tr class="${r.honor_role ? 'honor' : ''}">
+      <td><span class="rank-badge r${r.rank}">R${r.rank}</span> ${esc(r.name)}${r.honor_role ? ' <span class="muted">(Ehrenrolle)</span>' : ''}</td>
+      <td class="num ${signClass(r.dk)}">${signed(r.dk, num)}</td>
+      <td class="num"><span title="${esc(r.kills.before?.at || '')}">${num(r.kills.before?.v)}</span> <span class="dim">→</span> <span title="${esc(r.kills.after?.at || '')}">${num(r.kills.after?.v)}</span> <span class="dim">${hhmm(r.kills.after?.at)}</span></td>
+      <td class="num ${signClass(r.dp)}">${signed(r.dp, mio)}${r.dpPct != null ? ` <span class="dim">(${r.dpPct > 0 ? '+' : ''}${r.dpPct.toFixed(1)} %)</span>` : ''}</td>
+      <td class="num"><span title="${esc(r.power.before?.at || '')}">${mio(r.power.before?.v)}</span> <span class="dim">→</span> <span title="${esc(r.power.after?.at || '')}">${mio(r.power.after?.v)}</span> <span class="dim">${hhmm(r.power.after?.at)}</span></td>
+      <td><span class="verdict ${r.verdict}">${VERDICTS[r.verdict].icon} ${VERDICTS[r.verdict].label}</span></td>
+    </tr>`).join('') + '</tbody>';
+}
+
+function filtered() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  return rows.filter((r) => (verdictFilter === 'all' || (verdictFilter === 'yes' ? r.participated && !r.honor_role : r.verdict === verdictFilter && !r.honor_role))
+    && (!q || r.name.toLowerCase().includes(q)));
+}
+
+function saveForm() {
+  const params = new URLSearchParams({
+    alliance: document.getElementById('allianceSelect').value,
+    date: document.getElementById('evDate').value,
+    start: document.getElementById('evStart').value,
+    end: document.getElementById('evEnd').value,
+  });
+  history.replaceState(null, '', `?${params}`);
+  try { localStorage.setItem('lwhub_event_form_v1', JSON.stringify(Object.fromEntries(params))); } catch {}
+}
+
+async function load() {
+  saveForm();
+  const alliance = document.getElementById('allianceSelect').value;
+  document.getElementById('linkScanner').href = `./`;
+  document.getElementById('linkTrend').href = `trend.html?alliance=${encodeURIComponent(alliance)}`;
+  const data = await LwhubAccess.check(activeApiUrl, alliance, 'Die Event-Auswertung', { view: true });
+  if (!data) return;
+  const date = document.getElementById('evDate').value;
+  let endDate = date;
+  // Ende vor dem Start (z. B. 22:00–02:00): Ende am Folgetag
+  if (document.getElementById('evEnd').value <= document.getElementById('evStart').value) {
+    const d = new Date(`${date}T12:00:00`); d.setDate(d.getDate() + 1);
+    endDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  const qs = new URLSearchParams({
+    alliance,
+    start: `${date}T${document.getElementById('evStart').value}`,
+    end: `${endDate}T${document.getElementById('evEnd').value}`,
+    after_min: document.getElementById('evAfter').value || '90',
+  });
+  const resp = await fetch(`${activeApiUrl}/scans/event-compare?${qs}`, { headers: LwhubAccess.authHeaders() });
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok || !body.ok) {
+    document.getElementById('summary').innerHTML = `<span class="neg">Auswertung konnte nicht geladen werden: ${esc(body.error || resp.status)}</span>`;
+    return;
+  }
+  raw = body;
+  render();
+}
+
+document.getElementById('verdictPills').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-v]');
+  if (!b) return;
+  verdictFilter = b.dataset.v;
+  render();
+});
+document.getElementById('evTable').addEventListener('click', (e) => {
+  const h = e.target.closest('[data-sort]');
+  if (!h) return;
+  if (sortKey === h.dataset.sort) sortDir = -sortDir; else { sortKey = h.dataset.sort; sortDir = 1; }
+  render();
+});
+document.getElementById('searchInput').addEventListener('input', render);
+for (const id of ['thKills', 'thLoss']) document.getElementById(id).addEventListener('input', render);
+for (const id of ['evDate', 'evStart', 'evEnd', 'evAfter']) document.getElementById(id).addEventListener('change', load);
+document.getElementById('allianceSelect').addEventListener('change', load);
+document.getElementById('btnReload').addEventListener('click', load);
+document.getElementById('accessGateRetry').addEventListener('click', load);
+document.getElementById('btnCopy').addEventListener('click', async () => {
+  const names = filtered().map((r) => r.name).join('\n');
+  try { await navigator.clipboard.writeText(names); document.getElementById('btnCopy').textContent = '✅ Kopiert'; }
+  catch { prompt('Namen kopieren:', names.replace(/\n/g, ', ')); }
+  setTimeout(() => { document.getElementById('btnCopy').textContent = '📋 Namen kopieren'; }, 1500);
+});
+
+(async () => {
+  const url = new URLSearchParams(location.search);
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('lwhub_event_form_v1') || '{}') || {}; } catch {}
+  document.getElementById('evDate').value = url.get('date') || (saved.date === todayIso() ? saved.date : todayIso());
+  if (url.get('start') || saved.date === todayIso()) document.getElementById('evStart').value = url.get('start') || saved.start || '16:00';
+  if (url.get('end') || saved.date === todayIso()) document.getElementById('evEnd').value = url.get('end') || saved.end || '20:00';
+  const { apiUrl, alliances } = await LwhubAccess.findApi();
+  activeApiUrl = apiUrl;
+  const wanted = url.get('alliance') || LwhubAccess.preferredAlliance();
+  await LwhubAccess.fillOwnAlliances(document.getElementById('allianceSelect'), apiUrl, alliances, wanted, { view: true });
+  await load();
+})();
+</script>
+</body>
+</html>

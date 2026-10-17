@@ -51,6 +51,7 @@
       <button id="btnReloadMembers" class="btn btn-secondary" title="Mitgliederliste von LWHub neu laden">🔄 Neu laden</button>
       <button id="btnRematch" class="btn btn-secondary" title="Alle gescannten Kacheln neu gegen aktuelle Allianz abgleichen">⚡ Rematch</button>
       <a id="linkTrend" class="btn btn-secondary" href="trend.html" title="Kampfkraft-Verlauf der Mitglieder: wer wächst, wer opfert am Samstag, wer stagniert">📈 Trend</a>
+      <a id="linkEvent" class="btn btn-secondary" href="event.html" title="Event-Auswertung: Kills und Kampfkraft vor und nach einem Event (z. B. Kriegszonen-Duell)">🎯 Event</a>
     </div>
 
     <div class="status-section">
@@ -340,6 +341,7 @@ async function checkScannerAccess() {
   accessOk = !!data;
   document.getElementById('btnSyncToLwHub').disabled = !accessOk;
   document.getElementById('linkTrend').href = `trend.html?alliance=${encodeURIComponent(alliance)}`;
+  document.getElementById('linkEvent').href = `event.html?alliance=${encodeURIComponent(alliance)}`;
   if (!accessOk) return false;
   log(`Zugang für ${alliance} bestätigt (${document.getElementById('userBadge').textContent.replace('🛡️ ', '')}).`);
   await loadMembers();

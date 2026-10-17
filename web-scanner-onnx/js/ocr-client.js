@@ -24,6 +24,7 @@ class OcrWorkerHandle {
       this.worker.onmessage = (ev) => {
         const msg = ev.data;
         if (msg.type === 'progress') onProgress?.(msg.text, msg.ratio);
+        else if (msg.type === 'notice') this.onNotice?.(msg.text);
         else if (msg.type === 'ready') resolve(msg);
         else if (msg.type === 'result' || msg.type === 'error') {
           const p = msg.id !== undefined ? this.pending.get(msg.id) : null;
@@ -68,6 +69,7 @@ class BrowserOcr {
   constructor() {
     this.workers = [];
     this.readyInfo = null;
+    this.onNotice = null; // (text) => void, e.g. a worker switched from WebGPU to the CPU
   }
 
   static get maxCores() { return navigator.hardwareConcurrency || 4; }
@@ -100,13 +102,18 @@ class BrowserOcr {
     const plan = BrowserOcr.split(cores || BrowserOcr.defaultCores);
     threads = threads || plan.threads;
     const count = Math.max(1, workers || plan.workers);
+    const handle = () => {
+      const w = new OcrWorkerHandle();
+      w.onNotice = (text) => this.onNotice?.(text);
+      return w;
+    };
 
-    const first = new OcrWorkerHandle();
+    const first = handle();
     this.workers.push(first);
     const info = await first.init(backend, threads, onProgress);
     if (count > 1) {
       onProgress?.(`Starte ${count} OCR-Worker…`, 1);
-      const rest = Array.from({ length: count - 1 }, () => new OcrWorkerHandle());
+      const rest = Array.from({ length: count - 1 }, handle);
       this.workers.push(...rest);
       await Promise.all(rest.map((w) => w.init(backend, threads)));
     }

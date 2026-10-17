@@ -8,6 +8,7 @@
  *                { type: 'ready', backend, threads, ms }
  *                { type: 'result', id, result, ms }   result = processFrame() JSON
  *                { type: 'error', id?, message }
+ *                { type: 'notice', text }             e.g. switched from WebGPU to the CPU
  */
 /* global ort, LwOcrEngine, LwScannerPipeline */
 const ORT_VERSION = '1.30.0';
@@ -16,6 +17,7 @@ const MODEL_BASE = new URL('../models/', self.location.href).href;
 
 let engine = null;
 let backend = 'wasm';
+let models = null; // { det, rec, keys }, kept to rebuild the engine on the CPU
 
 async function fetchWithProgress(url, label, onBytes) {
   const resp = await fetch(url);
@@ -79,16 +81,41 @@ async function init(requested, requestedThreads) {
   ]);
   self.postMessage({ type: 'progress', text: 'Initialisiere OCR-Engine…', ratio: 1 });
 
+  models = { det, rec, keys };
+  await createEngine();
+  self.postMessage({ type: 'ready', backend, threads: backend === 'wasm' ? threads : null, ms: performance.now() - t0 });
+}
+
+async function createEngine() {
   const sessionOptions = {
     executionProviders: backend === 'webgpu' ? ['webgpu', 'wasm'] : ['wasm'],
     graphOptimizationLevel: 'all',
     logSeverityLevel: 3,
   };
-  engine = await LwOcrEngine.OcrEngine.create({ ort, detModel: det, recModel: rec, keysText: keys, sessionOptions });
-
+  engine = await LwOcrEngine.OcrEngine.create({
+    ort, detModel: models.det, recModel: models.rec, keysText: models.keys, sessionOptions,
+  });
   // Warm-up: the first real frame should not pay for kernel setup.
   await engine.ocr({ w: 64, h: 64, data: new Uint8Array(64 * 64 * 3) });
-  self.postMessage({ type: 'ready', backend, threads: backend === 'wasm' ? threads : null, ms: performance.now() - t0 });
+}
+
+// A failed WebGPU frame usually means the GPU device is gone (e.g. iOS reclaims it under memory
+// pressure: "mapAsync was not successful"), after which every further frame fails too. Rebuild
+// this worker's engine on the CPU and retry the frame there once.
+async function processWithFallback(image) {
+  try {
+    return await LwScannerPipeline.processFrame(engine, image);
+  } catch (err) {
+    if (backend !== 'webgpu') throw err;
+    const reason = err && err.message ? err.message : String(err);
+    const old = engine;
+    engine = null;
+    backend = 'wasm';
+    await Promise.all([old.det, old.rec].map((s) => s.release().catch(() => {})));
+    await createEngine();
+    self.postMessage({ type: 'notice', text: `WebGPU-Fehler (${reason}) – dieser OCR-Worker rechnet ab jetzt auf der CPU.` });
+    return LwScannerPipeline.processFrame(engine, image);
+  }
 }
 
 self.onmessage = async (ev) => {
@@ -116,7 +143,7 @@ self.onmessage = async (ev) => {
       } else {
         image = LwOcrEngine.fromRGBA(new Uint8ClampedArray(msg.buffer), msg.width, msg.height);
       }
-      const result = await LwScannerPipeline.processFrame(engine, image);
+      const result = await processWithFallback(image);
       self.postMessage({ type: 'result', id: msg.id, result, ms: performance.now() - t0 });
     } catch (err) {
       self.postMessage({ type: 'error', id: msg.id, message: err && err.message ? err.message : String(err) });

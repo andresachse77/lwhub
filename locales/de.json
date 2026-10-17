@@ -365,6 +365,7 @@
     "s_verwaltung": "Verwaltung",
     "s_scanner": "Scanner",
     "s_scanner_open_window": "In eigenem Fenster öffnen (auf der CPU schneller)",
+    "s_scanner_open_window_trend": "In eigenem Fenster öffnen",
     "s_scanner_trend": "Kampfkraft-Trend",
     "s_scanner_feature_sub": "Kacheln aus Screenshots per Texterkennung im Browser (R4/R5)",
     "s_vs_from_scanner": "Aus Scanner übernehmen",

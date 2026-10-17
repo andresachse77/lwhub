@@ -113,6 +113,12 @@ function ensureHonorRoleColumn(PDO $pdo): void {
     } catch (\PDOException) {
         // Spalte existiert bereits – ignorieren
     }
+    // Heimat-Allianz eines Ehren-Eintrags (Freitext oder Kuerzel aus alliances)
+    try {
+        $pdo->exec("ALTER TABLE players ADD COLUMN honor_home VARCHAR(50) NULL DEFAULT NULL AFTER honor_role");
+    } catch (\PDOException) {
+        // Spalte existiert bereits – ignorieren
+    }
 }
 
 function ensureChatTable(PDO $pdo): void {

@@ -125,7 +125,7 @@
   </main>
 </div>
 
-<script src="js/lwhub-access.js?v=20261017c"></script>
+<script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/power-trend.js?v=20261017c"></script>
 <script>
 let activeApiUrl = LwhubAccess.apiCandidates()[0];
@@ -249,7 +249,7 @@ async function loadHistory() {
   const alliance = document.getElementById('allianceSelect').value;
   const weeks = document.getElementById('weeksSelect').value;
   document.getElementById('linkScanner').href = `./`;
-  const data = await LwhubAccess.check(activeApiUrl, alliance, 'Der Trend');
+  const data = await LwhubAccess.check(activeApiUrl, alliance, 'Der Trend', { view: true });
   if (!data) return;
   const resp = await fetch(`${activeApiUrl}/scans/power-history?alliance=${encodeURIComponent(alliance)}&weeks=${weeks}`, {
     headers: LwhubAccess.authHeaders(),
@@ -293,7 +293,7 @@ document.getElementById('thresholds').addEventListener('input', (e) => {
   const { apiUrl, alliances } = await LwhubAccess.findApi();
   activeApiUrl = apiUrl;
   const wanted = new URLSearchParams(location.search).get('alliance') || LwhubAccess.preferredAlliance();
-  await LwhubAccess.fillOwnAlliances(document.getElementById('allianceSelect'), apiUrl, alliances, wanted);
+  await LwhubAccess.fillOwnAlliances(document.getElementById('allianceSelect'), apiUrl, alliances, wanted, { view: true });
   await loadHistory();
 })();
 </script>

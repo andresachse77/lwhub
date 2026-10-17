@@ -31,8 +31,20 @@
     return `${window.location.origin}${base}api`;
   }
 
+  // Discord-Token und eigene Discord-ID mitsenden, damit der Server die Rolle selbst prueft (wie fetchJson)
+  function authHeaders() {
+    const headers = {};
+    try {
+      const token = localStorage.getItem('discord_token');
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
+      if (auth?.discord_id) headers['X-Discord-Id'] = String(auth.discord_id);
+    } catch (_) {}
+    return headers;
+  }
+
   async function apiGet(path) {
-    const res = await fetch(getApiBase() + path);
+    const res = await fetch(getApiBase() + path, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   }
@@ -40,7 +52,7 @@
   async function apiPost(path, body) {
     const res = await fetch(getApiBase() + path, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(body),
     });
     if (!res.ok) {
@@ -54,7 +66,9 @@
     return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  function rankLabel(r) {
+  function rankLabel(r, honorRole) {
+    if (honorRole === 'honor_r4') return 'E-R4';
+    if (honorRole === 'honor_member') return 'Ehre';
     return { 1:'R1', 2:'R2', 3:'R3', 4:'R4', 5:'R5' }[+r] || 'R?';
   }
 
@@ -412,7 +426,7 @@
   }
 
   // ── Render chars ──────────────────────────────────────────────────────────────
-  function renderChars(chars, discordId, currentAllianceShort) {
+  function renderChars(chars, discordId, currentAllianceShort, viewerAlliances = []) {
     const list = document.getElementById('cs-chars-list');
     if (!list) return;
 
@@ -422,10 +436,11 @@
 
     const dropdown = document.getElementById('cs-dropdown');
 
-    if (!chars || !chars.length) {
+    if ((!chars || !chars.length) && !viewerAlliances.length) {
       list.innerHTML = `<div style="font-size:12px;color:#7a8498;padding:6px 10px">${escHtml(tr('Keine Charaktere gefunden'))}</div>`;
       return;
     }
+    chars = chars || [];
 
     // Group by alliance
     const byAlliance = {};
@@ -445,11 +460,27 @@
         html += `
           <div class="cs-char-item${isActive ? ' active' : ''}"
                data-player="${escHtml(c.player_id)}" data-alliance="${escHtml(c.alliance)}" data-name="${escHtml(c.name)}">
-            <span class="cs-char-rank" style="background:${rColor}22;color:${rColor};border:1px solid ${rColor}44">${escHtml(rankLabel(c.rank))}</span>
+            <span class="cs-char-rank" style="background:${rColor}22;color:${rColor};border:1px solid ${rColor}44" title="${c.honor_role === 'honor_r4' ? escHtml(tr('Ehren-R4: nur ansehen')) : ''}">${escHtml(rankLabel(c.rank, c.honor_role))}</span>
             <div class="cs-char-info">
               <div class="cs-char-info-name">${escHtml(c.name)}</div>
             </div>
             ${isActive ? `<div class="cs-char-active-dot" title="${escHtml(tr('Aktiver Charakter'))}"></div>` : ''}
+          </div>`;
+      }
+    }
+
+    // Betreiber: Allianzen ohne eigenen Char nur ansehen (aendern kann er dort nur die Feature-Schalter)
+    if (viewerAlliances.length) {
+      html += `<div class="cs-section-label" style="margin-top:4px">${escHtml(tr('Ansehen (Betreiber)'))}</div>`;
+      for (const a of viewerAlliances) {
+        html += `
+          <div class="cs-char-item${a.is_active ? ' active' : ''}" data-player="" data-alliance="${escHtml(a.alliance)}" data-name="${escHtml(a.alliance)}" data-viewer="1">
+            <span class="cs-char-rank" style="background:#7a849822;color:#9aa4b8;border:1px solid #7a849844">👁</span>
+            <div class="cs-char-info">
+              <div class="cs-char-info-name">${escHtml(a.alliance)}</div>
+              ${a.title ? `<div class="cs-char-info-alliance">${escHtml(a.title)}</div>` : ''}
+            </div>
+            ${a.is_active ? `<div class="cs-char-active-dot" title="${escHtml(tr('Aktiver Charakter'))}"></div>` : ''}
           </div>`;
       }
     }
@@ -492,6 +523,16 @@
         if (item.classList.contains('active')) return;
         try {
           await apiPost('/my-chars/active', { discord_id: discordId, alliance, player_id: playerId });
+          if (item.dataset.viewer) {
+            // Zuschauer-Modus: Rolle und Rechte liefert verify-discord nach dem Neuladen
+            const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
+            Object.assign(auth, { alliance, active_alliance: alliance, active_player_id: null, member_name: null,
+              rank: 5, role: 'site_viewer', site_viewer: true, can_manage: true, can_write: false, read_only: true, honor_role: null });
+            localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+            localStorage.setItem(ACTIVE_CHAR_KEY, JSON.stringify({ alliance, player_id: '', name: null }));
+            window.location.reload();
+            return;
+          }
           // Save to local storage – include rank/role so page re-reads correct permissions
           const charData = chars.find(c => c.player_id === playerId && c.alliance === alliance);
           const newRank = charData ? charData.rank : null;
@@ -505,9 +546,14 @@
           }
           if (newRank !== null) {
             auth.rank       = newRank;
-            auth.role       = newRank >= 5 ? 'r5' : newRank >= 4 ? 'r4' : 'normal';
-            auth.can_manage = newRank >= 4;
+            auth.role       = charData?.role || (newRank >= 5 ? 'r5' : newRank >= 4 ? 'r4' : 'normal');
+            auth.can_manage = charData?.can_manage ?? newRank >= 4;
           }
+          // Rolle gilt je Allianz: in der Gast-Allianz Ehren-R4 (nur lesen), daheim der echte Rang
+          auth.honor_role  = charData?.honor_role || null;
+          auth.can_write   = charData ? charData.can_write !== false : true;
+          auth.read_only   = !auth.can_write;
+          auth.site_viewer = false;
           localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
           if (typeof window.setAppLanguage === 'function' && auth.preferred_language) {
             await window.setAppLanguage(auth.preferred_language, { persistLocal: true, persistServer: false });
@@ -670,7 +716,13 @@
         let effectiveActiveChar = chars.find(c => c.is_active) || null;
 
         // If no active char set, set to authMember's
-        const hasActive = chars.some(c => c.is_active);
+        // Betreiber im Zuschauer-Modus (aktiver Eintrag ohne player_id): keinen eigenen Char automatisch aktivieren
+        const viewerActive = !!(charsData.active && charsData.active.player_id === '');
+        if (viewerActive) {
+          currentActiveAlliance = charsData.active.alliance;
+          window.getActiveAlliance = () => currentActiveAlliance;
+        }
+        const hasActive = viewerActive || chars.some(c => c.is_active);
         if (!hasActive && authMember?.member_id && chars.length) {
           const mine = chars.find(c => c.name === authMember.member_name && c.alliance === short);
           if (mine) {
@@ -720,13 +772,17 @@
             }
             auth.rank = effectiveActiveChar.rank;
             auth.role = effectiveActiveChar.role || (effectiveActiveChar.rank >= 5 ? 'r5' : effectiveActiveChar.rank >= 4 ? 'r4' : 'normal');
-            auth.can_manage = (effectiveActiveChar.rank >= 4);
+            auth.can_manage = effectiveActiveChar.can_manage ?? (effectiveActiveChar.rank >= 4);
+            auth.honor_role = effectiveActiveChar.honor_role || null;
+            auth.can_write = effectiveActiveChar.can_write !== false;
+            auth.read_only = !auth.can_write;
+            auth.site_viewer = false;
             localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
           }
           syncTriggerCharName(effectiveActiveChar, authMember?.member_name || discordUser?.username || null);
         }
 
-        renderChars(chars, discordId, currentActiveAlliance || short);
+        renderChars(chars, discordId, currentActiveAlliance || short, charsData.viewer_alliances || []);
       }
     } catch (e) {
       console.warn('[char-switcher] Init error:', e);

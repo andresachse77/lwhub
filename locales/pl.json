@@ -350,6 +350,7 @@
     "s_verwaltung": "Zarządzanie",
     "s_scanner": "Skaner",
     "s_scanner_open_window": "Otwórz w osobnym oknie (szybciej na CPU)",
+    "s_scanner_open_window_trend": "Otwórz w osobnym oknie",
     "s_scanner_trend": "Trend siły",
     "s_scanner_feature_sub": "Kafelki ze zrzutów ekranu dzięki rozpoznawaniu tekstu w przeglądarce (R4/R5)",
     "s_vs_from_scanner": "Pobierz ze skanera",

@@ -40,9 +40,21 @@ function handlePresencePing(PDO $pdo, string $alliance, array $body): never {
     $discordUsername = trim((string)($body['discord_username'] ?? '')) ?: null;
 
     // Hole den aktuellen Namen aus der Datenbank für Konsistenz
-    $member = getDiscordMember($pdo, $alliance, $discordId);
+    $member = $discordId !== '' ? getDiscordMember($pdo, $alliance, $discordId) : null;
     if ($member) {
         $memberName = trim((string)($member['current_name'] ?? $memberName));
+    }
+    // Ehrenrollen und der Betreiber als Zuschauer schauen nur zu: sie erscheinen nicht als online
+    // und zaehlen nicht als Besuch. Die Online-Liste bekommen sie trotzdem.
+    if (!$member || normalizeHonorRole($member['honor_role'] ?? null) !== null) {
+        $online = getOnlineMembers($pdo, $alliance, 180);
+        jsonOut(200, [
+            'ok' => true,
+            'online_count' => count($online),
+            'online' => $online,
+            'current_member_name' => $member['current_name'] ?? null,
+            'server_time' => gmdate('c'),
+        ]);
     }
 
     ensurePresenceTable($pdo);
@@ -108,7 +120,7 @@ function handlePostChat(PDO $pdo, string $alliance, array $body): never {
     }
     if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
 
-    $member = getDiscordMember($pdo, $alliance, $discordId);
+    $member = requireAllianceWriter($pdo, $alliance, 1, true, $discordId)['member'];
     if (!$member) jsonOut(403, ['error' => 'Discord-ID ist keinem aktiven Mitglied zugeordnet']);
     $memberName = trim((string)($member['current_name'] ?? ''));
     if ($memberName === '') jsonOut(403, ['error' => 'Mitgliedsname konnte nicht aufgeloest werden']);
@@ -134,8 +146,7 @@ function handleDeleteChatMessage(PDO $pdo, string $alliance, string $chatIdEncod
     }
     if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
 
-    $manager = getDiscordMember($pdo, $alliance, $discordId, true);
-    if (!$manager) jsonOut(403, ['error' => 'Nur R4/R5 darf Chat-Nachrichten loeschen']);
+    requireAllianceWriter($pdo, $alliance, 4, true, $discordId);
 
     $stmt = $pdo->prepare("DELETE FROM member_chat_messages WHERE alliance = ? AND chat_id = ?");
     $stmt->execute([$alliance, $chatId]);

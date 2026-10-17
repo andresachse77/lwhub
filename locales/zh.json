@@ -350,6 +350,7 @@
     "s_verwaltung": "管理",
     "s_scanner": "扫描器",
     "s_scanner_open_window": "在新窗口中打开（CPU 上更快）",
+    "s_scanner_open_window_trend": "在新窗口中打开",
     "s_scanner_trend": "战力趋势",
     "s_scanner_feature_sub": "通过浏览器内文字识别从截图生成卡片（R4/R5）",
     "s_vs_from_scanner": "从扫描器导入",

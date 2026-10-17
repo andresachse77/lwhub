@@ -1,19 +1,9 @@
 <?php
 declare(strict_types=1);
 
+/** Wochen-Eintraege pflegen R4/R5 (Seiten aus api/partials/r4-pages.php); Ehrenrollen und Zuschauer nie. */
 function assertHonorReadOnlyWriter(PDO $pdo, string $alliance, array $body): void {
-    try {
-        $discordId = normalizeDiscordId($body['discord_id'] ?? '');
-    } catch (\InvalidArgumentException) {
-        return;
-    }
-    if ($discordId === '') return;
-    $member = getDiscordMember($pdo, $alliance, $discordId);
-    if (!$member) return;
-    $honorRole = normalizeHonorRole($member['honor_role'] ?? null);
-    if ($honorRole !== null) {
-        jsonOut(403, ['error' => 'Ehrenrollen haben nur Lesezugriff']);
-    }
+    requireAllianceWriter($pdo, $alliance, 4, false, (string)($body['discord_id'] ?? ''));
 }
 
 function handleGetEntries(PDO $pdo, string $alliance, int $kw): never {
@@ -21,7 +11,7 @@ function handleGetEntries(PDO $pdo, string $alliance, int $kw): never {
         SELECT we.entry_id, we.final_rank_code, p.current_name
         FROM weekly_entries we
         JOIN players p ON p.alliance = we.alliance AND p.player_id = we.player_id
-        WHERE we.alliance = ? AND we.year_week = ?
+        WHERE we.alliance = ? AND we.year_week = ? AND " . sqlNoHonor() . "
         ORDER BY p.current_name
     ");
     $stmt->execute([$alliance, $kw]);

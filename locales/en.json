@@ -365,6 +365,7 @@
     "s_verwaltung": "Management",
     "s_scanner": "Scanner",
     "s_scanner_open_window": "Open in its own window (faster on the CPU)",
+    "s_scanner_open_window_trend": "Open in its own window",
     "s_scanner_trend": "Power trend",
     "s_scanner_feature_sub": "Tiles from screenshots via in-browser text recognition (R4/R5)",
     "s_vs_from_scanner": "Import from scanner",

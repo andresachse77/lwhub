@@ -266,6 +266,7 @@ function handleGetMyTeams(PDO $pdo, string $alliance, ?string $nameRaw): never {
 }
 
 function handleSaveMyTeams(PDO $pdo, string $alliance, ?string $nameRaw, array $body): never {
+    requireAllianceWriter($pdo, $alliance, 1, false, (string)($body['discord_id'] ?? ''));
     $name = trim((string)($nameRaw ?? ''));
     if ($name === '') {
         $name = trim((string)($body['member_name'] ?? ''));
@@ -297,6 +298,7 @@ function handleGetMemberTeams(PDO $pdo, string $alliance, string $nameRaw): neve
 }
 
 function handleSaveMemberTeams(PDO $pdo, string $alliance, string $nameRaw, array $body): never {
+    requireAllianceWriter($pdo, $alliance, 4, false, (string)($body['discord_id'] ?? ''));
     $player = resolveTeamTargetPlayer($pdo, $alliance, $nameRaw);
     if (!$player) {
         jsonOut(404, ['error' => 'Mitglied nicht gefunden']);
@@ -340,7 +342,7 @@ function handleGetAllianceTeams(PDO $pdo, string $alliance): never {
         . 'ON mtt.alliance = p.alliance AND mtt.player_id = p.player_id '
         . 'LEFT JOIN member_teams mt '
         . 'ON mt.alliance = p.alliance AND mt.player_id = p.player_id '
-        . 'WHERE p.alliance = ? AND p.is_active = 1 '
+        . 'WHERE p.alliance = ? AND p.is_active = 1 AND ' . sqlNoHonor() . ' '
         . 'GROUP BY p.current_name, mtt.total_hero_power, mtt.updated_at '
         . 'HAVING '
         . 'mtt.total_hero_power IS NOT NULL '

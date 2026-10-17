@@ -122,13 +122,15 @@ const MatchingEngine = {
    * Holt die aktuelle Mitgliederliste von LWHub
    */
   async fetchLwHubMembers(apiUrl, alliance) {
-    const url = `${apiUrl}/members?alliance=${encodeURIComponent(alliance)}`;
+    // scope=game: nur wer im Spiel in der Allianz ist. Ehrenrollen (z. B. Ehren-R4 aus einer anderen
+    // Allianz) fehlen im Spiel immer und duerfen weder Kachel-Ziel noch Archiv-Vorschlag sein.
+    const url = `${apiUrl}/members?alliance=${encodeURIComponent(alliance)}&scope=game`;
     const resp = await fetch(url);
     if (!resp.ok) {
       throw new Error(`Fehler beim Laden der Mitglieder (${resp.status}): ${await resp.text()}`);
     }
     const data = await resp.json();
-    return data.map(m => ({
+    return data.filter(m => !m.honor_role).map(m => ({
       id: m.id || m.player_id,
       name: m.name || m.current_name,
       rank: m.default_rank || m.current_rank_code || 3,

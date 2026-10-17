@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 function handleGetArchivedPlayers(PDO $pdo, string $discordId): never {
     if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
-    requireR5($pdo, $discordId);
+    $alliance = trim($_GET['alliance'] ?? '');
+    requireR5($pdo, $discordId, $alliance !== '' ? $alliance : null);
     ensureArchiveTables($pdo);
 
-    $alliance = strtoupper(trim($_GET['alliance'] ?? ''));
     if ($alliance !== '') {
         $stmt = $pdo->prepare("SELECT * FROM archived_players WHERE alliance = ? ORDER BY archived_at DESC");
         $stmt->execute([$alliance]);
@@ -84,13 +84,13 @@ function handleRestorePlayer(PDO $pdo, string $archiveIdEncoded, array $body): n
     try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
     catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
     if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
-    requireR5($pdo, $discordId);
 
     ensureArchiveTables($pdo);
     $stmt = $pdo->prepare("SELECT * FROM archived_players WHERE archive_id = ?");
     $stmt->execute([$archiveId]);
     $archived = $stmt->fetch();
     if (!$archived) jsonOut(404, ['error' => 'Archivierter Spieler nicht gefunden']);
+    requireR5($pdo, $discordId, $archived['alliance']);
 
     $check = $pdo->prepare("SELECT 1 FROM players WHERE alliance = ? AND current_name = ? LIMIT 1");
     $check->execute([$archived['alliance'], $archived['current_name']]);

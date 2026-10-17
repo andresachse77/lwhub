@@ -37,6 +37,10 @@ function handleTabHtml(PDO $pdo, string $alliance): never {
     }
 
     $member = getDiscordMember($pdo, $alliance, $discordId);
+    if (!$member && isSiteAdmin($pdo, $discordId)) {
+        // Betreiber ohne eigenen Char: sieht alles wie R5, die Schreibrouten weisen ihn ab
+        $member = siteViewerMember($discordId);
+    }
     if (!$member) {
         jsonOut(403, ['ok' => false, 'error' => 'Nicht berechtigt']);
     }
@@ -70,6 +74,12 @@ function handleVerifyDiscord(PDO $pdo, string $alliance): never {
     }
     if ($discordId === '') jsonOut(200, ['ok' => false, 'error' => 'Discord-ID fehlt']);
 
+    // Betreiber, der gerade eine Allianz ohne eigenen Char ansieht (user_active_char mit leerer player_id)
+    $viewAlliance = getSiteViewerAlliance($pdo, $discordId);
+    if ($viewAlliance !== null) {
+        jsonOut(200, siteViewerVerifyPayload($pdo, $viewAlliance, $discordId));
+    }
+
     // Resolve effective membership first (prefers server-side active char) to keep
     // re-login/reopen in the same alliance context across sessions/devices.
     $member = getDiscordMemberAcrossAlliances($pdo, $discordId);
@@ -78,6 +88,9 @@ function handleVerifyDiscord(PDO $pdo, string $alliance): never {
     } elseif (!$member) {
         // Backward-compatible fallback for installations without full cross-alliance linkage.
         $member = getDiscordMember($pdo, $alliance, $discordId);
+    }
+    if (!$member && isSiteAdmin($pdo, $discordId)) {
+        jsonOut(200, siteViewerVerifyPayload($pdo, $alliance, $discordId));
     }
     if (!$member) jsonOut(200, ['ok' => false, 'error' => 'Kein Zugriff']);
 
@@ -287,13 +300,15 @@ function handleListRankChangeLog(PDO $pdo, string $alliance): never {
     $rawLimit  = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
     $limit     = max(1, min(200, $rawLimit));
     $nameFilter = trim($_GET['name'] ?? '');
+    // Rangwechsel von Ehren-Eintraegen gehoeren nicht ins Protokoll der Allianz
+    $noHonor = "AND (player_id IS NULL OR player_id NOT IN (SELECT hp.player_id FROM players hp WHERE hp.alliance = rank_change_log.alliance AND NOT " . sqlNoHonor('hp') . "))";
 
     if ($nameFilter !== '') {
         $stmt = $pdo->prepare("
             SELECT player_name, old_rank_code, requested_rank_code, applied_rank_code,
                    source, is_blocked, reason, created_at
             FROM rank_change_log
-            WHERE alliance = ? AND LOWER(TRIM(player_name)) = LOWER(TRIM(?))
+            WHERE alliance = ? AND LOWER(TRIM(player_name)) = LOWER(TRIM(?)) {$noHonor}
             ORDER BY created_at DESC
             LIMIT {$limit}
         ");
@@ -303,7 +318,7 @@ function handleListRankChangeLog(PDO $pdo, string $alliance): never {
             SELECT player_name, old_rank_code, requested_rank_code, applied_rank_code,
                    source, is_blocked, reason, created_at
             FROM rank_change_log
-            WHERE alliance = ?
+            WHERE alliance = ? {$noHonor}
             ORDER BY created_at DESC
             LIMIT {$limit}
         ");
@@ -319,6 +334,18 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
     ensurePreferredLanguageColumn($pdo);
     ensureScannerColumns($pdo);
 
+    // ?scope=game: nur wer im Spiel in der Allianz ist (ohne Ehrenrollen) – fuer Scanner und Auswertungen.
+    // Ohne scope kommen alle, damit die Verwaltung die Ehren-Eintraege anzeigen und pflegen kann.
+    $gameFilter = ($_GET['scope'] ?? '') === 'game' ? 'AND ' . sqlNoHonor() : '';
+
+    // Heimat-Allianz eines Ehren-Eintrags: Freitext, der auf eine angelegte Allianz verweist, wenn das Kuerzel passt
+    $knownAlliances = [];
+    try {
+        foreach ($pdo->query("SELECT alliance, alliance_name FROM alliances")->fetchAll() as $a) {
+            $knownAlliances[strtolower($a['alliance'])] = $a;
+        }
+    } catch (\PDOException) {}
+
     $aliasesByPlayer = [];
     try {
         $aliasStmt = $pdo->prepare("SELECT player_id, player_name FROM player_name_history WHERE alliance = ?");
@@ -329,7 +356,7 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
     } catch (\PDOException) {}
 
     $stmt = $pdo->prepare("
-        SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.honor_role, p.last_visit_at, p.preferred_language,
+        SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.honor_role, p.honor_home, p.last_visit_at, p.preferred_language,
                p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
                p.current_power, p.hq_level, p.last_scanned_at, p.last_seen_status,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
@@ -353,13 +380,13 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
         LEFT JOIN discord_profile_cache dpc
             ON dpc.alliance = p.alliance
            AND dpc.discord_user_id = COALESCE(pid.discord_user_id, puld.discord_user_id)
-        WHERE p.alliance = ? AND p.is_active = 1
+        WHERE p.alliance = ? AND p.is_active = 1 {$gameFilter}
         ORDER BY p.current_name
     ");
     $stmt->execute([$alliance]);
     $rows = $stmt->fetchAll();
 
-    $result = array_map(static function($r) use ($aliasesByPlayer): array {
+    $result = array_map(static function($r) use ($aliasesByPlayer, $knownAlliances): array {
         $rank = safeRank((int)$r['current_rank_code']);
         $honorRole = normalizeHonorRole($r['honor_role'] ?? null);
         $effectiveRank = effectiveRankForAccess($rank, $honorRole);
@@ -372,6 +399,9 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
             'default_rank'       => $rank,
             'role'               => roleFromMemberState($rank, $honorRole),
             'honor_role'         => $honorRole,
+            'honor_home'         => $honorRole !== null ? ($r['honor_home'] ?? null) : null,
+            'honor_home_alliance'=> $honorRole !== null && !empty($r['honor_home'])
+                ? ($knownAlliances[strtolower((string)$r['honor_home'])]['alliance'] ?? null) : null,
             'can_manage'         => $effectiveRank >= 4,
             'can_write'          => $canWrite,
             'read_only'          => !$canWrite,
@@ -399,6 +429,8 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
 function handleAddMember(PDO $pdo, string $alliance, array $body, array $protectedNames): never {
     ensurePreferredLanguageColumn($pdo);
     ensureHonorRoleColumn($pdo);
+    // body.discord_id ist hier die Discord-ID des neuen Mitglieds; der Aufrufer kommt aus Token/X-Discord-Id
+    requireAllianceWriter($pdo, $alliance, 4);
     $name = trim($body['name'] ?? '');
     if ($name === '') jsonOut(400, ['error' => 'Name fehlt']);
 
@@ -430,16 +462,17 @@ function handleAddMember(PDO $pdo, string $alliance, array $body, array $protect
     } catch (\InvalidArgumentException $e) {
         jsonOut(400, ['error' => $e->getMessage()]);
     }
+    $honorHome     = $honorRole !== null ? normalizeHonorHome($body['honor_home'] ?? null) : null;
     $protection    = applyProtectedRankRule($name, $requestedRank, $protectedNames);
     $rank          = $protection['effectiveRank'];
-    if ($honorRole === 'honor_r4' && $rank < 4) $rank = 4;
+    if ($honorRole === 'honor_r4') $rank = 4;
     $playerId      = uuid4();
     $nameEventId   = uuid4();
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, honor_role, preferred_language, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)");
-        $stmt->execute([$alliance, $playerId, $name, $rank, $honorRole, $preferredLanguage]);
+        $stmt = $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, honor_role, honor_home, preferred_language, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)");
+        $stmt->execute([$alliance, $playerId, $name, $rank, $honorRole, $honorHome, $preferredLanguage]);
 
         if ($requestedRank !== $rank || isProtectedR4Member($name, $protectedNames)) {
             logRankChange($pdo, $alliance, [
@@ -482,7 +515,7 @@ function handleTransferPlayer(PDO $pdo, string $fromAlliance, string $nameEncode
     try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
     catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
     if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
-    requireR5($pdo, $discordId);
+    requireR5($pdo, $discordId, $fromAlliance);
 
     $toAlliance = trim($body['to_alliance'] ?? '');
     if ($toAlliance === '') jsonOut(400, ['error' => 'Ziel-Allianz fehlt']);
@@ -492,10 +525,13 @@ function handleTransferPlayer(PDO $pdo, string $fromAlliance, string $nameEncode
     $aStmt->execute([$toAlliance]);
     if (!$aStmt->fetch()) jsonOut(404, ['error' => 'Ziel-Allianz nicht gefunden']);
 
-    $stmt = $pdo->prepare("SELECT player_id, current_rank_code FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
+    $stmt = $pdo->prepare("SELECT player_id, current_rank_code, honor_role FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
     $stmt->execute([$fromAlliance, $name]);
     $player = $stmt->fetch();
     if (!$player) jsonOut(404, ['error' => 'Spieler nicht gefunden']);
+    if (normalizeHonorRole($player['honor_role'] ?? null) !== null) {
+        jsonOut(400, ['error' => 'Ehren-Eintraege werden nicht verschoben – in der Heimat-Allianz bitte einen eigenen Eintrag anlegen']);
+    }
 
     $check = $pdo->prepare("SELECT 1 FROM players WHERE alliance = ? AND current_name = ? LIMIT 1");
     $check->execute([$toAlliance, $name]);
@@ -542,6 +578,8 @@ function handleTransferPlayer(PDO $pdo, string $fromAlliance, string $nameEncode
 function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, array $body, array $protectedNames): never {
     ensurePreferredLanguageColumn($pdo);
     ensureHonorRoleColumn($pdo);
+    // body.discord_id ist hier die Discord-ID des bearbeiteten Mitglieds; der Aufrufer kommt aus Token/X-Discord-Id
+    requireAllianceWriter($pdo, $alliance, 4);
     $oldName = rawurldecode($oldNameEncoded);
     $newName = trim($body['name'] ?? $oldName);
     if ($newName === '') jsonOut(400, ['error' => 'Name fehlt']);
@@ -588,12 +626,15 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
 
     $pdo->beginTransaction();
     try {
+        if ($honorRole === 'honor_r4') $rank = 4;
+        if ($honorRole === null || array_key_exists('honor_home', $body)) {
+            $pdo->prepare("UPDATE players SET honor_home = ? WHERE alliance = ? AND player_id = ?")
+                ->execute([$honorRole !== null ? normalizeHonorHome($body['honor_home'] ?? null) : null, $alliance, $playerId]);
+        }
         if ($preferredLanguageSet) {
-            if ($honorRole === 'honor_r4' && $rank < 4) $rank = 4;
             $stmt = $pdo->prepare("UPDATE players SET current_name = ?, current_rank_code = ?, honor_role = ?, preferred_language = ?, is_active = 1, retired_at = NULL WHERE alliance = ? AND player_id = ?");
             $stmt->execute([$newName, $rank, $honorRole, $preferredLanguage, $alliance, $playerId]);
         } else {
-            if ($honorRole === 'honor_r4' && $rank < 4) $rank = 4;
             $stmt = $pdo->prepare("UPDATE players SET current_name = ?, current_rank_code = ?, honor_role = ?, is_active = 1, retired_at = NULL WHERE alliance = ? AND player_id = ?");
             $stmt->execute([$newName, $rank, $honorRole, $alliance, $playerId]);
         }
@@ -664,7 +705,7 @@ function handleSetMemberLanguage(PDO $pdo, string $alliance, string $nameEncoded
         jsonOut(400, ['error' => $e->getMessage()]);
     }
 
-    $requester = getDiscordMember($pdo, $alliance, $discordId);
+    $requester = requireAllianceWriter($pdo, $alliance, 1, true, $discordId)['member'];
     if (!$requester) jsonOut(403, ['error' => 'Nicht berechtigt']);
 
     $targetStmt = $pdo->prepare("SELECT player_id, current_name FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
@@ -748,6 +789,7 @@ function archivePlayerInternal(PDO $pdo, string $alliance, string $playerId, ?st
 }
 
 function handleDeleteMember(PDO $pdo, string $alliance, string $nameEncoded, array $body = []): never {
+    requireAllianceWriter($pdo, $alliance, 4, false, (string)($body['discord_id'] ?? ''));
     $name = rawurldecode($nameEncoded);
     $stmt = $pdo->prepare("SELECT player_id FROM players WHERE alliance = ? AND current_name = ?");
     $stmt->execute([$alliance, $name]);
@@ -792,6 +834,7 @@ function handleArchiveMemberById(PDO $pdo, string $alliance, string $idOrNameEnc
 }
 
 function handleSwapIdToDiscord(PDO $pdo, string $alliance, string $nameEncoded): never {
+    requireAllianceWriter($pdo, $alliance, 4);
     $name = rawurldecode($nameEncoded);
     $stmt = $pdo->prepare("
         SELECT p.player_id, p.current_name, p.current_rank_code, p.is_active, p.created_at, p.retired_at,
@@ -853,7 +896,7 @@ function handleGetSeInactive(PDO $pdo, string $alliance): never {
         jsonOut(200, ['weeks' => [], 'inactive' => []]);
     }
 
-    $stmt = $pdo->prepare("SELECT player_id, current_name FROM players WHERE alliance = ? AND is_active = 1 ORDER BY current_name");
+    $stmt = $pdo->prepare("SELECT player_id, current_name FROM players WHERE alliance = ? AND is_active = 1 AND " . sqlNoHonor('') . " ORDER BY current_name");
     $stmt->execute([$alliance]);
     $allPlayers = $stmt->fetchAll();
 
@@ -938,7 +981,7 @@ function handleGetRankingHistory(PDO $pdo, string $alliance): never {
         jsonOut(200, ['weeks' => [], 'players' => [], 'currentKwFiltered' => $currentKwFiltered]);
     }
 
-    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code FROM players WHERE alliance = ? AND is_active = 1 ORDER BY current_name");
+    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code FROM players WHERE alliance = ? AND is_active = 1 AND " . sqlNoHonor('') . " ORDER BY current_name");
     $stmt->execute([$alliance]);
     $allPlayers = $stmt->fetchAll();
 
@@ -977,11 +1020,15 @@ function handleApplyRankChange(PDO $pdo, string $alliance, array $body, array $p
     if ($name === '') jsonOut(400, ['error' => 'Name fehlt']);
     if ($newRank < 1 || $newRank > 5) jsonOut(400, ['error' => 'Ungültiger Rang']);
     if ($confirm === '') jsonOut(400, ['error' => 'Bestätigung fehlt']);
+    requireAllianceWriter($pdo, $alliance, 4, false, (string)($body['discord_id'] ?? ''));
 
-    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code FROM players WHERE alliance = ? AND current_name = ?");
+    $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code, honor_role FROM players WHERE alliance = ? AND current_name = ?");
     $stmt->execute([$alliance, $name]);
     $player = $stmt->fetch();
     if (!$player) jsonOut(404, ['error' => 'Spieler nicht gefunden']);
+    if (normalizeHonorRole($player['honor_role'] ?? null) !== null) {
+        jsonOut(400, ['error' => 'Ehrenrollen haben keinen Spielrang in dieser Allianz']);
+    }
 
     if ($player['current_rank_code'] >= 4 || $newRank >= 4) {
         jsonOut(403, ['error' => 'R4/R5 können nicht über dieses Tool geändert werden']);
@@ -1032,7 +1079,7 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
     }
     if ($requestDiscordId === '') jsonOut(403, ['error' => 'Nicht autorisiert']);
 
-    $requester = getDiscordMember($pdo, $alliance, $requestDiscordId);
+    $requester = requireAllianceWriter($pdo, $alliance, 1, true, $requestDiscordId)['member'];
     if (!$requester) jsonOut(403, ['error' => 'Nicht berechtigt']);
 
     $requesterRank = safeRank((int)$requester['current_rank_code']);
@@ -1042,7 +1089,7 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
         jsonOut(403, ['error' => 'Nur eigene Berufsdaten erlaubt']);
     }
 
-    $stmt = $pdo->prepare("SELECT player_id FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
+    $stmt = $pdo->prepare("SELECT player_id FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 AND " . sqlNoHonor('') . " LIMIT 1");
     $stmt->execute([$alliance, $targetName]);
     $target = $stmt->fetch();
     if (!$target) jsonOut(404, ['error' => 'Mitglied nicht gefunden']);
@@ -1056,14 +1103,14 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
 
     if ($winwin !== null) {
         $maxEngineers = getBerufeMaxEngineersPerKriegsherr($pdo, $alliance);
-        $chk = $pdo->prepare("SELECT beruf FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
+        $chk = $pdo->prepare("SELECT beruf FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 AND " . sqlNoHonor('') . " LIMIT 1");
         $chk->execute([$alliance, $winwin]);
         $chkRow = $chk->fetch();
         if (!$chkRow || $chkRow['beruf'] !== 'kriegsherr') {
             jsonOut(400, ['error' => 'Win-Win Ziel ist kein Kriegsherr']);
         }
         $cntStmt = $pdo->prepare(
-            "SELECT COUNT(*) AS cnt FROM players WHERE alliance = ? AND beruf_winwin = ? AND player_id != ? AND is_active = 1"
+            "SELECT COUNT(*) AS cnt FROM players WHERE alliance = ? AND beruf_winwin = ? AND player_id != ? AND is_active = 1 AND " . sqlNoHonor('')
         );
         $cntStmt->execute([$alliance, $winwin, $target['player_id']]);
         if ((int)($cntStmt->fetch()['cnt'] ?? 0) >= $maxEngineers) {
@@ -1233,9 +1280,14 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
             $archTarget = trim((string)$archTarget);
             if ($archTarget === '') continue;
             // Can be player_id or current_name
-            $stmt = $pdo->prepare("SELECT player_id FROM players WHERE alliance = ? AND (player_id = ? OR current_name = ?) LIMIT 1");
+            $stmt = $pdo->prepare("SELECT player_id, current_name, honor_role FROM players WHERE alliance = ? AND (player_id = ? OR current_name = ?) LIMIT 1");
             $stmt->execute([$targetAlliance, $archTarget, $archTarget]);
             $pRow = $stmt->fetch();
+            // Ehrenrollen stehen im Spiel nie in der Mitgliederliste – fehlen ist bei ihnen kein Grund zum Archivieren
+            if ($pRow && normalizeHonorRole($pRow['honor_role'] ?? null) !== null) {
+                $conflicts[] = ['name' => $pRow['current_name'], 'blocked' => true, 'reason' => 'honor-not-archivable'];
+                continue;
+            }
             if ($pRow) {
                 if (archivePlayerInternal($pdo, $targetAlliance, $pRow['player_id'], 'scanner_sync')) {
                     $summary['archived']++;
@@ -1287,6 +1339,13 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 $stmt = $pdo->prepare("SELECT player_id, current_name, alliance, current_rank_code, honor_role FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
                 $stmt->execute([$targetAlliance, $name]);
                 $player = $stmt->fetch();
+            }
+
+            // Ehrenrollen sind im Spiel nicht in dieser Allianz: ein Treffer ist ein Namensvetter oder OCR-Zufall.
+            // Nichts uebernehmen (keine Werte, kein Rang), damit sie in keiner Auswertung auftauchen.
+            if ($player && normalizeHonorRole($player['honor_role'] ?? null) !== null) {
+                $conflicts[] = ['name' => $name, 'blocked' => true, 'reason' => 'honor-role-not-in-game'];
+                continue;
             }
 
             if ($player) {
@@ -1360,7 +1419,9 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                     $summary['restored']++;
                     $details[] = ['name' => $name, 'action' => 'restored', 'player_id' => $finalPlayerId, 'rank' => $finalRank];
                 } else {
-                    $otherStmt = $pdo->prepare("SELECT player_id, alliance, current_rank_code, honor_role FROM players WHERE current_name = ? AND is_active = 1 LIMIT 1");
+                    // Ehren-Eintraege nie verschieben: der Ehren-R4 einer Gast-Allianz behaelt dort seine Rolle,
+                    // auch wenn ihn seine Heimat-Allianz scannt (dort bekommt er einen eigenen Eintrag).
+                    $otherStmt = $pdo->prepare("SELECT player_id, alliance, current_rank_code, honor_role FROM players WHERE current_name = ? AND is_active = 1 AND " . sqlNoHonor('') . " LIMIT 1");
                     $otherStmt->execute([$name]);
                     $other = $otherStmt->fetch();
 

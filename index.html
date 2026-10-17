@@ -2152,6 +2152,8 @@ async function checkDiscordAuth() {
     rank: verify.rank || null,
     role: verify.role || 'normal',
     honor_role: verify.honor_role || null,
+    site_viewer: !!verify.site_viewer,
+    can_set_features: !!verify.can_set_features,
     can_manage: !!verify.can_manage,
     can_write: verify.can_write !== false,
     read_only: !!verify.read_only,
@@ -2173,10 +2175,23 @@ async function checkDiscordAuth() {
   return verify;
 }
 
+// Anmeldung fuer den Server (Konzept v2, A9): Discord-Token zum Pruefen und die eigene Discord-ID.
+// Der Server liest die Rolle daraus selbst (Ehrenrollen und Zuschauer duerfen nichts aendern).
+function lwhubAuthHeaders() {
+  const headers = {};
+  try {
+    const token = localStorage.getItem('discord_token');
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch (_) {}
+  if (authMember?.discord_id) headers['X-Discord-Id'] = String(authMember.discord_id);
+  return headers;
+}
+
 async function fetchJson(path, options = {}) {
   if (!API_BASE_CANDIDATES.length) {
     throw new Error('API nicht konfiguriert');
   }
+  options = { ...options, headers: { ...lwhubAuthHeaders(), ...(options.headers || {}) } };
   try {
     const normalizedPath = String(path || '').toLowerCase();
     if (!normalizedPath.startsWith('/verify-discord')) {
@@ -2243,6 +2258,8 @@ async function api(action, params = {}) {
         beruf_med_hilfe: !!m.beruf_med_hilfe,
         beruf_winwin: m.beruf_winwin || null,
         honor_role: m.honor_role || null,
+        honor_home: m.honor_home || null,
+        honor_home_alliance: m.honor_home_alliance || null,
         can_write: m.can_write !== false,
         read_only: !!m.read_only,
       }));
@@ -2304,6 +2321,7 @@ async function apiPost(data) {
           default_rank: data.rank,
           role: data.role,
           honor_role: data.honor_role || null,
+          honor_home: data.honor_home || null,
           discord_id: data.discord_id || undefined
         })
       });
@@ -2319,6 +2337,7 @@ async function apiPost(data) {
           default_rank: data.rank,
           role: data.role,
           honor_role: data.honor_role || null,
+          honor_home: data.honor_home || null,
           discord_id: data.discordId
         })
       });
@@ -2699,6 +2718,8 @@ async function loadMembers() {
       id: m.id || null,
       alliance: m.alliance || 'INY',
       honorRole,
+      honorHome: m.honor_home || null,
+      honorHomeAlliance: m.honor_home_alliance || null,
       canWrite: m.can_write !== false,
       readOnly: !!m.read_only,
       discordId: m.discord_id || null,
@@ -2849,8 +2870,13 @@ function initR4Listeners() {
     if (btn._listenerAttached) return;
     btn._listenerAttached = true;
     btn.addEventListener('click', function() {
-      vNewRank = parseInt(this.dataset.vr);
+      // "honor" = Ehren-R4: Gast aus einer anderen Allianz, sieht alles wie R4, aendert nichts, zaehlt nicht mit
+      vNewHonor = this.dataset.vr === 'honor';
+      vNewRank = vNewHonor ? 4 : parseInt(this.dataset.vr);
       document.querySelectorAll('.vrank-btn').forEach(b => b.classList.toggle('on', b.dataset.vr === this.dataset.vr));
+      const homeWrap = document.getElementById('v-new-home-wrap');
+      if (homeWrap) homeWrap.hidden = !vNewHonor;
+      if (vNewHonor) fillHonorHomeAllianceList();
     });
   });
 
@@ -2860,17 +2886,23 @@ function initR4Listeners() {
     vAddBtn.addEventListener('click', async function() {
       const name = document.getElementById('v-new-name').value.trim();
       if (!name) { toast('Bitte einen Namen eingeben!'); return; }
-      if (members.includes(name)) { toast('Mitglied existiert bereits!'); return; }
+      if (members.includes(name) || honorMembers.includes(name)) { toast('Mitglied existiert bereits!'); return; }
       const role = vNewRank === 5 ? 'r5' : vNewRank === 4 ? 'r4' : 'normal';
       const discordId = (document.getElementById('v-new-discord')?.value || '').trim();
+      const honorHome = vNewHonor ? (document.getElementById('v-new-home')?.value || '').trim() : '';
+      if (vNewHonor && !discordId) { toast(tr('Ehren-R4 brauchen eine Discord-ID, sonst können sie sich nicht anmelden.')); return; }
       try {
-        await apiPost({ action: 'add_member', name, rank: vNewRank, role, discord_id: discordId || undefined });
+        await apiPost({
+          action: 'add_member', name, rank: vNewRank, role, discord_id: discordId || undefined,
+          honor_role: vNewHonor ? 'honor_r4' : null, honor_home: honorHome || null,
+        });
       } catch(e) {
         toast(e.message || 'Fehler beim Hinzufügen'); return;
       }
       await loadMembers();
       document.getElementById('v-new-name').value = '';
       if (document.getElementById('v-new-discord')) document.getElementById('v-new-discord').value = '';
+      if (document.getElementById('v-new-home')) document.getElementById('v-new-home').value = '';
       renderVerwaltung();
       toast(name + ' hinzugefügt!');
     });
@@ -5337,6 +5369,22 @@ async function spendeSet(name, type) {
 }
 window.spendeSet = spendeSet;
 let vNewRank=3;
+let vNewHonor=false; // "Ehren-R4" im Formular "Mitglied hinzufügen" gewählt
+
+// Vorschläge für die Heimat-Allianz: die in lwhub angelegten Allianzen (Freitext bleibt möglich)
+let honorHomeAlliancesLoaded = false;
+async function fillHonorHomeAllianceList() {
+  if (honorHomeAlliancesLoaded) return;
+  const list = document.getElementById('v-alliance-list');
+  if (!list) return;
+  try {
+    const data = await fetchJson('/alliances');
+    list.innerHTML = (data.alliances || [])
+      .map(a => `<option value="${escHtml(a.short_name)}">${escHtml(a.title || a.short_name)}</option>`).join('');
+    honorHomeAlliancesLoaded = true;
+  } catch (_) { /* Freitext reicht */ }
+}
+window.fillHonorHomeAllianceList = fillHonorHomeAllianceList;
 
 let editingMember=null;
 let vDetailOpen=null; // name of member with expanded detail in Verwaltung
@@ -5929,13 +5977,17 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
 function renderVerwaltung(filter=''){
   const missingDiscord = members.filter((n) => !memberMeta[n]?.discordConnected).length;
   const pendingAccess = accessRequests.length;
-  const totalMembers = members.length + honorMembers.length;
+  // Ehrenrollen sind im Spiel nicht in der Allianz und zaehlen nicht mit (eigene Zeilen unten)
+  const totalMembers = members.length;
+  const honorR4Count = honorMembers.filter(n => memberMeta[n]?.honorRole === 'honor_r4').length;
+  const honorMemberCount = honorMembers.length - honorR4Count;
   document.getElementById('v-stats').innerHTML=`
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Gesamt'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--gold);">${totalMembers}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('R5 Chef'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--purple);">${R5.size}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('R4 Leader'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--red);">${R4.size}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">R1–R3</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--green);">${members.filter(n=>!R4.has(n)&&!R5.has(n)).length}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Ehrenmitglieder'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:#7fb8ff;">${honorMembers.length}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Ehren-R4'))} <span style="font-size:11px;color:var(--softer);">(${escHtml(tr('zählen nicht mit'))})</span></span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:#7fb8ff;">${honorR4Count}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Ehrenmitglieder'))} <span style="font-size:11px;color:var(--softer);">(${escHtml(tr('zählen nicht mit'))})</span></span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:#7fb8ff;">${honorMemberCount}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Discord noch offen'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${missingDiscord ? 'var(--red)' : 'var(--green)'};">${missingDiscord}</span></div>
     <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Login-Anfragen offen'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${pendingAccess ? 'var(--blue)' : 'var(--green)'};">${pendingAccess}</span></div>`;
 
@@ -5954,7 +6006,8 @@ function renderVerwaltung(filter=''){
     const meta = memberMeta[name] || {};
     const honorRole = meta.honorRole || null;
     const isHonor = !!honorRole;
-    const honorBadgeText = honorRole === 'honor_r4' ? tr('Ehren R4') : (honorRole === 'honor_member' ? tr('Ehrenmitglied') : '');
+    const honorBadgeText = (honorRole === 'honor_r4' ? tr('Ehren R4') : (honorRole === 'honor_member' ? tr('Ehrenmitglied') : ''))
+      + (isHonor && meta.honorHome ? ` · ${meta.honorHome}` : '');
     const esc = name.replace(/'/g,"\\'");
     const effectiveAvatar = getEffectiveAvatarUrl(meta);
     const avatar = effectiveAvatar
@@ -6002,6 +6055,10 @@ function renderVerwaltung(filter=''){
               <option value="honor_member" ${honorRole==='honor_member'?'selected':''}>${escHtml(tr('Ehrenmitglied'))}</option>
               <option value="honor_r4" ${honorRole==='honor_r4'?'selected':''}>${escHtml(tr('Ehren R4'))}</option>
             </select>
+          </div>
+          <div style="margin-bottom:10px;">
+            <div class="vlabel">${escHtml(tr('Heimat-Allianz'))} <span style="color:var(--soft);font-size:11px;font-weight:400">(${escHtml(tr('nur bei Ehrenrolle'))})</span></div>
+            <input class="vinput" id="v-edit-honor-home" list="v-alliance-list" value="${escHtml(meta.honorHome||'')}" placeholder="${escHtml(tr('z. B. IvX'))}" maxlength="50" onfocus="fillHonorHomeAllianceList()">
           </div>`;
       } else {
         const lastVisitStr = meta.lastVisitAt
@@ -6011,6 +6068,7 @@ function renderVerwaltung(filter=''){
           <div style="font-size:11px;color:var(--soft);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px;">
             <span>Discord-ID: ${escHtml(meta.discordId||'–')}${meta.discordUsername?` (${escHtml(meta.discordUsername)})`:''}</span>
             <span>·</span><span>${escHtml(tr('Spieler-ID'))}: ${escHtml(meta.id||'–')}</span>
+            ${isHonor ? `<span>·</span><span>${escHtml(tr('Heimat-Allianz'))}: ${escHtml(meta.honorHome||'–')}${meta.honorHomeAlliance ? ' ✓ lwhub' : ''}</span>` : ''}
             ${lastVisitStr?`<span style="color:#6aabff;">· 🕐 ${lastVisitStr}</span>`:`<span style="color:var(--softer);">· ${escHtml(tr('Noch nie eingeloggt'))}</span>`}
           </div>`;
       }
@@ -6057,7 +6115,7 @@ function renderVerwaltung(filter=''){
     }
 
     const honorSectionHeader = (shownHonor.length && idx === shownActive.length)
-      ? `<div style="margin:14px 0 8px;padding:8px 10px;border:1px solid rgba(127,184,255,0.35);background:rgba(74,158,255,0.08);border-radius:10px;font-size:12px;font-weight:700;letter-spacing:.5px;color:#9cc7ff;text-transform:uppercase;">${escHtml(tr('Ehrenmitglieder'))}</div>`
+      ? `<div style="margin:14px 0 8px;padding:8px 10px;border:1px solid rgba(127,184,255,0.35);background:rgba(74,158,255,0.08);border-radius:10px;font-size:12px;font-weight:700;letter-spacing:.5px;color:#9cc7ff;text-transform:uppercase;">${escHtml(tr('Ehrenrollen'))} <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--soft);">· ${escHtml(tr('sehen zu, ändern nichts, zählen nicht mit'))}</span></div>`
       : '';
 
     return `${honorSectionHeader}<div class="v-row-wrap${isOpen?' is-open':''}" onclick="toggleVerwaltungRow('${esc}')">
@@ -6202,6 +6260,7 @@ async function saveMemberEdit(oldName){
   const newName=document.getElementById('v-edit-input')?.value.trim();
   const newRank=parseInt(document.getElementById('v-edit-rank')?.value||3);
   const honorRole=(document.getElementById('v-edit-honor-role')?.value || '').trim() || null;
+  const honorHome=honorRole ? ((document.getElementById('v-edit-honor-home')?.value || '').trim() || null) : null;
   const discordIdRaw=document.getElementById('v-edit-discord')?.value.trim() || '';
   if(!newName){toast('Name darf nicht leer sein!');return;}
   if(discordIdRaw && !/^\d{5,30}$/.test(discordIdRaw)){
@@ -6209,7 +6268,7 @@ async function saveMemberEdit(oldName){
     return;
   }
   const role = newRank===5?'r5':newRank===4?'r4':'normal';
-  await apiPost({ action: 'edit_member', oldName, newName, rank: newRank, role, honor_role: honorRole, discordId: discordIdRaw });
+  await apiPost({ action: 'edit_member', oldName, newName, rank: newRank, role, honor_role: honorRole, honor_home: honorHome, discordId: discordIdRaw });
   await loadMembers();
   await loadEntries();
   if (vDetailOpen === oldName) vDetailOpen = newName;
@@ -6744,7 +6803,7 @@ async function adminApi(path, options = {}) {
     const b = p.endsWith('/') ? p : p.replace(/[^/]*$/, '');
     return `${window.location.origin}${b}api`;
   })();
-  const res = await fetch(base + path, options);
+  const res = await fetch(base + path, { ...options, headers: { ...lwhubAuthHeaders(), ...(options.headers || {}) } });
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;

@@ -2,14 +2,14 @@
 declare(strict_types=1);
 
 // ─── Kampfkraft-Verlauf fuer die Trend-Seite (web-scanner-onnx/trend.html) ──────────────────────
-// GET /scans/power-history?alliance=X&weeks=8  – nur R4/R5 der Allianz bzw. Site-Admins (wie der Scanner).
+// GET /scans/power-history?alliance=X&weeks=8  – zum Ansehen: R4/R5, Ehren-R4 und Site-Admins.
 // Liefert je aktivem Spieler einen Wert pro Kalendertag. Gibt es an einem Tag mehrere Messungen,
 // gewinnt der genaue Ranglisten-Wert (ganze Zahl) vor dem auf 0,1 Mio. gerundeten Wert aus der
 // Mitgliederliste, sonst die spaeteste Messung. Die Auswertung (Wochen, Samstag-Opfer, Schwankung)
 // passiert in der Seite.
 
 function handlePowerHistory(PDO $pdo, string $alliance): never {
-    requireScannerAccess($pdo, $alliance);
+    requireScannerAccess($pdo, $alliance, null, true);
 
     $weeks = max(1, min(26, (int)($_GET['weeks'] ?? 8)));
     $since = date('Y-m-d', strtotime("monday this week -" . ($weeks - 1) . " weeks"));
@@ -17,7 +17,7 @@ function handlePowerHistory(PDO $pdo, string $alliance): never {
     $players = [];
     $stmt = $pdo->prepare('
         SELECT player_id, current_name, current_rank_code, current_power, honor_role
-        FROM players WHERE alliance = ? AND is_active = 1
+        FROM players WHERE alliance = ? AND is_active = 1 AND ' . sqlNoHonor('') . '
     ');
     $stmt->execute([$alliance]);
     foreach ($stmt as $p) {
@@ -67,12 +67,13 @@ function handlePowerHistory(PDO $pdo, string $alliance): never {
 }
 
 /**
- * GET /scans/vs-week?alliance=X&year_week=2642 – gescannte VS-Wochenpunkte je Spieler (R4/R5), fuer
+ * GET /scans/vs-week?alliance=X&year_week=2642 – gescannte VS-Wochenpunkte je Spieler (ansehen: R4/R5,
+ * Ehren-R4, Site-Admins), fuer
  * "Aus Scanner uebernehmen" im VS-Event der Hauptseite. Platz = Reihenfolge nach Wochenpunkten unter den
  * aktiven Mitgliedern. Dazu die Tageswerte und welche Tage ueberhaupt gescannt wurden.
  */
 function handleVsWeek(PDO $pdo, string $alliance): never {
-    requireScannerAccess($pdo, $alliance);
+    requireScannerAccess($pdo, $alliance, null, true);
     $yearWeek = (int)($_GET['year_week'] ?? 0);
     if ($yearWeek < 1000 || $yearWeek > 9953) jsonOut(400, ['error' => 'Ungueltige Woche']);
 
@@ -81,6 +82,7 @@ function handleVsWeek(PDO $pdo, string $alliance): never {
         FROM player_metrics m
         JOIN players p ON p.alliance = m.alliance AND p.player_id = m.player_id AND p.is_active = 1
         WHERE m.alliance = ? AND m.year_week = ? AND m.metric_type IN ('VS_DAY', 'VS_WEEK')
+          AND " . sqlNoHonor() . "
     ");
     $stmt->execute([$alliance, $yearWeek]);
     $players = [];

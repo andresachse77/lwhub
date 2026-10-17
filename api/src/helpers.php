@@ -85,6 +85,22 @@ function memberCanWrite(?string $honorRole): bool {
     return $honorRole === null;
 }
 
+/**
+ * SQL-Bedingung "Spieler ohne Ehrenrolle". Ehrenrollen sind im Spiel nicht in der Allianz und zaehlen
+ * deshalb in keiner Auswertung mit (Mitgliederzahl, Wochen, VS, Kampfkraft, Zug, Inaktiv-Listen ...).
+ */
+function sqlNoHonor(string $alias = 'p'): string {
+    $col = $alias !== '' ? "{$alias}.honor_role" : 'honor_role';
+    return "({$col} IS NULL OR {$col} NOT IN ('honor_r4', 'honor_member'))";
+}
+
+/** Heimat-Allianz eines Ehren-Eintrags: Freitext (max. 50 Zeichen) oder Kuerzel einer angelegten Allianz. */
+function normalizeHonorHome(mixed $value): ?string {
+    $home = trim((string)($value ?? ''));
+    if ($home === '') return null;
+    return preg_replace('/^(.{50}).+$/us', '$1', $home) ?? $home; // hoechstens 50 Zeichen (UTF-8)
+}
+
 function normalizePreferredLanguage(mixed $value): string {
     $lang = strtolower(trim((string)($value ?? '')));
     if ($lang === '') return 'de';

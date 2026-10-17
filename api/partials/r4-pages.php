@@ -417,7 +417,14 @@
             <button class="vrank-btn on" data-vr="3">3 · Elite</button>
             <button class="vrank-btn" data-vr="4">4 · Leader</button>
             <button class="vrank-btn" data-vr="5">5 · <span data-i18n="s_chef">Chef</span></button>
+            <button class="vrank-btn" data-vr="honor" title="Gast aus einer anderen Allianz: sieht alles wie ein R4, ändert nichts, zählt nirgends mit">👁 <span data-i18n="s_ehren_r4">Ehren-R4</span></button>
           </div>
+        </div>
+        <div id="v-new-home-wrap" hidden>
+          <div class="vlabel"><span data-i18n="s_heimat_allianz">Heimat-Allianz</span></div>
+          <input class="vinput" id="v-new-home" list="v-alliance-list" placeholder="z. B. IvX" type="text" maxlength="50">
+          <datalist id="v-alliance-list"></datalist>
+          <div style="font-size:11px;color:var(--soft);margin-top:4px;" data-i18n="s_ehren_r4_hint">Ehren-R4 sehen alles wie ein R4, können aber nichts ändern und zählen nirgends mit. Die Discord-ID ist Pflicht, damit sie sich anmelden können.</div>
         </div>
         <button class="save-btn" id="v-add-btn" style="margin-top:4px;">+ <span data-i18n="s_hinzufuegen">Hinzufügen</span></button>
       </div>
@@ -483,14 +490,20 @@
 
 </div>
 
-<?php if (scannerTabAllowed($member)): ?>
+<?php if (scannerViewAllowed($member)): $canScan = scannerTabAllowed($member); ?>
 <!-- ═══ SCANNER (web-scanner-onnx, OCR im Browser) – iframe wird erst beim ersten Oeffnen geladen ═══ -->
+<!-- Ehren-R4 und Betreiber-Zuschauer sehen nur den Kampfkraft-Trend, scannen und hochladen koennen sie nicht -->
 <div class="page" id="page-sc">
   <div class="scanner-frame-bar">
+    <?php if ($canScan): ?>
     <span>📸 <span data-i18n="s_scanner">Scanner</span></span>
     <a href="web-scanner-onnx/index.html" target="_blank" rel="noopener" data-i18n="s_scanner_open_window">In eigenem Fenster öffnen (auf der CPU schneller)</a>
     <a href="web-scanner-onnx/trend.html" target="_blank" rel="noopener">📈 <span data-i18n="s_scanner_trend">Kampfkraft-Trend</span></a>
+    <?php else: ?>
+    <span>📈 <span data-i18n="s_scanner_trend">Kampfkraft-Trend</span></span>
+    <a href="web-scanner-onnx/trend.html" target="_blank" rel="noopener" data-i18n="s_scanner_open_window_trend">In eigenem Fenster öffnen</a>
+    <?php endif; ?>
   </div>
-  <iframe id="scanner-frame" data-src="web-scanner-onnx/index.html" title="Scanner" allow="display-capture"></iframe>
+  <iframe id="scanner-frame" data-src="web-scanner-onnx/<?= $canScan ? 'index.html' : 'trend.html' ?>" title="Scanner" allow="display-capture"></iframe>
 </div>
 <?php endif; ?>

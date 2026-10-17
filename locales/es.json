@@ -350,6 +350,7 @@
     "s_verwaltung": "Gestión",
     "s_scanner": "Escáner",
     "s_scanner_open_window": "Abrir en ventana propia (más rápido en la CPU)",
+    "s_scanner_open_window_trend": "Abrir en ventana propia",
     "s_scanner_trend": "Tendencia de poder",
     "s_scanner_feature_sub": "Fichas a partir de capturas con reconocimiento de texto en el navegador (R4/R5)",
     "s_vs_from_scanner": "Importar del escáner",

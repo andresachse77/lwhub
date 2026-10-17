@@ -57,6 +57,7 @@ function handleSubmitAccessRequest(PDO $pdo, string $alliance, array $body): nev
 }
 
 function handleResolveAccessRequest(PDO $pdo, string $alliance, string $requestIdEncoded, array $body): never {
+    requireAllianceWriter($pdo, $alliance, 4, false, (string)($body['discord_id'] ?? ''));
     $requestId = rawurldecode($requestIdEncoded);
     $status    = strtolower(trim($body['status'] ?? 'accepted'));
     if (!in_array($status, ['accepted', 'mapped', 'rejected'], true)) {

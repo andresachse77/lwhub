@@ -45,11 +45,9 @@ function handleGetAllianceConfig(PDO $pdo, string $alliance): never {
 
 function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never {
     ensureAllianceConfigTable($pdo);
-    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
-    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
-    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
-    $admin = requireR5($pdo, $discordId);
-    $updatedBy = $admin['current_name'] ?? null;
+    // R5 dieser Allianz oder Betreiber (Site-Admin) – auch dort, wo er sonst nur zuschaut
+    $admin = requireFeatureAdmin($pdo, $alliance, (string)($body['discord_id'] ?? ''));
+    $updatedBy = $admin['name'] ?? null;
 
     $stmt = $pdo->prepare("
         INSERT INTO alliance_config (alliance, config_key, config_value, updated_by)

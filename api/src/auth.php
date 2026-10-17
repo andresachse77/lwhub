@@ -388,11 +388,18 @@ function isSiteAdmin(PDO $pdo, string $discordId): bool {
     }
 }
 
-function requireR5(PDO $pdo, string $discordId): array {
+/**
+ * R5 ohne Ehrenrolle oder Site-Admin. Mit $alliance muss der R5 zu dieser Allianz gehoeren (Aktionen
+ * innerhalb einer Allianz); ohne $alliance genuegt R5 irgendeiner Allianz (allianzuebergreifende
+ * Verwaltung: Allianzen, Admins). Die ID kommt aus dem geprueften Token, falls vorhanden.
+ */
+function requireR5(PDO $pdo, string $discordId, ?string $alliance = null): array {
     // Local dev-server: bypass auth entirely
     if (isLocalRequest()) {
         return ['player_id' => null, 'current_name' => 'Lokaler Admin', 'current_rank_code' => 5, 'alliance' => null];
     }
+    $discordId = resolveCallerId($pdo, $alliance ?? '', $discordId)['id'];
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
 
     // Site-admins have full access regardless of rank
     if (isSiteAdmin($pdo, $discordId)) {
@@ -426,11 +433,12 @@ function requireR5(PDO $pdo, string $discordId): array {
             FROM player_user_links pul
             JOIN user_discord_accounts uda ON uda.alliance = pul.alliance AND uda.user_id = pul.user_id
         ) puld ON puld.alliance = p.alliance AND puld.player_id = p.player_id
-        WHERE p.is_active = 1 AND p.current_rank_code = 5
-                    AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
+        WHERE p.is_active = 1 AND p.current_rank_code = 5 AND " . sqlNoHonor() . "
+          AND (? IS NULL OR p.alliance = ?)
+          AND (pid.discord_user_id = ? OR puld.discord_user_id = ?)
         LIMIT 1
     ");
-        $stmt->execute([$discordId, $discordId]);
+    $stmt->execute([$alliance, $alliance, $discordId, $discordId]);
     $row = $stmt->fetch();
     if (!$row) jsonOut(403, ['error' => 'Kein Zugriff – nur Admins dürfen diesen Bereich nutzen']);
     return $row;

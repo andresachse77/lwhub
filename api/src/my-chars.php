@@ -54,7 +54,72 @@ function handleGetMyChars(PDO $pdo, string $discordId): never {
         if (!isOptionalTableError($e)) throw $e;
     }
 
-    jsonOut(200, ['ok' => true, 'chars' => $chars, 'active' => $activeRow, 'is_site_admin' => isSiteAdmin($pdo, $discordId)]);
+    // Betreiber: alle Allianzen ohne eigenen Char zum Ansehen (Zuschauer, aendert nichts ausser Feature-Schaltern)
+    $isSiteAdmin = isSiteAdmin($pdo, $discordId);
+    $viewerAlliances = [];
+    if ($isSiteAdmin) {
+        $own = array_flip(array_column($chars, 'alliance'));
+        try {
+            foreach ($pdo->query("SELECT alliance, alliance_name FROM alliances WHERE is_active = 1 ORDER BY alliance")->fetchAll() as $a) {
+                if (isset($own[$a['alliance']])) continue;
+                $viewerAlliances[] = [
+                    'alliance'  => $a['alliance'],
+                    'title'     => $a['alliance_name'] ?: null,
+                    'is_active' => $activeRow && $activeRow['player_id'] === '' && $activeRow['alliance'] === $a['alliance'],
+                ];
+            }
+        } catch (\PDOException $e) {
+            if (!isOptionalTableError($e)) throw $e;
+        }
+    }
+
+    jsonOut(200, ['ok' => true, 'chars' => $chars, 'active' => $activeRow, 'is_site_admin' => $isSiteAdmin, 'viewer_alliances' => $viewerAlliances]);
+}
+
+/** Allianz, die der Betreiber gerade ohne eigenen Char ansieht (user_active_char mit leerer player_id), sonst null. */
+function getSiteViewerAlliance(PDO $pdo, string $discordId): ?string {
+    try {
+        $stmt = $pdo->prepare("SELECT alliance, player_id FROM user_active_char WHERE discord_user_id = ?");
+        $stmt->execute([$discordId]);
+        $row = $stmt->fetch();
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+        return null;
+    }
+    if (!$row || $row['player_id'] !== '' || !isSiteAdmin($pdo, $discordId)) return null;
+    if (getDiscordMember($pdo, $row['alliance'], $discordId)) return null; // eigener Char geht vor
+    return $row['alliance'];
+}
+
+/** Antwort von /verify-discord fuer den Betreiber als Zuschauer: sieht alles wie R5, darf nichts aendern. */
+function siteViewerVerifyPayload(PDO $pdo, string $alliance, string $discordId): array {
+    $profile = null;
+    try {
+        $stmt = $pdo->prepare("SELECT discord_username, discord_avatar FROM discord_profile_cache WHERE discord_user_id = ? ORDER BY updated_at DESC LIMIT 1");
+        $stmt->execute([$discordId]);
+        $profile = $stmt->fetch() ?: null;
+    } catch (\PDOException $e) {
+        if (!isOptionalTableError($e)) throw $e;
+    }
+    return [
+        'ok'                => true,
+        'alliance'          => $alliance,
+        'member_id'         => null,
+        'member_name'       => $profile['discord_username'] ?? 'Betreiber',
+        'rank'              => 5,
+        'role'              => 'site_viewer',
+        'honor_role'        => null,
+        'site_viewer'       => true,
+        'can_manage'        => true,
+        'can_write'         => false,
+        'read_only'         => true,
+        'can_set_features'  => true,
+        'discord_id'        => $discordId,
+        'discord_username'  => $profile['discord_username'] ?? null,
+        'discord_avatar'    => $profile['discord_avatar'] ?? null,
+        'discord_avatar_url'=> memberToDiscordAvatarUrl($discordId, $profile['discord_avatar'] ?? null, 128),
+        'preferred_language'=> 'de',
+    ];
 }
 
 function handleSetActiveChar(PDO $pdo, array $body): never {
@@ -64,7 +129,23 @@ function handleSetActiveChar(PDO $pdo, array $body): never {
 
     $alliance = trim($body['alliance'] ?? '');
     $playerId = trim($body['player_id'] ?? '');
-    if ($alliance === '' || $playerId === '') jsonOut(400, ['error' => 'alliance und player_id erforderlich']);
+    if ($alliance === '') jsonOut(400, ['error' => 'alliance erforderlich']);
+
+    // Ohne player_id: der Betreiber sieht eine Allianz an, in der er keinen eigenen Char hat
+    if ($playerId === '') {
+        $discordId = resolveCallerId($pdo, $alliance, $discordId)['id'];
+        if (!isSiteAdmin($pdo, $discordId)) jsonOut(403, ['error' => 'Nur der Betreiber kann Allianzen ohne eigenen Charakter ansehen']);
+        $aStmt = $pdo->prepare("SELECT 1 FROM alliances WHERE alliance = ? LIMIT 1");
+        $aStmt->execute([$alliance]);
+        if (!$aStmt->fetch()) jsonOut(404, ['error' => 'Allianz nicht gefunden']);
+        ensureUserActiveCharTable($pdo);
+        $pdo->prepare("
+            INSERT INTO user_active_char (discord_user_id, alliance, player_id)
+            VALUES (?, ?, '')
+            ON DUPLICATE KEY UPDATE alliance = VALUES(alliance), player_id = VALUES(player_id)
+        ")->execute([$discordId, $alliance]);
+        jsonOut(200, ['ok' => true, 'site_viewer' => true]);
+    }
 
     $stmt = $pdo->prepare("
         SELECT p.player_id FROM players p
@@ -99,6 +180,8 @@ function handleSelfRename(PDO $pdo, string $alliance, string $oldNameEncoded, ar
 
     $newName = trim($body['new_name'] ?? '');
     if ($newName === '') jsonOut(400, ['error' => 'Neuer Name fehlt']);
+    // Ehren-Eintraege tragen den Namen aus der Heimat-Allianz; den pflegt die Verwaltung (R4/R5)
+    requireAllianceWriter($pdo, $alliance, 1, true, $discordId);
 
     $stmt = $pdo->prepare("
         SELECT p.player_id, p.current_name, p.current_rank_code

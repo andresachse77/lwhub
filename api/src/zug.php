@@ -53,26 +53,25 @@ function ensureZugTables(PDO $pdo, string $alliance): void {
 }
 
 function requireZugR4(PDO $pdo, string $alliance, array $body): array {
-    try {
-        $did = normalizeDiscordId($body['discord_id'] ?? '');
-    } catch (\InvalidArgumentException $e) {
-        jsonOut(401, ['error' => $e->getMessage()]);
+    return requireAllianceWriter($pdo, $alliance, 4, true, (string)($body['discord_id'] ?? ''))['member'] ?? [];
+}
+
+/** Ehrenrollen sind im Spiel nicht in der Allianz und koennen weder Schaffner noch VIP sein. */
+function assertZugNamesNotHonor(PDO $pdo, string $alliance, ?string ...$names): void {
+    $stmt = $pdo->prepare("SELECT 1 FROM players WHERE alliance = ? AND current_name = ? AND NOT " . sqlNoHonor('') . " LIMIT 1");
+    foreach ($names as $name) {
+        if ($name === null || $name === '') continue;
+        $stmt->execute([$alliance, $name]);
+        if ($stmt->fetch()) jsonOut(400, ['error' => "{$name} hat eine Ehrenrolle und kann nicht eingeplant werden."]);
     }
-    if ($did === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
-    $member = getDiscordMember($pdo, $alliance, $did, true);
-    if (!$member) jsonOut(403, ['error' => 'Nur R4/R5 darf diese Zug-Aktion ausführen']);
-    $honorRole = normalizeHonorRole($member['honor_role'] ?? null);
-    if ($honorRole !== null) {
-        jsonOut(403, ['error' => 'Ehrenrollen haben nur Lesezugriff im Zugplan']);
-    }
-    return $member;
 }
 
 function getZugQueueRows(PDO $pdo, string $alliance, string $rulesetKey): array {
     $stmt = $pdo->prepare("
         SELECT member_name, queue_position, last_turn_date, turn_count
-        FROM zug_queue
+        FROM zug_queue q
         WHERE alliance=? AND ruleset_key=?
+          AND NOT EXISTS (SELECT 1 FROM players hp WHERE hp.alliance = q.alliance AND hp.current_name = q.member_name AND NOT " . sqlNoHonor('hp') . ")
         ORDER BY queue_position ASC
     ");
     $stmt->execute([$alliance, $rulesetKey]);
@@ -171,7 +170,7 @@ function handleGetZugQueue(PDO $pdo, string $alliance): never {
 
 function handleSyncZugQueue(PDO $pdo, string $alliance, array $body): never {
     $rulesetKey = trim((string)($body['ruleset'] ?? 'standard'));
-    $stmt = $pdo->prepare("SELECT current_name FROM players WHERE alliance=? AND is_active=1 AND (honor_role IS NULL OR honor_role = '') ORDER BY current_name");
+    $stmt = $pdo->prepare("SELECT current_name FROM players WHERE alliance=? AND is_active=1 AND " . sqlNoHonor('') . " ORDER BY current_name");
     $stmt->execute([$alliance]);
     $activeMembers = array_column($stmt->fetchAll(), 'current_name');
     $queue = getZugQueueRows($pdo, $alliance, $rulesetKey);
@@ -326,6 +325,7 @@ function handleCreateZugSchedule(PDO $pdo, string $alliance, array $body): never
     $createdBy  = trim((string)($body['created_by']     ?? ''));
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $eventDate)) jsonOut(400, ['error' => 'Ungültiges Datum (YYYY-MM-DD erwartet)']);
     if ($schaffner === '') jsonOut(400, ['error' => 'Schaffner-Name erforderlich']);
+    assertZugNamesNotHonor($pdo, $alliance, $schaffner, $vip);
     if (hasWeeklyZugRole($pdo, $alliance, $schaffner, $eventDate)) {
         jsonOut(409, ['error' => "{$schaffner} ist diese Woche bereits als Schaffner oder VIP eingeplant."]);
     }
@@ -348,6 +348,7 @@ function handleUpdateZugSchedule(PDO $pdo, string $alliance, string $id, array $
     $status    = isset($body['status']) ? trim((string)$body['status']) : $entry['status'];
     $notes     = array_key_exists('notes', $body) ? (trim((string)$body['notes']) ?: null) : $entry['notes'];
     if (!in_array($status, ['planned','completed','noshow','cancelled'], true)) jsonOut(400, ['error' => 'Ungültiger Status']);
+    assertZugNamesNotHonor($pdo, $alliance, $schaffner !== $entry['schaffner_name'] ? $schaffner : null, $vip !== $entry['vip_name'] ? $vip : null);
     if ($schaffner !== $entry['schaffner_name'] && hasWeeklyZugRole($pdo, $alliance, $schaffner, $entry['event_date'], $id)) {
         jsonOut(409, ['error' => "{$schaffner} ist diese Woche bereits als Schaffner oder VIP eingeplant."]);
     }
@@ -363,6 +364,7 @@ function handleNoShowZugSchedule(PDO $pdo, string $alliance, string $id, array $
     if (!$entry) jsonOut(404, ['error' => 'Eintrag nicht gefunden']);
     $sub   = trim((string)($body['substitute_name'] ?? '')) ?: null;
     $notes = trim((string)($body['notes']           ?? '')) ?: null;
+    assertZugNamesNotHonor($pdo, $alliance, $sub);
     if ($sub !== null && hasWeeklyZugRole($pdo, $alliance, $sub, $entry['event_date'], $id)) {
         jsonOut(409, ['error' => "{$sub} ist diese Woche bereits als Schaffner oder VIP eingeplant."]);
     }

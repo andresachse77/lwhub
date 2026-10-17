@@ -18,6 +18,7 @@ $DB_SSL_CA = getenv('MYSQL_SSL_CA')   ?: (defined('MYSQL_SSL_CA')   ? MYSQL_SSL_
 
 // Auth-Pruefung (Konzept v2): 'off' = wie bisher, 'log' = nur protokollieren, 'enforce' = blockieren.
 // Standard 'log' blockiert nichts, daher muss config.php auf dem Server nicht angepasst werden.
+// Ausgewertet in lwhubAuthMode() (src/caller-auth.php); Ehrenrollen sind in jedem Modus nur Leser.
 $AUTH_MODE = strtolower(trim((string)(getenv('LWHUB_AUTH_MODE') ?: (defined('LWHUB_AUTH_MODE') ? LWHUB_AUTH_MODE : 'log'))));
 if (!in_array($AUTH_MODE, ['off', 'log', 'enforce'], true)) {
     $AUTH_MODE = 'log';
@@ -26,7 +27,7 @@ if (!in_array($AUTH_MODE, ['off', 'log', 'enforce'], true)) {
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS');
-header('Access-Control-Allow-Headers: content-type,authorization');
+header('Access-Control-Allow-Headers: content-type,authorization,x-discord-id');
 header('Cache-Control: no-store');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

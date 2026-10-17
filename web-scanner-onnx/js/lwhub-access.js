@@ -68,8 +68,9 @@ const LwhubAccess = {
    * Allianz-Auswahl nur mit den Allianzen, in denen der Nutzer eigene Chars hat (GET /scans/my-alliances).
    * Allianzen ohne R4/R5-Char sind sichtbar, aber nicht waehlbar. Ohne Login bzw. wenn der Server die
    * volle Liste erlaubt (lokale Entwicklung), bleibt die komplette Allianzliste.
+   * `view: true` (Trend-Seite): waehlbar ist, was man ansehen darf – auch als Ehren-R4 oder Betreiber.
    */
-  async fillOwnAlliances(select, apiUrl, alliances, preferred) {
+  async fillOwnAlliances(select, apiUrl, alliances, preferred, { view = false } = {}) {
     let mine = null;
     try {
       const resp = await fetch(`${apiUrl}/scans/my-alliances`, { headers: this.authHeaders(), signal: AbortSignal.timeout(10000) });
@@ -81,16 +82,17 @@ const LwhubAccess = {
       return;
     }
     const titles = Object.fromEntries(alliances.map((a) => [a.short_name.toLowerCase(), a]));
-    const scannable = mine.filter((m) => m.can_scan).map((m) => m.alliance);
+    const allowed = (m) => (view ? (m.can_view ?? m.can_scan) : m.can_scan);
+    const scannable = mine.filter(allowed).map((m) => m.alliance);
     const chosen = scannable.find((a) => a.toLowerCase() === String(preferred).toLowerCase()) || scannable[0] || mine[0].alliance;
     select.innerHTML = '';
     for (const m of mine) {
       const info = titles[m.alliance.toLowerCase()];
       const opt = document.createElement('option');
       opt.value = info?.short_name || m.alliance;
-      opt.textContent = `${opt.value}${info?.title ? ' – ' + info.title : ''}${m.can_scan ? '' : ' (kein R4)'}`;
-      opt.title = m.chars.map((c) => `${c.name} (R${c.rank})`).join(', ');
-      opt.disabled = !m.can_scan;
+      opt.textContent = `${opt.value}${info?.title ? ' – ' + info.title : ''}${allowed(m) ? '' : ' (kein R4)'}`;
+      opt.title = m.chars.map((c) => `${c.name} (${c.honor_role === 'honor_r4' ? 'Ehren-R4' : 'R' + c.rank})`).join(', ');
+      opt.disabled = !allowed(m);
       opt.selected = m.alliance === chosen;
       select.appendChild(opt);
     }
@@ -99,14 +101,15 @@ const LwhubAccess = {
   /**
    * Fragt den Server, ob der angemeldete Nutzer fuer `alliance` freigeschaltet ist, und zeigt die Sperre
    * bzw. das Nutzer-Badge an. `what` benennt das Werkzeug in den Texten ("Der Scanner", "Der Trend").
-   * Liefert die Antwort des Servers ({ ok, name, rank, site_admin }) oder null.
+   * Liefert die Antwort des Servers ({ ok, name, rank, site_admin, can_scan }) oder null.
+   * `view: true` prueft nur das Ansehen (Trend): dann reichen auch Ehren-R4 und Betreiber.
    */
-  async check(apiUrl, alliance, what = 'Der Scanner') {
+  async check(apiUrl, alliance, what = 'Der Scanner', { view = false } = {}) {
     // Auch ohne Token fragen: der lokale PHP-Server (lwhub-Vorschau) laesst lokale Aufrufe durch,
     // live antwortet der Server ohne Token mit 401 und die Seite zeigt die Anmeldung.
     let resp, data = {};
     try {
-      resp = await fetch(`${apiUrl}/scans/access?alliance=${encodeURIComponent(alliance)}`, {
+      resp = await fetch(`${apiUrl}/scans/access?alliance=${encodeURIComponent(alliance)}${view ? '&mode=view' : ''}`, {
         headers: this.authHeaders(),
         signal: AbortSignal.timeout(10000),
       });
@@ -131,7 +134,9 @@ const LwhubAccess = {
     const badge = document.getElementById('userBadge');
     badge.hidden = false;
     badge.className = 'badge-stat success';
-    badge.textContent = data.site_admin ? '🛡️ Site-Admin' : `🛡️ ${data.name || 'Angemeldet'} · R${data.rank}`;
+    badge.textContent = data.honor_role === 'honor_r4'
+      ? `👁️ ${data.name || 'Angemeldet'} · Ehren-R4`
+      : (data.site_admin && !data.name ? '🛡️ Site-Admin' : `🛡️ ${data.name || 'Angemeldet'} · R${data.rank}`);
     return data;
   },
 

@@ -6,5 +6,7 @@
 <button class="tab" id="tab-v" onclick="showPage('v')">Verwaltung</button>
 <?php if (scannerTabAllowed($member)): ?>
 <button class="tab" id="tab-sc" onclick="showPage('sc')">📸 <span data-i18n="s_scanner">Scanner</span></button>
+<?php elseif (scannerViewAllowed($member)): /* Ehren-R4 und Betreiber: nur ansehen */ ?>
+<button class="tab" id="tab-sc" onclick="showPage('sc')">📈 <span data-i18n="s_scanner_trend">Kampfkraft-Trend</span></button>
 <?php endif; ?>
 <button class="tab" id="tab-d" onclick="showPage('d')"><span data-i18n="s_dashboard">Dashboard</span></button>

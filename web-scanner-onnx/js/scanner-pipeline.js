@@ -146,9 +146,11 @@
 
   function groupRankingRows(lines, extraBadges = []) {
     const anchors = lines.filter((l) => RAW_POWER_RE.test(l.text.trim()));
+    const typical = typicalHeight(anchors);
     const badgePool = [...lines, ...extraBadges];
     const rows = [];
     for (const anchor of anchors) {
+      if (isClippedNumber(anchor, typical)) continue;
       const rowHeight = Math.max(height(anchor) * 2.5, 1);
       const sameRow = (l) => Math.abs(cy(l) - cy(anchor)) < rowHeight * 0.6;
 
@@ -250,6 +252,27 @@
     return stableSortBy(cards, (c) => c.anchor_y);
   }
 
+  // ─── Halb verdeckte Zeilen ──────────────────────────────────────────────────────────────────────
+  // Oben schneidet der Spaltenkopf die erste Zeile an, unten die fest eingeblendete eigene Zeile. Die
+  // Texterkennung liest dort Reste: eine flache Zahl ("907" statt 47.897.581, "101950620" statt
+  // 191950630) oder einen angeschnittenen Namen ("KICllaru" statt "Ric hard"). Die Zeile ist in der
+  // Nachbar-Aufnahme vollstaendig, darum wird sie verworfen.
+  // Gemessen an 194 NxU2-Aufnahmen (17.10.): volle Zahlen haben >= 0.83 der ueblichen Hoehe, angeschnittene
+  // <= 0.54. Eine einzelne "0" liefert immer eine flache Box und zaehlt nicht als angeschnitten.
+  const CLIPPED_NUMBER_RATIO = 0.7;
+
+  function typicalHeight(anchors) {
+    const hs = anchors.map(height).sort((a, b) => a - b);
+    return hs.length ? hs[Math.floor(hs.length / 2)] : 0;
+  }
+
+  const isClippedNumber = (anchor, typical) => anchor.text.replace(/[^0-9]/g, '').length > 1
+    && height(anchor) < typical * CLIPPED_NUMBER_RATIO;
+
+  // Rangnummer links in der Zeile. Ueber die Mitte geprueft: zweistellige Nummern ragen mit dem rechten
+  // Rand ueber ein Viertel der Bildbreite hinaus (rechts ~285 px bei 1118 px Breite).
+  const isRankColumn = (l, image) => RANK_POSITION_RE.test(l.text.trim()) && cx(l) < image.w * 0.25;
+
   function stableSortBy(list, key) {
     return list.map((x, i) => [x, i]).sort((a, b) => key(a[0]) - key(b[0]) || a[1] - b[1]).map((p) => p[0]);
   }
@@ -303,19 +326,37 @@
     return { type: 'VS_DAY', day };
   }
 
+  // VS: der Name steht ueber der Allianz-Zeile "[NxU2] …". Liegt er direkt am Spaltenkopf (< 1.0
+  // Zeilenhoehen) und naeher an der Allianz-Zeile als volle Namen, ist seine Oberkante abgeschnitten.
+  // Gemessen in Hoehen der Allianz-Zeile: angeschnitten <= 1.42, voll >= 1.48. Fehlt der Name ganz und
+  // laege sein Platz direkt am Spaltenkopf, steckt er darunter. Ohne Allianz-Zeile dient die Zahl als
+  // Bezug (Name ~0.9 Zahlenhoehen darueber, angeschnitten < 0.8). Die erste Zeile der Liste hat genug
+  // Abstand zum Spaltenkopf und ist nie betroffen.
+  function isClippedVsName(anchor, nameLine, tagLine, top, tagHeight, numberHeight) {
+    const unit = tagLine ? tagHeight : numberHeight;
+    const nameTop = nameLine ? nameLine.top : (tagLine ? tagLine.top - unit * 1.6 : anchor.top - unit * 0.9);
+    if (nameTop - top >= unit) return false;
+    if (!nameLine) return true;
+    return tagLine ? tagLine.top - nameLine.top < unit * 1.45 : anchor.top - nameLine.top < unit * 0.8;
+  }
+
   function groupVsRows(lines, image) {
     const col = columnHeader(lines);
     const top = col ? col.header.bottom : 0;
     const anchors = lines.filter((l) => cy(l) > top && l.left > image.w * 0.6 && VS_POINTS_RE.test(l.text.trim()));
+    const typical = typicalHeight(anchors);
+    const tagHeight = typicalHeight(lines.filter((l) => cy(l) > top && /^\s*[\[(]/.test(l.text)));
     const rows = [];
     for (const anchor of anchors) {
+      if (isClippedNumber(anchor, typical)) continue;
       const reach = height(anchor) * 2.5;
       const tagLine = minBy(lines.filter((l) => l !== anchor && cy(l) > cy(anchor) && cy(l) - cy(anchor) < reach
         && l.right < anchor.left && /^\s*[\[(]/.test(l.text)), (l) => cy(l) - cy(anchor));
       const nameLine = minBy(lines.filter((l) => l !== anchor && l !== tagLine && cy(l) < cy(anchor) && cy(anchor) - cy(l) < reach
         && l.right < anchor.left && !/^\s*[\[(]/.test(l.text)
         && (tagLine ? Math.abs(l.left - tagLine.left) < image.w * 0.03 : l.left > image.w * 0.3)), (l) => cy(anchor) - cy(l));
-      const posLine = minBy(lines.filter((l) => RANK_POSITION_RE.test(l.text.trim()) && l.right < image.w * 0.25
+      if (col && isClippedVsName(anchor, nameLine, tagLine, top, tagHeight, typical)) continue;
+      const posLine = minBy(lines.filter((l) => isRankColumn(l, image)
         && Math.abs(cy(l) - cy(anchor)) < reach), (l) => Math.abs(cy(l) - cy(anchor)));
       const tag = tagLine ? (tagLine.text.match(/[\[(]\s*([^\])]+?)\s*[\])]/) || [])[1] || null : null;
       const boxLines = [anchor, tagLine, nameLine, posLine].filter(Boolean);
@@ -356,13 +397,15 @@
     const col = columnHeader(lines);
     const top = col ? col.header.bottom : 0;
     const anchors = lines.filter((l) => cy(l) > top && l.left > image.w * 0.6 && VALUE_RE.test(l.text.trim()));
+    const typical = typicalHeight(anchors);
     const rows = [];
     for (const anchor of anchors) {
+      if (isClippedNumber(anchor, typical)) continue;
       const reach = height(anchor) * 1.2;
       const nameLine = minBy(lines.filter((l) => l !== anchor && Math.abs(cy(l) - cy(anchor)) < reach
         && l.right < anchor.left && l.left > image.w * 0.3 && !RANK_BADGE_RE.test(l.text.trim())),
       (l) => Math.abs(cy(l) - cy(anchor)));
-      const posLine = minBy(lines.filter((l) => RANK_POSITION_RE.test(l.text.trim()) && l.right < image.w * 0.25
+      const posLine = minBy(lines.filter((l) => isRankColumn(l, image)
         && Math.abs(cy(l) - cy(anchor)) < height(anchor) * 2.5), (l) => Math.abs(cy(l) - cy(anchor)));
       // Am Bildrand angeschnittene Zeilen liefern keinen oder nur einen Rest-Namen ("3", "R", "K3") –
       // die Zeile ist in der Nachbar-Aufnahme vollstaendig.
@@ -387,6 +430,19 @@
     return stableSortBy(rows, (r) => r.anchor_y);
   }
 
+  // Platznummern, in deren Zeile gar keine Zahl erkannt wurde. Das ist fast immer eine einzelne "0", die die
+  // Texterkennung nicht findet (Spieler ohne Punkte am Listenende). Die Zeile wurde also gesehen, nur ohne
+  // Wert – das Cockpit meldet diese Plaetze nicht als uebersprungen. Angeschnittene Zeilen haben eine
+  // (verworfene) Zahl und zaehlen hier nicht.
+  function ranksWithoutValue(lines, image, valueRe) {
+    const col = columnHeader(lines);
+    const top = col ? col.header.bottom : 0;
+    const values = lines.filter((l) => cy(l) > top && l.left > image.w * 0.6 && valueRe.test(l.text.trim()));
+    const reach = typicalHeight(values) * 2.5;
+    return lines.filter((l) => cy(l) > top && isRankColumn(l, image) && !values.some((v) => Math.abs(cy(v) - cy(l)) < reach))
+      .map((l) => l.text.trim());
+  }
+
   // Erkannte Textzeile mit Position (gerundet) – fuer die gesammelten Aufnahmen zur Nacharbeit
   const rawLine = (l) => ({ text: l.text, score: Math.round(l.score * 1000) / 1000,
     left: Math.round(l.left), top: Math.round(l.top), right: Math.round(l.right), bottom: Math.round(l.bottom) });
@@ -405,6 +461,7 @@
         cards: [], rankings: [],
         vs: mode === 'vs' ? vsInfo(lines, image) : valueInfo(lines, image, mode),
         vs_rows: mode === 'vs' ? groupVsRows(lines, image) : groupValueRows(lines, image),
+        ranks_without_value: ranksWithoutValue(lines, image, mode === 'vs' ? VS_POINTS_RE : VALUE_RE),
         rescued: false,
         timings: engine.timings,
       };
@@ -428,5 +485,5 @@
     };
   }
 
-  return { processFrame, ocrLines, detectMode, buildRows, needsRescue, shieldRescue, groupVsRows, vsInfo, groupValueRows, valueInfo };
+  return { processFrame, ocrLines, detectMode, buildRows, needsRescue, shieldRescue, groupVsRows, vsInfo, groupValueRows, valueInfo, ranksWithoutValue };
 });

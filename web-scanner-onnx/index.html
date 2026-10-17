@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LWHub Scanner-Cockpit (Browser-OCR)</title>
-<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261017c">
+<link rel="stylesheet" href="../web-scanner/css/cockpit.css?v=20261017d">
 <style>
   .ocr-engine-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .ocr-engine-row select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 12px; }
@@ -220,11 +220,11 @@
 </div>
 
 <!-- MODULE LADEN (Matching & Drag-and-Drop teilt sich diese Seite mit dem Server-Cockpit) -->
-<script src="../web-scanner/js/matching.js?v=20261017c"></script>
-<script src="../web-scanner/js/drag-drop.js?v=20261017c"></script>
-<script src="js/ocr-client.js?v=20261017c"></script>
-<script src="js/lwhub-access.js?v=20261017c"></script>
-<script src="js/zip-store.js?v=20261017c"></script>
+<script src="../web-scanner/js/matching.js?v=20261017d"></script>
+<script src="../web-scanner/js/drag-drop.js?v=20261017d"></script>
+<script src="js/ocr-client.js?v=20261017d"></script>
+<script src="js/lwhub-access.js?v=20261017d"></script>
+<script src="js/zip-store.js?v=20261017d"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -413,6 +413,8 @@ document.getElementById('btnRematch').addEventListener('click', () => {
 document.getElementById('btnResetPool').addEventListener('click', () => {
   if (confirm('Möchtest du wirklich alle bisher erfassten Scan-Kacheln aus dem Session-Pool verwerfen?')) {
     window.cockpit.resetAllScans();
+    seenRanks.clear();
+    rankGapsPending = false;
     log('Session-Pool und alle Zuweisungen geleert.');
   }
 });
@@ -439,7 +441,52 @@ function sameAllianceTag(a, b) {
 const isValueMode = (mode) => mode === 'vs' || mode === 'kills' || mode === 'donation';
 const resultCount = (r) => r.mode === 'ranking' ? r.rankings.length : isValueMode(r.mode) ? r.vs_rows.length : r.cards.length;
 
+// Gesehene Platznummern je Liste: so faellt auf, wenn beim Scrollen Stellen uebersprungen wurden
+// (NxU2 am 17.10.: VS Di Platz 11–21, Kampfkraft Platz 60). Platz 1–3 sind Medaillen ohne Ziffer.
+const seenRanks = new Map();
+let rankGapsPending = false;
+
+function rankListLabel(result) {
+  if (result.mode === 'ranking') return 'Kampfkraft';
+  const type = result.vs && result.vs.type;
+  if (type === 'VS_DAY') return `VS ${result.vs.day || 'Tag'}`;
+  return { VS_WEEK: 'VS Woche', KILLS: 'Kills', DONATION_DAY: 'Spenden Tag', DONATION_WEEK: 'Spenden Woche' }[type] || null;
+}
+
+function noteRanks(result) {
+  const label = rankListLabel(result);
+  if (!label) return;
+  const rows = result.mode === 'ranking' ? result.rankings : result.vs_rows;
+  // Ohne Haken bei "Deine Allianz" zaehlt der VS-Rang ueber alle Allianzen – andere Platznummern
+  const alliance = document.getElementById('allianceSelect').value;
+  if (rows.some((r) => r.alliance_tag && !sameAllianceTag(r.alliance_tag, alliance))) return;
+  if (!seenRanks.has(label)) seenRanks.set(label, new Set());
+  // Zeilen ohne lesbaren Wert (meist eine "0") wurden gesehen und gelten nicht als uebersprungen
+  for (const p of [...rows.map((r) => r.rank_position), ...(result.ranks_without_value || [])]) {
+    const pos = parseInt(p, 10);
+    if (pos > 0) { seenRanks.get(label).add(pos); rankGapsPending = true; }
+  }
+}
+
+function reportRankGaps() {
+  if (!rankGapsPending) return;
+  rankGapsPending = false;
+  for (const [label, ranks] of seenRanks) {
+    const missing = [];
+    for (let p = 4; p <= Math.max(...ranks); p++) if (!ranks.has(p)) missing.push(p);
+    if (!missing.length) continue;
+    const spans = [];
+    for (const p of missing) {
+      const last = spans[spans.length - 1];
+      if (last && p === last[1] + 1) last[1] = p; else spans.push([p, p]);
+    }
+    const text = spans.map(([a, b]) => a === b ? `${a}` : `${a}–${b}`).join(', ');
+    log(`⚠️ ${label}: Platz ${text} nicht erfasst – diese Stelle der Liste noch einmal langsam durchscrollen.`);
+  }
+}
+
 function processOcrResult(img, result) {
+  noteRanks(result);
   if (isValueMode(result.mode)) {
     // VS (Allianz-Duell): beim gemischten Wochen-Rang stehen auch Spieler der Gegner-Allianz in der Liste.
     // Kills und Spenden (Staerke-Rangliste) laufen als gleiche Wert-Kacheln, nur ohne Allianz-Kuerzel.
@@ -639,6 +686,7 @@ async function processFiles(fileList) {
       pump();
     });
     if (stopProcessingRequested) log('Verarbeitung durch Stop-Button abgebrochen.');
+    reportRankGaps();
   } finally {
     clearInterval(processingCountdownTimer);
     processingCountdownTimer = null;
@@ -745,7 +793,10 @@ function drainLiveQueue() {
   }
   updateLiveStatus();
   updateProcessingStopButton();
-  if (liveRunner.running === 0 && liveQueue.length === 0 && !captureStream) window.cockpit.render();
+  if (liveRunner.running === 0 && liveQueue.length === 0 && !captureStream) {
+    window.cockpit.render();
+    reportRankGaps();
+  }
 }
 liveRunner.onIdle = drainLiveQueue;
 
@@ -808,6 +859,7 @@ function stopCapture() {
     : 'Live-Scan beendet.');
   updateLiveStatus();
   if (liveRunner.running === 0) window.cockpit.render();
+  if (liveRunner.running === 0 && liveQueue.length === 0) reportRankGaps();
 }
 
 btnStop.addEventListener('click', stopCapture);

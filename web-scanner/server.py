@@ -207,6 +207,13 @@ def group_ranking_rows(lines: list[Line], extra_badges: list[Line] = ()):
     row). The power number is a long, distinctively-formatted integer present on every row, making it
     the far more reliable anchor — the badge is now optional decoration on the row, not required."""
     anchors = [l for l in lines if RAW_POWER_RE.match(l.text.strip())]
+    # Half-hidden rows (under the column header or behind the pinned own row at the bottom) come out
+    # as a flat box with a wrong number ("101950620" for 191950630). Full numbers measure >= 0.83 of
+    # the usual height, clipped ones <= 0.54 (194 NxU2 captures, 17.10.). The row is complete in the
+    # neighbouring capture, so drop it. Same rule as isClippedNumber() in scanner-pipeline.js.
+    heights = sorted(a.height for a in anchors)
+    typical = heights[len(heights) // 2] if heights else 0
+    anchors = [a for a in anchors if not (len(re.sub(r"[^0-9]", "", a.text)) > 1 and a.height < typical * 0.7)]
     badge_pool = list(lines) + list(extra_badges)
     rows = []
     for anchor in anchors:

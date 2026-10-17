@@ -76,7 +76,7 @@
       <span class="badge blue">Aufgabenliste</span>
       <span class="badge green">Andre: lwhub &amp; Web-Scanner</span>
       <span class="badge purple">Thomas: Android-App</span>
-      <span class="badge amber">Stand: 2026-10-16</span>
+      <span class="badge amber">Stand: 2026-10-17</span>
     </div>
     <h1>Aufgaben zum API- &amp; Scanner-Konzept v2</h1>
     <div class="subtitle">Begr&uuml;ndungen und Details stehen in <code>konzept-api-scanner-v2.html</code>. Hier steht nur, wer was in welcher Reihenfolge tut.</div>
@@ -115,23 +115,26 @@
       <div class="meta"><span class="badge green">erledigt 2026-10-16</span><span class="badge green">risikoarm</span><span class="badge">~0,5 h</span></div>
     </div></div>
 
-    <div class="task"><input type="checkbox"><div>
+    <div class="task"><input type="checkbox" checked><div>
       <div class="t">A3 &bull; <code>resolveCaller()</code> + <code>authCheck()</code> in <code>auth.php</code></div>
       <div class="d">Bearer mit Pr&auml;fix <code>lwhub_</code>: SHA-256 in <code>api_tokens</code> suchen, <code>is_active</code> und <code>expires_at</code> pr&uuml;fen, <code>last_used_at</code> setzen. Gibt Allianz und Rolle zur&uuml;ck. Bei <code>log</code> nur in <code>api_auth_log</code> schreiben, bei <code>enforce</code> 401/403. <code>isLocalRequest()</code> bleibt Ausnahme.</div>
       <div class="d"><strong>Stand 16.10.:</strong> Discord-Token wird für alle Scanner-Routen geprüft (<code>requireScannerAccess()</code> in <code>api/src/caller-auth.php</code>, Ablehnungen in <code>api_auth_log</code>). Offen: App-Tokens mit Präfix <code>lwhub_</code> aus <code>api_tokens</code>.</div>
-      <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
+      <div class="d"><strong>Stand 17.10.:</strong> App-Tokens werden geprüft (<code>resolveApiToken()</code> in <code>caller-auth.php</code>): Hash in <code>api_tokens</code>, <code>is_active</code>, <code>expires_at</code>, <code>last_used_at</code>. <code>requireScannerAccess()</code> nimmt sie nur für ihre eigene Allianz an (sonst 403 <code>token_alliance</code>). <code>r4</code>/<code>r5</code> wie R4/R5, <code>scanner</code> nur lesend und im Sync eingeschränkt. Ablehnungen stehen mit <code>token_id</code> in <code>api_auth_log</code>.</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-17</span><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
     </div></div>
 
-    <div class="task"><input type="checkbox"><div>
+    <div class="task"><input type="checkbox" checked><div>
       <div class="t">A4 &bull; Token-Verwaltung f&uuml;r R5</div>
       <div class="d">Endpunkte <code>GET/POST/DELETE /api-tokens</code> (mit <code>requireR5</code>) und ein kleiner Block im Admin-Bereich: Name, Rolle, Ablaufdatum, Klartext einmal anzeigen, widerrufen. Danach Token f&uuml;r Thomas und f&uuml;r den eigenen Web-Scanner erstellen.</div>
-      <div class="meta"><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
+      <div class="d"><strong>Stand 17.10.:</strong> <code>GET/POST/DELETE /api-tokens</code> in <code>api/src/api-tokens.php</code>, nur für R5 genau dieser Allianz (Site-Admins ohne eigenen R5-Char dort nicht). Klartext <code>lwhub_</code> + 32 Byte Zufall nur in der Antwort, gespeichert wird der SHA-256 (UNIQUE). Widerrufen setzt <code>is_active = 0</code>. Admin-Unterseite „API-Tokens“ mit Liste, Formular und Kopieren-Dialog. Offen: Token für Thomas nach dem Deploy anlegen.</div>
+      <div class="meta"><span class="badge green">erledigt 2026-10-17</span><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
     </div></div>
 
     <div class="task"><input type="checkbox"><div>
       <div class="t">A5 &bull; <code>handleSyncScans</code> an Rollen binden</div>
       <div class="d">Allianz aus dem Aufrufer statt aus <code>body.alliance</code>. <code>scanner</code>: nur Updates bei <code>player_id</code> oder exaktem Namenstreffer, Rest als <code>unmatched</code>. <code>r4</code>/<code>r5</code>: Verhalten wie heute. Archiv-Suche auf die eigene Allianz beschr&auml;nken.</div>
       <div class="d"><strong>Stand 16.10.:</strong> <code>/scans/sync</code> nur noch für R4/R5 der Ziel-Allianz bzw. Site-Admins mit geprüftem Discord-Token. Offen: Rolle <code>scanner</code> (nur Updates, Rest <code>unmatched</code>), Archiv-Suche auf die eigene Allianz beschränken.</div>
+      <div class="d"><strong>Stand 17.10.:</strong> Mit App-Token kommt die Allianz aus dem Token, <code>body.alliance</code> muss leer sein oder passen. Rolle <code>scanner</code>: nur Updates bei <code>player_id</code> oder eindeutigem exaktem Namen (aktive Spieler der eigenen Allianz), Rest in <code>unmatched</code>. Kein Archivieren, Zurückholen, Verschieben, Anlegen, kein Rang. Offen: Archiv-Suche für <code>r4</code>/<code>r5</code> auf die eigene Allianz beschränken.</div>
       <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~3 h</span></div>
     </div></div>
 
@@ -182,6 +185,7 @@
       <div class="t">A12 &bull; Sync-Erweiterungen</div>
       <div class="d">Gegner &uuml;ber <code>alliance_tag</code> verwerfen, Idempotenz &uuml;ber <code>scan_id</code> (alte Zeilen l&ouml;schen, <code>replaced_previous_upload</code>), Metrik je <code>scan_type</code> (<code>DONATION</code> &rarr; <code>DONATION_WEEK</code>), <code>year_week</code>/<code>game_day</code>/<code>read_status</code>/<code>observations</code> speichern, <code>dry_run</code> per Rollback.</div>
       <div class="d"><strong>Stand 16.10.:</strong> VS-Werte als <code>VS_DAY</code>/<code>VS_WEEK</code> mit <code>year_week</code>/<code>game_day</code>, ein Wert je Spieler, Woche und Tag (höherer ersetzt niedrigeren). Gegner über das Allianz-Kürzel im Web-Scanner aussortiert. Ranglisten-Kampfkraft wird nicht mehr ×10<sup>6</sup> gespeichert. Offen: <code>scan_id</code>, <code>dry_run</code>, <code>read_status</code>/<code>observations</code>, Kürzel-Filter im Hub.</div>
+      <div class="d"><strong>Stand 17.10.:</strong> <code>dry_run: true</code> führt den Sync aus und rollt am Ende zurück, die Antwort enthält <code>dry_run</code>, <code>unmatched</code> und <code>summary.unmatched</code>. Offen: <code>scan_id</code>, <code>read_status</code>/<code>observations</code>, Kürzel-Filter im Hub.</div>
       <div class="meta"><span class="badge amber">teilweise 2026-10-16</span><span class="badge amber">mittel</span><span class="badge">~4 h</span></div>
     </div></div>
 
@@ -306,7 +310,7 @@
   </section>
 
   <div class="footer">
-    LWHub &bull; Aufgaben zum Konzept v2 (2026-10-16)<br>
+    LWHub &bull; Aufgaben zum Konzept v2 (2026-10-17)<br>
     Vorab gesetzte H&auml;kchen markieren erledigte Aufgaben. Eigene H&auml;kchen werden nicht gespeichert.
   </div>
 </div>

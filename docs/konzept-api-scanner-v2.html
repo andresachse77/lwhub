@@ -56,7 +56,12 @@
   .stage { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
   .stage-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
   .stage p, .stage ul { font-size: 13px; margin-bottom: 0; }
+  details.history { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; background: var(--bg-secondary); }
+  details.history summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  details.history ul { margin-top: 10px; font-size: 13px; }
   .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center; font-size: 12px; color: var(--text-muted); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -67,67 +72,81 @@
       <span class="badge blue">Architektur &amp; API-Konzept</span>
       <span class="badge purple">Android &bull; Web-Scanner</span>
       <span class="badge green">Additiv, nichts bricht</span>
-      <span class="badge amber">Stand: 2026-10-16</span>
+      <span class="badge amber">Stand: 2026-10-17 (v2.1)</span>
       <span class="badge red">v2 &ndash; ersetzt v1.0 und v1.1</span>
     </div>
     <h1>Integration: Thomas&rsquo; Android-App, Web-Scanner &amp; lwhub.de &ndash; v2</h1>
     <div class="subtitle">
       Zusammenf&uuml;hrung des ersten Konzepts (v1.0) und der &Uuml;berarbeitung von Thomas (v1.1), abgeglichen mit dem tats&auml;chlichen Code-Stand in <code>lwhub</code>, <code>web-scanner</code> und <code>Last-War-Tracker</code>. Kleiner Kern zuerst, Rest sp&auml;ter.
     </div>
+    <div class="note"><strong>v2.1 (17.10.):</strong> Abgeglichen mit dem umgesetzten Stand. Phase&nbsp;1 und 3 sind erledigt, Phase&nbsp;2 bis auf das Scharfschalten (A11). Wo die Umsetzung vom Plan abweicht, steht &bdquo;Umgesetzt&ldquo; dabei. Der laufende Stand je Aufgabe steht in der <a href="konzept-api-scanner-v2-aufgaben.html">Aufgabenliste</a>.</div>
   </div>
 
   <!-- 0 -->
-  <section>
+  <section id="abschnitt-0">
     <h2><span>🧭</span> 0. Leitlinien</h2>
     <ol>
       <li><strong>Nichts darf kaputtgehen.</strong> Jede DB-&Auml;nderung ist additiv und nullable. Bestehende Felder, Endpunkte und Antworten bleiben gleich.</li>
       <li><strong>Nicht stringent blockieren, sondern stufenweise.</strong> Der API-Schutz l&auml;uft zuerst im Modus &bdquo;nur protokollieren&ldquo;, erst danach wird blockiert.</li>
       <li><strong>Pr&uuml;fen passiert im Client.</strong> Der Web-Scanner hat mit dem Cockpit bereits eine Zuordnungs-Ansicht, die App bekommt ihre Pr&uuml;fansicht mit Meilenstein&nbsp;3. Der Server bekommt deshalb vorerst <strong>keine</strong> eigene Pr&uuml;fliste.</li>
       <li><strong>Riskante Aktionen nur mit Berechtigung.</strong> Wiederherstellen, Transfer, Neuanlage, Archivieren und R&auml;nge &auml;ndern nur mit R4/R5-Berechtigung, nie mit einem App-Token.</li>
-      <li><strong>Erst den Schutz, dann neue Funktionen.</strong> Der Sync-Endpunkt ist bereits live und offen. Das wird zuerst behoben.</li>
+      <li><strong>Erst den Schutz, dann neue Funktionen.</strong> Der Sync-Endpunkt war live und offen. <em>Umgesetzt:</em> seit 16./17.10. gesch&uuml;tzt (A5, A8).</li>
     </ol>
   </section>
 
   <!-- 1 -->
-  <section>
-    <h2><span>🔍</span> 1. Ist-Stand im Code (wichtig f&uuml;r beide Konzepte)</h2>
-    <p>Teile von v1.0 sind seit dem Commit <code>scannerintegration</code> (13.10.) bereits umgesetzt. v1.1 tut an mehreren Stellen so, als g&auml;be es das noch nicht.</p>
+  <section id="abschnitt-1">
+    <h2><span>🔍</span> 1. Ist-Stand im Code (17.10.)</h2>
+    <p>Die L&uuml;cken vom 16.10. (unten aufklappbar) sind bis auf das Scharfschalten der &uuml;brigen Endpunkte geschlossen.</p>
     <div class="card-grid">
       <div class="card ok">
-        <h4>✅ Bereits vorhanden</h4>
+        <h4>✅ Umgesetzt</h4>
         <ul>
-          <li>Spalten <code>current_power</code>, <code>hq_level</code>, <code>last_scanned_at</code>, <code>last_seen_status</code> an <code>players</code> (<code>ensureScannerColumns</code>)</li>
-          <li>Tabellen <code>player_metrics</code> und <code>api_tokens</code> (<code>db-setup.php</code>). <code>api_tokens</code> wird aber nirgends gepr&uuml;ft.</li>
-          <li><code>GET /members</code> liefert die Scanner-Felder und <code>aliases</code> (aus <code>player_name_history</code>) bereits immer mit</li>
-          <li><code>POST /scans/sync</code> (<code>handleSyncScans</code>): Update, Restore, Transfer, Neuanlage, Archivieren, Rang aus der Schildzahl</li>
-          <li>Web-Scanner-Cockpit mit Drag&amp;Drop-Zuordnung und Best&auml;tigungsdialog vor dem Sync</li>
+          <li>Migration aus Abschnitt&nbsp;3 in <code>db-setup.php</code> (A1), Schalter in <code>config.php</code> (A2)</li>
+          <li>Scanner-Routen pr&uuml;fen Discord-Token oder App-Token <code>lwhub_&hellip;</code> (A3), Ablehnungen in <code>api_auth_log</code></li>
+          <li>Token-Verwaltung f&uuml;r R5 im Admin-Bereich (A4), der Betreiber darf sie ebenfalls verwalten</li>
+          <li><code>POST /scans/sync</code> an Rollen gebunden und auf <code>enforce</code> (A5, A8), Transfer nur R5 &uuml;ber die gemeinsame Funktion (A6)</li>
+          <li>Web-Scanner &uuml;bernimmt die lwhub-Anmeldung und zeigt nach dem Sync Konflikte und nicht Zugeordnete (A7)</li>
+          <li><code>fetchJson()</code> sendet den Discord-Token, der Server pr&uuml;ft ihn mit 15&nbsp;Minuten Cache (A9, A10)</li>
+          <li>Sync f&uuml;r die App: <code>scan_type</code>, <code>scan_id</code>, <code>alliance_tag</code>, <code>dry_run</code>, <code>read_status</code> (A12)</li>
+          <li>Auswertungen aus <code>player_metrics</code> und VS-Vorschl&auml;ge auf der Trend-Seite (A13)</li>
         </ul>
       </div>
       <div class="card warn">
-        <h4>📱 Android-App (Stand 0.2.0)</h4>
+        <h4>📱 Android-App (Stand 0.2.0 vom 16.10.)</h4>
         <ul>
-          <li>Meilenstein 2 fertig (Erfassung/OCR), <strong>Meilenstein 3 (DB, Pr&uuml;fansicht) noch nicht begonnen</strong></li>
+          <li>Meilenstein 2 fertig (Erfassung/OCR), Meilenstein 3 (DB, Pr&uuml;fansicht) offen (T1)</li>
           <li>Typen: <code>VS_DAY</code>, <code>VS_WEEK</code>, <code>POWER</code>, <code>KILLS</code>, <code>DONATION</code> (Woche), <code>DONATION_DAY</code>. Kein <code>MEMBERS_LIST</code>.</li>
           <li><code>MergedEntry</code>: Name, Wert, <code>observations</code>, <code>conflicting</code>, Allianz-K&uuml;rzel</li>
           <li>Kein Rang, keine Spiel-ID. Release-Version ohne Internet-Berechtigung.</li>
-          <li><code>MemberMatcher</code> existiert, wird aber noch nicht genutzt</li>
+          <li>Der Hub ist f&uuml;r die App bereit. Der weitere Stand der App steht in der Aufgabenliste (T1&ndash;T8).</li>
         </ul>
       </div>
     </div>
     <div class="card bad" style="margin-top:4px">
-      <h4>🚨 Heute offen (unabh&auml;ngig von v1.0/v1.1)</h4>
+      <h4>🚧 Noch offen</h4>
       <ul>
-        <li><strong>Keine Anmeldung an der API.</strong> Der Server bekommt im Body nur eine <code>discord_id</code>. Er pr&uuml;ft nicht, ob der Aufrufer diese Discord-ID wirklich besitzt. Gleichzeitig liefert <code>GET /members</code> die <code>discord_id</code> aller Mitglieder &ouml;ffentlich aus. Wer die ID eines R5 kennt, kann <code>requireR5</code> damit bestehen.</li>
-        <li><strong><code>POST /scans/sync</code> pr&uuml;ft gar nichts.</strong> Jeder kann damit Spieler anlegen, archivieren, aus dem Archiv holen, zwischen Allianzen verschieben und R&auml;nge &auml;ndern. Die Allianz kommt frei aus dem Body.</li>
-        <li><strong>Der Transfer im Sync ist unvollst&auml;ndig.</strong> Er verschiebt <code>players</code>, <code>player_identities</code> und <code>player_name_history</code>, aber <strong>nicht</strong> <code>weekly_entries</code> und <code>weekly_entry_flags</code> (anders als <code>handleTransferPlayer</code>). Die Wochenhistorie bleibt in der alten Allianz h&auml;ngen.</li>
-        <li>Restore sucht im Archiv <strong>nur nach dem Namen, &uuml;ber alle Allianzen</strong>. Transfer greift auf jeden gleichnamigen aktiven Spieler einer anderen Allianz zu.</li>
-        <li><code>player_metrics</code> speichert nur <code>POWER</code> und hat keinen Schutz gegen doppelte Uploads.</li>
+        <li><strong>R5- und schreibende Endpunkte blockieren noch nicht.</strong> <code>LWHUB_AUTH_MODE</code> steht auf <code>log</code>. Gepr&uuml;ft und protokolliert wird schon, scharf geschaltet wird stufenweise (A11).</li>
+        <li><code>GET /members</code> liefert die <code>discord_id</code> aller Mitglieder weiter ohne Anmeldung aus.</li>
+        <li>Zur&uuml;ckholen &uuml;ber eine mitgeschickte <code>player_id</code> aus einem fremden Archiv fehlt (siehe Abschnitt&nbsp;5, Regel&nbsp;4).</li>
+        <li>Eindeutiger Schl&uuml;ssel auf <code>scan_id</code> fehlt noch. Doppelte Uploads verhindert bis dahin der Code.</li>
+        <li>CORS steht noch auf <code>*</code>.</li>
       </ul>
     </div>
+    <details class="history">
+      <summary>Ausgangslage am 16.10. (inzwischen behoben)</summary>
+      <ul>
+        <li><strong>Keine Anmeldung an der API.</strong> Der Server bekam im Body nur eine <code>discord_id</code> und pr&uuml;fte nicht, ob der Aufrufer sie besitzt. Wer die ID eines R5 kannte, bestand <code>requireR5</code>. <em>Jetzt:</em> gepr&uuml;fte ID aus dem Discord-Token (A10), blockiert wird mit A11.</li>
+        <li><strong><code>POST /scans/sync</code> pr&uuml;fte gar nichts.</strong> Jeder konnte Spieler anlegen, archivieren, zur&uuml;ckholen, verschieben und R&auml;nge &auml;ndern. <em>Jetzt:</em> nur R4/R5 bzw. App-Token, <code>enforce</code> (A5, A8).</li>
+        <li><strong>Der Transfer im Sync war unvollst&auml;ndig.</strong> <code>weekly_entries</code> und <code>weekly_entry_flags</code> blieben in der alten Allianz. <em>Jetzt:</em> gemeinsame Funktion mit <code>handleTransferPlayer</code>, auch <code>player_metrics</code> wandern mit (A6).</li>
+        <li>Restore suchte im Archiv nur nach dem Namen, &uuml;ber alle Allianzen. <em>Jetzt:</em> nur in Allianzen, in denen der Aufrufer R4/R5 ist (A5).</li>
+        <li><code>player_metrics</code> speicherte nur <code>POWER</code> ohne Schutz gegen doppelte Uploads. <em>Jetzt:</em> Metrik je Typ, <code>scan_id</code> ersetzt einen fr&uuml;heren Upload (A12).</li>
+      </ul>
+    </details>
   </section>
 
   <!-- 2 -->
-  <section>
+  <section id="abschnitt-2">
     <h2><span>⚖️</span> 2. Vergleich v1.0 &harr; v1.1 &harr; v2</h2>
     <div class="table-wrap">
     <table>
@@ -164,7 +183,7 @@
   </section>
 
   <!-- 3 -->
-  <section>
+  <section id="abschnitt-3">
     <h2><span>🗄️</span> 3. Datenmodell: Bricht die Seite? (Antwort: nein, wenn so umgesetzt)</h2>
     <p>Die Webseite liest <code>player_metrics</code>, <code>api_tokens</code> und die neuen v1.1-Tabellen nicht. Risiko entsteht nur dort, wo bestehender Server-Code in diese Tabellen schreibt.</p>
     <div class="table-wrap">
@@ -223,14 +242,16 @@ CREATE TABLE IF NOT EXISTS api_auth_log (
     KEY ix_auth_log_time (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
     <p>Alles im Stil der bestehenden <code>ensure&hellip;</code>-Funktionen: einzelne <code>ALTER</code> in try/catch, damit ein zweiter Lauf nichts tut.</p>
+    <div class="note"><strong>Umgesetzt 16.10. (A1)</strong> in <code>db-setup.php</code>, zus&auml;tzlich <code>UNIQUE (token_hash)</code> auf <code>api_tokens</code>.</div>
   </section>
 
   <!-- 4 -->
-  <section>
+  <section id="abschnitt-4">
     <h2><span>🛡️</span> 4. API-Schutz (stufenweise, ohne Bruch)</h2>
     <p>Kernidee: Ein Schalter in <code>config.php</code> legt fest, wie streng gepr&uuml;ft wird. Gepr&uuml;ft wird von Anfang an. Blockiert wird erst, wenn das Protokoll zeigt, dass alle legitimen Aufrufe durchkommen.</p>
     <pre><code>// config.php
 define('LWHUB_AUTH_MODE', 'log');   // 'off' | 'log' | 'enforce'</code></pre>
+    <div class="note warn"><strong>Umgesetzt mit zwei Schaltern:</strong> <code>LWHUB_SCANNER_AUTH_MODE</code> f&uuml;r die Scanner-Routen (Sync, Zugang, Trend) steht standardm&auml;&szlig;ig auf <code>enforce</code>. Die Protokollwoche wurde dort bewusst &uuml;bersprungen, weil der Sync offen war (A8). <code>LWHUB_AUTH_MODE</code> f&uuml;r alle anderen Endpunkte steht noch auf <code>log</code> (A11).</div>
     <ul>
       <li><code>off</code>: Verhalten wie heute.</li>
       <li><code>log</code>: Es wird gepr&uuml;ft und jede Abweichung in <code>api_auth_log</code> geschrieben. <strong>Nichts wird blockiert.</strong></li>
@@ -258,17 +279,18 @@ function authCheck(PDO $pdo, array $caller, string $need, string $alliance): voi
 // mode 'log'     -&gt; Verdict in api_auth_log, weiter
 // mode 'enforce' -&gt; jsonOut(401/403)</code></pre>
     <p><code>isLocalRequest()</code> (lokaler Dev-Server) bleibt als Ausnahme bestehen.</p>
+    <div class="note"><strong>Umgesetzt</strong> in <code>api/src/caller-auth.php</code> statt der Skizze: <code>requireScannerAccess()</code> f&uuml;r die Scanner-Routen (Discord-Token oder <code>lwhub_</code>-Token), <code>resolveCallerId()</code> f&uuml;r die &uuml;brigen Endpunkte (gepr&uuml;fte Discord-ID statt Body-ID), <code>resolveApiToken()</code> f&uuml;r App-Tokens. Lokal gilt der Aufrufer als R5.</div>
 
     <h3>Was wird gesch&uuml;tzt (Reihenfolge)</h3>
     <div class="table-wrap">
     <table>
-      <thead><tr><th>Stufe</th><th>Endpunkte</th><th>Mindestens</th></tr></thead>
+      <thead><tr><th>Stufe</th><th>Endpunkte</th><th>Mindestens</th><th>Stand 17.10.</th></tr></thead>
       <tbody>
-        <tr><td>1</td><td><code>POST /scans/sync</code></td><td>Token (<code>scanner</code> nur Werte aktualisieren) bzw. R4/R5 f&uuml;r Restore, Transfer, Neuanlage, Archivieren, Rang</td></tr>
-        <tr><td>2</td><td>Alles, was heute <code>requireR5</code> nutzt (Transfer, Archiv, Admins, Allianzen)</td><td>R5, gepr&uuml;ft &uuml;ber Discord-Token statt nur Body-ID</td></tr>
-        <tr><td>3</td><td>Schreibende Mitglieder- und Wochen-Endpunkte (<code>POST/PUT/DELETE /members</code>, <code>/entries</code>, <code>/apply-rank-change</code>, Zug-Plan)</td><td>angemeldetes Mitglied bzw. R4, je nach heutiger Logik</td></tr>
-        <tr><td>sp&auml;ter</td><td>Lesende Endpunkte</td><td>bleiben offen. Optional: <code>discord_id</code> in <code>GET /members</code> nur an angemeldete Aufrufer.</td></tr>
-        <tr><td>sp&auml;ter</td><td>CORS <code>*</code> &rarr; <code>lwhub.de</code> + localhost</td><td>Erg&auml;nzung, kein Ersatz. Gegen direkte Aufrufe (curl, App) hilft CORS nicht.</td></tr>
+        <tr><td>1</td><td><code>POST /scans/sync</code></td><td>Token (<code>scanner</code> nur Werte aktualisieren) bzw. R4/R5 f&uuml;r Restore, Transfer, Neuanlage, Archivieren, Rang</td><td class="y">enforce seit 16.10.</td></tr>
+        <tr><td>2</td><td>Alles, was heute <code>requireR5</code> nutzt (Transfer, Archiv, Admins, Allianzen)</td><td>R5, gepr&uuml;ft &uuml;ber Discord-Token statt nur Body-ID</td><td>gepr&uuml;ft, noch <code>log</code> (A11)</td></tr>
+        <tr><td>3</td><td>Schreibende Mitglieder- und Wochen-Endpunkte (<code>POST/PUT/DELETE /members</code>, <code>/entries</code>, <code>/apply-rank-change</code>, Zug-Plan)</td><td>angemeldetes Mitglied bzw. R4, je nach heutiger Logik</td><td>gepr&uuml;ft, noch <code>log</code> (A11)</td></tr>
+        <tr><td>sp&auml;ter</td><td>Lesende Endpunkte</td><td>bleiben offen. Optional: <code>discord_id</code> in <code>GET /members</code> nur an angemeldete Aufrufer.</td><td>offen</td></tr>
+        <tr><td>sp&auml;ter</td><td>CORS <code>*</code> &rarr; <code>lwhub.de</code> + localhost</td><td>Erg&auml;nzung, kein Ersatz. Gegen direkte Aufrufe (curl, App) hilft CORS nicht.</td><td>offen</td></tr>
       </tbody>
     </table>
     </div>
@@ -276,18 +298,19 @@ function authCheck(PDO $pdo, array $caller, string $need, string $alliance): voi
   </section>
 
   <!-- 5 -->
-  <section>
+  <section id="abschnitt-5">
     <h2><span>🔄</span> 5. <code>POST /scans/sync</code> v2</h2>
     <p>Bestehender Endpunkt, bestehendes Format. Neue Felder sind optional, der Web-Scanner funktioniert ohne Anpassung weiter (bis die Auth auf <code>enforce</code> steht).</p>
+    <div class="note"><strong>Umgesetzt 17.10.</strong> (A5, A6, A12). Probel&auml;ufe mit <code>dry_run</code> &uuml;ber einen <code>scanner</code>-Token und lokal als R5.</div>
     <h3>Regeln</h3>
     <ol>
       <li><strong>Allianz</strong> = Allianz des Tokens bzw. die gepr&uuml;fte Allianz des angemeldeten R4/R5. <code>body.alliance</code> muss leer sein oder &uuml;bereinstimmen.</li>
       <li><strong>Rolle <code>scanner</code></strong> (App): nur Eintr&auml;ge mit bekannter <code>player_id</code> <em>oder</em> eindeutigem exaktem Namenstreffer in der eigenen Allianz werden gespeichert. Alles andere kommt als <code>unmatched</code> zur&uuml;ck. Es wird nichts angelegt, verschoben, archiviert oder am Rang ge&auml;ndert.</li>
       <li><strong>Rolle <code>r4</code>/<code>r5</code></strong> (Web-Scanner nach Cockpit-Pr&uuml;fung): Verhalten wie heute (Restore, Neuanlage, Archivieren, Rang aus Schild). <strong>Transfer nur <code>r5</code></strong>, und dann &uuml;ber dieselbe Funktion wie <code>handleTransferPlayer</code>, damit auch <code>weekly_entries</code> mitwandern.</li>
-      <li><strong>Restore</strong> nur aus dem Archiv der eigenen Allianz, oder wenn der Client die <code>player_id</code> ausdr&uuml;cklich mitschickt.</li>
-      <li><strong>Gegner filtern:</strong> Eintr&auml;ge mit <code>alliance_tag</code> &ne; eigenes K&uuml;rzel werden verworfen (VS-Listen).</li>
-      <li><strong>Idempotenz:</strong> Kommt eine bekannte <code>scan_id</code> erneut, werden die alten Metriken dieser <code>scan_id</code> zuerst gel&ouml;scht.</li>
-      <li><strong>Metrik je <code>scan_type</code></strong> statt fest <code>POWER</code>. <code>DONATION</code> der App wird als <code>DONATION_WEEK</code> gespeichert.</li>
+      <li><strong>Restore</strong> nur aus dem Archiv der eigenen Allianz, oder wenn der Client die <code>player_id</code> ausdr&uuml;cklich mitschickt. <em>Umgesetzt anders:</em> Archiv und aktive Spieler anderer Allianzen werden nur dort gesucht, wo der Aufrufer selbst R4/R5 ohne Ehrenrolle ist (App-Tokens: nur ihre Allianz). Spieler fremder Allianzen bleiben unangetastet. Zur&uuml;ckholen &uuml;ber eine mitgeschickte <code>player_id</code> fehlt noch.</li>
+      <li><strong>Gegner filtern:</strong> Eintr&auml;ge mit <code>alliance_tag</code> &ne; eigenes K&uuml;rzel werden verworfen (VS-Listen) und in <code>summary.ignored_other_alliance</code> gez&auml;hlt. Verglichen wird OCR-tolerant (<code>I</code>/<code>l</code>/<code>|</code> = <code>1</code>, <code>O</code> = <code>0</code>, Sonderzeichen weg), sonst exakt: NxU1 &ne; NxU2. Der Web-Scanner vergleicht genauso.</li>
+      <li><strong>Idempotenz:</strong> Kommt eine bekannte <code>scan_id</code> erneut, werden die alten Metriken dieser <code>scan_id</code> zuerst gel&ouml;scht (<code>replaced_previous_upload: true</code>).</li>
+      <li><strong>Metrik je <code>scan_type</code></strong> statt fest <code>POWER</code>. <code>DONATION</code> der App wird als <code>DONATION_WEEK</code> gespeichert. VS und Spenden: ein Wert je Spieler, Woche und Tag, der h&ouml;here ersetzt den niedrigeren. Kampfkraft und Kills: jeder Scan ein eigener Messpunkt.</li>
       <li><code>dry_run: true</code> f&uuml;hrt alles in der Transaktion aus und rollt am Ende zur&uuml;ck. Die Antwort zeigt, was passieren w&uuml;rde.</li>
     </ol>
     <h3>Request (App, Rolle <code>scanner</code>)</h3>
@@ -296,7 +319,7 @@ Authorization: Bearer lwhub_xxxxxxxxxxxxxxxx
 {
   "scan_id": "5f2c1e0a-...",          // neu, optional – UUID pro Erfassung
   "scan_type": "VS_WEEK",             // POWER | KILLS | VS_DAY | VS_WEEK | DONATION_DAY | DONATION_WEEK | MEMBERS_LIST
-  "year_week": 202642,                // neu, optional – Format wie weekly_entries.year_week
+  "year_week": 2642,                  // neu, optional – wie weekly_entries.year_week (2642 = KW 42/2026), 202642 geht auch
   "game_day": null,                   // neu, optional – 1..7 bei *_DAY
   "recorded_at": "2026-10-16T19:00:00Z",
   "source": "android_app",
@@ -310,20 +333,40 @@ Authorization: Bearer lwhub_xxxxxxxxxxxxxxxx
     <h3>Response (erweitert, alte Felder bleiben)</h3>
     <pre><code>{
   "ok": true,
+  "dry_run": false,
   "scan_id": "5f2c1e0a-...",
   "replaced_previous_upload": false,
   "summary": { "total": 1, "updated": 1, "created": 0, "restored": 0, "transferred": 0,
                "archived": 0, "rank_changes": 0, "unmatched": 0, "ignored_other_alliance": 0 },
   "details": [ { "name": "Lion Tooth", "action": "updated", "player_id": "e3a89012-..." } ],
-  "unmatched": [],
-  "conflicts": []
+  "unmatched": [ { "name": "Gh0st", "player_id": null, "reason": "no-exact-name" } ],
+  "conflicts": [ { "name": "3Bein", "blocked": true, "reason": "transfer-needs-r5", "from_alliance": "NxU2" } ]
 }</code></pre>
+    <h3>Gr&uuml;nde in <code>unmatched</code> und <code>conflicts</code></h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th><code>reason</code></th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr><td><code>no-exact-name</code></td><td>Kein aktives Mitglied mit genau diesem Namen (nur Rolle <code>scanner</code>)</td></tr>
+        <tr><td><code>ambiguous-name</code></td><td>Name mehrfach in der Allianz (nur Rolle <code>scanner</code>)</td></tr>
+        <tr><td><code>unknown-player-id</code></td><td><code>player_id</code> unbekannt oder nicht aktiv (nur Rolle <code>scanner</code>)</td></tr>
+        <tr><td><code>transfer-needs-r5</code></td><td>Spieler ist noch in <code>from_alliance</code>, Verschieben darf nur R5</td></tr>
+        <tr><td><code>ambiguous-other-alliance</code></td><td>Name in mehreren anderen Allianzen (<code>alliances</code>), nichts &uuml;bernommen</td></tr>
+        <tr><td><code>protected-r4-member</code></td><td>Gesch&uuml;tzter R4, Rang bleibt (<code>scanned_rank</code>, <code>kept_rank</code>)</td></tr>
+        <tr><td><code>honor-role-not-in-game</code></td><td>Ehrenrolle, im Spiel nicht in der Allianz, nichts &uuml;bernommen</td></tr>
+        <tr><td><code>honor-member-read-only</code></td><td>Ehrenmitglied, Rang wird nicht ge&auml;ndert</td></tr>
+        <tr><td><code>honor-not-archivable</code></td><td>Ehrenmitglied wird nicht archiviert</td></tr>
+        <tr><td><code>scanner-no-archive</code></td><td>Ein <code>scanner</code>-Token darf nicht archivieren (<code>count</code>)</td></tr>
+      </tbody>
+    </table>
+    </div>
   </section>
 
   <!-- 6 -->
-  <section>
+  <section id="abschnitt-6">
     <h2><span>🌉</span> 6. Flag-Br&uuml;cke (sp&auml;ter)</h2>
     <p>Erst wenn mehrere Wochen saubere Werte in <code>player_metrics</code> liegen. Regeln aus v1.1 &uuml;bernommen:</p>
+    <div class="note"><strong>Erster Teil umgesetzt (A13):</strong> Die Trend-Seite schl&auml;gt VS-H&auml;kchen aus den Scan-Daten vor, gesetzt werden sie erst nach Best&auml;tigung. Strafen aus Werten und Schwellen in <code>alliance_config</code> kommen sp&auml;ter.</div>
     <ul>
       <li>Flags werden nur <strong>vorgeschlagen</strong> und mit einem Klick &uuml;bernommen. Der Server f&uuml;hrt nur die betroffenen Schl&uuml;ssel zusammen, weil <code>POST /entries</code> sonst alle anderen Flags l&ouml;scht.</li>
       <li>Strafen (<code>spendeUnter35k</code>, <code>vsUnter50</code>) nie aus Werten mit <code>read_status</code> <code>conflicting</code>/<code>unreadable</code>.</li>
@@ -333,36 +376,40 @@ Authorization: Bearer lwhub_xxxxxxxxxxxxxxxx
   </section>
 
   <!-- 7 -->
-  <section>
+  <section id="abschnitt-7">
     <h2><span>📅</span> 7. Fahrplan</h2>
-    <div class="stage"><div class="stage-head"><span>Phase 1 &ndash; Sync absichern</span><span class="badge red">sofort</span></div>
-      <p>Migration aus Abschnitt 3, Token-Pr&uuml;fung, <code>LWHUB_AUTH_MODE</code>, Sync-Regeln 1&ndash;4, Transfer-Bug beheben, Token-Feld im Web-Scanner-Cockpit, Token-Verwaltung f&uuml;r R5.</p></div>
-    <div class="stage"><div class="stage-head"><span>Phase 2 &ndash; Discord-Anmeldung pr&uuml;fen</span><span class="badge amber">danach</span></div>
-      <p><code>fetchJson()</code> sendet den Discord-Token. Server pr&uuml;ft mit Cache, zuerst <code>log</code>, dann <code>enforce</code> f&uuml;r R5-Endpunkte, danach f&uuml;r schreibende Endpunkte.</p></div>
-    <div class="stage"><div class="stage-head"><span>Phase 3 &ndash; Sync f&uuml;r die App</span><span class="badge blue">wenn App Meilenstein 3 steht</span></div>
-      <p>Regeln 5&ndash;8 (<code>alliance_tag</code>, <code>scan_id</code>, Metrik je Typ, <code>dry_run</code>). Testlauf mit Thomas &uuml;ber <code>dry_run</code>.</p></div>
-    <div class="stage"><div class="stage-head"><span>Phase 4 &ndash; App-Anbindung</span><span class="badge purple">Thomas</span></div>
+    <div class="stage"><div class="stage-head"><span>Phase 1 &ndash; Sync absichern</span><span class="badge green">erledigt 17.10.</span></div>
+      <p>Migration aus Abschnitt 3, Token-Pr&uuml;fung, <code>LWHUB_AUTH_MODE</code>, Sync-Regeln 1&ndash;4, Transfer-Bug beheben, Token-Feld im Web-Scanner-Cockpit, Token-Verwaltung f&uuml;r R5. <em>Umgesetzt anders:</em> kein Token-Feld, der Web-Scanner &uuml;bernimmt die lwhub-Anmeldung. Der Token f&uuml;r Thomas wird nach dem Deploy angelegt.</p></div>
+    <div class="stage"><div class="stage-head"><span>Phase 2 &ndash; Discord-Anmeldung pr&uuml;fen</span><span class="badge amber">teilweise &ndash; A11 offen</span></div>
+      <p><code>fetchJson()</code> sendet den Discord-Token. Server pr&uuml;ft mit Cache, zuerst <code>log</code>, dann <code>enforce</code> f&uuml;r R5-Endpunkte, danach f&uuml;r schreibende Endpunkte. <em>Stand:</em> Senden und Pr&uuml;fen laufen (A9, A10), alles steht auf <code>log</code>. Als N&auml;chstes <code>api_auth_log</code> ansehen und die R5-Endpunkte scharf schalten.</p></div>
+    <div class="stage"><div class="stage-head"><span>Phase 3 &ndash; Sync f&uuml;r die App</span><span class="badge green">erledigt 17.10.</span></div>
+      <p>Regeln 5&ndash;8 (<code>alliance_tag</code>, <code>scan_id</code>, Metrik je Typ, <code>dry_run</code>). Testlauf mit Thomas &uuml;ber <code>dry_run</code>. <em>Stand:</em> vorgezogen, der Hub ist bereit, bevor die App Meilenstein&nbsp;3 erreicht. Der Testlauf mit Thomas steht noch aus (T7).</p></div>
+    <div class="stage"><div class="stage-head"><span>Phase 4 &ndash; App-Anbindung</span><span class="badge purple">Thomas, T1&ndash;T7</span></div>
       <p>Eigene Build-Variante mit Internet, <code>LwHubUploader</code>, Mitgliederliste laden und <code>MemberMatcher</code> nutzen, Upload erst nach der Pr&uuml;fansicht. Alternativ JSON-Datei-Export.</p></div>
-    <div class="stage"><div class="stage-head"><span>Phase 5 &ndash; Ausbau (optional)</span><span class="badge">sp&auml;ter</span></div>
-      <p><code>player_aliases</code>, eindeutiger Schl&uuml;ssel auf <code>scan_id</code>, Auswertungen aus <code>player_metrics</code> auf der Webseite, Flag-Vorschl&auml;ge, Events (Desert Storm, Zombie Siege).</p></div>
+    <div class="stage"><div class="stage-head"><span>Phase 5 &ndash; Ausbau (optional)</span><span class="badge">sp&auml;ter, teilweise erledigt</span></div>
+      <p><code>player_aliases</code>, eindeutiger Schl&uuml;ssel auf <code>scan_id</code>, Auswertungen aus <code>player_metrics</code> auf der Webseite, Flag-Vorschl&auml;ge, Events (Desert Storm, Zombie Siege). <em>Stand:</em> Auswertungen und VS-Vorschl&auml;ge sind da (A13, Trend-Seite), dazu eine Event-Auswertung Kills/Kampfkraft vorher und nachher. Offen: <code>player_aliases</code>, Schl&uuml;ssel auf <code>scan_id</code>, Desert Storm und Zombie Siege.</p></div>
   </section>
 
   <!-- 8 -->
-  <section>
+  <section id="abschnitt-8">
     <h2><span>❓</span> 8. Offene Punkte</h2>
+    <h3>Noch zu entscheiden</h3>
     <ol>
-      <li><strong>Spielwoche:</strong> Wann beginnt Woche/Tag (Serverzeit, Zeitzone)? Wer rechnet <code>year_week</code>: Client oder Server? Vorschlag: Server rechnet aus <code>recorded_at</code>, der Client darf &uuml;berschreiben.</li>
-      <li><strong>Mehrere Erfassungen pro Woche:</strong> Z&auml;hlt f&uuml;r Auswertungen der letzte Scan oder der h&ouml;chste Wert?</li>
-      <li><strong>Upload-Weg der App:</strong> eigene Build-Variante mit Internet oder nur JSON-Datei, die im Hub hochgeladen wird?</li>
-      <li><strong>Ehrenmitglieder:</strong> Werte speichern, aber bei Top-N auslassen?</li>
-      <li><strong>Aufbewahrung</strong> von <code>player_metrics</code> und Umgang beim Archivieren.</li>
+      <li><strong>Upload-Weg der App:</strong> eigene Build-Variante mit Internet oder nur JSON-Datei, die im Hub hochgeladen wird? Entscheidet Thomas (T4).</li>
+      <li><strong>Aufbewahrung</strong> von <code>player_metrics</code>: Wie lange bleiben Scan-Werte gespeichert? (G3) Beim Archivieren und Verschieben wandern sie inzwischen mit.</li>
       <li><strong><code>discord_id</code> in <code>GET /members</code>:</strong> Wof&uuml;r braucht die Seite sie ohne Anmeldung? Erst danach entscheiden, ob sie ausgeblendet wird.</li>
     </ol>
+    <h3>Entschieden bzw. als Vorschlag umgesetzt</h3>
+    <ul>
+      <li><strong>Spielwoche (G1):</strong> ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW&nbsp;42/2026), Spieltag 1&nbsp;=&nbsp;Mo &hellip; 7&nbsp;=&nbsp;So. Der Hub rechnet aus <code>recorded_at</code>, die App darf <code>year_week</code>/<code>game_day</code> mitschicken. Mit Thomas noch abzustimmen: Serverzeit und Zeitzone f&uuml;r den Wechsel.</li>
+      <li><strong>Mehrere Erfassungen pro Woche (G2):</strong> VS und Spenden: der h&ouml;chste Wert je Spieler, Woche und Tag. Kampfkraft und Kills: jeder Scan ist ein eigener Messpunkt. Mit Thomas noch zu best&auml;tigen.</li>
+      <li><strong>Ehrenmitglieder (G3):</strong> Ehrenrollen z&auml;hlen nirgends mit (Wochen, Trend, VS-Platz, Teams, Zug, Event-Auswertung). Der Sync &uuml;bernimmt f&uuml;r sie keine Werte und archiviert oder verschiebt sie nicht.</li>
+    </ul>
   </section>
 
   <div class="footer">
-    LWHub &bull; Konzept v2 (2026-10-16) &bull; ersetzt <code>konzept-api-scanner.html</code> (v1.0) und v1.1<br>
-    Enth&auml;lt Hinweise auf offene Sicherheitsl&uuml;cken &ndash; nicht &ouml;ffentlich auf lwhub.de ablegen, bevor Phase 1 und 2 umgesetzt sind.
+    <a href="konzept-api-scanner-v2-aufgaben.html">Aufgabenliste</a> &bull; LWHub &bull; Konzept v2 (2026-10-16, v2.1 vom 2026-10-17) &bull; ersetzt <code>konzept-api-scanner.html</code> (v1.0) und v1.1<br>
+    Enth&auml;lt Hinweise auf offene Sicherheitsl&uuml;cken &ndash; nicht &ouml;ffentlich auf lwhub.de ablegen, bevor Phase 2 abgeschlossen ist (A11).
   </div>
 </div>
 </body>

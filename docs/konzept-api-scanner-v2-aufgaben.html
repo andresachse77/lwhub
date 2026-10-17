@@ -105,6 +105,8 @@
     .tags { width: 100%; justify-content: flex-start; padding-left: 28px; }
     .d, .open-point, details { margin-left: 0; }
   }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -113,7 +115,7 @@
   <header>
     <div class="eyebrow">Aufgabenliste</div>
     <h1>API- &amp; Scanner-Konzept v2</h1>
-    <p class="subtitle">Wer macht was in welcher Reihenfolge. Begründungen und Details stehen in <code>konzept-api-scanner-v2.html</code>.</p>
+    <p class="subtitle">Wer macht was in welcher Reihenfolge. Begründungen und Details stehen im <a href="konzept-api-scanner-v2.html">Konzept v2</a>.</p>
     <div class="meta-row">
       <span class="chip"><b>Andre</b> · lwhub &amp; Web-Scanner</span>
       <span class="chip"><b>Thomas</b> · Android-App</span>
@@ -237,7 +239,7 @@
 
     <div class="task" data-status="done">
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A12</span>Sync-Erweiterungen</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
-      <div class="d">App-Format nach Konzept Abschnitt 5: <code>scan_type</code> mit <code>value_numeric</code> (<code>DONATION</code> &rarr; <code>DONATION_WEEK</code>), <code>scan_id</code> ersetzt einen früheren Upload (<code>replaced_previous_upload</code>), <code>year_week</code>/<code>game_day</code>/<code>read_status</code>/<code>observations</code> gespeichert, Gegner über <code>alliance_tag</code> verworfen, <code>dry_run</code> per Rollback. Web-Scanner-Format unverändert.</div>
+      <div class="d">App-Format nach <a href="konzept-api-scanner-v2.html#abschnitt-5">Konzept Abschnitt 5</a>: <code>scan_type</code> mit <code>value_numeric</code> (<code>DONATION</code> &rarr; <code>DONATION_WEEK</code>), <code>scan_id</code> ersetzt einen früheren Upload (<code>replaced_previous_upload</code>), <code>year_week</code>/<code>game_day</code>/<code>read_status</code>/<code>observations</code> gespeichert, Gegner über <code>alliance_tag</code> verworfen, <code>dry_run</code> per Rollback. Web-Scanner-Format unverändert.</div>
       <details><summary>Verlauf</summary><div class="log">
         <p><time>16.10.</time>VS-Werte als <code>VS_DAY</code>/<code>VS_WEEK</code>, ein Wert je Spieler, Woche und Tag (höherer ersetzt niedrigeren). Ranglisten-Kampfkraft nicht mehr ×10<sup>6</sup>.</p>
         <p><time>17.10.</time><code>dry_run</code> mit <code>unmatched</code> in der Antwort. <code>KILLS</code> und <code>DONATION_WEEK</code>/<code>DONATION_DAY</code> für den Web-Scanner.</p>
@@ -271,7 +273,7 @@
 
     <div class="task" data-status="open">
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T3</span>Export-Format JSON festlegen</div><div class="tags"><span class="tag purple">App</span></div></div>
-      <div class="d">Ein JSON pro Erfassung im Format des Sync-Requests (Konzept v2, Abschnitt 5): <code>scan_id</code> (UUID, bleibt bei Wiederholung gleich), <code>scan_type</code>, <code>year_week</code>, <code>game_day</code>, <code>recorded_at</code>, <code>source: "android_app"</code>, <code>client_version</code>, <code>entries[]</code> mit <code>name</code>, <code>player_id</code>, <code>value_numeric</code>, <code>read_status</code>, <code>observations</code>, <code>alliance_tag</code>. <strong>Kein</strong> <code>rank</code>, <strong>kein</strong> <code>alliance</code>. <code>DONATION</code> darf bleiben.</div>
+      <div class="d">Ein JSON pro Erfassung im Format des Sync-Requests (<a href="konzept-api-scanner-v2.html#abschnitt-5">Konzept v2, Abschnitt 5</a>): <code>scan_id</code> (UUID, bleibt bei Wiederholung gleich), <code>scan_type</code>, <code>year_week</code>, <code>game_day</code>, <code>recorded_at</code>, <code>source: "android_app"</code>, <code>client_version</code>, <code>entries[]</code> mit <code>name</code>, <code>player_id</code>, <code>value_numeric</code>, <code>read_status</code>, <code>observations</code>, <code>alliance_tag</code>. <strong>Kein</strong> <code>rank</code>, <strong>kein</strong> <code>alliance</code>. <code>DONATION</code> darf bleiben.</div>
     </div>
 
     <div class="phase">Nach A4 · Token vorhanden</div>
@@ -334,6 +336,10 @@
     <h2>✨ Zusätzlich erledigt <span class="count">nicht in der ursprünglichen Liste</span></h2>
 
     <div class="phase">17.10.</div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t">Rangnamen je Allianz, Ergebnis-Seite abschaltbar</div><div class="tags"><span class="tag done">17.10.</span></div></div>
+      <div class="d">Rangnamen R1–R5 in der Feature-Konfiguration pflegbar (<code>alliance_config</code> <code>rank_name_1</code>…<code>5</code>, leer = Standard). Die Ergebnis-Seite (Befördern/Herabstufen nach Punkten) hängt am neuen Feature <code>ergebnis</code>, standardmäßig aus: R2/R3 folgen heute dem Beruf (Ingenieur, Kriegsherr), R1 sind Neulinge und Absteiger. Konzept und Aufgabenliste aus der Verwaltung erreichbar.</div>
+    </div>
     <div class="task" data-status="done">
       <div class="task-head"><span class="icon"></span><div class="t">Event-Auswertung Vorher/Nachher</div><div class="tags"><span class="tag done">17.10.</span></div></div>
       <div class="d"><code>web-scanner-onnx/event.html</code> und <code>GET /scans/event-compare</code>: je Spieler Kills und Kampfkraft vor und nach einem Zeitraum (z.&nbsp;B. Kriegszonen-Duell), eingestuft als gekämpft, Verluste, keine Änderung, nicht gescannt. In allen 7 Sprachen.</div>

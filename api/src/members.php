@@ -553,6 +553,157 @@ function handleTransferPlayer(PDO $pdo, string $fromAlliance, string $nameEncode
     }
 }
 
+/**
+ * Alles, was an Spieler $fromId haengt, auf $toId umhaengen (gleiche Allianz). Bei Doppelten gilt der Eintrag
+ * von $toId: gleiche Woche, Team-Slot, Zug-Platz. Namens-Verweise (Teams, Zug, Win-Win-Partner) bekommen den
+ * Namen von $toId. Wochen-Eintraege erledigt der Aufrufer (aktiv: mergeWeeklyEntries, Archiv: Restore).
+ */
+function reassignPlayerRefs(PDO $pdo, string $alliance, string $fromId, string $toId, string $fromName, string $toName): void {
+    foreach (['player_name_history', 'player_identities', 'player_user_links'] as $tbl) {
+        try {
+            $pdo->prepare("UPDATE IGNORE `$tbl` SET player_id = ? WHERE alliance = ? AND player_id = ?")->execute([$toId, $alliance, $fromId]);
+            $pdo->prepare("DELETE FROM `$tbl` WHERE alliance = ? AND player_id = ?")->execute([$alliance, $fromId]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
+    foreach (['user_active_char', 'player_metrics', 'rank_change_log'] as $tbl) {
+        try {
+            $pdo->prepare("UPDATE `$tbl` SET player_id = ? WHERE alliance = ? AND player_id = ?")->execute([$toId, $alliance, $fromId]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
+    foreach (['member_teams', 'member_team_totals'] as $tbl) {
+        try {
+            $pdo->prepare("UPDATE IGNORE `$tbl` SET player_id = ?, member_name = ? WHERE alliance = ? AND player_id = ?")->execute([$toId, $toName, $alliance, $fromId]);
+            $pdo->prepare("DELETE FROM `$tbl` WHERE alliance = ? AND player_id = ?")->execute([$alliance, $fromId]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
+    if ($fromName !== '' && $fromName !== $toName) {
+        try {
+            $pdo->prepare("UPDATE IGNORE zug_queue SET member_name = ? WHERE alliance = ? AND member_name = ?")->execute([$toName, $alliance, $fromName]);
+            $pdo->prepare("DELETE FROM zug_queue WHERE alliance = ? AND member_name = ?")->execute([$alliance, $fromName]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+        $pdo->prepare("UPDATE players SET beruf_winwin = ? WHERE alliance = ? AND beruf_winwin = ?")->execute([$toName, $alliance, $fromName]);
+        // Der Name des Duplikats bleibt als Alias, damit Scanner ihn weiter erkennen
+        try {
+            $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)")
+                ->execute([$alliance, uuid4(), $toId, $fromName]);
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
+}
+
+/** Wochen-Eintraege samt Flags von $fromId auf $toId; Wochen, die $toId schon hat, gewinnen. Liefert [uebernommen, verworfen]. */
+function mergeWeeklyEntries(PDO $pdo, string $alliance, string $fromId, string $toId): array {
+    $moved = 0; $dropped = 0;
+    $rows = $pdo->prepare("SELECT entry_id, year_week FROM weekly_entries WHERE alliance = ? AND player_id = ?");
+    $rows->execute([$alliance, $fromId]);
+    $have = $pdo->prepare("SELECT 1 FROM weekly_entries WHERE alliance = ? AND player_id = ? AND year_week = ? LIMIT 1");
+    foreach ($rows->fetchAll() as $e) {
+        $have->execute([$alliance, $toId, $e['year_week']]);
+        if ($have->fetch()) {
+            $pdo->prepare("DELETE FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?")->execute([$alliance, $e['entry_id']]);
+            $pdo->prepare("DELETE FROM weekly_entries WHERE alliance = ? AND entry_id = ?")->execute([$alliance, $e['entry_id']]);
+            $dropped++;
+        } else {
+            $pdo->prepare("UPDATE weekly_entries SET player_id = ? WHERE alliance = ? AND entry_id = ?")->execute([$toId, $alliance, $e['entry_id']]);
+            $moved++;
+        }
+    }
+    return [$moved, $dropped];
+}
+
+/**
+ * POST /members/{name}/merge?alliance=X – Duplikat in den Spieler {name} zusammenfuehren (R5/Site-Admin).
+ * body.from_player_id: aktiver Spieler derselben Allianz, body.from_archive_id: archivierter Spieler derselben
+ * Allianz. {name} behaelt Namen, Rang, Ehrenrolle und Spieler-ID; vom Duplikat kommen Wochen (ausser doppelten),
+ * Scan-Werte, Namen, Discord, Teams, Zug-Platz, das fruehere Beitrittsdatum und – falls neuer – der letzte Scan.
+ */
+function handleMergePlayer(PDO $pdo, string $alliance, string $nameEncoded, array $body): never {
+    try { $discordId = normalizeDiscordId($body['discord_id'] ?? ''); }
+    catch (\InvalidArgumentException $e) { jsonOut(400, ['error' => $e->getMessage()]); }
+    if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
+    requireR5($pdo, $discordId, $alliance);
+    ensureArchiveTables($pdo);
+    ensureUserActiveCharTable($pdo);
+
+    $name = rawurldecode($nameEncoded);
+    $stmt = $pdo->prepare("SELECT * FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 LIMIT 1");
+    $stmt->execute([$alliance, $name]);
+    $keep = $stmt->fetch();
+    if (!$keep) jsonOut(404, ['error' => 'Spieler nicht gefunden']);
+    $keepId = $keep['player_id'];
+
+    $fromPlayerId = trim((string)($body['from_player_id'] ?? ''));
+    $fromArchiveId = trim((string)($body['from_archive_id'] ?? ''));
+    if (($fromPlayerId === '') === ($fromArchiveId === '')) jsonOut(400, ['error' => 'Genau eins von from_player_id oder from_archive_id angeben']);
+
+    $summary = ['weeks_moved' => 0, 'weeks_dropped' => 0, 'metrics' => 0];
+    $pdo->beginTransaction();
+    try {
+        if ($fromPlayerId !== '') {
+            if ($fromPlayerId === $keepId) jsonOut(400, ['error' => 'Ein Spieler kann nicht mit sich selbst zusammengefuehrt werden']);
+            $stmt = $pdo->prepare("SELECT * FROM players WHERE alliance = ? AND player_id = ? FOR UPDATE");
+            $stmt->execute([$alliance, $fromPlayerId]);
+            $drop = $stmt->fetch();
+            if (!$drop) jsonOut(404, ['error' => 'Duplikat nicht gefunden (nur innerhalb derselben Allianz)']);
+            $dropName = (string)$drop['current_name'];
+            $dropCreated = $drop['created_at'];
+
+            [$summary['weeks_moved'], $summary['weeks_dropped']] = mergeWeeklyEntries($pdo, $alliance, $fromPlayerId, $keepId);
+            $c = $pdo->prepare("SELECT COUNT(*) FROM player_metrics WHERE alliance = ? AND player_id = ?");
+            $c->execute([$alliance, $fromPlayerId]);
+            $summary['metrics'] = (int)$c->fetchColumn();
+            reassignPlayerRefs($pdo, $alliance, $fromPlayerId, $keepId, $dropName, (string)$keep['current_name']);
+
+            // Juengerer Scan gewinnt; Beruf und Sprache nur, wo beim Behaltenen nichts steht
+            if ($drop['last_scanned_at'] !== null && ($keep['last_scanned_at'] === null || $drop['last_scanned_at'] > $keep['last_scanned_at'])) {
+                $pdo->prepare("UPDATE players SET current_power = COALESCE(?, current_power), hq_level = COALESCE(?, hq_level), last_scanned_at = ?, last_seen_status = COALESCE(?, last_seen_status) WHERE alliance = ? AND player_id = ?")
+                    ->execute([$drop['current_power'], $drop['hq_level'], $drop['last_scanned_at'], $drop['last_seen_status'], $alliance, $keepId]);
+            }
+            $pdo->prepare("UPDATE players SET beruf = COALESCE(beruf, ?), beruf_med_hilfe = beruf_med_hilfe OR ?, beruf_winwin = COALESCE(beruf_winwin, ?) WHERE alliance = ? AND player_id = ?")
+                ->execute([$drop['beruf'], (int)($drop['beruf_med_hilfe'] ?? 0), $drop['beruf_winwin'], $alliance, $keepId]);
+            $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$alliance, $fromPlayerId]);
+        } else {
+            $stmt = $pdo->prepare("SELECT * FROM archived_players WHERE archive_id = ? FOR UPDATE");
+            $stmt->execute([$fromArchiveId]);
+            $arch = $stmt->fetch();
+            if (!$arch || $arch['alliance'] !== $alliance) jsonOut(404, ['error' => 'Archiv-Eintrag nicht gefunden (nur innerhalb derselben Allianz)']);
+            $oldId = $arch['player_id'];
+            $dropName = (string)$arch['current_name'];
+            $dropCreated = $arch['player_created_at'];
+
+            // Archiv-Zeilen auf den Behaltenen umschreiben, dann wie beim Wiederherstellen zurueckholen
+            // (doppelte Wochen ueberspringt insertWeeklyEntryWithFlags, der Behaltene gewinnt)
+            $c = $pdo->prepare("SELECT COUNT(*) FROM archived_weekly_entries WHERE archive_id = ?");
+            $c->execute([$fromArchiveId]);
+            $archWeeks = (int)$c->fetchColumn();
+            foreach (['archived_weekly_entries', 'archived_name_history', 'archived_player_identities'] as $tbl) {
+                $pdo->prepare("UPDATE `$tbl` SET player_id = ? WHERE archive_id = ?")->execute([$keepId, $fromArchiveId]);
+            }
+            $before = $pdo->prepare("SELECT COUNT(*) FROM weekly_entries WHERE alliance = ? AND player_id = ?");
+            $before->execute([$alliance, $keepId]);
+            $weeksBefore = (int)$before->fetchColumn();
+            restoreArchivedPlayerData($pdo, $fromArchiveId, $alliance);
+            $before->execute([$alliance, $keepId]);
+            $summary['weeks_moved'] = (int)$before->fetchColumn() - $weeksBefore;
+            $summary['weeks_dropped'] = $archWeeks - $summary['weeks_moved'];
+            $c = $pdo->prepare("SELECT COUNT(*) FROM player_metrics WHERE alliance = ? AND player_id = ?");
+            $c->execute([$alliance, $oldId]);
+            $summary['metrics'] = (int)$c->fetchColumn();
+            reassignPlayerRefs($pdo, $alliance, $oldId, $keepId, $dropName, (string)$keep['current_name']);
+        }
+
+        // Mitglied seit: das fruehere Datum
+        if ($dropCreated !== null) {
+            $pdo->prepare("UPDATE players SET created_at = LEAST(created_at, ?) WHERE alliance = ? AND player_id = ?")
+                ->execute([$dropCreated, $alliance, $keepId]);
+        }
+        $pdo->commit();
+        jsonOut(200, ['ok' => true, 'player_id' => $keepId, 'merged_name' => $dropName] + $summary);
+    } catch (\PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
 function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, array $body, array $protectedNames): never {
     ensurePreferredLanguageColumn($pdo);
     ensureHonorRoleColumn($pdo);

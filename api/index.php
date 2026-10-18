@@ -210,6 +210,11 @@ try {
         handleTransferPlayer($pdo, $ALLIANCE, $segments[1], $body);
     }
 
+    // POST /members/{name}/merge – Duplikat (aktiv oder archiviert) in diesen Spieler zusammenfuehren
+    if ($method === 'POST' && count($segments) === 3 && $segments[0] === 'members' && $segments[2] === 'merge') {
+        handleMergePlayer($pdo, $ALLIANCE, $segments[1], $body);
+    }
+
     // DELETE /members/{name}
     if ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'members') {
         handleDeleteMember($pdo, $ALLIANCE, $segments[1], $body);

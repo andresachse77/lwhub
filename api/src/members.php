@@ -1251,12 +1251,14 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
     $caller = requireScannerAccess($pdo, $targetAlliance, preg_match('/^\d+$/', $claimedId) ? $claimedId : null, false, true);
     // Rolle scanner (Konzept v2, A5): nur Werte bei bekannter player_id oder eindeutigem exaktem Namen in
     // der eigenen Allianz. Nichts anlegen, zurueckholen, verschieben, archivieren, kein Rang. Rest -> unmatched.
-    $scannerOnly = ($caller['token_role'] ?? null) === 'scanner';
+    // Uploads der Android-App (A14) laufen immer so, auch mit dem Discord-Token eines R4/R5: Anlegen,
+    // Verschieben und Raenge bleiben beim Hub. source behauptet der Client selbst – Schutz vor Versehen.
+    $source = trim($body['source'] ?? 'scanner');
+    $scannerOnly = ($caller['token_role'] ?? null) === 'scanner' || $source === 'android_app';
     $dryRun = !empty($body['dry_run']);
     $entries = $body['entries'] ?? [];
     if (!is_array($entries)) jsonOut(400, ['error' => 'Ungültige Entries-Liste']);
 
-    $source = trim($body['source'] ?? 'scanner');
     $recordedAt = !empty($body['recorded_at']) ? date('Y-m-d H:i:s', strtotime($body['recorded_at'])) : date('Y-m-d H:i:s');
 
     // Konzept v2, A12 (App-Format): scan_type fuer die ganze Erfassung, Wert in entries[].value_numeric.

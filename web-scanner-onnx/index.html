@@ -1158,7 +1158,7 @@ const UNMATCHED_REASONS = {
 function conflictText(c) {
   const ranks = c.scanned_rank != null ? ` (gescannt R${c.scanned_rank}, bleibt R${c.kept_rank})` : '';
   switch (c.reason) {
-    case 'transfer-needs-r5': return `Spieler ist noch in ${c.from_alliance || 'einer anderen Allianz'} – Verschieben darf nur R5`;
+    case 'transfer-needs-r5': return `Spieler ist noch in ${c.from_alliance || 'einer anderen Allianz'} – Verschieben darf nur R4/R5`;
     case 'ambiguous-other-alliance': return `Name gibt es in mehreren anderen Allianzen (${(c.alliances || []).join(', ')}) – nicht übernommen`;
     case 'protected-r4-member': return `Geschützter R4 – Rang wird nicht geändert${ranks}`;
     case 'honor-role-not-in-game': return 'Hat hier eine Ehrenrolle und ist im Spiel nicht in der Allianz – nicht übernommen';

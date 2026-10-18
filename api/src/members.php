@@ -1276,9 +1276,9 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
     $bodyGameDay = isset($body['game_day']) && is_numeric($body['game_day']) && (int)$body['game_day'] >= 1 && (int)$body['game_day'] <= 7
         ? (int)$body['game_day'] : null;
 
-    // Verschieben aus einer anderen Allianz nur fuer R5 (Konzept v2, A6). Andere Allianzen (Verschieben,
-    // Archiv) nur, wo der Aufrufer selbst R4/R5 ohne Ehrenrolle ist; App-Tokens nur ihre eigene Allianz.
-    $canTransfer = !$scannerOnly && (int)($caller['rank'] ?? 0) >= 5;
+    // Verschieben aus einer anderen Allianz fuer R4/R5 (Konzept v2, A6; bis 18.10. nur R5). Andere Allianzen
+    // (Verschieben, Archiv) nur, wo der Aufrufer selbst R4/R5 ohne Ehrenrolle ist; App-Tokens nur ihre eigene Allianz.
+    $canTransfer = !$scannerOnly && (int)($caller['rank'] ?? 0) >= 4;
     $managed = [];
     $canManage = function (string $other) use ($pdo, $caller, $targetAlliance, &$managed): bool {
         if (strcasecmp($other, $targetAlliance) === 0) return true;
@@ -1539,7 +1539,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                     // Ehren-Eintraege nie verschieben: der Ehren-R4 einer Gast-Allianz behaelt dort seine Rolle,
                     // auch wenn ihn seine Heimat-Allianz scannt (dort bekommt er einen eigenen Eintrag).
                     // Nur Allianzen, in denen der Aufrufer selbst R4/R5 ist; Spieler fremder Allianzen bleiben
-                    // unangetastet (dann Neuanlage hier). Verschieben selbst nur fuer R5.
+                    // unangetastet (dann Neuanlage hier). Verschieben selbst fuer R4/R5.
                     $otherStmt = $pdo->prepare("SELECT player_id, alliance, current_rank_code, honor_role FROM players WHERE current_name = ? AND is_active = 1 AND alliance <> ? AND " . sqlNoHonor(''));
                     $otherStmt->execute([$name, $targetAlliance]);
                     $others = array_values(array_filter($otherStmt->fetchAll(), fn($o) => $canManage($o['alliance'])));

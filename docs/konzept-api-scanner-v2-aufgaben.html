@@ -195,10 +195,11 @@
 
     <div class="task" data-status="done">
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A6</span>Transfer-Bug im Sync beheben</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
-      <div class="d">Sync und R5-Werkzeug nutzen beide <code>movePlayerToAlliance()</code>: Wochen samt Flags, Namen, Discord- und Konto-Verknüpfung, aktiver Charakter und Scan-Werte wandern mit. Im Sync verschiebt nur R5, R4 bekommt den Konflikt <code>transfer-needs-r5</code>.</div>
+      <div class="d">Sync und R5-Werkzeug nutzen beide <code>movePlayerToAlliance()</code>: Wochen samt Flags, Namen, Discord- und Konto-Verknüpfung, aktiver Charakter und Scan-Werte wandern mit. Im Sync verschieben R4 und R5 (bis 18.10. nur R5), aber nur aus Allianzen, in denen sie selbst R4/R5 sind. App-Uploads und <code>scanner</code>-Tokens verschieben nie. Das R5-Werkzeug „Spieler verschieben“ im Hub bleibt bei R5 und Site-Admins.</div>
       <details><summary>Verlauf</summary><div class="log">
         <p><time>17.10.</time>Sync bricht nicht mehr mit Fremdschlüssel-Fehler ab, Wochen und Flags wandern mit. Ehrenrollen werden nie verschoben.</p>
         <p><time>17.10. abends</time><code>handleTransferPlayer</code> auf die gemeinsame Funktion umgestellt (vorher <code>FOREIGN_KEY_CHECKS=0</code>). <code>player_metrics</code> wandern mit. Probeläufe mit ROLLBACK: R5 lokal, Lion Tooth (R4 in beiden: blockiert), Emiliiee (R5 nur NxU1: NxU2 unangetastet), Starfighter (R5 NxU2: verschiebt), R5-Werkzeug.</p>
+        <p><time>18.10.</time>Verschieben im Sync auch für R4 freigegeben (Anlass: Muller214 und kushminz von NxU2 nach NxU1, Lion Tooth bekam <code>transfer-needs-r5</code>). Der Konflikt-Code heißt aus Kompatibilität weiter so und kommt nur noch bei fehlender Berechtigung.</p>
       </div></details>
     </div>
 

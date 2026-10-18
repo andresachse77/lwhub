@@ -119,7 +119,7 @@
     <div class="meta-row">
       <span class="chip"><b>Andre</b> · lwhub &amp; Web-Scanner</span>
       <span class="chip"><b>Thomas</b> · Android-App</span>
-      <span class="chip">Stand <b>17.10.2026</b></span>
+      <span class="chip">Stand <b>18.10.2026</b></span>
     </div>
   </header>
 
@@ -128,10 +128,10 @@
   <section class="next">
     <h2>🎯 Als Nächstes</h2>
     <ol>
-      <li><div><b>Deployen und Token für Thomas anlegen</b> (Rest von A4, Admin &rarr; API-Tokens, Rolle <code>scanner</code>). Damit kann Thomas T4 und T5 beginnen.</div></li>
-      <li><div><b>Thomas Bescheid geben:</b> Der Sync für die App ist bereit (A12). Er kann T6 bauen und mit <code>dry_run</code> testen. Dabei G1 (Spielwoche) abstimmen.</div></li>
+      <li><div><b>Discord-App einrichten (A14):</b> im Discord Developer Portal (App 1494427568361967626 → OAuth2) die Redirect-URI <code>lwtracker://discord-auth</code> eintragen und „Public Client“ einschalten. Lehnt das Portal die Adresse ab, Thomas die erlaubte Form melden (z.&nbsp;B. <code>discord-1494427568361967626:/…</code>).</div></li>
+      <li><div><b>Sync für die App einschränken (A14):</b> Uploads mit <code>source: "android_app"</code> nur als Werte zu bekannten Spielern, Rest <code>unmatched</code> – heute legt ein Discord-Aufrufer (R4/R5) noch Spieler an, holt aus dem Archiv und verschiebt.</div></li>
+      <li><div><b>Token für Thomas anlegen</b> (Rolle <code>scanner</code>) – nur noch zum Testen (T7).</div></li>
       <li><div><b>A11 vorbereiten:</b> <code>api_auth_log</code> ansehen, dann die R5-Endpunkte auf <code>enforce</code>.</div></li>
-      <li><div><b>G4 mit Thomas klären:</b> Anmeldung pro Person in der App statt Token pro Allianz, danach A14.</div></li>
       <li><div><b>G3 klären:</b> Wie lange bleiben Scan-Werte gespeichert?</div></li>
     </ol>
   </section>
@@ -139,10 +139,10 @@
   <section>
     <h2>🔗 Abhängigkeiten</h2>
     <div class="deps">
-      <div class="dep"><span>Thomas braucht einen <code>scanner</code>-Token für die Test-Allianz</span><span class="tag part">A4 erledigt · Token nach Deploy</span></div>
+      <div class="dep"><span>Thomas braucht einen <code>scanner</code>-Token für die Test-Allianz (nur noch zum Testen)</span><span class="tag part">A4 erledigt · Token nach Deploy</span></div>
       <div class="dep"><span>Thomas braucht den Sync mit <code>dry_run</code>, <code>scan_id</code>, <code>alliance_tag</code>, Metrik je Typ</span><span class="tag done">bereit seit 17.10.</span></div>
       <div class="dep"><span>Festlegung der Spielwoche (<code>year_week</code>)</span><span class="tag done">G1, Serverzeit seit 17.10.</span></div>
-      <div class="dep"><span>App für mehrere R4/R5: Anmeldung pro Person</span><span class="tag blue">gemeinsam, G4 &rarr; A14</span></div>
+      <div class="dep"><span>App für mehrere R4/R5: Anmeldung pro Person mit Discord</span><span class="tag part">G4 entschieden 18.10. · App fertig · wartet auf A14 (Redirect-URI, Public Client, Sync einschränken)</span></div>
     </div>
   </section>
 
@@ -252,11 +252,12 @@
     <div class="phase">Phase 4 · App für mehrere R4/R5</div>
 
     <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A14</span>App-Anmeldung pro Person statt Token pro Allianz</div><div class="tags"><span class="tag blue">Sicherheit</span><span class="tag">wartet auf G4</span></div></div>
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A14</span>App-Anmeldung pro Person statt Token pro Allianz</div><div class="tags"><span class="tag blue">Sicherheit</span><span class="tag part">App fertig 18.10. · Hub offen</span></div></div>
       <div class="d"><b>Problem:</b> Ein App-Token gilt für genau eine Allianz und hängt an keiner Person. Wenn viele R4/R5 die App nutzen, müsste Thomas Tokens pro Allianz und Nutzer sammeln und verteilen. Hinter einem Upload stünde niemand, und wer seinen Rang verliert, könnte mit dem Token weiter hochladen. Das gilt auch für Spieler mit Chars in NxU1 und NxU2.<br>
       <b>Vorschlag:</b> Die App meldet sich mit Discord an (OAuth mit PKCE, Redirect-URI der App in der lwhub-Discord-Anwendung eintragen). Die Allianzen kommen aus <code>GET /scans/my-alliances</code>, die Rechte prüft der Hub bei jedem Aufruf. App-Tokens bleiben nur für Tests und Automatisierung (z.&nbsp;B. Power Automate).<br>
       <b>Am Server nötig:</b> Ein Discord-Aufrufer hat im Sync heute die vollen R4/R5-Rechte wie im Web-Scanner (anlegen, archivieren, zurückholen, Rang). Uploads mit <code>source: "android_app"</code> müssen darum immer eingeschränkt laufen wie die Rolle <code>scanner</code>: nur Werte zu bekannten Spielern, Rest als <code>unmatched</code>. Prüfen, ob <code>GET /members</code> und <code>/scans/my-alliances</code> den Discord-Token aus der App annehmen.</div>
-      <div class="open-point">Offen: Discord-Login in der App (G4) oder ein persönlicher Token, den jeder R4/R5 selbst im Hub erzeugt.</div>
+      <div class="d"><b>Entschieden 18.10. (G4):</b> Discord-Login in der App. <b>App-Seite fertig</b> (18.10.): OAuth mit PKCE ohne Geheimnis, nur Recht <code>identify</code>, Antwort über <code>lwtracker://discord-auth</code>, Token verschlüsselt gespeichert und automatisch erneuert. Allianz-Auswahl aus <code>GET /scans/my-alliances</code> (nur <code>can_scan</code>), Prüfung über <code>GET /scans/access?alliance=X</code>, Sync mit <code>Authorization: Bearer &lt;Discord-Token&gt;</code> und <code>?alliance=X</code>. Der Discord-Token geht nur an lwhub.de.</div>
+      <div class="open-point">Offen am Hub: (1) Redirect-URI <code>lwtracker://discord-auth</code> in der Discord-App eintragen und „Public Client“ einschalten (sonst verlangt Discord beim Code-Tausch und beim Erneuern ein <code>client_secret</code>). (2) Sync bei <code>source: "android_app"</code> wie Rolle <code>scanner</code> einschränken – bis dahin warnt die App im Probelauf, wenn der Hub Spieler anlegen, zurückholen oder verschieben würde (<code>created</code>, <code>restored</code>, <code>transferred</code>). (3) <code>GET /members</code> prüft keinen Token und liefert jede Allianz über <code>?alliance=</code>.</div>
     </div>
 
     <div class="phase">Später</div>
@@ -273,38 +274,45 @@
 
     <div class="phase">Sofort, unabhängig vom Hub</div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T1</span>Meilenstein 3 fertigstellen</div><div class="tags"><span class="tag purple">App</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T1</span>Meilenstein 3 fertigstellen</div><div class="tags"><span class="tag purple">App</span><span class="tag done">erledigt 17.10.</span></div></div>
       <div class="d">Datenbank, Prüfansicht mit Korrekturen, Speichern. Hochgeladen wird nur, was in der App geprüft wurde. Damit braucht der Hub keine eigene Prüfliste.</div>
+      <div class="d">Am S25 Ultra getestet: 4 Mitgliederlisten (11.–17.10.) und Kampfkraft gespeichert, alle 75 Namen bekannten Mitgliedern zugeordnet. Dazu Umbau der Texterkennung auf PaddleOCR (PP-OCRv6) und Erfassung der Mitgliederliste (Rang, Titel, Kampfkraft, Level, auch neues Spiel-Layout). Im Hauptstand seit 17.10. (PR #4).</div>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T2</span>Gegner in VS-Listen ausfiltern</div><div class="tags"><span class="tag purple">App</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T2</span>Gegner in VS-Listen ausfiltern</div><div class="tags"><span class="tag purple">App</span><span class="tag done">erledigt 17.10.</span></div></div>
       <div class="d">Mit dem <code>alliance</code>-Kürzel aus <code>MergedEntry</code> schon in der App nur die eigene Allianz behalten. Der Hub filtert zusätzlich (seit 17.10.).</div>
+      <div class="d">In der Prüfansicht werden Gegner der gemischten VS-Liste ausgeblendet (eigene Allianz über die bekannten Mitglieder bzw. das häufigste Kürzel) und nicht gesendet. <code>alliance_tag</code> geht mit.</div>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T3</span>Export-Format JSON festlegen</div><div class="tags"><span class="tag purple">App</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T3</span>Export-Format JSON festlegen</div><div class="tags"><span class="tag purple">App</span><span class="tag done">erledigt 17.10.</span></div></div>
       <div class="d">Ein JSON pro Erfassung im Format des Sync-Requests (<a href="konzept-api-scanner-v2.html#abschnitt-5">Konzept v2, Abschnitt 5</a>): <code>scan_id</code> (UUID, bleibt bei Wiederholung gleich), <code>scan_type</code>, <code>year_week</code>, <code>game_day</code>, <code>recorded_at</code>, <code>source: "android_app"</code>, <code>client_version</code>, <code>entries[]</code> mit <code>name</code>, <code>player_id</code>, <code>value_numeric</code>, <code>read_status</code>, <code>observations</code>, <code>alliance_tag</code>. <strong>Kein</strong> <code>rank</code>, <strong>kein</strong> <code>alliance</code>. <code>DONATION</code> darf bleiben.</div>
+      <div class="d">Umgesetzt in <code>core/hub/HubSync.kt</code> (mit Tests): <code>scan_id</code> fest pro Erfassung und Liste, <code>DONATION</code> → <code>DONATION_WEEK</code>, Mitgliederliste → <code>MEMBERS_LIST</code>. <code>recorded_at</code> = Zeitpunkt der <b>Erfassung</b> (nicht des Uploads) in UTC. <code>year_week</code> (JJJJWW) und <code>game_day</code> (VS-Tagesrang, Spenden Tag) rechnet die App nach Spielserverzeit aus dem Zeitraum der Liste – stimmt auch kurz vor dem Reset und beim gewählten Wochentag-Reiter. Titelträger der Mitgliederliste ohne Kampfkraft mit <code>value_numeric: null</code> statt 0. Zwei Einträge beim selben Spieler bekommen keine <code>player_id</code>.</div>
     </div>
 
     <div class="phase">Nach A4 · Token vorhanden</div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T4</span>Upload-Weg entscheiden, Build-Variante anlegen</div><div class="tags"><span class="tag purple">App</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T4</span>Upload-Weg entscheiden, Build-Variante anlegen</div><div class="tags"><span class="tag purple">App</span><span class="tag done">erledigt 18.10.</span></div></div>
       <div class="d"><b>Entschieden 17.10.:</b> eigene Hub-Variante mit Internet-Berechtigung, die direkt hochlädt. Die Release-Version bleibt offline. Anmeldung pro Person siehe A14/G4. Token verschlüsselt speichern wie den GitHub-Token (<code>TokenStore</code>). Upload-Schalter standardmäßig aus.</div>
+      <div class="d"><b>Geändert 18.10.:</b> Es gibt nur noch die Version mit Internet, keine Offline-Version mehr. Anmeldung mit Discord (A14/G4). Ein API-Token (verschlüsselt gespeichert) ist nur noch zum Testen da.</div>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T5</span>Mitgliederliste laden, <code>MemberMatcher</code> anschließen</div><div class="tags"><span class="tag purple">App</span></div></div>
+    <div class="task" data-status="part">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T5</span>Mitgliederliste laden, <code>MemberMatcher</code> anschließen</div><div class="tags"><span class="tag purple">App</span><span class="tag part">teilweise</span></div></div>
       <div class="d"><code>GET /api/members</code> mit Token laden (<code>id</code>, <code>name</code>, <code>aliases</code>). Daraus <code>KnownAlias</code> bauen und in der Prüfansicht Treffer vorschlagen. Bestätigte Zuordnungen schicken die <code>player_id</code> mit.</div>
+      <div class="d">Seit 18.10.: Beim Senden lädt die App <code>GET /members?scope=game</code> und ordnet die <code>player_id</code> über alle bekannten Schreibweisen eines Mitglieds zu (nur bei genau einem Treffer).</div>
+      <div class="open-point">Offen: Mitglieder des Hubs schon in der Prüfansicht als Vorschlag zeigen.</div>
     </div>
 
     <div class="phase">Nach A12 · Sync bereit</div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T6</span><code>LwHubUploader</code></div><div class="tags"><span class="tag purple">App</span><span class="tag done">freigegeben</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T6</span><code>LwHubUploader</code></div><div class="tags"><span class="tag purple">App</span><span class="tag done">gebaut 18.10.</span></div></div>
       <div class="d">Sendet das JSON aus T3 an <code>POST /api/scans/sync</code>. Zuerst mit <code>dry_run: true</code> und das Ergebnis anzeigen (aktualisiert / <code>unmatched</code> / verworfen), dann nach Bestätigung echt senden. Bei Netzfehler mit derselben <code>scan_id</code> wiederholen.</div>
+      <div class="d">Umgesetzt (<code>app/hub/HubUploads.kt</code>, <code>HubClient.kt</code>): nach dem Speichern in der Prüfansicht Karte „An LWHub senden“ mit Probelauf und „Jetzt senden“. Anzeige: aktualisiert, neu angelegt, aus dem Archiv geholt, verschoben, nicht zugeordnet (mit Namen), andere Allianz, Konflikte. Vorher Prüfung über <code>/scans/access</code>. Doppeltipp sendet nicht doppelt. Test am echten Hub: T7.</div>
     </div>
 
     <div class="task" data-status="open">
@@ -326,7 +334,7 @@
 
     <div class="task" data-status="done">
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G1</span>Spielwoche und Spieltag</div><div class="tags"><span class="tag done">erledigt 17.10.</span></div></div>
-      <div class="d">ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW 42/2026), Spieltag 1 = Mo … 7 = So, nach <b>Spielserverzeit</b> (UTC-2, bestätigt von Andre): Wechsel mit dem Reset um 00:00 Serverzeit = 02:00 UTC, also 04:00 deutscher Sommerzeit und 03:00 im Winter (Vorschlag Thomas, 17.10.). Die App schickt <code>recorded_at</code> in UTC mit „Z“. Der Hub rechnet in <code>scanGameTime()</code> um, Versatz über <code>LWHUB_GAME_UTC_OFFSET</code>. Schickt die App <code>year_week</code>/<code>game_day</code> selbst, dann auch nach Serverzeit.</div>
+      <div class="d">ISO-Kalenderwoche im Format von <code>weekly_entries.year_week</code> (2642 = KW 42/2026), Spieltag 1 = Mo … 7 = So, nach <b>Spielserverzeit</b> (UTC-2, bestätigt von Andre und am 17.10. im Spiel geprüft: Einstellungen zeigen 16:09 Serverzeit bei 18:09 UTC): Wechsel mit dem Reset um 00:00 Serverzeit = 02:00 UTC, also 04:00 deutscher Sommerzeit und 03:00 im Winter (Vorschlag Thomas, 17.10.). Die App schickt <code>recorded_at</code> in UTC mit „Z“. Der Hub rechnet in <code>scanGameTime()</code> um, Versatz über <code>LWHUB_GAME_UTC_OFFSET</code>. Schickt die App <code>year_week</code>/<code>game_day</code> selbst, dann auch nach Serverzeit.</div>
       <div class="d">Seit 17.10. auch auf der Webseite: Die aktuelle KW (Wochenliste, <code>currentYearWeek()</code> in index.html) und die Ranglisten-Historie (<code>handleGetRankingHistory</code>) rechnen nach Spielserverzeit statt nach Browser- bzw. Webserver-Uhr.</div>
     </div>
 
@@ -342,10 +350,10 @@
       <div class="open-point">Wie lange bleiben Scan-Werte gespeichert?</div>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G4</span>Anmeldung in der App für mehrere R4/R5</div><div class="tags"><span class="tag blue">gemeinsam</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G4</span>Anmeldung in der App für mehrere R4/R5</div><div class="tags"><span class="tag blue">gemeinsam</span><span class="tag done">entschieden 18.10.</span></div></div>
       <div class="d">Wie meldet sich ein R4/R5 in der App an, ohne dass Thomas Tokens verwaltet? Vorschlag: Discord-Login in der App, Allianz-Auswahl aus <code>GET /scans/my-alliances</code>, Uploads nur Werte (A14). Alternative: Jeder erzeugt im Hub selbst einen persönlichen Token, der an seine Discord-ID gebunden ist.</div>
-      <div class="open-point">Mit Thomas entscheiden, danach A14 umsetzen.</div>
+      <div class="d"><b>Entschieden 18.10.:</b> Discord-Login in der App (OAuth mit PKCE). Allianz aus <code>GET /scans/my-alliances</code>, beim Sync der Discord-Token als <code>Authorization: Bearer …</code>, Rechte prüft der Hub. Uploads aus der App schreiben nur Werte; Anlegen, Verschieben und Ränge macht weiter der Hub. Tokens nur noch zum Testen. App-Seite fertig, Hub-Seite siehe A14.</div>
     </div>
   </section>
 

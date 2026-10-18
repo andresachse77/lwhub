@@ -128,7 +128,7 @@
   <section class="next">
     <h2>🎯 Als Nächstes</h2>
     <ol>
-      <li><div><b>Discord-App einrichten (A14):</b> im Discord Developer Portal (App 1494427568361967626 → OAuth2) die Redirect-URI <code>lwtracker://discord-auth</code> eintragen und „Public Client“ einschalten. Lehnt das Portal die Adresse ab, Thomas die erlaubte Form melden (z.&nbsp;B. <code>discord-1494427568361967626:/…</code>).</div></li>
+      <li><div><b>Thomas Bescheid geben:</b> Hub-Seite von A14 ist fertig (Discord-App eingerichtet, Sync eingeschränkt). Er kann den Discord-Login in der App testen, danach gemeinsam T7.</div></li>
       <li><div><b>Token für Thomas anlegen</b> (Rolle <code>scanner</code>) – nur noch zum Testen (T7).</div></li>
       <li><div><b>A11 vorbereiten:</b> <code>api_auth_log</code> ansehen, dann die R5-Endpunkte auf <code>enforce</code>.</div></li>
       <li><div><b>G3 klären:</b> Wie lange bleiben Scan-Werte gespeichert?</div></li>
@@ -141,7 +141,7 @@
       <div class="dep"><span>Thomas braucht einen <code>scanner</code>-Token für die Test-Allianz (nur noch zum Testen)</span><span class="tag part">A4 erledigt · Token nach Deploy</span></div>
       <div class="dep"><span>Thomas braucht den Sync mit <code>dry_run</code>, <code>scan_id</code>, <code>alliance_tag</code>, Metrik je Typ</span><span class="tag done">bereit seit 17.10.</span></div>
       <div class="dep"><span>Festlegung der Spielwoche (<code>year_week</code>)</span><span class="tag done">G1, Serverzeit seit 17.10.</span></div>
-      <div class="dep"><span>App für mehrere R4/R5: Anmeldung pro Person mit Discord</span><span class="tag part">G4 entschieden 18.10. · App fertig · Sync eingeschränkt 18.10. · wartet auf A14 (Redirect-URI, Public Client)</span></div>
+      <div class="dep"><span>App für mehrere R4/R5: Anmeldung pro Person mit Discord</span><span class="tag done">G4 entschieden 18.10. · App fertig · Hub fertig 18.10. · Test T7</span></div>
     </div>
   </section>
 
@@ -250,14 +250,14 @@
 
     <div class="phase">Phase 4 · App für mehrere R4/R5</div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A14</span>App-Anmeldung pro Person statt Token pro Allianz</div><div class="tags"><span class="tag blue">Sicherheit</span><span class="tag part">App fertig 18.10. · Sync eingeschränkt · Discord-Portal offen</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A14</span>App-Anmeldung pro Person statt Token pro Allianz</div><div class="tags"><span class="tag blue">Sicherheit</span><span class="tag done">erledigt 18.10.</span></div></div>
       <div class="d"><b>Problem:</b> Ein App-Token gilt für genau eine Allianz und hängt an keiner Person. Wenn viele R4/R5 die App nutzen, müsste Thomas Tokens pro Allianz und Nutzer sammeln und verteilen. Hinter einem Upload stünde niemand, und wer seinen Rang verliert, könnte mit dem Token weiter hochladen. Das gilt auch für Spieler mit Chars in NxU1 und NxU2.<br>
       <b>Vorschlag:</b> Die App meldet sich mit Discord an (OAuth mit PKCE, Redirect-URI der App in der lwhub-Discord-Anwendung eintragen). Die Allianzen kommen aus <code>GET /scans/my-alliances</code>, die Rechte prüft der Hub bei jedem Aufruf. App-Tokens bleiben nur für Tests und Automatisierung (z.&nbsp;B. Power Automate).<br>
       <b>Am Server nötig:</b> Ein Discord-Aufrufer hat im Sync heute die vollen R4/R5-Rechte wie im Web-Scanner (anlegen, archivieren, zurückholen, Rang). Uploads mit <code>source: "android_app"</code> müssen darum immer eingeschränkt laufen wie die Rolle <code>scanner</code>: nur Werte zu bekannten Spielern, Rest als <code>unmatched</code>. Prüfen, ob <code>GET /members</code> und <code>/scans/my-alliances</code> den Discord-Token aus der App annehmen.</div>
       <div class="d"><b>Entschieden 18.10. (G4):</b> Discord-Login in der App. <b>App-Seite fertig</b> (18.10.): OAuth mit PKCE ohne Geheimnis, nur Recht <code>identify</code>, Antwort über <code>lwtracker://discord-auth</code>, Token verschlüsselt gespeichert und automatisch erneuert. Allianz-Auswahl aus <code>GET /scans/my-alliances</code> (nur <code>can_scan</code>), Prüfung über <code>GET /scans/access?alliance=X</code>, Sync mit <code>Authorization: Bearer &lt;Discord-Token&gt;</code> und <code>?alliance=X</code>. Der Discord-Token geht nur an lwhub.de.</div>
       <div class="d"><b>Hub 18.10.:</b> Der Sync läuft bei <code>source: "android_app"</code> immer eingeschränkt wie die Rolle <code>scanner</code>, auch mit dem Discord-Token eines R4/R5: nur Werte zu bekannten Spielern (<code>player_id</code> oder eindeutiger exakter Name), kein Rang, nichts anlegen, zurückholen, verschieben oder archivieren, Rest als <code>unmatched</code>. <code>source</code> schickt der Client selbst – das schützt vor Versehen, nicht vor Absicht (im Web-Scanner darf derselbe R4/R5 das ohnehin). <code>/scans/my-alliances</code> und <code>/scans/access</code> nehmen den Discord-Token der App an. <code>GET /members</code> bleibt wie alle lesenden Endpunkte offen (siehe A11).</div>
-      <div class="open-point">Offen am Hub: Redirect-URI <code>lwtracker://discord-auth</code> in der Discord-App eintragen und „Public Client“ einschalten (sonst verlangt Discord beim Code-Tausch und beim Erneuern ein <code>client_secret</code>).</div>
+      <div class="d"><b>Discord-App 18.10.:</b> Redirect-URI <code>lwtracker://discord-auth</code> eingetragen und „Öffentlicher Client“ eingeschaltet (Code-Tausch und Erneuern ohne <code>client_secret</code>). Der Login der Webseite (<code>response_type=token</code>) ist davon nicht betroffen. Test am echten Hub: T7.</div>
     </div>
 
     <div class="phase">Später</div>

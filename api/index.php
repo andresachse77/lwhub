@@ -97,6 +97,7 @@ try {
     ensurePlayerMetricsTable($pdo);
     ensureApiTokensTable($pdo);
     ensureScannerV2Columns($pdo);
+    ensureMetricsValueKey($pdo);
     ensureApiAuthTables($pdo);
     ensureVsSparFlag($pdo);
     seedProtectedAdmins($pdo, $PROTECTED_R4_NAMES);

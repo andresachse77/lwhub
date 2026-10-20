@@ -553,6 +553,26 @@ function handleTransferPlayer(PDO $pdo, string $fromAlliance, string $nameEncode
     }
 }
 
+// Vor dem Umhaengen von player_metrics (Zusammenfuehren, Verschieben): bei VS und Spenden haben beide Seiten evtl.
+// einen Wert fuer dieselbe Woche und denselben Tag. Der hoehere bleibt, sonst verletzt das UPDATE uq_metrics_value.
+function dropLowerMaxMetrics(PDO $pdo, string $fromAlliance, string $fromId, string $toAlliance, string $toId): void {
+    $types = "'" . implode("', '", METRIC_MAX_TYPES) . "'";
+    $same = "t.metric_type = f.metric_type AND t.year_week = f.year_week AND t.game_day <=> f.game_day";
+    // Ziel mindestens so hoch: Wert der Quelle entfaellt
+    $pdo->prepare("
+        DELETE f FROM player_metrics f
+        JOIN player_metrics t ON t.alliance = ? AND t.player_id = ? AND $same
+        WHERE f.alliance = ? AND f.player_id = ? AND f.metric_type IN ($types)
+          AND COALESCE(t.value_numeric, -1) >= COALESCE(f.value_numeric, -1)
+    ")->execute([$toAlliance, $toId, $fromAlliance, $fromId]);
+    // Was jetzt noch doppelt ist, ist bei der Quelle hoeher: Wert des Ziels entfaellt
+    $pdo->prepare("
+        DELETE t FROM player_metrics t
+        JOIN player_metrics f ON f.alliance = ? AND f.player_id = ? AND $same
+        WHERE t.alliance = ? AND t.player_id = ? AND t.metric_type IN ($types)
+    ")->execute([$fromAlliance, $fromId, $toAlliance, $toId]);
+}
+
 /**
  * Alles, was an Spieler $fromId haengt, auf $toId umhaengen (gleiche Allianz). Bei Doppelten gilt der Eintrag
  * von $toId: gleiche Woche, Team-Slot, Zug-Platz. Namens-Verweise (Teams, Zug, Win-Win-Partner) bekommen den
@@ -565,6 +585,7 @@ function reassignPlayerRefs(PDO $pdo, string $alliance, string $fromId, string $
             $pdo->prepare("DELETE FROM `$tbl` WHERE alliance = ? AND player_id = ?")->execute([$alliance, $fromId]);
         } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
     }
+    dropLowerMaxMetrics($pdo, $alliance, $fromId, $alliance, $toId);
     foreach (['user_active_char', 'player_metrics', 'rank_change_log'] as $tbl) {
         try {
             $pdo->prepare("UPDATE `$tbl` SET player_id = ? WHERE alliance = ? AND player_id = ?")->execute([$toId, $alliance, $fromId]);
@@ -1302,6 +1323,7 @@ function movePlayerToAlliance(PDO $pdo, string $playerId, string $fromAlliance, 
         ->execute([$fromAlliance, $playerId]);
     $pdo->prepare("DELETE FROM weekly_entries WHERE alliance = ? AND player_id = ?")->execute([$fromAlliance, $playerId]);
 
+    dropLowerMaxMetrics($pdo, $fromAlliance, $playerId, $toAlliance, $playerId);
     foreach (['user_active_char', 'player_metrics'] as $tbl) {
         try {
             $pdo->prepare("UPDATE `$tbl` SET alliance = ? WHERE alliance = ? AND player_id = ?")->execute([$toAlliance, $fromAlliance, $playerId]);
@@ -1827,9 +1849,18 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                             ->execute([$vsPoints, $source, $recordedAt, $scanId, $readStatus, $observations, $targetAlliance, $existing['metric_id']]);
                     }
                 } else {
+                    // Hat ein gleichzeitiger Sync den Wert inzwischen angelegt, greift uq_metrics_value: dann wie
+                    // oben nur hoeher setzen. value_numeric zuletzt – MySQL wertet die Zuweisungen von links aus.
                     $pdo->prepare("
                         INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, value_text, source, recorded_at, year_week, game_day, scan_id, read_status, observations)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE
+                            source       = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(source), source),
+                            recorded_at  = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(recorded_at), recorded_at),
+                            scan_id      = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(scan_id), scan_id),
+                            read_status  = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(read_status), read_status),
+                            observations = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(observations), observations),
+                            value_numeric = GREATEST(COALESCE(value_numeric, -1), VALUES(value_numeric))
                     ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsType, $vsPoints, $vs['day'] ?? null, $source, $recordedAt, $yearWeek, $gameDay, $scanId, $readStatus, $observations]);
                 }
                 $summary[$countKey] = ($summary[$countKey] ?? 0) + 1;

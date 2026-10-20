@@ -207,6 +207,40 @@ function ensureScannerV2Columns(PDO $pdo): void {
     }
 }
 
+// VS und Spenden: genau ein Wert je Spieler, Woche und Tag, es zaehlt der hoechste (POWER/KILLS: jeder Scan
+// ein eigener Messpunkt, daher nicht dabei)
+const METRIC_MAX_TYPES = ['VS_DAY', 'VS_WEEK', 'DONATION_DAY', 'DONATION_WEEK'];
+
+// 20.10.: UNIQUE fuer METRIC_MAX_TYPES. Ohne ihn fanden zwei gleichzeitige Syncs (App + Web-Scanner) per SELECT
+// beide keinen Wert und legten je eine Zeile an. value_day ist nur bei diesen Typen gefuellt (Wochenwerte: 0,
+// weil MySQL mehrere NULL im UNIQUE erlaubt), bei allen anderen NULL – dort bleiben mehrere Zeilen erlaubt.
+// Vorher bestehende Doppel bereinigen: der hoechste Wert bleibt. Schlaegt das ALTER fehl (z. B. neues Doppel
+// dazwischen), versucht es die naechste Anfrage erneut.
+function ensureMetricsValueKey(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+    if ($pdo->query("SHOW INDEX FROM player_metrics WHERE Key_name = 'uq_metrics_value'")->fetch()) return;
+    $types = "'" . implode("', '", METRIC_MAX_TYPES) . "'";
+    try {
+        $pdo->exec("
+            DELETE m FROM player_metrics m
+            JOIN player_metrics k ON k.alliance = m.alliance AND k.player_id = m.player_id AND k.metric_type = m.metric_type
+                AND k.year_week = m.year_week AND k.game_day <=> m.game_day
+                AND (COALESCE(k.value_numeric, -1) > COALESCE(m.value_numeric, -1)
+                     OR (COALESCE(k.value_numeric, -1) = COALESCE(m.value_numeric, -1) AND k.metric_id > m.metric_id))
+            WHERE m.metric_type IN ($types)
+        ");
+        try {
+            $pdo->exec("ALTER TABLE player_metrics ADD COLUMN value_day TINYINT
+                GENERATED ALWAYS AS (CASE WHEN metric_type IN ($types) THEN COALESCE(game_day, 0) END) STORED");
+        } catch (\PDOException) {} // Spalte schon da
+        $pdo->exec("ALTER TABLE player_metrics ADD UNIQUE KEY uq_metrics_value (alliance, player_id, metric_type, year_week, value_day)");
+    } catch (\PDOException $e) {
+        error_log('ensureMetricsValueKey: ' . $e->getMessage());
+    }
+}
+
 // Haekchen "Sparwoche eingehalten" (vsSpar) in jeder Allianz mit VS-Kategorie anlegen: weekly_entry_flags
 // verweist per Fremdschluessel auf flags, ohne Eintrag dort wird das Speichern abgelehnt.
 function ensureVsSparFlag(PDO $pdo): void {

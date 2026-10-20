@@ -119,7 +119,7 @@
     <div class="meta-row">
       <span class="chip"><b>Andre</b> · lwhub &amp; Web-Scanner</span>
       <span class="chip"><b>Thomas</b> · Android-App</span>
-      <span class="chip">Stand <b>19.10.2026</b></span>
+      <span class="chip">Stand <b>20.10.2026</b></span>
     </div>
   </header>
 
@@ -129,7 +129,8 @@
     <h2>🎯 Als Nächstes</h2>
     <ol>
       <li><div><b>„хмырь“ in NxU2 prüfen:</b> einziger nicht zugeordneter Name im Probelauf vom 19.10. Im Hub steht er vermutlich mit lateinischen Buchstaben, die gleich aussehen (x, p, y statt х, р, у). Namen aus dem Spiel neu kopieren.</div></li>
-      <li><div><b>T7 fortsetzen:</b> VS-Woche und Spenden aus der App testen, Doppel-Upload (gleiche <code>scan_id</code>) prüfen.</div></li>
+      <li><div><b>T7 fortsetzen:</b> VS-Woche und Spenden aus der App testen.</div></li>
+      <li><div><b>A15 nach Deploy prüfen:</b> <code>uq_metrics_value</code> in der Live-DB vorhanden?</div></li>
       <li><div><b>A11 vorbereiten:</b> <code>api_auth_log</code> ansehen, dann die R5-Endpunkte auf <code>enforce</code>.</div></li>
       <li><div><b>G3 klären:</b> Wie lange bleiben Scan-Werte gespeichert?</div></li>
     </ol>
@@ -261,6 +262,13 @@
       <div class="d"><b>Discord-App 18.10.:</b> Redirect-URI <code>lwtracker://discord-auth</code> eingetragen und „Öffentlicher Client“ eingeschaltet (Code-Tausch und Erneuern ohne <code>client_secret</code>). Der Login der Webseite (<code>response_type=token</code>) ist davon nicht betroffen. Test am echten Hub: T7.</div>
     </div>
 
+    <div class="task" data-status="part">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A15</span>Kein doppelter VS-/Spendenwert bei gleichzeitigen Uploads</div><div class="tags"><span class="tag blue">Daten</span><span class="tag part">gebaut 20.10. · nach Deploy prüfen</span></div></div>
+      <div class="d"><b>Gefunden von Thomas (19.10.):</b> Bei <code>VS_DAY</code>/<code>VS_WEEK</code>/<code>DONATION_*</code> prüft der Sync per <code>SELECT</code>, ob es schon einen Wert je Spieler, Woche und Tag gibt, sonst <code>INSERT</code>. Die Sperre auf der Spielerzeile (<code>UPDATE players</code>) lässt zwei Uploads zwar nacheinander laufen, der zweite liest aber noch den Stand von vor dem ersten (REPEATABLE READ) – es entstehen zwei Zeilen. Die VS-Woche (<code>handleVsWeek</code>) zeigt dann irgendeine davon, nicht unbedingt die höhere.</div>
+      <div class="d"><b>Umgesetzt 20.10.:</b> Generierte Spalte <code>value_day</code> (nur bei VS/Spenden gefüllt: <code>COALESCE(game_day, 0)</code>, sonst NULL – POWER und KILLS behalten mehrere Messpunkte) und <code>UNIQUE uq_metrics_value (alliance, player_id, metric_type, year_week, value_day)</code>. Bestehende Doppel werden vorher bereinigt, der höchste Wert bleibt. Der Sync legt neue Werte mit <code>INSERT … ON DUPLICATE KEY UPDATE</code> an (nur höher setzen). Duplikate zusammenführen und Verschieben behalten bei gleicher Woche/Tag den höheren Wert, statt am Schlüssel abzubrechen.</div>
+      <div class="open-point">Nach Deploy: prüfen, ob <code>uq_metrics_value</code> in der Live-DB existiert (<code>SHOW INDEX FROM player_metrics</code>).</div>
+    </div>
+
     <div class="phase">Später</div>
 
     <div class="task" data-status="done">
@@ -320,10 +328,10 @@
 
     <div class="task" data-status="part">
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T7</span>Testlauf mit Andre</div><div class="tags"><span class="tag blue">gemeinsam</span><span class="tag part">Kampfkraft getestet</span></div></div>
-      <div class="d">Eine echte Erfassung pro Typ (POWER, VS_WEEK, DONATION) gegen die Test-Allianz, erst <code>dry_run</code>, dann echt. Doppel-Upload testen: gleiche <code>scan_id</code> darf keine doppelten Werte erzeugen.</div>
+      <div class="d">Eine echte Erfassung pro Typ (POWER, VS_WEEK, DONATION) gegen die Test-Allianz, erst <code>dry_run</code>, dann echt. <s>Doppel-Upload testen</s> – entfällt (20.10.): Der Sync löscht in derselben Transaktion zuerst alles mit dieser <code>scan_id</code>, der automatische Probelauf nach einem Netzabbruch ist selbst schon der Doppel-Upload. <code>replaced_previous_upload: false</code> heißt „nicht bestätigt“, nicht sicher verloren: bei VS/Spenden trägt eine Zeile die <code>scan_id</code> nur, wenn der Wert neu oder höher war. Nochmals senden schadet nicht. Gleichzeitige Uploads siehe A15.</div>
       <div class="d"><b>Hilfsaccounts (18.10.):</b> <code>Thomas1</code> (NxU1) und <code>Thomas2</code> (NxU2), beide R4, gehören Thomas zum Testen der App. Nicht anfassen: nicht umbenennen, archivieren, verschieben oder zusammenführen, auch wenn sie in keinem Scan vorkommen. Nicht verwechseln mit „Thomas heißt Anders“ (NxU2).</div>
       <div class="d"><b>Kampfkraft NxU2 (18./19.10.):</b> Discord-Login, Allianz-Auswahl und Probelauf funktionieren. 18.10.: Probelauf 68 von 74 zugeordnet, um 13:40 gesendet, Werte im Hub. Fünf Namen waren im Hub anders geschrieben, Andre hat sie korrigiert. 19.10.: Probelauf 72 von 73 zugeordnet, 72 davon mit <code>player_id</code> aus der App; offen nur „хмырь“.</div>
-      <div class="open-point">Offen: VS-Woche und Spenden, Doppel-Upload mit gleicher <code>scan_id</code>.</div>
+      <div class="open-point">Offen: VS-Woche und Spenden.</div>
     </div>
 
     <div class="phase">Später</div>
@@ -416,7 +424,7 @@
     </div>
   </section>
 
-  <div class="footer">LWHub · Aufgaben zum Konzept v2 · Stand 19.10.2026</div>
+  <div class="footer">LWHub · Aufgaben zum Konzept v2 · Stand 20.10.2026</div>
 </div>
 
 <script>

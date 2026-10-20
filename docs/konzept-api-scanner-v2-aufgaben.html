@@ -130,7 +130,6 @@
     <ol>
       <li><div><b>„хмырь“ in NxU2 prüfen:</b> einziger nicht zugeordneter Name im Probelauf vom 19.10. Im Hub steht er vermutlich mit lateinischen Buchstaben, die gleich aussehen (x, p, y statt х, р, у). Namen aus dem Spiel neu kopieren.</div></li>
       <li><div><b>T7 fortsetzen:</b> VS-Woche und Spenden aus der App testen.</div></li>
-      <li><div><b>A15 nach Deploy prüfen:</b> <code>uq_metrics_value</code> in der Live-DB vorhanden?</div></li>
       <li><div><b>A11 vorbereiten:</b> <code>api_auth_log</code> ansehen, dann die R5-Endpunkte auf <code>enforce</code>.</div></li>
       <li><div><b>G3 klären:</b> Wie lange bleiben Scan-Werte gespeichert?</div></li>
     </ol>
@@ -262,11 +261,11 @@
       <div class="d"><b>Discord-App 18.10.:</b> Redirect-URI <code>lwtracker://discord-auth</code> eingetragen und „Öffentlicher Client“ eingeschaltet (Code-Tausch und Erneuern ohne <code>client_secret</code>). Der Login der Webseite (<code>response_type=token</code>) ist davon nicht betroffen. Test am echten Hub: T7.</div>
     </div>
 
-    <div class="task" data-status="part">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A15</span>Kein doppelter VS-/Spendenwert bei gleichzeitigen Uploads</div><div class="tags"><span class="tag blue">Daten</span><span class="tag part">gebaut 20.10. · nach Deploy prüfen</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A15</span>Kein doppelter VS-/Spendenwert bei gleichzeitigen Uploads</div><div class="tags"><span class="tag blue">Daten</span><span class="tag done">erledigt 20.10.</span></div></div>
       <div class="d"><b>Gefunden von Thomas (19.10.):</b> Bei <code>VS_DAY</code>/<code>VS_WEEK</code>/<code>DONATION_*</code> prüft der Sync per <code>SELECT</code>, ob es schon einen Wert je Spieler, Woche und Tag gibt, sonst <code>INSERT</code>. Die Sperre auf der Spielerzeile (<code>UPDATE players</code>) lässt zwei Uploads zwar nacheinander laufen, der zweite liest aber noch den Stand von vor dem ersten (REPEATABLE READ) – es entstehen zwei Zeilen. Die VS-Woche (<code>handleVsWeek</code>) zeigt dann irgendeine davon, nicht unbedingt die höhere.</div>
       <div class="d"><b>Umgesetzt 20.10.:</b> Generierte Spalte <code>value_day</code> (nur bei VS/Spenden gefüllt: <code>COALESCE(game_day, 0)</code>, sonst NULL – POWER und KILLS behalten mehrere Messpunkte) und <code>UNIQUE uq_metrics_value (alliance, player_id, metric_type, year_week, value_day)</code>. Bestehende Doppel werden vorher bereinigt, der höchste Wert bleibt. Der Sync legt neue Werte mit <code>INSERT … ON DUPLICATE KEY UPDATE</code> an (nur höher setzen). Duplikate zusammenführen und Verschieben behalten bei gleicher Woche/Tag den höheren Wert, statt am Schlüssel abzubrechen.</div>
-      <div class="open-point">Nach Deploy: prüfen, ob <code>uq_metrics_value</code> in der Live-DB existiert (<code>SHOW INDEX FROM player_metrics</code>).</div>
+      <div class="d"><b>Live seit 20.10.:</b> Index in der Live-DB angelegt, bestehende Doppel bereinigt. <code>GET /api/health</code> zeigt <code>metrics_value_key: true</code>.</div>
     </div>
 
     <div class="phase">Später</div>

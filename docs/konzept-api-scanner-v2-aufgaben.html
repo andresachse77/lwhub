@@ -119,7 +119,7 @@
     <div class="meta-row">
       <span class="chip"><b>Andre</b> · lwhub &amp; Web-Scanner</span>
       <span class="chip"><b>Thomas</b> · Android-App</span>
-      <span class="chip">Stand <b>18.10.2026</b></span>
+      <span class="chip">Stand <b>19.10.2026</b></span>
     </div>
   </header>
 
@@ -128,8 +128,8 @@
   <section class="next">
     <h2>🎯 Als Nächstes</h2>
     <ol>
-      <li><div><b>Thomas Bescheid geben:</b> Hub-Seite von A14 ist fertig (Discord-App eingerichtet, Sync eingeschränkt). Er kann den Discord-Login in der App testen, danach gemeinsam T7.</div></li>
-      <li><div><b>Token für Thomas anlegen</b> (Rolle <code>scanner</code>) – nur noch zum Testen (T7).</div></li>
+      <li><div><b>„хмырь“ in NxU2 prüfen:</b> einziger nicht zugeordneter Name im Probelauf vom 19.10. Im Hub steht er vermutlich mit lateinischen Buchstaben, die gleich aussehen (x, p, y statt х, р, у). Namen aus dem Spiel neu kopieren.</div></li>
+      <li><div><b>T7 fortsetzen:</b> VS-Woche und Spenden aus der App testen, Doppel-Upload (gleiche <code>scan_id</code>) prüfen.</div></li>
       <li><div><b>A11 vorbereiten:</b> <code>api_auth_log</code> ansehen, dann die R5-Endpunkte auf <code>enforce</code>.</div></li>
       <li><div><b>G3 klären:</b> Wie lange bleiben Scan-Werte gespeichert?</div></li>
     </ol>
@@ -138,10 +138,10 @@
   <section>
     <h2>🔗 Abhängigkeiten</h2>
     <div class="deps">
-      <div class="dep"><span>Thomas braucht einen <code>scanner</code>-Token für die Test-Allianz (nur noch zum Testen)</span><span class="tag part">A4 erledigt · Token nach Deploy</span></div>
+      <div class="dep"><span>Thomas braucht einen <code>scanner</code>-Token für die Test-Allianz (nur noch zum Testen)</span><span class="tag done">nicht mehr nötig – Discord-Login läuft seit 18.10.</span></div>
       <div class="dep"><span>Thomas braucht den Sync mit <code>dry_run</code>, <code>scan_id</code>, <code>alliance_tag</code>, Metrik je Typ</span><span class="tag done">bereit seit 17.10.</span></div>
       <div class="dep"><span>Festlegung der Spielwoche (<code>year_week</code>)</span><span class="tag done">G1, Serverzeit seit 17.10.</span></div>
-      <div class="dep"><span>App für mehrere R4/R5: Anmeldung pro Person mit Discord</span><span class="tag done">G4 entschieden 18.10. · App fertig · Hub fertig 18.10. · Test T7</span></div>
+      <div class="dep"><span>App für mehrere R4/R5: Anmeldung pro Person mit Discord</span><span class="tag done">G4 entschieden 18.10. · App und Hub fertig · am echten Hub getestet 18.10.</span></div>
     </div>
   </section>
 
@@ -301,11 +301,12 @@
       <div class="d"><b>Geändert 18.10.:</b> Es gibt nur noch die Version mit Internet, keine Offline-Version mehr. Anmeldung mit Discord (A14/G4). Ein API-Token (verschlüsselt gespeichert) ist nur noch zum Testen da.</div>
     </div>
 
-    <div class="task" data-status="part">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T5</span>Mitgliederliste laden, <code>MemberMatcher</code> anschließen</div><div class="tags"><span class="tag purple">App</span><span class="tag part">teilweise</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T5</span>Mitgliederliste laden, <code>MemberMatcher</code> anschließen</div><div class="tags"><span class="tag purple">App</span><span class="tag done">erledigt 19.10.</span></div></div>
       <div class="d"><code>GET /api/members</code> mit Token laden (<code>id</code>, <code>name</code>, <code>aliases</code>). Daraus <code>KnownAlias</code> bauen und in der Prüfansicht Treffer vorschlagen. Bestätigte Zuordnungen schicken die <code>player_id</code> mit.</div>
       <div class="d">Seit 18.10.: Beim Senden lädt die App <code>GET /members?scope=game</code> und ordnet die <code>player_id</code> über alle bekannten Schreibweisen eines Mitglieds zu (nur bei genau einem Treffer).</div>
-      <div class="open-point">Offen: Mitglieder des Hubs schon in der Prüfansicht als Vorschlag zeigen.</div>
+      <div class="d"><b>Seit 19.10. auch in der Prüfansicht:</b> Bei Anmeldung lädt sie die Mitglieder der gewählten Allianz und gleicht jede Zeile ab (gelesener Name und alle bekannten Schreibweisen, wie beim Senden). Gleiche Schreibweise → zugeordnet; ähnliche (≥ 80 %) → „Hub: ≈ Name“ mit „Übernehmen“ (setzt den Namen des Hubs ein); sonst „Nicht im Hub“. Kein Vorschlag bei mehrdeutigen Schreibweisen oder wenn eine andere Zeile den Spieler schon hat; zwei Zeilen beim selben Spieler → „doppelt im Hub“. Ohne Anmeldung oder Netz wie bisher.</div>
+      <div class="d"><b>Testdaten (19.10.):</b> „Testdaten hochladen“ schickt <code>pruefansicht.txt</code> (Zuordnung pro Zeile) und <code>hub.txt</code> (gesendetes JSON und Antwort des Hubs, ohne Token) mit.</div>
     </div>
 
     <div class="phase">Nach A12 · Sync bereit</div>
@@ -314,12 +315,15 @@
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T6</span><code>LwHubUploader</code></div><div class="tags"><span class="tag purple">App</span><span class="tag done">gebaut 18.10.</span></div></div>
       <div class="d">Sendet das JSON aus T3 an <code>POST /api/scans/sync</code>. Zuerst mit <code>dry_run: true</code> und das Ergebnis anzeigen (aktualisiert / <code>unmatched</code> / verworfen), dann nach Bestätigung echt senden. Bei Netzfehler mit derselben <code>scan_id</code> wiederholen.</div>
       <div class="d">Umgesetzt (<code>app/hub/HubUploads.kt</code>, <code>HubClient.kt</code>): nach dem Speichern in der Prüfansicht Karte „An LWHub senden“ mit Probelauf und „Jetzt senden“. Anzeige: aktualisiert, neu angelegt, aus dem Archiv geholt, verschoben, nicht zugeordnet (mit Namen), andere Allianz, Konflikte. Vorher Prüfung über <code>/scans/access</code>. Doppeltipp sendet nicht doppelt. Test am echten Hub: T7.</div>
+      <div class="d"><b>19.10.:</b> Passt mehr als die Hälfte der Namen zu keinem Mitglied der gewählten Allianz, warnt der Probelauf „richtige Allianz gewählt?“ (Anlass: Discord-Konto mit Chars in NxU1 und NxU2, Rangliste von NxU2 gegen NxU1 geprüft – 0 von 74).</div>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T7</span>Testlauf mit Andre</div><div class="tags"><span class="tag blue">gemeinsam</span></div></div>
+    <div class="task" data-status="part">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T7</span>Testlauf mit Andre</div><div class="tags"><span class="tag blue">gemeinsam</span><span class="tag part">Kampfkraft getestet</span></div></div>
       <div class="d">Eine echte Erfassung pro Typ (POWER, VS_WEEK, DONATION) gegen die Test-Allianz, erst <code>dry_run</code>, dann echt. Doppel-Upload testen: gleiche <code>scan_id</code> darf keine doppelten Werte erzeugen.</div>
       <div class="d"><b>Hilfsaccounts (18.10.):</b> <code>Thomas1</code> (NxU1) und <code>Thomas2</code> (NxU2), beide R4, gehören Thomas zum Testen der App. Nicht anfassen: nicht umbenennen, archivieren, verschieben oder zusammenführen, auch wenn sie in keinem Scan vorkommen. Nicht verwechseln mit „Thomas heißt Anders“ (NxU2).</div>
+      <div class="d"><b>Kampfkraft NxU2 (18./19.10.):</b> Discord-Login, Allianz-Auswahl und Probelauf funktionieren. 18.10.: Probelauf 68 von 74 zugeordnet, um 13:40 gesendet, Werte im Hub. Fünf Namen waren im Hub anders geschrieben, Andre hat sie korrigiert. 19.10.: Probelauf 72 von 73 zugeordnet, 72 davon mit <code>player_id</code> aus der App; offen nur „хмырь“.</div>
+      <div class="open-point">Offen: VS-Woche und Spenden, Doppel-Upload mit gleicher <code>scan_id</code>.</div>
     </div>
 
     <div class="phase">Später</div>
@@ -412,7 +416,7 @@
     </div>
   </section>
 
-  <div class="footer">LWHub · Aufgaben zum Konzept v2 · Stand 17.10.2026</div>
+  <div class="footer">LWHub · Aufgaben zum Konzept v2 · Stand 19.10.2026</div>
 </div>
 
 <script>

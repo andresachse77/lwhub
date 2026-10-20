@@ -13,11 +13,17 @@ function handleHealth(PDO $pdo, string $alliance): never {
         $aRow = $aStmt->fetch();
         $title = $aRow ? ($aRow['alliance_name'] ?? null) : null;
     } catch (\PDOException) {}
+    // A15: von aussen pruefbar, ob die Migration uq_metrics_value angelegt hat
+    $valueKey = null;
+    try {
+        $valueKey = (bool)$pdo->query("SHOW INDEX FROM player_metrics WHERE Key_name = 'uq_metrics_value'")->fetch();
+    } catch (\PDOException) {}
     jsonOut(200, [
         'ok'             => (bool)($row['ok'] ?? false),
         'backend'        => 'php-mysql',
         'alliance'       => $alliance,
         'alliance_title' => $title,
+        'metrics_value_key' => $valueKey,
     ]);
 }
 

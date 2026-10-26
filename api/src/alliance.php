@@ -45,8 +45,18 @@ function handleGetAllianceConfig(PDO $pdo, string $alliance): never {
 
 function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never {
     ensureAllianceConfigTable($pdo);
-    // R5 dieser Allianz oder Betreiber (Site-Admin) – auch dort, wo er sonst nur zuschaut
-    $admin = requireFeatureAdmin($pdo, $alliance, (string)($body['discord_id'] ?? ''));
+    $claim = (string)($body['discord_id'] ?? '');
+    $keys = isset($body['config']) && is_array($body['config'])
+        ? array_map(static fn($k) => trim((string)$k), array_keys($body['config']))
+        : [trim((string)($body['key'] ?? ''))];
+    // Rangcheck im Berufeplaner duerfen auch R4 schalten, alles andere nur R5 oder Betreiber
+    $berufeKeys = ['berufe_rangcheck', 'berufe_rangcheck_r2'];
+    if ($keys && !array_diff($keys, $berufeKeys)) {
+        $admin = requireBerufeConfigWriter($pdo, $alliance, $claim);
+    } else {
+        // R5 dieser Allianz oder Betreiber (Site-Admin) – auch dort, wo er sonst nur zuschaut
+        $admin = requireFeatureAdmin($pdo, $alliance, $claim);
+    }
     $updatedBy = $admin['name'] ?? null;
 
     $stmt = $pdo->prepare("
@@ -64,18 +74,29 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
         if (is_string($v)) return trim($v);
         return '';
     };
+    $checkValue = static function (string $key, string $value): void {
+        if ($key === 'berufe_rangcheck_r2' && !in_array($value, ['ingenieur', 'kriegsherr'], true)) {
+            jsonOut(400, ['error' => 'berufe_rangcheck_r2 muss ingenieur oder kriegsherr sein']);
+        }
+        if ($key === 'berufe_rangcheck' && !in_array($value, ['true', 'false'], true)) {
+            jsonOut(400, ['error' => 'berufe_rangcheck muss true oder false sein']);
+        }
+    };
 
     if (isset($body['config']) && is_array($body['config'])) {
         foreach ($body['config'] as $k => $v) {
             $key = trim((string)$k);
             if ($key === '') continue;
-            $stmt->execute([$alliance, $key, $toStoredValue($v), $updatedBy]);
+            $value = $toStoredValue($v);
+            $checkValue($key, $value);
+            $stmt->execute([$alliance, $key, $value, $updatedBy]);
         }
     } else {
         $key = trim((string)($body['key'] ?? ''));
         if ($key === '') jsonOut(400, ['error' => 'key fehlt']);
-        $v = $body['value'] ?? true;
-        $stmt->execute([$alliance, $key, $toStoredValue($v), $updatedBy]);
+        $value = $toStoredValue($body['value'] ?? true);
+        $checkValue($key, $value);
+        $stmt->execute([$alliance, $key, $value, $updatedBy]);
     }
     handleGetAllianceConfig($pdo, $alliance);
 }

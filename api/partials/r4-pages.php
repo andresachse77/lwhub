@@ -135,6 +135,13 @@
         <div class="panel-sub" data-i18n="s_bp_panel_sub">Kriegsherren und Ingenieure per Drag-and-drop zuordnen</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">
+        <div class="bp-rc" id="bp-rc">
+          <label><input type="checkbox" id="bp-rc-on" onchange="bpSaveRankCheck()"> <span data-i18n="s_bp_rc_label">Rangcheck R2/R3</span></label>
+          <select id="bp-rc-r2" onchange="bpSaveRankCheck()">
+            <option value="ingenieur" data-i18n="s_bp_rc_r2_ing">R2 = Ingenieur</option>
+            <option value="kriegsherr" data-i18n="s_bp_rc_r2_kh">R2 = Kriegsherr</option>
+          </select>
+        </div>
         <label style="font-size:12px;color:var(--soft);" data-i18n="s_bp_sort_label">Sortierung:</label>
         <select id="bp-sort-select" onchange="berufePlannerSetSort(this.value)" style="background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:12px;">
           <option value="asc" data-i18n="s_bp_sort_az">Kriegsherr A-Z</option>

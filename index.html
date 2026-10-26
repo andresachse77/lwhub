@@ -1021,6 +1021,41 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   line-height: 1;
   color: #3a2a00;
 }
+/* Rangcheck R2/R3: Toenung nach erwartetem Beruf, Zittern bei falscher Einordnung */
+.bp-rc { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--soft); }
+.bp-rc label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.bp-rc select {
+  background: var(--card2); color: var(--text); border: 1px solid var(--line2);
+  border-radius: 6px; padding: 4px 8px; font-size: 12px;
+}
+.bp-rc select:disabled, .bp-rc input:disabled { opacity: .55; cursor: not-allowed; }
+.bp-queue-item.bp-exp-kh,
+.bp-cell-name.bp-exp-kh,
+.bp-cell-slot.bp-exp-kh { background: rgba(224,85,69,0.12); border-color: rgba(224,85,69,0.28); }
+.bp-queue-item.bp-exp-ing,
+.bp-cell-name.bp-exp-ing,
+.bp-cell-slot.bp-exp-ing { background: rgba(74,158,255,0.12); border-color: rgba(74,158,255,0.3); }
+.bp-wrong.bp-cell-name,
+.bp-wrong.bp-cell-slot { border-color: #d29922; box-shadow: 0 0 0 1px rgba(210,153,34,0.35); }
+.bp-wrong.bp-pull-left .bp-name-draggable { animation: bpPullLeft 2.4s ease-in-out infinite; }
+.bp-wrong.bp-pull-right .bp-name-draggable { animation: bpPullRight 2.4s ease-in-out infinite; }
+.bp-dragging .bp-wrong .bp-name-draggable { animation: none; }
+.bp-hint { flex: none; font-size: 11px; font-weight: 600; color: #d29922; white-space: nowrap; }
+@keyframes bpPullRight {
+  0%, 55%, 100% { transform: translateX(0) rotate(0); }
+  60% { transform: translateX(3px) rotate(.6deg); } 65% { transform: translateX(-1px) rotate(-.4deg); }
+  70% { transform: translateX(4px) rotate(.8deg); } 75% { transform: translateX(0) rotate(-.3deg); }
+  82% { transform: translateX(6px); } 92% { transform: translateX(2px); }
+}
+@keyframes bpPullLeft {
+  0%, 55%, 100% { transform: translateX(0) rotate(0); }
+  60% { transform: translateX(-3px) rotate(-.6deg); } 65% { transform: translateX(1px) rotate(.4deg); }
+  70% { transform: translateX(-4px) rotate(-.8deg); } 75% { transform: translateX(0) rotate(.3deg); }
+  82% { transform: translateX(-6px); } 92% { transform: translateX(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bp-wrong .bp-name-draggable { animation: none !important; }
+}
 
 @media (max-width: 520px) {
   .bp-layout { grid-template-columns: 1fr; }
@@ -5545,6 +5580,14 @@ function getBerufeMaxEngineers(config = flagConfig) {
   return Math.max(1, Math.min(10, parsed));
 }
 
+function isBerufRankCheckOn(config = flagConfig) {
+  return config?.berufe_rangcheck === true;
+}
+
+function getBerufRankCheckR2(config = flagConfig) {
+  return config?.berufe_rangcheck_r2 === 'kriegsherr' ? 'kriegsherr' : 'ingenieur';
+}
+
 function hasEventFeaturesEnabled(config = flagConfig) {
   return ['wache', 'wueste', 'spezial', 'vs', 'spende'].some(key => config[key] === true);
 }
@@ -8413,6 +8456,80 @@ async function revokeApiToken(tokenId, clientName) {
     return `<span class="bp-shield" title="R${rank}"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#f0a500" stroke="#8a5d00" stroke-width="1.2"/></svg><b>${rank}</b></span>`;
   }
 
+  // Erwarteter Beruf aus dem Rang; null = nicht pruefbar (R1/R4/R5 oder Rangcheck aus)
+  function bpExpectedBeruf(rank) {
+    if (!isBerufRankCheckOn()) return null;
+    const r2 = getBerufRankCheckR2();
+    if (rank === 2) return r2;
+    if (rank === 3) return r2 === 'ingenieur' ? 'kriegsherr' : 'ingenieur';
+    return null;
+  }
+
+  // placement: 'kriegsherr' | 'ingenieur' | 'queue' → 'ok' | 'wrong' | 'open' | null
+  function bpBerufStatus(name, placement) {
+    const expected = bpExpectedBeruf(Number(PREV[name]));
+    if (!expected) return null;
+    if (placement === 'queue') return 'open';
+    return placement === expected ? 'ok' : 'wrong';
+  }
+
+  // Zusatzklassen und Hinweis fuer eine Kachel. Kriegsherr-Spalte links, Ingenieur-Slots rechts.
+  function bpCheckMarkup(name, placement) {
+    const status = bpBerufStatus(name, placement);
+    if (!status) return { cls: '', hint: '' };
+    const expected = bpExpectedBeruf(Number(PREV[name]));
+    let cls = expected === 'kriegsherr' ? ' bp-exp-kh' : ' bp-exp-ing';
+    let hint = '';
+    if (status === 'wrong') {
+      const toIng = expected === 'ingenieur';
+      cls += toIng ? ' bp-wrong bp-pull-right' : ' bp-wrong bp-pull-left';
+      const label = tr(toIng ? 's_bp_hint_to_ing' : 's_bp_hint_to_kh');
+      hint = `<span class="bp-hint" title="${escHtml(tr('s_bp_hint_title'))}">${escHtml(label)}</span>`;
+    }
+    return { cls, hint };
+  }
+
+  function bpCanEditRankCheck() {
+    if (authMember?.can_set_features) return true;
+    if (authMember?.read_only || authMember?.honor_role) return false;
+    return (authMember?.rank || 0) >= 4;
+  }
+
+  function bpRenderRankCheckControls() {
+    const box = document.getElementById('bp-rc');
+    const onEl = document.getElementById('bp-rc-on');
+    const r2El = document.getElementById('bp-rc-r2');
+    if (!box || !onEl || !r2El) return;
+    const canEdit = bpCanEditRankCheck();
+    onEl.checked = isBerufRankCheckOn();
+    r2El.value = getBerufRankCheckR2();
+    onEl.disabled = !canEdit;
+    r2El.disabled = !canEdit || !onEl.checked;
+    box.title = canEdit ? '' : tr('s_bp_rc_only_r4');
+  }
+
+  window.bpSaveRankCheck = async function() {
+    const onEl = document.getElementById('bp-rc-on');
+    const r2El = document.getElementById('bp-rc-r2');
+    if (!onEl || !r2El || !bpCanEditRankCheck()) return;
+    const alliance = getEffectiveAllianceForApi();
+    const next = { berufe_rangcheck: !!onEl.checked, berufe_rangcheck_r2: r2El.value === 'kriegsherr' ? 'kriegsherr' : 'ingenieur' };
+    onEl.disabled = true;
+    r2El.disabled = true;
+    try {
+      await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance)}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ discord_id: authMember?.discord_id || '', config: next })
+      });
+      flagConfig = { ...flagConfig, ...next };
+      if (alliance && adminFlagConfigCache[alliance]) adminFlagConfigCache[alliance] = { ...adminFlagConfigCache[alliance], ...next };
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+    window.berufePlannerRender();
+  };
+
   async function bpSaveBeruf(name, beruf, medHilfe, winwin) {
     await apiPost({ action: 'save_beruf', name, beruf, med_hilfe: medHilfe ? 1 : 0, winwin: winwin || null });
   }
@@ -8429,12 +8546,13 @@ async function revokeApiToken(tokenId, clientName) {
     if (subEl) {
       subEl.textContent = `${tr('s_bp_subtext_prefix')} ${maxIng} ${tr('s_bp_subtext_suffix')}`;
     }
+    bpRenderRankCheckControls();
 
     if (!queue.length) {
       queueEl.innerHTML = `<div style="font-size:12px;color:var(--soft);padding:8px;">${escHtml(tr('s_bp_queue_empty'))}</div>`;
     } else {
       queueEl.innerHTML = queue.map(name =>
-        `<div class="bp-queue-item" draggable="true" data-member="${escHtml(name)}" ondragstart="bpDragStart(event,this.dataset.member)">
+        `<div class="bp-queue-item${bpCheckMarkup(name, 'queue').cls}" draggable="true" data-member="${escHtml(name)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">
           <span class="bp-queue-handle">⠿</span>
           ${bpRankShield(name)}
           <span class="bp-queue-name">${escHtml(name)}</span>
@@ -8458,21 +8576,25 @@ async function revokeApiToken(tokenId, clientName) {
       const engineers = bpEngineerListFor(kh);
       const khEnc = encodeURIComponent(kh);
       html += '<tr>';
-      html += `<td class="bp-cell-name" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToWarlord(event,'${khEnc}',this)">`;
-      html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(kh)}" ondragstart="bpDragStart(event,this.dataset.member)">`;
+      const khCheck = bpCheckMarkup(kh, 'kriegsherr');
+      html += `<td class="bp-cell-name${khCheck.cls}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToWarlord(event,'${khEnc}',this)">`;
+      html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(kh)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`;
       html += bpRankShield(kh);
       html += '<span style="font-size:12px;color:#f09080;">⚔</span>';
       html += `<span class="bp-name-text kh">${escHtml(kh)}</span>`;
+      html += khCheck.hint;
       html += '</div></td>';
 
       for (let i = 0; i < maxIng; i++) {
         const eng = engineers[i] || null;
-        html += `<td class="bp-cell-slot" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToEngineerSlot(event,'${khEnc}',${i},this)">`;
+        const engCheck = eng ? bpCheckMarkup(eng, 'ingenieur') : { cls: '', hint: '' };
+        html += `<td class="bp-cell-slot${engCheck.cls}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToEngineerSlot(event,'${khEnc}',${i},this)">`;
         if (eng) {
-          html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(eng)}" ondragstart="bpDragStart(event,this.dataset.member)">`;
+          html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(eng)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`;
           html += bpRankShield(eng);
           html += '<span style="font-size:12px;color:#80b8ff;">⚗</span>';
           html += `<span class="bp-name-text ing">${escHtml(eng)}</span>`;
+          html += engCheck.hint;
           html += '</div>';
         } else {
           html += `<span class="bp-slot-text">${escHtml(tr('s_bp_slot_free'))}</span>`;
@@ -8507,8 +8629,14 @@ async function revokeApiToken(tokenId, clientName) {
 
   window.bpDragStart = function(event, memberName) {
     window._bpDragMember = memberName;
+    // Zittern waehrend des Ziehens aussetzen
+    document.getElementById('page-bp')?.classList.add('bp-dragging');
     try { event.dataTransfer.setData('text/plain', memberName); } catch (e) {}
     event.dataTransfer.effectAllowed = 'copy';
+  };
+
+  window.bpDragEnd = function() {
+    document.getElementById('page-bp')?.classList.remove('bp-dragging');
   };
 
   window.bpAllowDrop = function(event, el) {
@@ -8526,6 +8654,7 @@ async function revokeApiToken(tokenId, clientName) {
   };
 
   function bpReadDragMember(event) {
+    window.bpDragEnd();
     let name = window._bpDragMember || '';
     window._bpDragMember = null;
     if (!name) {

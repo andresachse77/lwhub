@@ -250,6 +250,19 @@ function requireFeatureAdmin(PDO $pdo, string $alliance, ?string $fallbackClaim 
 }
 
 /**
+ * Rangcheck-Einstellungen des Berufeplaners: R4/R5 der Allianz ohne Ehrenrolle oder Site-Admin.
+ */
+function requireBerufeConfigWriter(PDO $pdo, string $alliance, ?string $fallbackClaim = null): array {
+    if (isLocalRequest()) return requireFeatureAdmin($pdo, $alliance, $fallbackClaim);
+    $caller = resolveCallerId($pdo, $alliance, $fallbackClaim);
+    if ($caller['id'] !== '' && isSiteAdmin($pdo, $caller['id'])) {
+        return requireFeatureAdmin($pdo, $alliance, $fallbackClaim);
+    }
+    $w = requireAllianceWriter($pdo, $alliance, 4, true, $fallbackClaim);
+    return ['discord_id' => $w['discord_id'], 'name' => $w['member']['current_name'] ?? null, 'site_admin' => false];
+}
+
+/**
  * Darf $member die R4-Ansichten der Allianz sehen? R4/R5, Ehren-R4 und der Betreiber als Zuschauer.
  * $member kann die Pseudo-Zeile aus siteViewerMember() sein.
  */

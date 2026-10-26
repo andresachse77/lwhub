@@ -166,24 +166,36 @@
 
     <div class="phase">Phase 2 · Rangcheck im Planer</div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B2</span>Einstellungen <code>berufe_rangcheck</code> + <code>berufe_rangcheck_r2</code></div><div class="tags"><span class="tag blue">alliance.php</span><span class="tag blue">index.html</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B2</span>Einstellungen <code>berufe_rangcheck</code> + <code>berufe_rangcheck_r2</code></div><div class="tags"><span class="tag done">erledigt 26.10.</span><span class="tag blue">alliance.php</span><span class="tag blue">index.html</span></div></div>
       <div class="d">Neue Schlüssel in <code>alliance_config</code> (Whitelist in <code>handleSetAllianceConfig</code> prüfen). Im Planer-Kopf Schalter „Rangcheck R2/R3“ und Auswahl „R2 = Ingenieur / R2 = Kriegsherr“, nur für R4/R5 änderbar.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>26.10.</time>Schalter und Auswahl im Planer-Kopf. R4/R5 dürfen nur diese zwei Schlüssel setzen (<code>requireBerufeConfigWriter</code>), Werte werden geprüft (400 bei Unsinn). Standard bleibt aus.</p>
+      </div></details>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B3</span>Status-Logik <code>bpExpectedBeruf()</code> / <code>bpBerufStatus()</code></div><div class="tags"><span class="tag blue">index.html</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B3</span>Status-Logik <code>bpExpectedBeruf()</code> / <code>bpBerufStatus()</code></div><div class="tags"><span class="tag done">erledigt 26.10.</span><span class="tag blue">index.html</span></div></div>
       <div class="d">Ergebnis je Mitglied: <code>ok</code>, <code>wrong</code>, <code>open</code> (Warteschlange) oder <code>null</code> (R1/R4/R5, Rangcheck aus). Siehe Regeltabelle im Konzept.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>26.10.</time><code>bpExpectedBeruf()</code>, <code>bpBerufStatus()</code> im Planer-Modul. Warteschlange = <code>open</code>, Ehrenmitglieder nicht im Planer.</p>
+      </div></details>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B4</span>Kachel-Hintergrund nach erwartetem Beruf</div><div class="tags"><span class="tag blue">CSS</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B4</span>Kachel-Hintergrund nach erwartetem Beruf</div><div class="tags"><span class="tag done">erledigt 26.10.</span><span class="tag blue">CSS</span></div></div>
       <div class="d">Klassen <code>.bp-exp-kh</code> (leicht rot) und <code>.bp-exp-ing</code> (leicht blau) an den drei Kachelarten. Neutral bei <code>null</code>.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>26.10.</time>Tönung an Warteschlange, Kriegsherr-Zelle und Ingenieur-Slot (G2 nach Vorschlag umgesetzt).</p>
+      </div></details>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B5</span>Zittern + „Hinziehen“ bei falscher Einordnung</div><div class="tags"><span class="tag blue">CSS</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B5</span>Zittern + „Hinziehen“ bei falscher Einordnung</div><div class="tags"><span class="tag done">erledigt 26.10.</span><span class="tag blue">CSS</span></div></div>
       <div class="d">Keyframes <code>bpPullLeft</code>/<code>bpPullRight</code>: kurzes Zittern, dann leichter Zug zur richtigen Spalte, Pause. Gelber Rahmen und Hinweis „→ Ing.?“ / „← KH?“. Bei <code>prefers-reduced-motion</code> ohne Animation. Während eines Drags Animation aussetzen, damit das Ziehen nicht zappelt.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>26.10.</time>Zittern am Kachelinhalt, Hinweis „→ Ing.?“/„← KH?“ in 7 Sprachen. Beim Ziehen (<code>.bp-dragging</code>) und bei <code>prefers-reduced-motion</code> ohne Animation. Lokal mit NxU1-Daten geprüft (1400 px und 420 px), Speichern im Test abgefangen, nichts in die DB geschrieben.</p>
+      </div></details>
     </div>
 
     <div class="task" data-status="open">

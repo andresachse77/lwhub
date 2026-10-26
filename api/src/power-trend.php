@@ -116,6 +116,66 @@ function handleVsWeek(PDO $pdo, string $alliance): never {
 }
 
 /**
+ * GET /scans/donation-week?alliance=X&year_week=2642 – gescannte Wochenspenden je Spieler (ansehen wie
+ * vs-week), fuer "Aus Scanner uebernehmen" im Spenden-Event. Wochenwert aus der Wochen-Rangliste
+ * (DONATION_WEEK); fehlt er, die Summe der gescannten Tageswerte (DONATION_DAY, from_days = true).
+ * Platz = Reihenfolge nach Wochenspenden unter den aktiven Mitgliedern.
+ */
+function handleDonationWeek(PDO $pdo, string $alliance): never {
+    requireScannerAccess($pdo, $alliance, null, true);
+    $yearWeek = (int)($_GET['year_week'] ?? 0);
+    if ($yearWeek < 1000 || $yearWeek > 9953) jsonOut(400, ['error' => 'Ungueltige Woche']);
+
+    $stmt = $pdo->prepare("
+        SELECT m.player_id, p.current_name, m.metric_type, m.game_day, m.value_numeric, m.recorded_at
+        FROM player_metrics m
+        JOIN players p ON p.alliance = m.alliance AND p.player_id = m.player_id AND p.is_active = 1
+        WHERE m.alliance = ? AND m.year_week = ? AND m.metric_type IN ('DONATION_DAY', 'DONATION_WEEK')
+          AND " . sqlNoHonor() . "
+    ");
+    $stmt->execute([$alliance, $yearWeek]);
+    $players = [];
+    $daysScanned = [];
+    $lastScan = null;
+    $lastWeekScan = null;
+    foreach ($stmt as $r) {
+        $pid = $r['player_id'];
+        $players[$pid] ??= ['player_id' => $pid, 'name' => $r['current_name'], 'week_points' => null, 'days' => new stdClass()];
+        if ($r['metric_type'] === 'DONATION_WEEK') {
+            $players[$pid]['week_points'] = (int)$r['value_numeric'];
+            if ($lastWeekScan === null || $r['recorded_at'] > $lastWeekScan) $lastWeekScan = $r['recorded_at'];
+        } else {
+            $players[$pid]['days']->{(int)$r['game_day']} = (int)$r['value_numeric'];
+            $daysScanned[(int)$r['game_day']] = true;
+        }
+        if ($lastScan === null || $r['recorded_at'] > $lastScan) $lastScan = $r['recorded_at'];
+    }
+    foreach ($players as &$p) {
+        $p['from_days'] = false;
+        if ($p['week_points'] === null && count((array)$p['days'])) {
+            $p['week_points'] = array_sum((array)$p['days']);
+            $p['from_days'] = true;
+        }
+    }
+    unset($p);
+    $list = array_values(array_filter($players, fn($p) => $p['week_points'] !== null));
+    usort($list, fn($a, $b) => $b['week_points'] <=> $a['week_points']);
+    foreach ($list as $i => &$p) $p['place'] = $i + 1;
+    unset($p);
+    ksort($daysScanned);
+
+    jsonOut(200, [
+        'ok' => true,
+        'alliance' => $alliance,
+        'year_week' => $yearWeek,
+        'days_scanned' => array_keys($daysScanned),
+        'last_scan' => $lastScan,
+        'last_week_scan' => $lastWeekScan,
+        'players' => $list,
+    ]);
+}
+
+/**
  * POST /scans/sparwoche { year_week, active } – KW als VS-Sparwoche markieren oder nicht (R4/R5, per
  * Discord-Token geprueft). Gespeichert in alliance_config "vs_sparwochen" als kommagetrennte KW-Liste,
  * die die Hauptseite ueber /alliance-config schon mitlaedt.

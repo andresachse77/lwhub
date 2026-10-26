@@ -340,6 +340,16 @@
         <span><span style="color:var(--blue);">⚔</span> <span data-i18n="s_ev_participation">Teilnahme</span></span>
         <span><span style="color:var(--green);">🏅</span> Top 50</span>
         <span><span style="color:var(--gold);">🏆</span> Top 20</span>
+        <?php if (scannerTabAllowed($member)): ?>
+        <span class="se-scan-form" style="margin-left:auto;display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <input type="date" id="se-scan-date" title="Tag des Events">
+          <input type="time" id="se-scan-start" value="16:00" title="Start des Events">
+          <span>–</span>
+          <input type="time" id="se-scan-end" value="20:00" title="Ende des Events">
+          <button class="flt-toggle" onclick="spezialImportFromScanner()" title="Häkchen dieser KW aus der Vorher/Nachher-Auswertung setzen: Kills oder Kampfkraft-Verlust = Teilnahme, nach Kills Platz 1–50 Top 50, Platz 1–20 Top 20">📸 <span data-i18n="s_vs_from_scanner">Aus Scanner übernehmen</span></button>
+          <a class="flt-toggle" id="se-scan-eval" href="web-scanner-onnx/event.html" target="_blank" rel="noopener" title="Vorher/Nachher-Auswertung in eigenem Fenster öffnen">🔍</a>
+        </span>
+        <?php endif; ?>
         <span style="margin-left:auto;" class="wache-counter" id="se-counter">0 / 0</span>
       </div>
       <div class="wache-grid" id="spezial-grid"></div>
@@ -364,6 +374,10 @@
       <div class="wache-legend">
         <span><span style="color:var(--red);">⚠</span> <span data-i18n="s_ev_under35k">unter 35K (Strafe)</span></span>
         <span><span style="color:var(--blue);">🏅</span> <span data-i18n="s_ev_top20_bonus">Top 20 (Bonus)</span></span>
+        <?php if (scannerTabAllowed($member)): ?>
+        <span id="sp-scan-stand" class="se-scan-form" style="margin-left:auto;font-size:12px;color:var(--muted);" title="Letzter Spenden-Scan der gewählten KW – übernommen wird immer dieser Stand"></span>
+        <button class="flt-toggle" onclick="spendeImportFromScanner()" title="Häkchen dieser KW aus den gescannten Wochenspenden setzen: Platz 1–20 Top 20, unter 35K Strafe">📸 <span data-i18n="s_vs_from_scanner">Aus Scanner übernehmen</span></button>
+        <?php endif; ?>
         <span style="margin-left:auto;" class="wache-counter" id="sp-counter">0 / 0</span>
       </div>
       <div class="wache-grid" id="spende-grid"></div>

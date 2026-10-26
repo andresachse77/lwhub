@@ -245,6 +245,11 @@ try {
         handleVsWeek($pdo, $ALLIANCE);
     }
 
+    // GET /scans/donation-week – gescannte Wochenspenden je Spieler fuer das Spenden-Event (R4/R5)
+    if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'donation-week') {
+        handleDonationWeek($pdo, $ALLIANCE);
+    }
+
     // POST /scans/sparwoche – KW als VS-Sparwoche markieren (R4/R5)
     if ($method === 'POST' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'sparwoche') {
         handleSetSparwoche($pdo, $ALLIANCE, $body);

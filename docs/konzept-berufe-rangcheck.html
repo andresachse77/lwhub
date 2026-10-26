@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LWHub &bull; Berufe-Rangcheck Konzept</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
   :root {
     --bg-primary: #0e1117; --bg-secondary: #161b22; --bg-tertiary: #21262d; --bg-card: #1c2128;
     --border-color: #30363d; --accent: #58a6ff; --success: #3fb950; --warning: #d29922; --danger: #f85149;
@@ -86,6 +87,35 @@
   .shield { flex: none; width: 18px; height: 21px; position: relative; display: inline-grid; place-items: center; }
   .shield svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .shield b { position: relative; font-size: 11px; font-weight: 800; color: #3a2a00; line-height: 1; margin-top: -2px; }
+
+  /* Wappen-Varianten (Vorschlaege zur Lesbarkeit) */
+  .variants { display: grid; gap: 12px; margin: 16px 0; }
+  .variant { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px; }
+  .variant.current { border-style: dashed; }
+  .variant h4 { font-size: 14.5px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .variant h4 .vid { font-family: var(--font-mono); font-size: 12px; color: var(--gold); background: rgba(240,165,0,.12); border: 1px solid rgba(240,165,0,.3); padding: 1px 7px; border-radius: 999px; }
+  .variant p { font-size: 13px; margin-bottom: 10px; }
+  .v-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+  .v-row .tile { margin-bottom: 0; font-family: 'Rajdhani', var(--font-sans); font-size: 14px; font-weight: 700; }
+  .v-ranks { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--bg-primary); }
+  .v-ranks small { font-size: 11px; color: var(--text-muted); margin-right: 2px; }
+  .rs { position: relative; flex: none; display: inline-grid; place-items: center; }
+  .rs svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .rs b { position: relative; font-family: 'Rajdhani', var(--font-sans); line-height: 1; }
+  /* V1 aktuell */
+  .rs.v1 { width: 16px; height: 19px; } .rs.v1 b { font-size: 11px; font-weight: 800; color: #3a2a00; margin-top: -2px; }
+  /* V2 groesser */
+  .rs.v2 { width: 21px; height: 25px; } .rs.v2 b { font-size: 15px; font-weight: 700; color: #1a1200; margin-top: -3px; }
+  /* V3 dunkles Wappen, goldene Ziffer */
+  .rs.v3 { width: 21px; height: 25px; } .rs.v3 b { font-size: 15px; font-weight: 700; color: #ffc233; margin-top: -3px; }
+  /* V4 goldene Pille R3 */
+  .rs.v4 { display: inline-block; padding: 2px 6px 1px; border-radius: 5px; background: #f0a500; } .rs.v4 b { font-size: 13px; font-weight: 700; color: #1a1200; letter-spacing: .3px; }
+  /* V5 Muenze */
+  .rs.v5 { width: 20px; height: 20px; border-radius: 50%; background: #f0a500; box-shadow: inset 0 0 0 1.5px #8a5d00; } .rs.v5 b { font-size: 14px; font-weight: 700; color: #1a1200; margin-top: 1px; }
+  /* V6 kleines Wappen + Ziffer daneben */
+  .rs.v6 { display: inline-flex; align-items: center; gap: 2px; } .rs.v6 svg { position: static; width: 12px; height: 14px; } .rs.v6 b { font-size: 16px; font-weight: 700; color: #ffc233; }
+  /* V7 Wappen in Rangfarbe */
+  .rs.v7 { width: 21px; height: 25px; } .rs.v7 b { font-size: 15px; font-weight: 700; color: #fff; margin-top: -3px; text-shadow: 0 0 2px rgba(0,0,0,.9), 0 1px 1px rgba(0,0,0,.8); }
 </style>
 </head>
 <body>
@@ -222,6 +252,83 @@ R2 = Ingenieur · R3 = Kriegsherr
     </ul>
   </section>
 
+  <section>
+    <h2>🛡 Wappen-Varianten (Lesbarkeit)</h2>
+    <p>Das jetzige Wappen (V1) ist schwer lesbar: 11-px-Ziffer, dunkel auf Gelb, auf getönten Kacheln wenig Kontrast. Vorschläge unten, alle in Originalgröße auf den drei Kachel-Hintergründen (Kriegsherr, Ingenieur, neutral) und in der Schrift des Planers (Rajdhani). Bitte Nummer nennen, Kombinationen gehen auch (z. B. „V3 in Größe von V2“).</p>
+    <div class="variants">
+      <div class="variant current" data-v="v1">
+        <h4><span class="vid">V1</span>Aktuell (Referenz)</h4>
+        <p>Gelbes Wappen 16×19 px, Ziffer 11 px dunkelbraun.</p>
+        <div class="v-row">
+          <div class="tile exp-kh"><span class="rs v1" data-r="3"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Lion Tooth</span></div>
+          <div class="tile exp-ing"><span class="rs v1" data-r="2"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Mira</span></div>
+          <div class="tile"><span class="rs v1" data-r="5"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Rex</span></div>
+        </div>
+        <div class="v-ranks"><small>R1–R5:</small><span class="rs v1" data-r="1"></span><span class="rs v1" data-r="2"></span><span class="rs v1" data-r="3"></span><span class="rs v1" data-r="4"></span><span class="rs v1" data-r="5"></span></div>
+      </div>
+      <div class="variant" data-v="v2">
+        <h4><span class="vid">V2</span>Größeres Wappen</h4>
+        <p>Gleiche Form und Farbe, 21×25 px, Ziffer 15 px fast schwarz. Kleinste Änderung, klar besser lesbar.</p>
+        <div class="v-row">
+          <div class="tile exp-kh"><span class="rs v2" data-r="3"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Lion Tooth</span></div>
+          <div class="tile exp-ing"><span class="rs v2" data-r="2"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Mira</span></div>
+          <div class="tile"><span class="rs v2" data-r="5"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Rex</span></div>
+        </div>
+        <div class="v-ranks"><small>R1–R5:</small><span class="rs v2" data-r="1"></span><span class="rs v2" data-r="2"></span><span class="rs v2" data-r="3"></span><span class="rs v2" data-r="4"></span><span class="rs v2" data-r="5"></span></div>
+      </div>
+      <div class="variant" data-v="v3">
+        <h4><span class="vid">V3</span>Dunkles Wappen, goldene Ziffer</h4>
+        <p>Wappen dunkel mit Goldrand, Ziffer leuchtend gold. Passt zum dunklen Design, Ziffer sticht hervor statt der gelben Fläche.</p>
+        <div class="v-row">
+          <div class="tile exp-kh"><span class="rs v3" data-r="3"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Lion Tooth</span></div>
+          <div class="tile exp-ing"><span class="rs v3" data-r="2"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Mira</span></div>
+          <div class="tile"><span class="rs v3" data-r="5"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Rex</span></div>
+        </div>
+        <div class="v-ranks"><small>R1–R5:</small><span class="rs v3" data-r="1"></span><span class="rs v3" data-r="2"></span><span class="rs v3" data-r="3"></span><span class="rs v3" data-r="4"></span><span class="rs v3" data-r="5"></span></div>
+      </div>
+      <div class="variant" data-v="v4">
+        <h4><span class="vid">V4</span>Goldene Plakette „R3“</h4>
+        <p>Kein Wappen, sondern kleines Schild mit Text „R3“ wie die bestehenden Rang-Badges. Am besten lesbar, Rang ist eindeutig „R3“ statt nur „3“.</p>
+        <div class="v-row">
+          <div class="tile exp-kh"><span class="rs v4" data-r="3"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Lion Tooth</span></div>
+          <div class="tile exp-ing"><span class="rs v4" data-r="2"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Mira</span></div>
+          <div class="tile"><span class="rs v4" data-r="5"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Rex</span></div>
+        </div>
+        <div class="v-ranks"><small>R1–R5:</small><span class="rs v4" data-r="1"></span><span class="rs v4" data-r="2"></span><span class="rs v4" data-r="3"></span><span class="rs v4" data-r="4"></span><span class="rs v4" data-r="5"></span></div>
+      </div>
+      <div class="variant" data-v="v5">
+        <h4><span class="vid">V5</span>Goldmünze</h4>
+        <p>Kreis statt Wappen: mehr Platz für die Ziffer bei gleicher Größe, wirkt ruhiger.</p>
+        <div class="v-row">
+          <div class="tile exp-kh"><span class="rs v5" data-r="3"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Lion Tooth</span></div>
+          <div class="tile exp-ing"><span class="rs v5" data-r="2"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Mira</span></div>
+          <div class="tile"><span class="rs v5" data-r="5"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Rex</span></div>
+        </div>
+        <div class="v-ranks"><small>R1–R5:</small><span class="rs v5" data-r="1"></span><span class="rs v5" data-r="2"></span><span class="rs v5" data-r="3"></span><span class="rs v5" data-r="4"></span><span class="rs v5" data-r="5"></span></div>
+      </div>
+      <div class="variant" data-v="v6">
+        <h4><span class="vid">V6</span>Mini-Wappen + Ziffer daneben</h4>
+        <p>Kleines Wappen als Symbol, die Ziffer steht groß in Gold daneben. Ziffer ist nicht mehr in die Form gequetscht.</p>
+        <div class="v-row">
+          <div class="tile exp-kh"><span class="rs v6" data-r="3"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Lion Tooth</span></div>
+          <div class="tile exp-ing"><span class="rs v6" data-r="2"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Mira</span></div>
+          <div class="tile"><span class="rs v6" data-r="5"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Rex</span></div>
+        </div>
+        <div class="v-ranks"><small>R1–R5:</small><span class="rs v6" data-r="1"></span><span class="rs v6" data-r="2"></span><span class="rs v6" data-r="3"></span><span class="rs v6" data-r="4"></span><span class="rs v6" data-r="5"></span></div>
+      </div>
+      <div class="variant" data-v="v7">
+        <h4><span class="vid">V7</span>Wappen in Rangfarbe</h4>
+        <p>Farbe je Rang wie die Rang-Badges der Mitgliederliste (R1 gold, R2 grün, R3 blau, R4 rot, R5 lila), weiße Ziffer. Rang auf einen Blick, aber Blau/Rot beißen sich mit der Kriegsherr-/Ingenieur-Tönung.</p>
+        <div class="v-row">
+          <div class="tile exp-kh"><span class="rs v7" data-r="3"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Lion Tooth</span></div>
+          <div class="tile exp-ing"><span class="rs v7" data-r="2"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Mira</span></div>
+          <div class="tile"><span class="rs v7" data-r="5"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Rex</span></div>
+        </div>
+        <div class="v-ranks"><small>R1–R5:</small><span class="rs v7" data-r="1"></span><span class="rs v7" data-r="2"></span><span class="rs v7" data-r="3"></span><span class="rs v7" data-r="4"></span><span class="rs v7" data-r="5"></span></div>
+      </div>
+    </div>
+  </section>
+
   <div class="footer">LWHub &bull; Konzept Berufe-Rangcheck v1 &bull; 26.10.2026</div>
 </div>
 <script>
@@ -229,6 +336,23 @@ R2 = Ingenieur · R3 = Kriegsherr
   document.querySelectorAll('.shield[data-r]').forEach(function (el) {
     el.innerHTML = '<svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#f0a500" stroke="#8a5d00" stroke-width="1.2"/></svg><b>' + el.dataset.r + '</b>';
     el.title = 'R' + el.dataset.r;
+  });
+  // Wappen-Varianten rendern
+  var SHIELD_PATH = 'M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z';
+  var RANK_COLORS = { 1: '#f0a500', 2: '#2ecb7a', 3: '#4a9eff', 4: '#e05545', 5: '#9b6dff' };
+  function shieldSvg(fill, stroke, sw) {
+    return '<svg viewBox="0 0 20 24" aria-hidden="true"><path d="' + SHIELD_PATH + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw + '"/></svg>';
+  }
+  document.querySelectorAll('.rs[data-r]').forEach(function (el) {
+    var r = el.dataset.r, v = el.classList[1], html;
+    if (v === 'v1' || v === 'v2') html = shieldSvg('#f0a500', '#8a5d00', 1.2) + '<b>' + r + '</b>';
+    else if (v === 'v3') html = shieldSvg('#2b2108', '#f0a500', 1.6) + '<b>' + r + '</b>';
+    else if (v === 'v4') html = '<b>R' + r + '</b>';
+    else if (v === 'v5') html = '<b>' + r + '</b>';
+    else if (v === 'v6') html = shieldSvg('#f0a500', '#8a5d00', 1.2) + '<b>' + r + '</b>';
+    else if (v === 'v7') html = shieldSvg(RANK_COLORS[r], 'rgba(0,0,0,.45)', 1.2) + '<b>' + r + '</b>';
+    el.innerHTML = html;
+    el.title = 'R' + r;
   });
 </script>
 </body>

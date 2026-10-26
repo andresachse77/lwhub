@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LWHub &bull; Berufe-Rangcheck Konzept</title>
+<style>
+  :root {
+    --bg-primary: #0e1117; --bg-secondary: #161b22; --bg-tertiary: #21262d; --bg-card: #1c2128;
+    --border-color: #30363d; --accent: #58a6ff; --success: #3fb950; --warning: #d29922; --danger: #f85149;
+    --purple: #bc8cff; --text-primary: #f0f6fc; --text-secondary: #8b949e; --text-muted: #6e7681; --code-bg: #0d1117;
+    --gold: #f0a500; --kh: #f09080; --ing: #80b8ff;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); line-height: 1.6; padding: 32px 16px; display: flex; justify-content: center; }
+  .container { max-width: 980px; width: 100%; }
+  .header { border-bottom: 1px solid var(--border-color); padding-bottom: 24px; margin-bottom: 36px; display: flex; flex-direction: column; gap: 12px; }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; padding: 3px 9px; border-radius: 20px; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+  .badge.blue { background: rgba(88,166,255,.15); color: var(--accent); border-color: rgba(88,166,255,.3); }
+  .badge.green { background: rgba(63,185,80,.15); color: var(--success); border-color: rgba(63,185,80,.3); }
+  .badge.purple { background: rgba(188,140,255,.15); color: var(--purple); border-color: rgba(188,140,255,.3); }
+  .badge.amber { background: rgba(210,153,34,.15); color: var(--warning); border-color: rgba(210,153,34,.3); }
+  h1 { font-size: 28px; font-weight: 700; color: #fff; line-height: 1.25; }
+  .subtitle { color: var(--text-secondary); font-size: 15px; }
+  section { margin-bottom: 40px; }
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h3 { font-size: 16px; font-weight: 600; color: var(--accent); margin: 20px 0 10px; }
+  p { color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; }
+  ul, ol { margin: 0 0 16px 24px; color: var(--text-secondary); font-size: 14px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text-primary); }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+  .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; }
+  .card h4 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .card p, .card ul { font-size: 13px; margin-bottom: 0; }
+  .card.ok { border-left: 4px solid var(--success); }
+  .card.warn { border-left: 4px solid var(--warning); }
+  .card.bad { border-left: 4px solid var(--danger); }
+  pre { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 14px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; color: #e6edf3; margin-bottom: 16px; white-space: pre-wrap; }
+  code { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-tertiary); padding: 2px 5px; border-radius: 4px; color: #f0883e; }
+  pre code { background: none; padding: 0; color: inherit; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { padding: 9px 11px; text-align: left; border: 1px solid var(--border-color); vertical-align: top; color: var(--text-secondary); }
+  th { background: var(--bg-secondary); color: var(--text-primary); font-weight: 600; }
+  tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+  .y { color: var(--success); font-weight: 600; }
+  .m { color: var(--warning); font-weight: 600; }
+  .n { color: var(--danger); font-weight: 600; }
+  .note { border-left: 3px solid var(--accent); background: rgba(88,166,255,.08); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 14px 0; font-size: 13.5px; color: var(--text-secondary); }
+  .note.warn { border-left-color: var(--warning); background: rgba(210,153,34,.08); }
+  .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center; font-size: 12px; color: var(--text-muted); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Vorschau der Planer-Kacheln */
+  .demo { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; margin: 16px 0; }
+  .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .demo-col h5 { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .tile { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .tile.exp-kh { background: rgba(224,85,69,.10); border-color: rgba(224,85,69,.22); }
+  .tile.exp-ing { background: rgba(74,158,255,.10); border-color: rgba(74,158,255,.22); }
+  .tile.wrong { border-color: var(--warning); box-shadow: 0 0 0 1px rgba(210,153,34,.35); }
+  .tile.wrong.pull-left { animation: pullLeft 2.4s ease-in-out infinite; }
+  .tile.wrong.pull-right { animation: pullRight 2.4s ease-in-out infinite; }
+  @keyframes pullRight {
+    0%, 55%, 100% { transform: translateX(0) rotate(0); }
+    60% { transform: translateX(3px) rotate(.6deg); } 65% { transform: translateX(-1px) rotate(-.4deg); }
+    70% { transform: translateX(4px) rotate(.8deg); } 75% { transform: translateX(0) rotate(-.3deg); }
+    82% { transform: translateX(6px); } 92% { transform: translateX(2px); }
+  }
+  @keyframes pullLeft {
+    0%, 55%, 100% { transform: translateX(0) rotate(0); }
+    60% { transform: translateX(-3px) rotate(-.6deg); } 65% { transform: translateX(1px) rotate(.4deg); }
+    70% { transform: translateX(-4px) rotate(-.8deg); } 75% { transform: translateX(0) rotate(.3deg); }
+    82% { transform: translateX(-6px); } 92% { transform: translateX(-2px); }
+  }
+  @media (prefers-reduced-motion: reduce) { .tile.wrong { animation: none !important; } }
+  .tile .ico { font-size: 12px; }
+  .tile .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tile .hint { font-size: 11px; color: var(--warning); font-weight: 600; }
+  .ask { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-secondary); font-size: 10px; display: grid; place-items: center; cursor: pointer; flex: none; }
+  .shield { flex: none; width: 18px; height: 21px; position: relative; display: inline-grid; place-items: center; }
+  .shield svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .shield b { position: relative; font-size: 11px; font-weight: 800; color: #3a2a00; line-height: 1; margin-top: -2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge-row">
+      <span class="badge blue">Berufeplaner &bull; Subfeature</span>
+      <span class="badge purple">Web &bull; Web-Scanner &bull; App</span>
+      <span class="badge green">Additiv, blockiert nichts</span>
+      <span class="badge amber">Stand: 2026-10-26 (v1)</span>
+    </div>
+    <h1>Berufe-Rangcheck: R2/R3 zeigen den Beruf</h1>
+    <p class="subtitle">Im Spiel steht der Beruf nicht in der Mitgliederliste, aber der Rang schon. Wenn die Allianz R2 und R3 nach Beruf vergibt, sieht der Berufeplaner sofort, wer falsch einsortiert ist. Der Scanner pflegt die Ränge laufend und meldet Abweichungen. Aufgaben stehen in der <a href="konzept-berufe-rangcheck-aufgaben.html">Aufgabenliste</a>.</p>
+  </div>
+
+  <section>
+    <h2>🎯 Idee in einem Satz</h2>
+    <p><strong>R2 = Ingenieur, R3 = Kriegsherr</strong> (oder andersherum, pro Allianz einstellbar). Steht im Planer ein R2 bei den Kriegsherren, zittert seine Kachel und zieht zur richtigen Seite. Verschoben wird weiter per Drag-and-drop. Bei R1, R4 und R5 lässt sich der Beruf so nicht ablesen, diese Kacheln bleiben neutral.</p>
+    <div class="card-grid">
+      <div class="card ok"><h4>🛡 Rangwappen</h4><p>Jede Kachel zeigt den Rang als Ziffer in einem gelben Wappen. Gilt immer, auch ohne Rangcheck. Der Name eines Rangs („Elite“ usw.) wird nicht gezeigt, damit niemand falsch benannt wird.</p></div>
+      <div class="card warn"><h4>🎨 Farbe + Zittern</h4><p>Nur wenn der Rangcheck an ist: Hintergrund leicht nach erwartetem Beruf getönt, falsche Kacheln zittern und lehnen sich zur richtigen Spalte.</p></div>
+      <div class="card"><h4>✉ Spieler fragen</h4><p>Winziger Knopf an jeder Kachel. Öffnet den vorbereiteten Text aus der Vorlage und kopiert ihn in die Zwischenablage, fertig zum Einfügen in die Spielmail.</p></div>
+      <div class="card"><h4>📡 Scanner-Rückmeldung</h4><p>Der Sync antwortet zusätzlich mit einer Liste falsch einsortierter Spieler. Kein Upload wird verhindert. Liste per Knopf kopieren und in den R4-Chat geben.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>👀 So soll es aussehen</h2>
+    <p>Vorschau mit Einstellung <strong>R2 = Ingenieur, R3 = Kriegsherr</strong>. Die Spalte Kriegsherr liegt im Planer links, die Ingenieur-Slots rechts. Darum lehnt sich ein falscher Kriegsherr nach rechts und ein falscher Ingenieur nach links.</p>
+    <div class="demo">
+      <div class="demo-grid">
+        <div class="demo-col">
+          <h5>Spalte Kriegsherr</h5>
+          <div class="tile exp-kh"><span class="shield" data-r="3"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Lion Tooth</span><button class="ask" title="Spieler fragen">✉</button></div>
+          <div class="tile exp-ing wrong pull-right"><span class="shield" data-r="2"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Kiwi</span><span class="hint">→ Ing.?</span><button class="ask" title="Spieler fragen">✉</button></div>
+          <div class="tile"><span class="shield" data-r="4"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Rex</span><button class="ask" title="Spieler fragen">✉</button></div>
+        </div>
+        <div class="demo-col">
+          <h5>Ingenieur-Slots</h5>
+          <div class="tile exp-ing"><span class="shield" data-r="2"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Mira</span><button class="ask" title="Spieler fragen">✉</button></div>
+          <div class="tile exp-kh wrong pull-left"><span class="shield" data-r="3"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Bolt</span><span class="hint">← KH?</span><button class="ask" title="Spieler fragen">✉</button></div>
+          <div class="tile"><span class="shield" data-r="1"></span><span class="ico" style="color:var(--ing)">⚗</span><span class="nm">Neuling</span><button class="ask" title="Spieler fragen">✉</button></div>
+        </div>
+      </div>
+    </div>
+    <p>Bei <code>prefers-reduced-motion</code> entfällt das Zittern. Dann bleiben der gelbe Rahmen und der Hinweis „→ Ing.?“ bzw. „← KH?“.</p>
+  </section>
+
+  <section>
+    <h2>🧭 Regeln</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Rang</th><th>Einsortiert als</th><th>Status (bei R2 = Ing., R3 = KH)</th><th>Darstellung</th></tr>
+      <tr><td>R2</td><td>Ingenieur</td><td class="y">passt</td><td>blau getönt</td></tr>
+      <tr><td>R2</td><td>Kriegsherr</td><td class="n">falsch</td><td>blau getönt, zittert nach rechts</td></tr>
+      <tr><td>R3</td><td>Kriegsherr</td><td class="y">passt</td><td>rot getönt</td></tr>
+      <tr><td>R3</td><td>Ingenieur</td><td class="n">falsch</td><td>rot getönt, zittert nach links</td></tr>
+      <tr><td>R2/R3</td><td>Warteschlange (kein Beruf)</td><td class="m">offen</td><td>getönt nach erwartetem Beruf, kein Zittern</td></tr>
+      <tr><td>R1, R4, R5</td><td>beliebig</td><td>nicht prüfbar</td><td>neutral, nur Wappen</td></tr>
+      <tr><td>Ehrenmitglied</td><td>beliebig</td><td>nicht prüfbar</td><td>neutral (Rang steht dort nicht für den Beruf)</td></tr>
+    </table></div>
+    <p>Die Prüfung läuft ausschließlich im Browser aus Daten, die schon da sind: <code>PREV[name]</code> (Rang) und <code>memberMeta[name].beruf</code>. Dazu kommt eine kleine Hilfsfunktion:</p>
+<pre><code>function bpExpectedBeruf(rank) {           // null = nicht prüfbar
+  if (!isBerufRankCheckOn()) return null;
+  const r2 = flagConfig.berufe_rangcheck_r2 === 'kriegsherr' ? 'kriegsherr' : 'ingenieur';
+  if (rank === 2) return r2;
+  if (rank === 3) return r2 === 'ingenieur' ? 'kriegsherr' : 'ingenieur';
+  return null;
+}
+// Status: 'ok' | 'wrong' | 'open' | null</code></pre>
+  </section>
+
+  <section>
+    <h2>⚙️ Einstellungen (pro Allianz)</h2>
+    <p>Gespeichert in <code>alliance_config</code> neben <code>berufe_max_ingenieure</code>, geladen über <code>loadFlagConfig()</code>. Ändern dürfen R4/R5 (wie die anderen Berufe-Einstellungen).</p>
+    <div class="table-wrap"><table>
+      <tr><th>Schlüssel</th><th>Werte</th><th>Standard</th></tr>
+      <tr><td><code>berufe_rangcheck</code></td><td><code>true</code> / <code>false</code></td><td><code>false</code></td></tr>
+      <tr><td><code>berufe_rangcheck_r2</code></td><td><code>ingenieur</code> / <code>kriegsherr</code> (R3 ist immer das Gegenteil)</td><td><code>ingenieur</code></td></tr>
+      <tr><td><code>berufe_frage_vorlagen</code></td><td>JSON, ein Text pro Sprache: <code>{"de": "...", "en": "...", ...}</code></td><td>eingebaute Standardtexte</td></tr>
+    </table></div>
+    <p>Im Planer-Kopf ein Schalter „Rangcheck R2/R3“ mit kleinem Auswahlfeld „R2 = Ingenieur / R2 = Kriegsherr“ und ein Zähler „3 falsch einsortiert“. Klick auf den Zähler scrollt zur ersten falschen Kachel.</p>
+  </section>
+
+  <section>
+    <h2>✉ „Spieler fragen“</h2>
+    <p>Kleiner Knopf (18&nbsp;px) an jeder Kachel, in Warteschlange, Kriegsherr-Spalte und Ingenieur-Slots. Der Knopf startet kein Drag. Ablauf:</p>
+    <ol>
+      <li>Text aus der Vorlage in der Sprache des Spielers (<code>preferred_language</code>), sonst Deutsch.</li>
+      <li>Variablen ersetzen, Text in ein kleines Fenster mit Textfeld (bearbeitbar) und gleich in die Zwischenablage.</li>
+      <li>Knopf „Nochmal kopieren“ und „Schließen“. Gesendet wird im Spiel von Hand.</li>
+    </ol>
+    <h3>Variablen</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Variable</th><th>Beispiel</th></tr>
+      <tr><td><code>$Spieler</code></td><td>Kiwi</td></tr>
+      <tr><td><code>$Rang</code></td><td>R2</td></tr>
+      <tr><td><code>$R2Beruf</code> / <code>$R3Beruf</code></td><td>Ingenieur / Kriegsherr (in der Sprache der Vorlage)</td></tr>
+      <tr><td><code>$BerufIst</code></td><td>Kriegsherr (wie im Planer einsortiert, sonst „noch keiner“)</td></tr>
+      <tr><td><code>$BerufSoll</code></td><td>Ingenieur (aus dem Rang, leer bei R1/R4/R5)</td></tr>
+      <tr><td><code>$Allianz</code></td><td>NxU1</td></tr>
+      <tr><td><code>$Absender</code></td><td>Name des R4/R5, der klickt</td></tr>
+    </table></div>
+    <h3>Standardvorlage (de)</h3>
+<pre><code>Hallo $Spieler, kannst du mir bitte deinen aktuellen Beruf bestätigen? R2 $R2Beruf oder R3 $R3Beruf? Danke! – $Absender</code></pre>
+    <p>Die Vorlagen werden in einem kleinen Editor im Planer gepflegt (Sprache wählen, Text bearbeiten, Variablen als Klick-Chips zum Einfügen, Vorschau mit einem Beispielspieler).</p>
+  </section>
+
+  <section>
+    <h2>📡 Scanner: Rückmeldung nach dem Sync</h2>
+    <p><code>POST /scans/sync</code> bekommt im Antwort-JSON ein zusätzliches Feld. Es wird nach dem Rangabgleich berechnet, also mit dem Rang, der nach diesem Scan gilt. Auch beim <code>dry_run</code>. Ist der Rangcheck aus, fehlt das Feld oder es ist leer. Alte Clients ignorieren es einfach.</p>
+<pre><code>"beruf_mismatches": [
+  { "name": "Kiwi", "player_id": "…", "rank": 2, "beruf": "kriegsherr",
+    "expected": "ingenieur", "rank_changed": true, "old_rank": 3 },
+  …
+]</code></pre>
+    <p><code>rank_changed</code> zeigt, ob der Scan den Rang gerade erst geändert hat. Das sind meist die interessanten Fälle (Beruf gewechselt, Planer noch alt). Die Rolle <code>scanner</code> ändert keine Ränge. Sie bekommt die Liste trotzdem, berechnet mit dem gespeicherten Rang.</p>
+    <h3>Anzeige im Web-Scanner (und später in der App)</h3>
+    <p>Unter der Sync-Zusammenfassung ein Block „Beruf passt nicht zum Rang (n)“ mit Knopf <strong>Liste kopieren</strong>. Kopiertext für den R4-Chat:</p>
+<pre><code>Berufe-Check NxU1 (Scan 26.10.)
+R2 = Ingenieur · R3 = Kriegsherr
+⚠ Kiwi – R2, eingeteilt als Kriegsherr (Rang neu, vorher R3)
+⚠ Bolt – R3, eingeteilt als Ingenieur</code></pre>
+    <div class="note warn">Nur Hinweis, keine Sperre: Der Upload läuft immer vollständig durch. Der Beruf im Hub wird vom Scanner <strong>nicht</strong> automatisch umgestellt. Das bleibt eine Entscheidung im Planer.</div>
+  </section>
+
+  <section>
+    <h2>🚫 Bewusst nicht dabei</h2>
+    <ul>
+      <li>Kein Ablesen des Berufs bei R1, R4, R5 und Ehrenmitgliedern.</li>
+      <li>Kein automatisches Umsortieren, weder im Planer noch beim Scan.</li>
+      <li>Kein Versand von Spielmails aus dem Hub. Nur Zwischenablage.</li>
+      <li>Keine neue Tabelle. Alles läuft über <code>alliance_config</code> und vorhandene Spalten.</li>
+    </ul>
+  </section>
+
+  <div class="footer">LWHub &bull; Konzept Berufe-Rangcheck v1 &bull; 26.10.2026</div>
+</div>
+<script>
+  // Wappen in der Vorschau aus data-r erzeugen (gleiches Markup wie spaeter im Planer)
+  document.querySelectorAll('.shield[data-r]').forEach(function (el) {
+    el.innerHTML = '<svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#f0a500" stroke="#8a5d00" stroke-width="1.2"/></svg><b>' + el.dataset.r + '</b>';
+    el.title = 'R' + el.dataset.r;
+  });
+</script>
+</body>
+</html>

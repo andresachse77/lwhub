@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LWHub &bull; Aufgaben Berufe-Rangcheck</title>
+<style>
+  :root {
+    --bg: #0e1117; --bg-2: #161b22; --bg-3: #21262d; --border: #30363d; --border-soft: #262c34;
+    --accent: #58a6ff; --success: #3fb950; --warning: #d29922; --danger: #f85149; --purple: #bc8cff;
+    --text: #f0f6fc; --text-2: #8b949e; --text-3: #6e7681;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.55; padding: 40px 16px 56px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  code { font-family: var(--mono); font-size: 12px; background: var(--bg-3); padding: 1px 5px; border-radius: 4px; color: #f0883e; overflow-wrap: anywhere; }
+  strong { color: var(--text); }
+
+  /* Kopf */
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  h1 { font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -.3px; }
+  .subtitle { color: var(--text-2); font-size: 14.5px; margin-top: 8px; max-width: 640px; }
+  .meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-2); background: var(--bg-2); }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  /* Fortschritt */
+  .progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 28px 0 32px; }
+  .prog { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .prog-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .prog-name { font-size: 13px; color: var(--text-2); }
+  .prog-num { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .prog-num small { font-size: 13px; color: var(--text-3); font-weight: 500; }
+  .bar { height: 6px; background: var(--bg-3); border-radius: 999px; overflow: hidden; margin-top: 10px; display: flex; }
+  .bar span { display: block; height: 100%; }
+  .bar .b-done { background: var(--success); }
+  .bar .b-part { background: var(--warning); }
+  .prog-legend { font-size: 11.5px; color: var(--text-3); margin-top: 7px; }
+
+  /* Abschnitte */
+  section { margin-bottom: 40px; }
+  h2 { font-size: 19px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h2 .count { font-size: 12px; font-weight: 500; color: var(--text-3); }
+  .phase { font-size: 11.5px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--text-3); margin: 22px 0 8px; display: flex; align-items: center; gap: 10px; }
+  .phase::after { content: ""; flex: 1; height: 1px; background: var(--border-soft); }
+
+  /* Als naechstes */
+  .next { background: linear-gradient(180deg, rgba(88,166,255,.09), rgba(88,166,255,.03)); border: 1px solid rgba(88,166,255,.3); border-radius: 12px; padding: 18px 20px; margin-bottom: 36px; }
+  .next h2 { margin-bottom: 10px; }
+  .next ol { list-style: none; counter-reset: n; display: grid; gap: 10px; }
+  .next li { counter-increment: n; display: grid; grid-template-columns: 26px 1fr; gap: 10px; font-size: 14px; color: var(--text-2); }
+  .next li::before { content: counter(n); width: 22px; height: 22px; border-radius: 50%; background: rgba(88,166,255,.18); color: var(--accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; margin-top: 1px; }
+  .next li b { color: var(--text); font-weight: 600; }
+
+  /* Abhaengigkeiten */
+  .deps { display: grid; gap: 8px; }
+  .dep { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 13.5px; color: var(--text-2); }
+
+  /* Filter */
+  .toolbar { position: sticky; top: 0; z-index: 2; background: rgba(14,17,23,.92); backdrop-filter: blur(6px); padding: 10px 0; margin-bottom: 8px; display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--border-soft); }
+  .toolbar button { font: inherit; font-size: 13px; color: var(--text-2); background: var(--bg-2); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  .toolbar button:hover { color: var(--text); }
+  .toolbar button[aria-pressed="true"] { color: var(--text); border-color: var(--accent); background: rgba(88,166,255,.12); }
+  .toolbar button span { color: var(--text-3); margin-left: 4px; font-variant-numeric: tabular-nums; }
+
+  /* Aufgaben */
+  .task { background: var(--bg-2); border: 1px solid var(--border); border-left: 3px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+  .task[data-status="done"] { border-left-color: var(--success); }
+  .task[data-status="part"] { border-left-color: var(--warning); }
+  .task-head { display: flex; align-items: flex-start; gap: 10px; }
+  .icon { flex: none; width: 18px; height: 18px; border-radius: 50%; margin-top: 2px; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .task[data-status="done"] .icon { background: var(--success); color: #0e1117; }
+  .task[data-status="done"] .icon::before { content: "✓"; }
+  .task[data-status="part"] .icon { border: 2px solid var(--warning); background: conic-gradient(var(--warning) 0 50%, transparent 50% 100%); }
+  .task[data-status="open"] .icon { border: 2px solid var(--text-3); }
+  .t { font-weight: 600; font-size: 14.5px; flex: 1; min-width: 0; }
+  .t .id { font-family: var(--mono); font-size: 12px; color: var(--text-3); margin-right: 6px; font-weight: 500; }
+  .task[data-status="done"] .t { color: var(--text-2); }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--border); color: var(--text-2); }
+  .tag.done { color: var(--success); border-color: rgba(63,185,80,.35); background: rgba(63,185,80,.1); }
+  .tag.part { color: var(--warning); border-color: rgba(210,153,34,.35); background: rgba(210,153,34,.1); }
+  .tag.purple { color: var(--purple); border-color: rgba(188,140,255,.35); background: rgba(188,140,255,.1); }
+  .tag.blue { color: var(--accent); border-color: rgba(88,166,255,.35); background: rgba(88,166,255,.1); }
+  .d { font-size: 13px; color: var(--text-2); margin: 6px 0 0 28px; }
+  .open-point { font-size: 13px; color: var(--text-2); margin: 8px 0 0 28px; padding: 7px 10px; border-radius: 6px; background: rgba(210,153,34,.08); border: 1px solid rgba(210,153,34,.22); }
+  .open-point::before { content: "Offen: "; color: var(--warning); font-weight: 600; }
+  details { margin: 8px 0 0 28px; }
+  summary { font-size: 12.5px; color: var(--accent); cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; user-select: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸"; font-size: 10px; transition: transform .15s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  .log { margin: 8px 0 0 5px; border-left: 2px solid var(--border); padding-left: 14px; display: grid; gap: 8px; }
+  .log p { font-size: 12.5px; color: var(--text-2); position: relative; }
+  .log p::before { content: ""; position: absolute; left: -20px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--bg-2); border: 2px solid var(--text-3); }
+  .log time { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-3); }
+  .hidden { display: none !important; }
+
+  .footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--border-soft); text-align: center; font-size: 12px; color: var(--text-3); }
+  @media (max-width: 560px) {
+    h1 { font-size: 24px; }
+    .task-head { flex-wrap: wrap; }
+    .tags { width: 100%; justify-content: flex-start; padding-left: 28px; }
+    .d, .open-point, details { margin-left: 0; }
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .task.today { border-color: rgba(240,165,0,.45); background: linear-gradient(180deg, rgba(240,165,0,.08), rgba(240,165,0,.02)); }
+  .tag.today { color: #f0a500; border-color: rgba(240,165,0,.45); background: rgba(240,165,0,.12); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="eyebrow">Aufgabenliste</div>
+    <h1>Berufe-Rangcheck R2/R3</h1>
+    <p class="subtitle">Reihenfolge und Stand. Begründungen, Regeln und Vorschau stehen im <a href="konzept-berufe-rangcheck.html">Konzept</a>.</p>
+    <div class="meta-row">
+      <span class="chip"><b>Andre</b> · lwhub &amp; Web-Scanner</span>
+      <span class="chip"><b>Thomas</b> · Android-App</span>
+      <span class="chip">Stand <b>26.10.2026</b></span>
+    </div>
+  </header>
+
+  <div class="progress-grid" id="progress"></div>
+
+  <section class="next">
+    <h2>🎯 Heute</h2>
+    <ol>
+      <li><div><b>B1 Rangwappen:</b> gelbes Wappen mit Rangziffer an jeder Kachel im Berufeplaner (Warteschlange, Kriegsherr, Ingenieur-Slots). Unabhängig vom Rangcheck, sofort nützlich.</div></li>
+      <li><div><b>Offene Fragen</b> unten unter „Gemeinsam klären“ beantworten, dann geht es mit B2 weiter.</div></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>🔗 Abhängigkeiten</h2>
+    <div class="deps">
+      <div class="dep"><span><b>B3</b> Status-Logik braucht <b>B2</b> Einstellungen</span><span>B4, B5, B6, S1 bauen auf B3 auf</span></div>
+      <div class="dep"><span><b>B7</b> Spieler fragen braucht <b>B8</b> nur für eigene Texte</span><span>B7 geht vorher mit Standardtext</span></div>
+      <div class="dep"><span><b>S2</b> Web-Scanner und <b>T1</b> App</span><span>brauchen <b>S1</b> (Feld im Sync)</span></div>
+    </div>
+  </section>
+
+  <div class="toolbar" role="toolbar" aria-label="Filter">
+    <button type="button" data-filter="all" aria-pressed="true">Alle<span></span></button>
+    <button type="button" data-filter="open" aria-pressed="false">Offen<span></span></button>
+    <button type="button" data-filter="part" aria-pressed="false">Teilweise<span></span></button>
+    <button type="button" data-filter="done" aria-pressed="false">Erledigt<span></span></button>
+  </div>
+
+  <section data-owner="Andre">
+    <h2>🧑‍💻 Andre <span class="count">lwhub &amp; Web-Scanner</span></h2>
+
+    <div class="phase">Phase 1 · Rangwappen (heute)</div>
+
+    <div class="task today" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B1</span>Rangwappen an allen Planer-Kacheln</div><div class="tags"><span class="tag done">erledigt 26.10.</span><span class="tag blue">index.html</span></div></div>
+      <div class="d">Hilfsfunktion <code>bpRankShield(name)</code> liefert ein kleines Inline-SVG (gelbes Wappen, Ziffer aus <code>PREV[name]</code>, Tooltip „R3“). Eingebaut in <code>berufePlannerRender()</code> vor dem ⚔/⚗-Symbol: Warteschlange (<code>.bp-queue-item</code>), Kriegsherr-Zelle und Ingenieur-Slots. CSS-Klasse <code>.bp-shield</code>, ca. 16×19 px, Mobil-Breakpoints prüfen. Nur Ziffer, kein Rangname. Ehrenmitglieder bekommen kein Wappen (sie sind nicht in <code>members</code>).</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>26.10.</time>Lokal mit NxU1-Daten geprüft (Desktop 1400 px, Mobil 420 px): alle 80 Kacheln zeigen ihr Wappen, keine neuen JS-Fehler.</p>
+      </div></details>
+    </div>
+
+    <div class="phase">Phase 2 · Rangcheck im Planer</div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B2</span>Einstellungen <code>berufe_rangcheck</code> + <code>berufe_rangcheck_r2</code></div><div class="tags"><span class="tag blue">alliance.php</span><span class="tag blue">index.html</span></div></div>
+      <div class="d">Neue Schlüssel in <code>alliance_config</code> (Whitelist in <code>handleSetAllianceConfig</code> prüfen). Im Planer-Kopf Schalter „Rangcheck R2/R3“ und Auswahl „R2 = Ingenieur / R2 = Kriegsherr“, nur für R4/R5 änderbar.</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B3</span>Status-Logik <code>bpExpectedBeruf()</code> / <code>bpBerufStatus()</code></div><div class="tags"><span class="tag blue">index.html</span></div></div>
+      <div class="d">Ergebnis je Mitglied: <code>ok</code>, <code>wrong</code>, <code>open</code> (Warteschlange) oder <code>null</code> (R1/R4/R5, Rangcheck aus). Siehe Regeltabelle im Konzept.</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B4</span>Kachel-Hintergrund nach erwartetem Beruf</div><div class="tags"><span class="tag blue">CSS</span></div></div>
+      <div class="d">Klassen <code>.bp-exp-kh</code> (leicht rot) und <code>.bp-exp-ing</code> (leicht blau) an den drei Kachelarten. Neutral bei <code>null</code>.</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B5</span>Zittern + „Hinziehen“ bei falscher Einordnung</div><div class="tags"><span class="tag blue">CSS</span></div></div>
+      <div class="d">Keyframes <code>bpPullLeft</code>/<code>bpPullRight</code>: kurzes Zittern, dann leichter Zug zur richtigen Spalte, Pause. Gelber Rahmen und Hinweis „→ Ing.?“ / „← KH?“. Bei <code>prefers-reduced-motion</code> ohne Animation. Während eines Drags Animation aussetzen, damit das Ziehen nicht zappelt.</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B6</span>Zähler „n falsch einsortiert“ im Planer-Kopf</div><div class="tags"><span class="tag blue">index.html</span></div></div>
+      <div class="d">Klick scrollt zur nächsten falschen Kachel und lässt sie kurz aufleuchten.</div>
+    </div>
+
+    <div class="phase">Phase 3 · Spieler fragen</div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B7</span>Knopf „Spieler fragen“ + Textfenster + Zwischenablage</div><div class="tags"><span class="tag blue">index.html</span></div></div>
+      <div class="d">Winziger ✉-Knopf an jeder Kachel. Damit er kein Drag auslöst, <code>mousedown</code>/<code>dragstart</code> am Knopf stoppen. Fenster mit bearbeitbarem Text, sofort kopiert, „Nochmal kopieren“. Sprache aus <code>preferred_language</code> des Spielers, sonst <code>de</code>. Variablen siehe Konzept.</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B8</span>Vorlagen-Editor pro Sprache</div><div class="tags"><span class="tag blue">index.html</span><span class="tag blue">alliance.php</span></div></div>
+      <div class="d"><code>berufe_frage_vorlagen</code> als JSON in <code>alliance_config</code>. Sprache wählen, Text bearbeiten, Variablen-Chips zum Einfügen, Vorschau mit Beispielspieler, „Standard wiederherstellen“.</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B9</span>i18n-Texte in allen 7 Sprachen</div><div class="tags"><span class="tag blue">locales/*.json</span></div></div>
+      <div class="d">Neue <code>s_bp_*</code>-Schlüssel (Schalter, Hinweise, Zähler, Fenster) plus Standardvorlage je Sprache in <code>de, en, es, fr, it, pl, zh</code>.</div>
+    </div>
+
+    <div class="phase">Phase 4 · Scanner-Rückmeldung</div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S1</span><code>beruf_mismatches</code> in der Sync-Antwort</div><div class="tags"><span class="tag blue">members.php</span></div></div>
+      <div class="d">In <code>handleSyncScans</code> nach dem Rangabgleich: aktive Mitglieder der Allianz mit R2/R3 und Beruf gegen die Einstellung prüfen. Felder <code>name, player_id, rank, beruf, expected, rank_changed, old_rank</code>. Auch bei <code>dry_run</code> und für Rolle <code>scanner</code>. Prüfregel als PHP-Helfer in <code>helpers.php</code>, gleiche Logik wie B3.</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S2</span>Web-Scanner: Liste + „Liste kopieren“</div><div class="tags"><span class="tag blue">web-scanner-onnx</span></div></div>
+      <div class="d">Block unter der Sync-Zusammenfassung, nur wenn die Liste nicht leer ist. Kopiertext im Format aus dem Konzept (Allianz, Datum, Zuordnung, je Zeile ⚠ Name – Rang, eingeteilt als …).</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S3</span>Doku: Feld im API- &amp; Scanner-Konzept v2 ergänzen</div><div class="tags"><span class="tag blue">docs</span></div></div>
+      <div class="d">Antwortbeispiel von <code>/scans/sync</code> in <a href="konzept-api-scanner-v2.html">Konzept v2</a> um <code>beruf_mismatches</code> erweitern, damit Thomas es findet.</div>
+    </div>
+  </section>
+
+  <section data-owner="Thomas">
+    <h2>📱 Thomas <span class="count">Android-App</span></h2>
+
+    <div class="phase">Nach S1</div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">T1</span>App zeigt <code>beruf_mismatches</code> nach dem Upload</div><div class="tags"><span class="tag purple">optional</span></div></div>
+      <div class="d">Gleiche Liste und gleicher Kopiertext wie im Web-Scanner. Bei ausgeschaltetem Rangcheck fehlt das Feld, alte App-Versionen laufen unverändert weiter.</div>
+    </div>
+  </section>
+
+  <section data-owner="Gemeinsam">
+    <h2>🤝 Gemeinsam klären</h2>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G1</span>Sprache der Vorlage</div></div>
+      <div class="open-point">Vorschlag: Text in der Sprache des Spielers (<code>preferred_language</code>). Oder immer die Sprache des R4/R5, der klickt?</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G2</span>Hintergrundfarbe</div></div>
+      <div class="open-point">Vorschlag: Tönung nach dem erwarteten Beruf aus dem Rang (R2/R3), R1/R4/R5 neutral. Oder lieber eine Farbe pro Rang (R1–R5), unabhängig vom Rangcheck?</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G3</span>Wer darf den Rangcheck einschalten?</div></div>
+      <div class="open-point">Vorschlag: R4 und R5 der Allianz, wie bei den übrigen Berufe-Einstellungen. Oder nur R5 bzw. Site-Admin?</div>
+    </div>
+
+    <div class="task" data-status="open">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G4</span>R2/R3 in der Warteschlange</div></div>
+      <div class="open-point">Vorschlag: nur Tönung, kein Zittern, weil noch nichts falsch zugeordnet ist. Soll die Scanner-Liste diese Spieler als „noch nicht eingeteilt“ mit aufführen?</div>
+    </div>
+  </section>
+
+  <div class="footer">LWHub &bull; Aufgaben Berufe-Rangcheck &bull; 26.10.2026</div>
+</div>
+<script>
+(function () {
+  // Fortschritt je Person aus den Aufgaben berechnen ("Zusaetzlich erledigt" zaehlt nicht mit)
+  var html = '';
+  ['Andre', 'Thomas', 'Gemeinsam'].forEach(function (owner) {
+    var tasks = document.querySelectorAll('section[data-owner="' + owner + '"] .task');
+    var done = 0, part = 0;
+    tasks.forEach(function (t) { if (t.dataset.status === 'done') done++; else if (t.dataset.status === 'part') part++; });
+    var n = tasks.length || 1;
+    html += '<div class="prog"><div class="prog-top"><span class="prog-name">' + owner + '</span>'
+      + '<span class="prog-num">' + done + '<small> / ' + tasks.length + '</small></span></div>'
+      + '<div class="bar"><span class="b-done" style="width:' + (done / n * 100) + '%"></span>'
+      + '<span class="b-part" style="width:' + (part / n * 100) + '%"></span></div>'
+      + '<div class="prog-legend">' + done + ' erledigt · ' + part + ' teilweise · ' + (tasks.length - done - part) + ' offen</div></div>';
+  });
+  document.getElementById('progress').innerHTML = html;
+
+  // Filter nach Status; leere Phasen und Abschnitte ausblenden
+  var all = document.querySelectorAll('.task');
+  var buttons = document.querySelectorAll('.toolbar button');
+  buttons.forEach(function (b) {
+    var f = b.dataset.filter, c = 0;
+    all.forEach(function (t) { if (f === 'all' || t.dataset.status === f) c++; });
+    b.querySelector('span').textContent = c;
+    b.addEventListener('click', function () {
+      buttons.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      all.forEach(function (t) { t.classList.toggle('hidden', f !== 'all' && t.dataset.status !== f); });
+      document.querySelectorAll('.phase').forEach(function (p) {
+        var el = p.nextElementSibling, visible = false;
+        while (el && el.classList.contains('task')) { if (!el.classList.contains('hidden')) visible = true; el = el.nextElementSibling; }
+        p.classList.toggle('hidden', !visible);
+      });
+      document.querySelectorAll('section[data-owner]').forEach(function (s) {
+        s.classList.toggle('hidden', !s.querySelector('.task:not(.hidden)'));
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

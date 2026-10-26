@@ -48,6 +48,7 @@ require_once __DIR__ . '/src/auth.php';
 require_once __DIR__ . '/src/caller-auth.php';
 require_once __DIR__ . '/src/power-trend.php';
 require_once __DIR__ . '/src/event-compare.php';
+require_once __DIR__ . '/src/special-events.php';
 require_once __DIR__ . '/src/alliance.php';
 require_once __DIR__ . '/src/presence-chat.php';
 require_once __DIR__ . '/src/members.php';
@@ -277,6 +278,12 @@ try {
         if ($method === 'GET'    && count($segments) === 2) handleGetEntries($pdo, $ALLIANCE, $kw);
         if ($method === 'POST'   && count($segments) === 2) handleSaveEntry($pdo, $ALLIANCE, $kw, $body, $PROTECTED_R4_NAMES);
         if ($method === 'DELETE' && count($segments) === 3) handleDeleteEntry($pdo, $ALLIANCE, $kw, $segments[2], $body);
+    }
+
+    // GET/POST /special-events – Spezialevent je KW (Name, Tag, Zeitfenster oder "kein Event")
+    if (count($segments) === 1 && $segments[0] === 'special-events') {
+        if ($method === 'GET') handleGetSpecialEvents($pdo, $ALLIANCE);
+        if ($method === 'POST') handleSaveSpecialEvent($pdo, $ALLIANCE, $body);
     }
 
     // GET /se-inactive

@@ -336,22 +336,30 @@
     </div>
 
     <div class="event-section" data-event="se">
+      <!-- Spezialevent dieser KW: gilt fuer alle Allianzen desselben Servers (Server-Nr. im Feature-Fenster) -->
+      <div class="se-plan" id="se-plan">
+        <input type="text" id="se-ev-title" list="se-ev-titles" maxlength="100" placeholder="Welches Event?" title="Name des Spezialevents (wechselt wöchentlich)">
+        <datalist id="se-ev-titles"></datalist>
+        <input type="date" id="se-scan-date" title="Tag des Events">
+        <input type="time" id="se-scan-start" value="16:00" title="Start des Events">
+        <span>–</span>
+        <input type="time" id="se-scan-end" value="20:00" title="Ende des Events">
+        <button class="flt-toggle" onclick="spezialSaveEvent()" title="Event für diese KW festlegen (für alle Allianzen des Servers)">💾 <span>Festlegen</span></button>
+        <button class="flt-toggle" id="se-btn-none" onclick="spezialSetNoEvent()" title="In dieser KW gibt es auf dem Server kein Spezialevent">🚫 <span>Kein Event</span></button>
+        <button class="flt-toggle" id="se-btn-skip" onclick="spezialToggleSkip()" title="Unsere Allianz wertet das Event dieser KW nicht aus (nur für diese Allianz)">⏸ <span>Nicht auswerten</span></button>
+        <?php if (scannerTabAllowed($member)): ?>
+        <button class="flt-toggle" id="se-btn-import" onclick="spezialImportFromScanner()" title="Häkchen dieser KW aus der Vorher/Nachher-Auswertung setzen: Kills oder Kampfkraft-Verlust = Teilnahme, nach Kills Platz 1–50 Top 50, Platz 1–20 Top 20">📸 <span data-i18n="s_vs_from_scanner">Aus Scanner übernehmen</span></button>
+        <a class="flt-toggle" id="se-scan-eval" href="web-scanner-onnx/event.html" target="_blank" rel="noopener" title="Vorher/Nachher-Auswertung in eigenem Fenster öffnen">🔍</a>
+        <?php endif; ?>
+        <span class="se-plan-status" id="se-plan-status"></span>
+      </div>
       <div class="wache-legend">
         <span><span style="color:var(--blue);">⚔</span> <span data-i18n="s_ev_participation">Teilnahme</span></span>
         <span><span style="color:var(--green);">🏅</span> Top 50</span>
         <span><span style="color:var(--gold);">🏆</span> Top 20</span>
-        <?php if (scannerTabAllowed($member)): ?>
-        <span class="se-scan-form" style="margin-left:auto;display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap;">
-          <input type="date" id="se-scan-date" title="Tag des Events">
-          <input type="time" id="se-scan-start" value="16:00" title="Start des Events">
-          <span>–</span>
-          <input type="time" id="se-scan-end" value="20:00" title="Ende des Events">
-          <button class="flt-toggle" onclick="spezialImportFromScanner()" title="Häkchen dieser KW aus der Vorher/Nachher-Auswertung setzen: Kills oder Kampfkraft-Verlust = Teilnahme, nach Kills Platz 1–50 Top 50, Platz 1–20 Top 20">📸 <span data-i18n="s_vs_from_scanner">Aus Scanner übernehmen</span></button>
-          <a class="flt-toggle" id="se-scan-eval" href="web-scanner-onnx/event.html" target="_blank" rel="noopener" title="Vorher/Nachher-Auswertung in eigenem Fenster öffnen">🔍</a>
-        </span>
-        <?php endif; ?>
         <span style="margin-left:auto;" class="wache-counter" id="se-counter">0 / 0</span>
       </div>
+      <div class="se-off-banner" id="se-off-banner" hidden></div>
       <div class="wache-grid" id="spezial-grid"></div>
     </div>
 

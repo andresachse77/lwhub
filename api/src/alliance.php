@@ -78,6 +78,9 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
         if ($key === 'berufe_rangcheck_r2' && !in_array($value, ['ingenieur', 'kriegsherr'], true)) {
             jsonOut(400, ['error' => 'berufe_rangcheck_r2 muss ingenieur oder kriegsherr sein']);
         }
+        if ($key === 'server' && !preg_match('/^(\d{1,6})?$/', $value)) {
+            jsonOut(400, ['error' => 'server muss eine Zahl sein']);
+        }
         if ($key === 'berufe_rangcheck' && !in_array($value, ['true', 'false'], true)) {
             jsonOut(400, ['error' => 'berufe_rangcheck muss true oder false sein']);
         }

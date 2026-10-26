@@ -1038,15 +1038,17 @@ function handleSwapIdToDiscord(PDO $pdo, string $alliance, string $nameEncoded):
 function handleGetSeInactive(PDO $pdo, string $alliance): never {
     $weeks = max(1, min(12, (int)($_GET['weeks'] ?? 4)));
 
+    // Wochen, in denen bewusst kein Spezialevent war (Events-Tab "Spezial"), zaehlen nicht mit
+    $freeWeeks = specialEventFreeWeeks($pdo, $alliance);
     $stmt = $pdo->prepare("
         SELECT DISTINCT we.year_week
         FROM weekly_entries we
         WHERE we.alliance = ?
         ORDER BY we.year_week DESC
-        LIMIT ?
     ");
-    $stmt->execute([$alliance, $weeks]);
-    $recentWeeks = array_column($stmt->fetchAll(), 'year_week');
+    $stmt->execute([$alliance]);
+    $recentWeeks = array_slice(array_values(array_filter(array_column($stmt->fetchAll(), 'year_week'),
+        fn($yw) => !in_array((int)$yw, $freeWeeks, true))), 0, $weeks);
 
     if (empty($recentWeeks)) {
         jsonOut(200, ['weeks' => [], 'inactive' => []]);

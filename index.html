@@ -620,6 +620,15 @@ nav {
 .wache-tile .wt-scan { font-size:10px; color:#8fb8ff; margin-top:2px; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wache-tile .wt-scan.spar-over { color:#ff8a7a; }
 .wache-tile .wt-scan.spar-ok { color:#5fd38d; }
+/* Spezialevent der KW (Name, Tag, Zeitfenster) ueber der Legende */
+.se-plan { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:10px 0 4px; font-size:12px; }
+.se-plan input { background:var(--card2); color:var(--text); border:1px solid var(--line2); border-radius:6px; padding:5px 7px; font-size:12px; }
+.se-plan #se-ev-title { width:170px; }
+.se-plan .flt-toggle.on { border-color:var(--gold); color:var(--gold); }
+.se-plan-status { color:var(--soft); font-size:11px; margin-left:auto; }
+.se-plan-status.unsaved { color:var(--gold); }
+.se-off-banner { margin:8px 0; padding:10px 12px; border:1px dashed var(--line2); border-radius:8px; color:var(--soft); font-size:13px; }
+#spezial-grid.se-off { opacity:0.45; }
 .wache-tile .wt-btns { display:flex; border-top:1px solid var(--line); }
 .wt-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 4px; cursor:pointer; font-size:12px; font-weight:600; font-family:'Inter',sans-serif; transition:all 0.12s; user-select:none; -webkit-tap-highlight-color:transparent; border:none; background:none; color:var(--soft); }
 .wt-btn:first-child { border-right:1px solid var(--line); }
@@ -5253,42 +5262,173 @@ function saturdayOfYearWeek(yw) {
   const monday = new Date(year, 0, 4 - ((jan4.getDay() || 7) - 1) + (week - 1) * 7);
   return isoDate(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 5));
 }
-// Datum gehoert zu dieser KW; beim KW-Wechsel springt es auf deren Samstag (ein bewusst anders
-// gewaehltes Datum bleibt, solange die KW gleich bleibt)
-let seScanFormKw = null;
-let seScanFormSync = null;
-function initSpezialScanForm() {
-  const dateEl = document.getElementById('se-scan-date');
-  if (!dateEl) return;
-  if (!seScanFormSync) {
-    let saved = {};
-    try { saved = JSON.parse(localStorage.getItem(SE_EVENT_FORM_KEY) || '{}') || {}; } catch (_) {}
-    if (saved.date) { dateEl.value = saved.date; seScanFormKw = yearWeekOf(saved.date); }
-    if (saved.start) document.getElementById('se-scan-start').value = saved.start;
-    if (saved.end) document.getElementById('se-scan-end').value = saved.end;
-    seScanFormSync = () => {
-      const form = { date: dateEl.value, start: document.getElementById('se-scan-start').value, end: document.getElementById('se-scan-end').value };
-      try { localStorage.setItem(SE_EVENT_FORM_KEY, JSON.stringify({ ...saved, ...form })); } catch (_) {}
-      document.getElementById('se-scan-eval').href = `web-scanner-onnx/event.html?${new URLSearchParams(form)}`;
-    };
-    ['se-scan-date', 'se-scan-start', 'se-scan-end'].forEach(id => document.getElementById(id).addEventListener('change', seScanFormSync));
-  }
-  if (seScanFormKw !== Number(kw)) {
-    dateEl.value = saturdayOfYearWeek(kw);
-    seScanFormKw = Number(kw);
-  }
-  seScanFormSync();
+// Spezialevents je KW (GET/POST /special-events): Name, Tag und Zeitfenster gelten fuer alle Allianzen
+// desselben Servers, "kein Event" ebenso; "nicht auswerten" legt jede Allianz fuer sich fest.
+let seEvents = { loaded: false, loading: false, byKw: new Map(), skipped: new Set(), titles: [], server: null };
+const seEventOf = (yw = kw) => seEvents.byKw.get(Number(yw)) || null;
+const seSkipped = (yw = kw) => seEvents.skipped.has(Number(yw));
+function applySpecialEvents(data) {
+  seEvents = {
+    loaded: true, loading: false,
+    byKw: new Map((data.events || []).map(e => [Number(e.year_week), e])),
+    skipped: new Set((data.skipped_weeks || []).map(Number)),
+    titles: data.titles || [],
+    server: data.server || null,
+  };
+  const list = document.getElementById('se-ev-titles');
+  if (list) list.innerHTML = seEvents.titles.map(t => `<option value="${escHtml(t)}"></option>`).join('');
+}
+async function loadSpecialEvents() {
+  if (seEvents.loading) return;
+  seEvents.loading = true;
+  try { applySpecialEvents(await fetchJson('/special-events')); }
+  catch (_) { seEvents = { ...seEvents, loaded: true, loading: false }; }
+  seFormKw = null; // Formular mit den geladenen Werten neu fuellen
+  if (document.querySelector('.event-section[data-event="se"].active')) renderSpezial();
+}
+async function postSpecialEvent(payload) {
+  const data = await fetchJson('/special-events', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ year_week: Number(kw), discord_id: authMember?.discord_id || '', ...payload }),
+  });
+  applySpecialEvents(data);
+  return seEventOf();
 }
 
-async function spezialImportFromScanner() {
-  const date = document.getElementById('se-scan-date').value;
-  const start = document.getElementById('se-scan-start').value;
-  const end = document.getElementById('se-scan-end').value;
-  if (!date || !start || !end) { toast(tr('Bitte Tag, Start und Ende des Events angeben.')); return; }
-  if (yearWeekOf(date) !== Number(kw)) {
-    const ask = trf('Das Event am {date} liegt in KW {ew}, gewählt ist KW {kw}. Trotzdem in KW {kw} eintragen?', { date: new Date(`${date}T12:00:00`).toLocaleDateString(uiLang()), ew: yearWeekOf(date) % 100, kw: kw % 100 });
-    if (!confirm(ask)) return;
+const seForm = () => ({
+  title: document.getElementById('se-ev-title')?.value.trim() || '',
+  date: document.getElementById('se-scan-date')?.value || '',
+  start: document.getElementById('se-scan-start')?.value || '',
+  end: document.getElementById('se-scan-end')?.value || '',
+});
+const seFormMatches = (ev, f = seForm()) => !!ev && !ev.no_event
+  && (ev.title || '') === f.title && ev.event_date === f.date && (ev.start || '') === f.start && (ev.end || '') === f.end;
+
+// Formular gehoert zur KW: beim KW-Wechsel das festgelegte Event, sonst Samstag der Woche mit den
+// Zeiten des letzten Events. Eigene Aenderungen bleiben, solange die KW gleich bleibt.
+let seFormKw = null;
+let seFormBound = false;
+function fillSpezialForm() {
+  const ev = seEventOf();
+  const last = [...seEvents.byKw.values()].find(e => !e.no_event && e.start && e.end);
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(SE_EVENT_FORM_KEY) || '{}') || {}; } catch (_) {}
+  const useEv = ev && !ev.no_event;
+  document.getElementById('se-ev-title').value = useEv ? (ev.title || '') : '';
+  document.getElementById('se-scan-date').value = useEv ? ev.event_date : saturdayOfYearWeek(kw);
+  document.getElementById('se-scan-start').value = (useEv && ev.start) || last?.start || saved.start || '16:00';
+  document.getElementById('se-scan-end').value = (useEv && ev.end) || last?.end || saved.end || '20:00';
+}
+function syncSpezialEvalLink() {
+  const f = seForm();
+  const form = { date: f.date, start: f.start, end: f.end };
+  try {
+    const saved = JSON.parse(localStorage.getItem(SE_EVENT_FORM_KEY) || '{}') || {};
+    localStorage.setItem(SE_EVENT_FORM_KEY, JSON.stringify({ ...saved, ...form }));
+  } catch (_) {}
+  const link = document.getElementById('se-scan-eval');
+  if (link) link.href = `web-scanner-onnx/event.html?${new URLSearchParams(form)}`;
+}
+function updateSpezialPlanStatus() {
+  const ev = seEventOf();
+  const skipped = seSkipped();
+  const noEvent = !!ev?.no_event;
+  const kwNo = kw % 100;
+  const where = seEvents.server ? trf('Server {s}', { s: seEvents.server }) : tr('nur diese Allianz (keine Server-Nummer)');
+  const status = document.getElementById('se-plan-status');
+  if (status) {
+    const unsaved = !noEvent && ev && !seFormMatches(ev);
+    status.classList.toggle('unsaved', !ev || unsaved);
+    status.textContent = !seEvents.loaded ? '…'
+      : noEvent ? `🚫 ${trf('kein Spezialevent in KW {kw}', { kw: kwNo })} · ${where}`
+      : !ev ? `○ ${tr('noch nicht festgelegt')} · ${where}`
+      : unsaved ? `● ${tr('Änderungen nicht gespeichert')}`
+      : `✓ ${trf('festgelegt von {by}', { by: [ev.updated_by, ev.updated_alliance].filter(Boolean).join(' · ') || '?' })} · ${where}`;
   }
+  document.getElementById('se-btn-none')?.classList.toggle('on', noEvent);
+  document.getElementById('se-btn-skip')?.classList.toggle('on', skipped);
+  const importBtn = document.getElementById('se-btn-import');
+  if (importBtn) importBtn.disabled = noEvent || skipped;
+  const banner = document.getElementById('se-off-banner');
+  if (banner) {
+    banner.hidden = !(noEvent || skipped);
+    banner.textContent = noEvent
+      ? trf('🚫 In KW {kw} gibt es kein Spezialevent – die Woche zählt bei „Kein Spezialevent in letzten Wochen“ nicht mit.', { kw: kwNo })
+      : skipped ? trf('⏸ KW {kw} wird von unserer Allianz nicht ausgewertet – die Woche zählt bei „Kein Spezialevent in letzten Wochen“ nicht mit.', { kw: kwNo }) : '';
+  }
+  document.getElementById('spezial-grid')?.classList.toggle('se-off', noEvent || skipped);
+}
+function initSpezialScanForm() {
+  if (!document.getElementById('se-scan-date')) return;
+  if (!seEvents.loaded) loadSpecialEvents();
+  if (!seFormBound) {
+    ['se-ev-title', 'se-scan-date', 'se-scan-start', 'se-scan-end'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', updateSpezialPlanStatus);
+      el.addEventListener('change', () => { syncSpezialEvalLink(); updateSpezialPlanStatus(); });
+    });
+    seFormBound = true;
+  }
+  if (seFormKw !== Number(kw)) {
+    fillSpezialForm();
+    if (seEvents.loaded) seFormKw = Number(kw);
+  }
+  syncSpezialEvalLink();
+  updateSpezialPlanStatus();
+}
+
+async function spezialSaveEvent({ silent = false } = {}) {
+  const f = seForm();
+  if (!f.date || !f.start || !f.end) { toast(tr('Bitte Tag, Start und Ende des Events angeben.')); return null; }
+  if (yearWeekOf(f.date) !== Number(kw)) {
+    const ask = trf('Das Event am {date} liegt in KW {ew}, gewählt ist KW {kw}. Trotzdem in KW {kw} eintragen?', { date: new Date(`${f.date}T12:00:00`).toLocaleDateString(uiLang()), ew: yearWeekOf(f.date) % 100, kw: kw % 100 });
+    if (!confirm(ask)) return null;
+  }
+  try {
+    const ev = await postSpecialEvent({ title: f.title, event_date: f.date, start: f.start, end: f.end });
+    updateSpezialPlanStatus();
+    if (!silent) toast(seEvents.server ? trf('Spezialevent für KW {kw} festgelegt (Server {s})', { kw: kw % 100, s: seEvents.server }) : trf('Spezialevent für KW {kw} festgelegt', { kw: kw % 100 }), 'ok');
+    return ev;
+  } catch (err) {
+    toast(tr('Fehler: ') + err.message);
+    return null;
+  }
+}
+window.spezialSaveEvent = spezialSaveEvent;
+
+async function spezialSetNoEvent() {
+  const noEvent = !!seEventOf()?.no_event;
+  const where = seEvents.server ? trf('für alle Allianzen auf Server {s}', { s: seEvents.server }) : tr('für diese Allianz');
+  const ask = noEvent
+    ? trf('„Kein Spezialevent“ für KW {kw} aufheben ({where})?', { kw: kw % 100, where })
+    : trf('KW {kw} ohne Spezialevent festlegen ({where})?', { kw: kw % 100, where });
+  if (!confirm(ask)) return;
+  try {
+    await postSpecialEvent(noEvent ? { clear: true } : { no_event: true });
+    seFormKw = null;
+    renderSpezial();
+  } catch (err) { toast(tr('Fehler: ') + err.message); }
+}
+window.spezialSetNoEvent = spezialSetNoEvent;
+
+async function spezialToggleSkip() {
+  try {
+    await postSpecialEvent({ skip: !seSkipped() });
+    renderSpezial();
+  } catch (err) { toast(tr('Fehler: ') + err.message); }
+}
+window.spezialToggleSkip = spezialToggleSkip;
+
+async function spezialImportFromScanner() {
+  if (seEventOf()?.no_event || seSkipped()) return;
+  // Zeitfenster erst festlegen, damit die anderen Allianzen des Servers es auch haben
+  let ev = seEventOf();
+  if (!seFormMatches(ev)) {
+    ev = await spezialSaveEvent({ silent: true });
+    if (!ev) return;
+  }
+  const date = ev.event_date, start = ev.start, end = ev.end;
   // Ende vor dem Start (z. B. 22:00–02:00): Ende am Folgetag, wie in event.html
   let endDate = date;
   if (end <= start) { const d = new Date(`${date}T12:00:00`); d.setDate(d.getDate() + 1); endDate = isoDate(d); }
@@ -5459,6 +5599,7 @@ function renderVS() {
     const maxDay = maxDayOf(scan);
     const scanInfo = !scan ? '' : spar
       ? `📸 ${escHtml(trf('max {v} Mio/Tag', { v: fmtMio(maxDay) }))} ${maxDay > VS_SPAR_MAX_PER_DAY ? '✗' : '✓'}`
+      : scan.place == null ? `📸 Σ ${escHtml(trf('{v} Mio', { v: fmtMio(scan.week_points) }))}`
       : `📸 ${escHtml(trf('{v} Mio · Platz {p}', { v: fmtMio(scan.week_points), p: scan.place }))}`;
     const scanCls = spar && scan ? (maxDay > VS_SPAR_MAX_PER_DAY ? ' spar-over' : ' spar-ok') : '';
     const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="vsSet('${esc}','unter')" title="unter 43,2 Mio Punkte (Strafe)">${unter?'⚠ &lt;43,2M':'🟥'}</button>`;
@@ -5545,6 +5686,7 @@ async function vsImportFromScanner() {
       if (!dayValues.length) continue;
       if (Math.max(...dayValues) <= VS_SPAR_MAX_PER_DAY) want.vsSpar = true;
     } else {
+      if (p.place == null) continue; // nur Summe der Tageswerte, nicht in der Wochen-Rangliste
       if (p.place <= 10) want.vsTop10 = true;
       if (p.place <= 30) want.vsTop30 = true;
       if (p.week_points < VS_SCANNER_MIN_POINTS) want.vsUnter50 = true;
@@ -5563,7 +5705,7 @@ async function vsImportFromScanner() {
   const unknown = (data.players || []).filter(p => !members.includes(p.name)).length;
   const lastScan = data.last_scan ? new Date(data.last_scan.replace(' ', 'T')).toLocaleString(uiLang(), { dateStyle: 'short', timeStyle: 'short' }) : '?';
   const msg = [
-    trf('KW {kw}: {n} Spieler mit gescannten Wochenpunkten', { kw: kw % 100, n: data.players.length }),
+    trf('KW {kw}: {n} Spieler mit gescannten Wochenpunkten', { kw: kw % 100, n: data.players.filter(p => p.place != null).length }),
     trf('Gescannte Tage: {days} · Stand {time}', { days, time: lastScan }),
     missingSat ? tr('⚠ Samstag ist noch nicht gescannt – die Wochenpunkte sind evtl. noch nicht final.') : null,
     '',
@@ -5905,8 +6047,37 @@ function renderFeatureToggles(containerId, alliance, config) {
       `</div>
       <button onclick="saveRankNames('${escHtml(alliance)}','${escHtml(containerId)}')" class="v-btn save" style="min-width:88px;">${escHtml(tr('s_speichern'))}</button>
     </div>` +
+    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">🌐 ${escHtml(tr('Server-Nummer'))}</div>
+        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('Allianzen mit derselben Server-Nummer teilen sich die Spezialevent-Termine.'))}</div>
+      </div>
+      <input id="${escHtml(containerId)}-server" type="text" inputmode="numeric" maxlength="6" value="${escHtml(String(config?.server ?? ''))}" placeholder="—" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
+      <button onclick="saveAllianceServer('${escHtml(alliance)}','${escHtml(containerId)}')" class="v-btn save" style="min-width:88px;">${escHtml(tr('s_speichern'))}</button>
+    </div>` +
     `</div>`;
 }
+
+async function saveAllianceServer(alliance, containerId) {
+  const server = String(document.getElementById(`${containerId}-server`)?.value || '').replace(/\D/g, '').slice(0, 6);
+  try {
+    await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance || '')}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ discord_id: authMember?.discord_id || '', config: { server } })
+    });
+    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
+    if (isCurrentAllianceTarget(alliance)) {
+      flagConfig = { ...adminFlagConfigCache[alliance] };
+      seEvents.loaded = false; // Spezialevents kommen jetzt ggf. vom Server
+    }
+    renderAllianceFeaturesModal();
+    toast(tr('Server-Nummer gespeichert'), 'ok');
+  } catch (err) {
+    toast(tr('Fehler: ') + err.message, 'err');
+  }
+}
+window.saveAllianceServer = saveAllianceServer;
 
 async function loadAllianceFeatureConfig(alliance) {
   if (!alliance) return {};

@@ -99,10 +99,17 @@ function handleVsWeek(PDO $pdo, string $alliance): never {
         }
         if ($lastScan === null || $r['recorded_at'] > $lastScan) $lastScan = $r['recorded_at'];
     }
+    // Platz nur aus der Wochen-Rangliste. Spieler, die dort fehlen, aber Tageswerte haben, kommen zum
+    // Anzeigen mit der Summe der Tage dazu (from_days, place = null) – Top 10/30 und Strafe setzt der Hub
+    // daraus nicht, die Sparwoche wertet ohnehin die Tageswerte.
     $list = array_values(array_filter($players, fn($p) => $p['week_points'] !== null));
     usort($list, fn($a, $b) => $b['week_points'] <=> $a['week_points']);
-    foreach ($list as $i => &$p) $p['place'] = $i + 1;
+    foreach ($list as $i => &$p) { $p['place'] = $i + 1; $p['from_days'] = false; }
     unset($p);
+    foreach ($players as $p) {
+        if ($p['week_points'] !== null || !count((array)$p['days'])) continue;
+        $list[] = array_merge($p, ['week_points' => array_sum((array)$p['days']), 'place' => null, 'from_days' => true]);
+    }
     ksort($daysScanned);
 
     jsonOut(200, [

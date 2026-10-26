@@ -168,6 +168,11 @@
         box-shadow: 0 12px 32px rgba(0,0,0,0.4);
         z-index: 9999;
         display: none;
+        /* Laenger als der Bildschirm (viele Seiten im Menue): im Menue scrollen */
+        max-height: calc(100vh - 80px);
+        max-height: calc(100dvh - 80px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
       }
       #cs-dropdown.open { display: block; }
       .cs-section-label {

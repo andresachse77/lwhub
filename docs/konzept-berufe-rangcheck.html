@@ -255,6 +255,7 @@ R2 = Ingenieur · R3 = Kriegsherr
   <section>
     <h2>🛡 Wappen-Varianten (Lesbarkeit)</h2>
     <p>Das jetzige Wappen (V1) ist schwer lesbar: 11-px-Ziffer, dunkel auf Gelb, auf getönten Kacheln wenig Kontrast. Vorschläge unten, alle in Originalgröße auf den drei Kachel-Hintergründen (Kriegsherr, Ingenieur, neutral) und in der Schrift des Planers (Rajdhani). Bitte Nummer nennen, Kombinationen gehen auch (z. B. „V3 in Größe von V2“).</p>
+    <p><strong>Entscheidung 26.10.2026: V7</strong> (Wappen in Rangfarbe, weiße Ziffer) – im Berufeplaner umgesetzt.</p>
     <div class="variants">
       <div class="variant current" data-v="v1">
         <h4><span class="vid">V1</span>Aktuell (Referenz)</h4>
@@ -317,7 +318,7 @@ R2 = Ingenieur · R3 = Kriegsherr
         <div class="v-ranks"><small>R1–R5:</small><span class="rs v6" data-r="1"></span><span class="rs v6" data-r="2"></span><span class="rs v6" data-r="3"></span><span class="rs v6" data-r="4"></span><span class="rs v6" data-r="5"></span></div>
       </div>
       <div class="variant" data-v="v7">
-        <h4><span class="vid">V7</span>Wappen in Rangfarbe</h4>
+        <h4><span class="vid">V7</span>Wappen in Rangfarbe <span class="vid">✓ gewählt</span></h4>
         <p>Farbe je Rang wie die Rang-Badges der Mitgliederliste (R1 gold, R2 grün, R3 blau, R4 rot, R5 lila), weiße Ziffer. Rang auf einen Blick, aber Blau/Rot beißen sich mit der Kriegsherr-/Ingenieur-Tönung.</p>
         <div class="v-row">
           <div class="tile exp-kh"><span class="rs v7" data-r="3"></span><span class="ico" style="color:var(--kh)">⚔</span><span class="nm">Lion Tooth</span></div>
@@ -354,6 +355,22 @@ R2 = Ingenieur · R3 = Kriegsherr
     el.innerHTML = html;
     el.title = 'R' + r;
   });
+</script>
+<!-- Zurueck zur App: die Konzepte oeffnen in einem neuen Tab, im Vollbild gibt es keine Tab-Leiste -->
+<a class="back-to-app" href="../" onclick="return backToApp()">&larr; Zur App</a>
+<style>
+  .back-to-app { position: fixed; top: 12px; right: 12px; z-index: 1000; padding: 7px 14px; border-radius: 999px;
+    background: rgba(13,17,23,.92); border: 1px solid rgba(240,165,0,.45); color: #f0a500; font: 600 13px/1 system-ui, sans-serif;
+    text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .back-to-app:hover { background: rgba(240,165,0,.15); }
+</style>
+<script>
+  // Tab schliessen, wenn der Browser es erlaubt (frisch per Link geoeffnet), sonst die App hier oeffnen
+  function backToApp() {
+    try { window.close(); } catch (e) {}
+    setTimeout(function () { location.href = '../'; }, 150);
+    return false;
+  }
 </script>
 </body>
 </html>

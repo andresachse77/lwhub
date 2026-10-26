@@ -314,5 +314,21 @@
   });
 })();
 </script>
+<!-- Zurueck zur App: die Konzepte oeffnen in einem neuen Tab, im Vollbild gibt es keine Tab-Leiste -->
+<a class="back-to-app" href="../" onclick="return backToApp()">&larr; Zur App</a>
+<style>
+  .back-to-app { position: fixed; top: 12px; right: 12px; z-index: 1000; padding: 7px 14px; border-radius: 999px;
+    background: rgba(13,17,23,.92); border: 1px solid rgba(240,165,0,.45); color: #f0a500; font: 600 13px/1 system-ui, sans-serif;
+    text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .back-to-app:hover { background: rgba(240,165,0,.15); }
+</style>
+<script>
+  // Tab schliessen, wenn der Browser es erlaubt (frisch per Link geoeffnet), sonst die App hier oeffnen
+  function backToApp() {
+    try { window.close(); } catch (e) {}
+    setTimeout(function () { location.href = '../'; }, 150);
+    return false;
+  }
+</script>
 </body>
 </html>

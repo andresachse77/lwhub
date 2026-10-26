@@ -166,6 +166,8 @@ nav {
 .login-pending span { font-size: 12px; color: var(--soft); line-height: 1.5; }
 #logout-btn { position:fixed; bottom:12px; right:12px; z-index:200; background:var(--card2); border:1px solid var(--line2); border-radius:8px; padding:6px 14px; font-size:12px; color:var(--soft); cursor:pointer; font-family:'Inter',sans-serif; }
 #logout-btn:hover { color:var(--red); border-color:var(--red); }
+/* Liegt sonst ueber dem Ende des Charakter-Menues (das hat dort selbst einen Logout-Eintrag) */
+body:has(#cs-dropdown.open) #logout-btn { display:none !important; }
 .kw-wrap { display: flex; align-items: center; gap: 6px; background: var(--card2); border: 1px solid var(--line2); border-radius: 8px; padding: 5px 12px; }
 .kw-wrap label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); }
 .kw-wrap input { background: none; border: none; color: var(--gold); font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; width: 58px; text-align: center; outline: none; }
@@ -1017,18 +1019,19 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   flex: none;
   display: inline-grid;
   place-items: center;
-  width: 16px;
-  height: 19px;
+  width: 21px;
+  height: 25px;
 }
 .bp-shield svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .bp-shield b {
   position: relative;
-  margin-top: -2px;
+  margin-top: -3px;
   font-family: 'Rajdhani', sans-serif;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1;
-  color: #3a2a00;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0,0,0,.9), 0 1px 1px rgba(0,0,0,.8);
 }
 /* Rangcheck R2/R3: Toenung nach erwartetem Beruf, Zittern bei falscher Einordnung */
 .bp-rc { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--soft); }
@@ -8870,11 +8873,11 @@ async function revokeApiToken(tokenId, clientName) {
     }).sort((a, b) => a.localeCompare(b, 'de'));
   }
 
-  // Gelbes Rangwappen mit Ziffer; bewusst ohne Rangname
+  // Rangwappen in Rangfarbe (wie die Rang-Badges, RC) mit weisser Ziffer; bewusst ohne Rangname
   function bpRankShield(name) {
     const rank = Number(PREV[name]);
     if (!Number.isInteger(rank) || rank < 1 || rank > 5) return '';
-    return `<span class="bp-shield" title="R${rank}"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#f0a500" stroke="#8a5d00" stroke-width="1.2"/></svg><b>${rank}</b></span>`;
+    return `<span class="bp-shield" title="R${rank}"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="${RC[rank]}" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>${rank}</b></span>`;
   }
 
   // Erwarteter Beruf aus dem Rang; null = nicht pruefbar (R1/R4/R5 oder Rangcheck aus)

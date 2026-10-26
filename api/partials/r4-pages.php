@@ -524,6 +524,7 @@
       <div class="panel-sub" data-i18n="s_docs_sub">API, Scanner, Android-App und Berufe-Rangcheck: Planung und Stand</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="wt-btn" href="docs/handbuch/" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">📖 <span data-i18n="s_docs_handbook">Handbuch</span></a>
       <a class="wt-btn" href="docs/konzept-api-scanner-v2.html" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">📐 <span data-i18n="s_docs_concept">Konzept v2</span></a>
       <a class="wt-btn" href="docs/konzept-api-scanner-v2-aufgaben.html" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">✅ <span data-i18n="s_docs_tasks">Aufgabenliste</span></a>
       <a class="wt-btn" href="docs/konzept-berufe-rangcheck.html" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">⚗ <span data-i18n="s_docs_bp_concept">Berufe-Rangcheck</span></a>

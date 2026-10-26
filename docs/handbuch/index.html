@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lwhub &bull; Handbuch / Manual / Manuel</title>
+<link rel="stylesheet" href="handbuch.css">
+<script>
+  // Nach Browsersprache weiterleiten: fr -> FR, de -> DE, sonst EN. Ein Anker (#scanner) wird mitgenommen.
+  (function () {
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
+    var target = 'en';
+    for (var i = 0; i < langs.length; i++) {
+      var l = String(langs[i]).toLowerCase().slice(0, 2);
+      if (l === 'fr' || l === 'de' || l === 'en') { target = l; break; }
+    }
+    var page = location.hash ? 'handbuch.' : 'index.';
+    location.replace(page + target + '.html' + location.hash);
+  })();
+</script>
+</head>
+<body>
+<main class="container">
+  <div class="hero">
+    <h1>lw<em>hub</em></h1>
+    <p class="claim">Choose your language · Sprache wählen · Choisis ta langue</p>
+    <div class="btn-row">
+      <a class="btn" href="index.de.html">🇩🇪 Deutsch</a>
+      <a class="btn" href="index.en.html">🇬🇧 English</a>
+      <a class="btn" href="index.fr.html">🇫🇷 Français</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

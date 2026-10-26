@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lwhub &bull; Handbuch</title>
+<meta name="description" content="Handbuch für lwhub, den Allianz-Hub für Last War: Events, Punkte, Scanner, Berufeplaner, Zugplaner und Verwaltung.">
+<link rel="stylesheet" href="handbuch.css">
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.de.html">lw<em>hub</em></a>
+  <nav class="lang-switch" aria-label="Sprache">
+    <a href="handbuch.de.html" hreflang="de" aria-current="true">DE</a>
+    <a href="handbuch.en.html" hreflang="en" data-keep-hash>EN</a>
+    <a href="handbuch.fr.html" hreflang="fr" data-keep-hash>FR</a>
+  </nav>
+</div>
+
+<div class="layout">
+  <aside class="toc" id="toc">
+    <button class="toc-toggle" type="button" aria-expanded="false" aria-controls="toc-nav">📑 Inhalt</button>
+    <nav id="toc-nav">
+      <ol>
+        <li><span class="grp">Start</span></li>
+        <li><a href="#roles">Wer sieht was?</a></li>
+        <li><a href="#join">So kommt deine Allianz dazu</a></li>
+        <li><a href="#login">Anmeldung &amp; Charakterwechsel</a></li>
+        <li><span class="grp">Für alle Mitglieder</span></li>
+        <li><a href="#my-area">Mein Bereich</a></li>
+        <li><a href="#my-teams">Meine Teams</a></li>
+        <li><a href="#points-guide">Punkte-Guide</a></li>
+        <li><span class="grp">Für R4/R5</span></li>
+        <li><a href="#events">Events</a>
+          <ol>
+            <li><a href="#events-guard">Wache 1–3</a></li>
+            <li><a href="#events-desert">Wüstensturm</a></li>
+            <li><a href="#events-special">Spezialevent</a></li>
+            <li><a href="#events-vs">VS &amp; Sparwoche</a></li>
+            <li><a href="#events-donations">Spenden</a></li>
+          </ol>
+        </li>
+        <li><a href="#special-event-server">Spezialevent je Server &amp; KW</a></li>
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#professions">Berufeplaner &amp; Rangcheck</a></li>
+        <li><a href="#results">Optional: Rang nach Punkten</a></li>
+        <li><a href="#train">Zugplaner</a></li>
+        <li><a href="#management">Verwaltung</a></li>
+        <li><span class="grp">Scanner</span></li>
+        <li><a href="#scanner">Screenshot-Scanner</a></li>
+        <li><a href="#power-trend">Kampfkraft-Trend</a></li>
+        <li><a href="#event-analysis">Eventauswertung</a></li>
+        <li><a href="#android-app">Android-App &amp; API-Tokens</a></li>
+        <li><span class="grp">Einstellungen</span></li>
+        <li><a href="#settings">Feature-Schalter, Rangnamen, Server</a></li>
+        <li><a href="#languages">Sprachen</a></li>
+        <li><a href="#privacy">Datenschutz</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <main class="container" id="top">
+    <div class="header">
+      <div class="badge-row">
+        <span class="badge blue">Handbuch</span>
+        <span class="badge purple">Last War &bull; Allianz-Hub</span>
+        <span class="badge amber">Stand: Oktober 2026</span>
+      </div>
+      <h1>lwhub – Handbuch</h1>
+      <p class="subtitle">lwhub ist ein Web-Hub für Allianzen in Last War. R4/R5 erfassen damit Woche für Woche, wer bei Wache, Wüstensturm, Spezialevent, VS und Spenden dabei war. Daraus entstehen Punkte, die jedes Mitglied selbst nachlesen kann. Dazu kommen Berufeplaner, Zugplaner und ein Screenshot-Scanner, der im Browser liest. Dieses Handbuch beschreibt jede Funktion: wofür sie da ist, wer sie sieht und wie man sie benutzt.</p>
+      <div class="note">Viele Bereiche sind <strong>Feature-Schalter</strong>: Die Allianz entscheidet selbst, was sie nutzt. Ein ausgeschalteter Bereich verschwindet aus dem Menü. Welche Schalter es gibt, steht unter <a href="#settings">Einstellungen</a>.</div>
+    </div>
+
+    <!-- Rollen -->
+    <section id="roles">
+      <h2>👥 Wer sieht was?</h2>
+      <p>lwhub richtet sich nach dem Rang im Spiel. Die Seiten für R4/R5 und den Admin-Bereich liefert der Server nur an Mitglieder mit passendem Rang aus.</p>
+      <div class="table-wrap"><table>
+        <tr><th>Rolle</th><th>Sieht</th><th>Darf ändern</th></tr>
+        <tr><td><strong>Mitglied</strong> (R1–R3)</td><td>Mein Bereich, Meine Teams, Punkte-Guide, Zug-Übersicht</td><td>Eigene Teams, eigenen Beruf, eigenen Charakternamen</td></tr>
+        <tr><td><strong>R4</strong></td><td>Zusätzlich Events, Zugplan, Berufeplaner, Verwaltung, Dashboard, Scanner</td><td>Erfassung, Planung, Mitglieder, Login-Anfragen</td></tr>
+        <tr><td><strong>R5</strong></td><td>Zusätzlich den Admin-Bereich</td><td>Feature-Schalter, API-Tokens, Archiv, Transfer, Allianzen</td></tr>
+        <tr><td><strong>Ehren-R4</strong></td><td>Alles wie ein R4, beim Scanner nur den Kampfkraft-Trend</td><td>Nichts. Zählt nirgends mit.</td></tr>
+        <tr><td><strong>Ehrenmitglied</strong></td><td>Höchstens die Mitgliederansicht (Zugriff wie R3)</td><td>Nichts</td></tr>
+        <tr><td><strong>Betreiber</strong></td><td>Jede Allianz wie ein R5, beim Scanner nur den Trend</td><td>In fremden Allianzen nur die Feature-Schalter</td></tr>
+      </table></div>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Beitritt -->
+    <section id="join">
+      <h2>🤝 So kommt deine Allianz dazu</h2>
+      <h3>Wofür ist das?</h3>
+      <p>lwhub ist eine gemeinsame Plattform für mehrere Allianzen. Jede Allianz hat ein eigenes Kürzel und sieht nur ihre eigenen Daten.</p>
+      <h3>So geht's</h3>
+      <ol>
+        <li><strong>Kontakt aufnehmen:</strong> Melde dich im Spiel bei <strong>Lion Tooth</strong> auf Server 776. Lion Tooth legt deine Allianz mit Kürzel und Titel an und schaltet „nimmt Login-Anfragen an“ ein.</li>
+        <li><strong>Mit Discord anmelden und Anfrage senden:</strong> Öffne lwhub und melde dich mit Discord an. Ist dein Discord noch keinem Mitglied zugeordnet, erscheint das Feld „Keinen Zugriff? Anfrage senden“. Allianz wählen, Spielernamen eintragen, absenden.</li>
+        <li><strong>Freischalten und loslegen:</strong> Die erste Leitung (R5) wird vom Betreiber eingetragen. Danach nehmen R4/R5 neue Anfragen selbst in der <a href="#management">Verwaltung</a> an, schalten die gewünschten <a href="#settings">Feature-Schalter</a> ein und tragen die Mitglieder ein – von Hand oder per <a href="#scanner">Scanner</a>.</li>
+      </ol>
+      <h3>Tipps &amp; Grenzen</h3>
+      <ul>
+        <li>Eine Allianz erscheint nur dann in der Auswahl, wenn sie Login-Anfragen annimmt.</li>
+        <li>Eine Anfrage legt noch kein Mitglied an. Erst ein R4/R5 entscheidet: als neues Mitglied, einem bestehenden Mitglied zuordnen oder ablehnen.</li>
+      </ul>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Anmeldung -->
+    <section id="login">
+      <h2>🔑 Anmeldung über Discord &amp; Charakterwechsel</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>Alle</div>
+        <div class="fact"><b>Feature-Schalter?</b>Nein, immer da</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Es gibt keine eigenen Passwörter. Du meldest dich mit deinem Discord-Konto an. lwhub fragt bei Discord nur die Grundangaben ab (Berechtigung <code>identify</code>: ID, Name, Avatar) – keine Server, keine Nachrichten.</p>
+      <h3>So geht's</h3>
+      <ol>
+        <li>Auf „Mit Discord anmelden“ tippen und bei Discord bestätigen.</li>
+        <li>lwhub sucht das aktive Mitglied mit deiner Discord-ID. Gefunden: Du bist drin. Beim nächsten Besuch geht es automatisch weiter, solange der Discord-Login gültig ist.</li>
+        <li>Nicht gefunden: Du kannst eine <a href="#join">Login-Anfrage</a> an deine Allianz schicken.</li>
+      </ol>
+      <h3>Mehrere Charaktere</h3>
+      <p>Viele Spieler haben mehrere Accounts, auch in verschiedenen Allianzen. Alle Charaktere mit derselben Discord-ID hängen an deinem Login. Über den <strong>Charakterwechsel</strong> wählst du den aktiven Charakter. lwhub zeigt dann dessen Allianz und Daten. Dort kannst du den Namen deines Charakters auch selbst ändern („Charakter umbenennen“), die Namenshistorie bleibt erhalten.</p>
+      <h3>Tipps &amp; Grenzen</h3>
+      <ul>
+        <li>Abmelden löscht die Anmeldung und den gewählten Charakter aus dem Browser.</li>
+        <li>Rang und Rechte gelten je Charakter. Ein R4 in Allianz A ist in Allianz B nur das, was er dort ist.</li>
+      </ul>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Mein Bereich -->
+    <section id="my-area">
+      <h2>👤 Mein Bereich</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>Jedes Mitglied seine eigenen Daten. R4/R5 können die Ansicht eines Mitglieds öffnen.</div>
+        <div class="fact"><b>Feature-Schalter?</b>Ja (<code>my_area</code>), Standard: an</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Hier sieht jedes Mitglied, wie es in der Allianz dasteht: Punkte, Rang, Verlauf. Alles ist offen: Jeder sieht selbst, wofür es Punkte gab und wo noch mehr drin ist.</p>
+      <div class="demo">
+        <div class="demo-cap">Beispiel · Spielerin „Mira“</div>
+        <div class="me-card">
+          <div class="me-stat"><div class="l">Punkte</div><div class="v">215</div><div class="s">R3 · Elite</div></div>
+          <div class="me-stat"><div class="l">Aktuelle Woche</div><div class="v" style="color:#fff">KW 43</div><div class="s">letzter gespeicherter Stand</div></div>
+          <div class="me-stat"><div class="l">Vergleich zur Vorwoche</div><div class="v" style="color:#2ecb7a">+40</div><div class="s">5 positiv · 0 Warnungen</div></div>
+        </div>
+        <div class="me-acts">
+          <div><b style="color:#2ecb7a">● Verdient</b>VS Top 30 · Wache 2× · Spezialevent Top 50</div>
+          <div><b style="color:#e05545">● Gekostet</b>–</div>
+        </div>
+      </div>
+      <h3>So geht's</h3>
+      <ol>
+        <li>Tab „Mein Bereich“ öffnen. Oben stehen Punkte, Rang und die aktuelle Woche.</li>
+        <li>In der Wochenübersicht mit ‹ › eine Woche wählen. Du siehst den Vergleich zur Vorwoche, positive Einträge und Warnungen.</li>
+        <li>„Aktivitäten dieser Woche“ zeigt, was Punkte gebracht (Verdient) oder gekostet hat (Gekostet).</li>
+        <li>„Dein Potenzial“ zeigt, welche Aktivitäten dir am meisten bringen würden.</li>
+        <li>Darunter: Historie über alle Wochen und die Rang-Änderungen.</li>
+        <li>Ist der Berufeplaner an, pflegst du hier auch deinen <a href="#professions">Beruf</a> (Kriegsherr oder Ingenieur).</li>
+      </ol>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Meine Teams -->
+    <section id="my-teams">
+      <h2>🛡 Meine Teams</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>Jedes Mitglied seine Teams. R4/R5 sehen die Allianz-Übersicht.</div>
+        <div class="fact"><b>Feature-Schalter?</b>Ja (<code>my_teams</code>), Standard: an</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Die Leitung sieht auf einen Blick, wer welche Teams aufstellt. Hilft bei Wüstensturm-Aufstellung, Verteidigung und Fragen wie „Wer hat ein starkes Flugzeug-Team?“.</p>
+      <h3>So geht's</h3>
+      <ol>
+        <li>„Bearbeiten“ antippen.</li>
+        <li>Für T1–T4 den Team-Typ und die Kampfkraft eintragen. Die Heldenkampfkraft kannst du zusätzlich eintragen.</li>
+        <li>Speichern. R4/R5 sehen darunter die Teams aller aktiven Mitglieder.</li>
+      </ol>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Punkte-Guide -->
+    <section id="points-guide">
+      <h2>🧮 Punkte-Guide</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>Alle Mitglieder</div>
+        <div class="fact"><b>Feature-Schalter?</b>Erscheint, sobald eins der Punkte-Features an ist (VS, Spenden, Wache, Spezial, Wüste, Plus- oder Strafpunkte)</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Die Spielregeln der Allianz auf einer Seite: wofür es Punkte gibt, was abgezogen wird und ab wie vielen Punkten welcher Rang empfohlen wird. Angezeigt werden nur Zeilen der eingeschalteten Features.</p>
+      <div class="table-wrap"><table>
+        <tr><th>Bereich</th><th>Plus</th><th>Minus</th></tr>
+        <tr><td>VS</td><td>Top 30 +75 / Top 10 +25 (gewichtet)</td><td>unter Schwelle −25</td></tr>
+        <tr><td>Spenden</td><td>Top 20 +35 (gewichtet)</td><td>unter Schwelle −35</td></tr>
+        <tr><td>Wache</td><td>+10 je Slot, +15 Bonus je 2 Teilnahmen</td><td>kein Schaden −5</td></tr>
+        <tr><td>Spezialevent</td><td>Teilnahme +20 / Top 50 +30 / Top 20 +20</td><td>–</td></tr>
+        <tr><td>Wüstensturm</td><td>Anmeldung +10 / Teilnahme +25</td><td>unentschuldigt fehlen −15</td></tr>
+        <tr><td>Pluspunkte</td><td>Umfragen +10 / Support +10 / Feedback +5</td><td>–</td></tr>
+        <tr><td>Strafpunkte</td><td>–</td><td>Inaktiv, NAP, Verhalten extern je −30 · Ankündigungs-Mails, Verhalten intern je −15 · Schild, Falschparken je −10</td></tr>
+      </table></div>
+      <p>Theoretisches Maximum: 385 Punkte.</p>
+      <div class="note">Die Punkte zeigen, wie aktiv jemand in der Woche war. Welchen Rang du bekommst, entscheidet deine Allianz: meist nach deinem <a href="#professions">Beruf</a>. Nur wenn deine Allianz Ränge nach Punkten vergibt, gilt zusätzlich die <a href="#results">Punkte-Regel</a>.</div>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Events -->
+    <section id="events">
+      <h2>🎉 Events</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>R4/R5 (Ehren-R4 und Betreiber nur lesend)</div>
+        <div class="fact"><b>Feature-Schalter?</b>Ja: Hauptschalter <code>events</code> und je Event <code>wache</code>, <code>wueste</code>, <code>spezial</code>, <code>vs</code>, <code>spende</code></div>
+        <div class="fact"><b>Scanner-Übernahme</b>Spezialevent, VS und Spenden (nur R4/R5 mit Scan-Recht)</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Hier wird jede Woche festgehalten, wer bei welchem Event dabei war. Jedes Mitglied ist eine Kachel. Ein Tipp auf die Kachel setzt den Status. Aus allen Häkchen der Woche entstehen die Punkte in <a href="#my-area">Mein Bereich</a>.</p>
+      <div class="demo">
+        <div class="demo-cap">Beispiel · Events, KW 43, Tab VS</div>
+        <div class="ev-tabs"><span>Wache 1</span><span>Wache 2</span><span>Wache 3</span><span>Wüste</span><span>Spezial</span><span class="on">VS</span><span>Spenden</span></div>
+        <div class="ev-legend"><span>⚠ unter Schwelle (Strafe)</span><span>🥈 Top 30</span><span>🏆 Top 10</span><span style="margin-left:auto">4 / 5</span></div>
+        <div class="demo-grid">
+          <div class="ev-tile top"><span class="nm">Nordwind</span><span class="st">🏆</span></div>
+          <div class="ev-tile good"><span class="nm">Kiwi</span><span class="st">🥈</span></div>
+          <div class="ev-tile good"><span class="nm">Bolt</span><span class="st">🥈</span></div>
+          <div class="ev-tile warn"><span class="nm">Luna</span><span class="st">⚠</span></div>
+          <div class="ev-tile off"><span class="nm">Pixel</span><span class="st">○</span></div>
+        </div>
+      </div>
+      <h3>So geht's</h3>
+      <ol>
+        <li>Tab „Events“ öffnen und mit ‹ › die Kalenderwoche (KW) wählen.</li>
+        <li>Oben das Event wählen: Wache 1–3, Wüste, Spezial, VS oder Spenden.</li>
+        <li>Kacheln antippen, um den Status zu setzen. Gespeichert wird sofort.</li>
+        <li>„↓ Erfasste ans Ende“ sortiert erledigte Mitglieder nach unten (zweiter Klick blendet sie aus). „◐ High Contrast“ hilft bei hellem Licht am Handy.</li>
+      </ol>
+
+      <div class="sub" id="events-guard">
+        <h3>🛡 Wache 1–3</h3>
+        <p>Drei Wachen pro Woche, je ein Tab. Status je Mitglied: guter Schaden ⚔, wenig Schaden ⚠ (unter 2G) oder nicht dabei ○. Wird von Hand erfasst, es gibt keine Scanner-Übernahme.</p>
+      </div>
+      <div class="sub" id="events-desert">
+        <h3>🏜 Wüstensturm</h3>
+        <p>Drei Zustände: Anmeldung 📋, Teilnahme ⚔ und unentschuldigtes Fehlen ⚠ (Strafe). Wird von Hand erfasst.</p>
+      </div>
+      <div class="sub" id="events-special">
+        <h3>🎯 Spezialevent</h3>
+        <p>Teilnahme ⚔, Top 50 🏅, Top 20 🏆. Welches Event in dieser Woche läuft, wird für den ganzen Server festgelegt – siehe <a href="#special-event-server">Spezialevent je Server</a>.</p>
+        <p><strong>Aus Scanner übernehmen:</strong> setzt die Häkchen aus der Vorher/Nachher-<a href="#event-analysis">Eventauswertung</a>. Wer Kills oder Kampfkraft-Verlust hat, gilt als dabei. Nach Kills: Platz 1–50 Top 50, Platz 1–20 Top 20. Die Lupe 🔍 öffnet die Auswertung in einem eigenen Fenster.</p>
+      </div>
+      <div class="sub" id="events-vs">
+        <h3>⚔ VS mit Sparwoche</h3>
+        <p>Top 10 🏆 und Top 30 🥈 geben Bonus, wer unter der Wochen-Schwelle bleibt (derzeit 43,2 Mio), bekommt ⚠.</p>
+        <p><strong>Sparwoche 🐷:</strong> Manche Wochen soll die Allianz bewusst wenig VS-Punkte machen. Dann gilt: höchstens 10 Mio je VS-Tag (Ziel 7,2 Mio) gibt Bonus, darüber gibt es keinen Bonus, eine Strafe gibt es nicht. Der Knopf „Sparwoche“ legt das für die gewählte KW fest oder hebt es auf.</p>
+        <p><strong>Aus Scanner übernehmen:</strong> nimmt die gescannten VS-Wochenpunkte. Platz 1–10 Top 10, Platz 1–30 Top 30, unter der Schwelle Strafe.</p>
+      </div>
+      <div class="sub" id="events-donations">
+        <h3>💰 Spenden</h3>
+        <p>Top 20 🏅 gibt Bonus, unter 35K ⚠ Strafe.</p>
+        <p><strong>Aus Scanner übernehmen:</strong> nimmt den letzten Spenden-Scan der gewählten KW (der Stand steht neben dem Knopf). Platz 1–20 Top 20, unter 35K Strafe.</p>
+      </div>
+      <h3>Tipps &amp; Grenzen</h3>
+      <ul>
+        <li>Die Scanner-Übernahme setzt nur Häkchen. Du kannst danach jede Kachel von Hand korrigieren.</li>
+        <li>Die Schwellen (43,2 Mio, 35K, 2G) stehen in der Legende über den Kacheln.</li>
+      </ul>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Spezialevent je Server -->
+    <section id="special-event-server">
+      <h2>🗓 Spezialevent je Server und KW</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>R4/R5 im Tab Events → Spezial</div>
+        <div class="fact"><b>Voraussetzung</b>Feature <code>spezial</code> an, <a href="#settings">Server-Nummer</a> eingetragen</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Das Spezialevent wechselt jede Woche und gilt für den ganzen Server. Allianzen mit derselben Server-Nummer teilen sich deshalb den Termin: Einer trägt ihn ein, alle anderen sehen ihn.</p>
+      <h3>So geht's</h3>
+      <ol>
+        <li>KW wählen und im Feld „Welches Event?“ den Namen eintragen (frühere Namen werden vorgeschlagen).</li>
+        <li>Tag, Start und Ende eintragen (Standard 16:00–20:00) und „💾 Festlegen“ drücken. Das gilt für alle Allianzen des Servers.</li>
+        <li>„🚫 Kein Event“: Auf dem Server gibt es diese Woche kein Spezialevent.</li>
+        <li>„⏸ Nicht auswerten“: Nur deine Allianz wertet das Event dieser Woche nicht aus. Die anderen Allianzen sind davon nicht betroffen.</li>
+      </ol>
+      <h3>Tipps &amp; Grenzen</h3>
+      <ul>
+        <li>Tag und Uhrzeit nutzt die <a href="#event-analysis">Eventauswertung</a>, um Vorher- und Nachher-Scans zu finden.</li>
+        <li>In der Verwaltung listet „Kein Spezialevent in letzten Wochen“ alle, die 2–6 Wochen lang nicht dabei waren.</li>
+      </ul>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard">
+      <h2>📊 Dashboard</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>R4/R5</div>
+        <div class="fact"><b>Feature-Schalter?</b>Nein, immer da</div>
+      </div>
+      <p>Die Wochenübersicht für die Leitung: wie viele Mitglieder für die gewählte KW schon erfasst sind, Hinweise, Top-Performer, Rang-Verteilung, die häufigsten Einträge und eine filterbare Tabelle.</p>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Berufeplaner -->
+    <section id="professions">
+      <h2>⚗ Berufeplaner &amp; Rangcheck</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>Planer: R4/R5. Eigenen Beruf: jedes Mitglied in Mein Bereich.</div>
+        <div class="fact"><b>Feature-Schalter?</b>Ja (<code>berufe</code>). Rangcheck: Einstellung im Planer (R4/R5).</div>
+      </div>
+      <div class="note ok"><strong>Zwei Wege zum Rang.</strong> Die meisten Allianzen vergeben R2 und R3 heute nach Beruf – dafür ist dieser Abschnitt mit dem Rangcheck da. Wer Ränge lieber nach Punkten vergibt, findet das als eigene Option unter <a href="#results">Optional: Rang nach Punkten</a>. Beides zusammen ergibt keinen Sinn: Sobald der Beruf den Rang bestimmt, bleibt die Punkte-Empfehlung aus.</div>
+      <h3>Wofür ist das?</h3>
+      <p>Kriegsherren und Ingenieure gehören zusammen: Jeder Kriegsherr bekommt seine Ingenieure. Der Planer zeigt das als Spalten zum Ziehen. Die Zahl der Ingenieur-Plätze je Kriegsherr ist einstellbar (1–10, Standard 3).</p>
+      <h3>So geht's</h3>
+      <ol>
+        <li>Links steht die Warteschlange: Mitglieder ohne Zuordnung.</li>
+        <li>Per Drag-and-drop in die Spalte Kriegsherr oder in einen Ingenieur-Platz ziehen.</li>
+        <li>Sortieren nach Name oder nach Anzahl der Ingenieure.</li>
+        <li>„✉ Allianzmail“ kopiert die fertige Aufteilung als Text, zum Einfügen in die Spielmail.</li>
+      </ol>
+      <h3>Rangwappen und Rangcheck</h3>
+      <p>Jede Kachel zeigt den Rang als Ziffer in einem Wappen in Rangfarbe. Viele Allianzen vergeben R2 und R3 nach Beruf, weil das Spiel den Beruf nicht in der Mitgliederliste zeigt. Dann hilft der <strong>Rangcheck R2/R3</strong>: Einschalten und wählen, ob R2 für Ingenieur oder für Kriegsherr steht. Kacheln werden nach dem erwarteten Beruf getönt. Wer falsch einsortiert ist, bekommt einen gelben Rahmen, zittert und lehnt sich zur richtigen Seite.</p>
+      <div class="demo">
+        <div class="demo-cap">Beispiel · Rangcheck an, R2 = Ingenieur, R3 = Kriegsherr</div>
+        <div class="demo-grid">
+          <div>
+            <div class="demo-cap">Kriegsherr</div>
+            <div class="bp-tile exp-kh"><span class="rs" title="R3"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#4a9eff" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>3</b></span><span style="color:var(--kh)">⚔</span><span class="nm">Nordwind</span></div>
+            <div class="bp-tile exp-ing wrong pull-right"><span class="rs" title="R2"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#2ecb7a" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>2</b></span><span style="color:var(--kh)">⚔</span><span class="nm">Kiwi</span><span class="hint">→ Ing.?</span></div>
+          </div>
+          <div>
+            <div class="demo-cap">Ingenieur-Plätze</div>
+            <div class="bp-tile exp-ing"><span class="rs" title="R2"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#2ecb7a" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>2</b></span><span style="color:var(--ing)">⚗</span><span class="nm">Mira</span></div>
+            <div class="bp-tile"><span class="rs" title="R4"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#e05545" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>4</b></span><span style="color:var(--ing)">⚗</span><span class="nm">Bolt</span></div>
+          </div>
+        </div>
+        <div class="rank-row" style="margin-top:6px"><span>Wappenfarben R1–R5:</span>
+          <span class="rs" title="R1"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#f0a500" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>1</b></span>
+          <span class="rs" title="R2"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#2ecb7a" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>2</b></span>
+          <span class="rs" title="R3"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#4a9eff" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>3</b></span>
+          <span class="rs" title="R4"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#e05545" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>4</b></span>
+          <span class="rs" title="R5"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#9b6dff" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>5</b></span>
+        </div>
+      </div>
+      <h3>Tipps &amp; Grenzen</h3>
+      <ul>
+        <li>Der Rangcheck verschiebt nichts von selbst. Verschoben wird weiter per Hand.</li>
+        <li>Bei R1, R4, R5 und Ehrenmitgliedern sagt der Rang nichts über den Beruf. Diese Kacheln bleiben neutral.</li>
+        <li>Mitglieder können ihren Beruf in Mein Bereich selbst eintragen.</li>
+      </ul>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Optional: Rang nach Punkten -->
+    <section id="results">
+      <h2>🎚 Optional: Rang nach Punkten</h2>
+      <div class="note warn"><strong>Nur für Allianzen, die R1–R3 nach Punkten vergeben.</strong> Wenn bei euch der Beruf den Rang bestimmt (R2/R3 = Ingenieur/Kriegsherr), ist dieser Teil nicht nötig. Lasst den Schalter aus und nutzt den <a href="#professions">Rangcheck</a>.</div>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>R4/R5 (Tab „Ergebnis“)</div>
+        <div class="fact"><b>Feature-Schalter?</b>Ja (<code>ergebnis</code>), Standard: aus</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Wenn deine Allianz Ränge nach Punkten vergibt, schlägt lwhub vor, wer sich einen höheren Rang verdient hat. Die Regel: bis 84 Punkte R1, ab 85 R2, ab 180 R3. R4 und R5 bleiben fest.</p>
+      <div class="demo">
+        <div class="demo-cap">Beispiel · 4 Wochen</div>
+        <div class="rec"><span class="nm">Kiwi</span><span>R2</span><span class="wk"><i>190</i><i>205</i><i>188</i><i>210</i></span><span class="act up">Befördern → R3</span></div>
+      </div>
+      <h3>So geht's</h3>
+      <ol>
+        <li>Zeitraum wählen (3–6 Wochen) und „Laden“ drücken.</li>
+        <li>Grün: Beförderung empfohlen (mindestens 2 Wochen stabil). Rot: Der Rang passt gerade nicht zu den Punkten (mehr als 2 Wochen) – ein guter Anlass für ein freundliches Gespräch. Gelb: AFK gemeldet, der Rang bleibt unverändert. Grau: noch keine Daten.</li>
+        <li>Rang erst im Spiel ändern, dann auf den Knopf tippen. lwhub fragt nach, ob die Änderung im Spiel schon passiert ist, und übernimmt sie dann.</li>
+      </ol>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Zug -->
+    <section id="train">
+      <h2>🚂 Zugplaner</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>Planen: R4/R5. Schaffner-Übersicht (nur lesen): alle Mitglieder.</div>
+        <div class="fact"><b>Feature-Schalter?</b>Ja (<code>zug</code>)</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Wer fährt wann den Allianz-Zug als Schaffner, wer ist VIP? Der Zugplaner führt eine faire Warteschlange und einen Wochenkalender. Jedes Mitglied sieht im Tab „Zug“, wann es dran ist.</p>
+      <div class="demo">
+        <div class="demo-cap">Beispiel · Wochenkalender</div>
+        <div class="zug-week">
+          <div class="done"><b>Mo</b>Mira</div><div class="done"><b>Di</b>Kiwi</div><div class="noshow"><b>Mi</b>Bolt</div><div class="plan"><b>Do</b>Nordwind</div><div class="plan"><b>Fr</b>Luna</div><div><b>Sa</b>–</div><div><b>So</b>–</div>
+        </div>
+        <div class="ev-legend" style="margin:10px 0 0"><span style="color:#4a9eff">■ Geplant</span><span style="color:#2ecb7a">■ Abgeschlossen</span><span style="color:#e05545">■ No-Show</span><span>■ Abgesagt</span></div>
+      </div>
+      <h3>So geht's</h3>
+      <ol>
+        <li>„⟳ Queue sync“ gleicht die Warteschlange mit der Mitgliederliste ab. Der Nächste steht oben.</li>
+        <li>Im Kalender einen Tag antippen, Schaffner und optional VIP und Notiz wählen, speichern.</li>
+        <li>Nach der Fahrt: „✓ Abgeschlossen“ oder „✗ No-Show“ (optional mit Einspringer und Begründung).</li>
+        <li>„Bereits geplant“ listet alle kommenden Termine zur Kontrolle.</li>
+      </ol>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Verwaltung -->
+    <section id="management">
+      <h2>🗂 Verwaltung</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>R4/R5 (Ehren-R4 nur lesend). Admin-Bereich: R5 und Betreiber.</div>
+        <div class="fact"><b>Feature-Schalter?</b>Nein, immer da</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Die Mitgliederliste der Allianz pflegen: neue Spieler, Rangänderungen, Discord-Zuordnung, Gäste aus anderen Allianzen, Abgänge.</p>
+      <h3>So geht's</h3>
+      <ol>
+        <li><strong>Mitglied hinzufügen:</strong> Name, Discord-ID (optional) und Rang eintragen.</li>
+        <li><strong>Login-Anfragen:</strong> Offene Anfragen annehmen „als neues Mitglied“, „auf Member mappen“ (einem bestehenden Mitglied zuordnen) oder ablehnen.</li>
+        <li><strong>Mitgliederliste:</strong> Mitglied antippen, um Name, Discord-ID, Rang und Rolle zu ändern. Du siehst auch, wann jemand zuletzt eingeloggt war.</li>
+        <li><strong>Entfernen:</strong> Gelöschte Spieler landen im Archiv. R5 holen sie im Admin-Bereich unter „Archiv“ samt allen Daten zurück.</li>
+      </ol>
+      <h3>Ehrenrollen</h3>
+      <div class="card-grid">
+        <div class="card"><h4>👁 Ehren-R4</h4><p>Gast aus einer anderen Allianz, z. B. ein befreundeter R4. Sieht alles wie ein R4, ändert nichts und zählt nirgends mit. Heimat-Allianz und Discord-ID eintragen, damit er sich anmelden kann.</p></div>
+        <div class="card"><h4>🎖 Ehrenmitglied</h4><p>Bleibt in der Liste, ohne Schreibrechte. Beim Rangcheck wird ein Ehrenmitglied nicht geprüft.</p></div>
+      </div>
+      <h3>Admin-Bereich (R5)</h3>
+      <ul>
+        <li><strong>Allianzen:</strong> Kürzel und Titel ändern. Beim Umbenennen des Kürzels wandern alle Spielerdaten mit. Je Allianz: „nimmt Login-Anfragen an“ und die Feature-Schalter.</li>
+        <li><strong>Archiv:</strong> gelöschte Spieler wiederherstellen.</li>
+        <li><strong>Transfer:</strong> Spieler mit allen Daten in eine andere Allianz verschieben.</li>
+        <li><strong>Zusammenführen:</strong> Doppelte Einträge (z. B. nach Namenswechsel) zu einem Spieler vereinen.</li>
+        <li><strong>API-Tokens:</strong> siehe <a href="#android-app">Android-App</a>.</li>
+      </ul>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Scanner -->
+    <section id="scanner">
+      <h2>📸 Screenshot-Scanner</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>R4/R5 ohne Ehrenrolle. Ehren-R4 und Betreiber sehen nur den Kampfkraft-Trend.</div>
+        <div class="fact"><b>Feature-Schalter?</b>Ja (<code>scanner</code>)</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Statt 100 Namen abzutippen: Mitgliederliste, Kampfkraft-Rangliste, VS-Punkte (Tag und Woche), Kills und Spenden einfach scrollen und vom Scanner lesen lassen. Die Texterkennung (OCR) läuft komplett in deinem Browser. Die Bilder werden nicht hochgeladen, an lwhub gehen nur die erkannten Werte.</p>
+      <h3>So geht's</h3>
+      <ol>
+        <li>Tab „Scanner“ öffnen. Am PC am besten „In eigenem Fenster öffnen“, das ist schneller.</li>
+        <li>Entweder „Fenster wählen &amp; Scan starten“ und das Spielfenster (z. B. Emulator) freigeben, dann langsam scrollen. Geänderte Ansichten werden automatisch erfasst. Oder „Screenshots / Video laden“.</li>
+        <li>Links steht die Mitgliederliste aus lwhub, in der Mitte der Pool der erkannten Kacheln. Was eindeutig ist, wird zugeordnet.</li>
+        <li>Unklare Kacheln per Drag-and-drop auf das richtige Mitglied ziehen, oder auf „Neuer Spieler“, um einen Neuzugang anzulegen. Wer nicht mehr in der Allianz ist, landet unter „Archivieren“.</li>
+        <li>Synchronisieren. Danach zeigt der Scanner, was übernommen wurde und wo es Konflikte gab.</li>
+      </ol>
+      <h3>Tipps &amp; Grenzen</h3>
+      <ul>
+        <li>Rechenart: Grafikkarte (WebGPU) ist Standard, sonst CPU. Die Zahl der CPU-Kerne ist einstellbar.</li>
+        <li>Lücken in den Platznummern (z. B. zu schnell gescrollt) zeigt der Scanner an.</li>
+        <li>Die Aufnahmen kannst du für später lokal herunterladen oder verwerfen.</li>
+        <li>Spieler anderer Allianzen in der Liste werden am Allianz-Kürzel erkannt und aussortiert.</li>
+      </ul>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Trend -->
+    <section id="power-trend">
+      <h2>📈 Kampfkraft-Trend</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>R4/R5, Ehren-R4, Betreiber</div>
+        <div class="fact"><b>Feature-Schalter?</b>Teil von <code>scanner</code></div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Wie entwickelt sich die Kampfkraft der Allianz? Aktive Spieler wachsen unter der Woche und setzen am Samstag beim großen Event Truppen ein. Der Trend macht diesen Rhythmus aus den Kampfkraft-Scans sichtbar. So sieht die Leitung, wer gerade richtig loslegt und wem ein Tipp oder etwas Unterstützung helfen könnte.</p>
+      <div class="demo">
+        <div class="demo-cap">Einstufungen</div>
+        <div class="chips"><span class="chip">🔥 opfert am Samstag</span><span class="chip">📈 wächst</span><span class="chip">➖ normal</span><span class="chip">⚠️ stagniert</span><span class="chip">❔ zu wenig Daten</span></div>
+      </div>
+      <h3>So geht's</h3>
+      <ol>
+        <li>Regelmäßig die Kampfkraft-Rangliste scannen. Am besten: Freitag (vor dem Event), Sonntag (danach) und einmal unter der Woche.</li>
+        <li>Trend öffnen, nach Einstufung filtern oder sortieren.</li>
+        <li>Bei Bedarf „Schwellen anpassen“, z. B. ab wie viel Prozent ein Samstags-Verlust zählt.</li>
+      </ol>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Eventauswertung -->
+    <section id="event-analysis">
+      <h2>🔍 Eventauswertung (Vorher/Nachher)</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>R4/R5 mit Scan-Recht</div>
+        <div class="fact"><b>Feature-Schalter?</b>Teil von <code>scanner</code></div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>„Wer war beim Event dabei?“ – beantwortet aus zwei Scans: einem vor und einem nach dem Event. Wer Kills gemacht oder Kampfkraft verloren hat, war dabei.</p>
+      <h3>So geht's</h3>
+      <ol>
+        <li>Vor dem Event und danach je einmal Kampfkraft und Kills scannen.</li>
+        <li>Auswertung öffnen (in Events → Spezial über 🔍). Tag, Start, Ende, Nachlauf in Minuten, „Kills ab“ und „Verlust ab (%)“ einstellen.</li>
+        <li>Ergebnis prüfen, mit „📋 Namen kopieren“ in den Chat geben oder im Event-Tab mit „Aus Scanner übernehmen“ als Häkchen setzen.</li>
+      </ol>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Android -->
+    <section id="android-app">
+      <h2>📱 Android-App &amp; API-Tokens</h2>
+      <div class="facts">
+        <div class="fact"><b>Wer sieht es?</b>Tokens verwalten: R5 und Betreiber (Admin → API-Tokens)</div>
+        <div class="fact"><b>Stand</b>Die App ist in Erprobung</div>
+      </div>
+      <h3>Wofür ist das?</h3>
+      <p>Eine Android-App liest Ranglisten direkt auf dem Handy (z. B. Kampfkraft, VS, Spenden) und lädt die Werte zu lwhub hoch. Damit Programme wie die App ohne Discord-Login schreiben dürfen, gibt es <strong>API-Tokens</strong>.</p>
+      <h3>So geht's</h3>
+      <ol>
+        <li>Admin → API-Tokens → Allianz wählen → „+ Token anlegen“.</li>
+        <li>Namen vergeben (wofür ist der Token?) und Rolle wählen: <strong>Scanner</strong> (nur Werte für bekannte Spieler), <strong>R4</strong> oder <strong>R5</strong> (wie im Web-Scanner). Ablaufdatum optional, leer = unbegrenzt.</li>
+        <li>Token sofort kopieren. Er wird nur einmal angezeigt.</li>
+        <li>Nicht mehr gebraucht? „Token widerrufen“. Die Liste zeigt, wann ein Token zuletzt benutzt wurde.</li>
+      </ol>
+      <h3>Tipps &amp; Grenzen</h3>
+      <ul>
+        <li>Riskante Aktionen wie Archivieren, Transfer oder Ränge ändern sind mit einem App-Token nicht möglich.</li>
+        <li>Ob und wie deine Allianz die App bekommt, erfährst du bei Lion Tooth (Server 776).</li>
+      </ul>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Einstellungen -->
+    <section id="settings">
+      <h2>⚙ Feature-Schalter, Rangnamen, Server-Nummer</h2>
+      <div class="facts">
+        <div class="fact"><b>Wo?</b>Verwaltung → Feature-Konfiguration, oder Admin → Allianzen</div>
+        <div class="fact"><b>Wer darf ändern?</b>R5 der Allianz und der Betreiber</div>
+      </div>
+      <h3>Feature-Schalter</h3>
+      <div class="table-wrap"><table>
+        <tr><th>Schalter</th><th>Was er steuert</th><th>Standard</th></tr>
+        <tr><td>👤 Mein Bereich</td><td>Persönliche Übersicht</td><td class="y">an</td></tr>
+        <tr><td>🛡 Meine Teams</td><td>Teams und Helden pflegen</td><td class="y">an</td></tr>
+        <tr><td>🎉 Events</td><td>Hauptschalter für den Events-Tab</td><td>aus</td></tr>
+        <tr><td>🛡 Wache · 🏜 Wüste · 🎯 Spezial · ⚔ VS · 💰 Spenden</td><td>Je ein Tab im Events-Bereich</td><td>aus</td></tr>
+        <tr><td>🚂 Zug</td><td>Zug-Übersicht und Zugplan</td><td>aus</td></tr>
+        <tr><td>❌ Strafpunkte · ⭐ Pluspunkte</td><td>In der Verwaltung pflegbar</td><td>aus</td></tr>
+        <tr><td>⏸ AFK</td><td>AFK sperrt die Rang-Änderung</td><td>aus</td></tr>
+        <tr><td>⚗ Berufe</td><td>Berufeplaner, Beruf in Mein Bereich</td><td>aus</td></tr>
+        <tr><td>📸 Scanner</td><td>Scanner, Trend, Eventauswertung</td><td>aus</td></tr>
+        <tr><td>📊 Ergebnis</td><td>Nur bei <a href="#results">Rang nach Punkten</a>: Rang-Empfehlungen. Nicht nötig, wenn der Beruf den Rang bestimmt.</td><td>aus</td></tr>
+      </table></div>
+      <h3>Weitere Einstellungen</h3>
+      <ul>
+        <li><strong>Max. Ingenieure je Kriegsherr:</strong> 1–10, Standard 3.</li>
+        <li><strong>Korrekturwert für unrealistische Kampfkraft:</strong> Werte ab 999 werden auf diesen Wert gesetzt (Standard 40).</li>
+        <li><strong>Rangnamen:</strong> eigene Bezeichnungen für R1–R5. Leer = Standard (Rookie, Pro, Elite, Leader, Chef).</li>
+        <li><strong>Server-Nummer:</strong> Allianzen mit derselben Nummer teilen sich die <a href="#special-event-server">Spezialevent-Termine</a>.</li>
+      </ul>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Sprachen -->
+    <section id="languages">
+      <h2>🌐 Sprachen</h2>
+      <p>Die App gibt es auf Deutsch, Englisch, Italienisch, Französisch, Polnisch, Spanisch und Chinesisch. Die Sprache stellt jeder oben rechts selbst um. lwhub merkt sich die Sprache je Mitglied. Scanner, Trend und Eventauswertung übernehmen die gewählte Sprache, wo sie schon übersetzt sind. Dieses Handbuch gibt es auf Deutsch, Englisch und Französisch.</p>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <!-- Datenschutz -->
+    <section id="privacy">
+      <h2>🔒 Datenschutz</h2>
+      <p>Diese Übersicht beschreibt sachlich, welche Daten lwhub laut Programmcode speichert. Sie ist keine Rechtsberatung und keine Datenschutzerklärung.</p>
+      <h3>Auf dem Server</h3>
+      <ul>
+        <li><strong>Discord:</strong> deine Discord-ID, dein Name und dein Avatar (als Zwischenspeicher). Abgefragt wird nur <code>identify</code>.</li>
+        <li><strong>Spieler:</strong> Spielername samt früheren Namen, Allianz, Rang und Änderungen am Rang, Rolle, Beruf und bevorzugte Sprache.</li>
+        <li><strong>Wochenwerte:</strong> Event-Häkchen, Plus- und Strafpunkte je Kalenderwoche.</li>
+        <li><strong>Teams:</strong> Team-Typen, Kampfkraft und Heldenkampfkraft, wenn du sie einträgst.</li>
+        <li><strong>Scan-Werte:</strong> erkannte Kampfkraft, VS-Punkte, Kills und Spenden mit Zeitpunkt. Die Screenshots selbst werden nicht hochgeladen.</li>
+        <li><strong>Zug:</strong> Termine, Warteschlange, No-Shows.</li>
+        <li><strong>Anwesenheit:</strong> Solange lwhub offen ist, wird etwa alle 5 Minuten „zuletzt gesehen“ gespeichert. R4/R5 sehen den letzten Login.</li>
+        <li><strong>Login-Anfragen:</strong> Discord-Name, Avatar, gewünschte Allianz, Spielername und deine Notiz.</li>
+        <li><strong>Archiv:</strong> Gelöschte Spieler werden mit ihren Daten archiviert, damit R5 sie wiederherstellen können.</li>
+        <li><strong>Sicherheit:</strong> Abgelehnte oder geprüfte API-Zugriffe werden mit Zeit, Pfad, Discord-ID und IP-Adresse protokolliert. Discord-Anmeldungen werden 15 Minuten zwischengespeichert, nur als Prüfsumme. API-Tokens werden nur als Prüfsumme gespeichert.</li>
+      </ul>
+      <h3>In deinem Browser</h3>
+      <p>Discord-Anmeldung, aktiver Charakter, Sprache und zuletzt geöffnete Seite liegen im lokalen Speicher deines Browsers. „Abmelden“ entfernt Anmeldung und Charakter.</p>
+      <h3>Wer sieht die Daten?</h3>
+      <p>Jede Allianz sieht nur ihre eigenen Mitglieder. Innerhalb der Allianz gelten die Rollen aus <a href="#roles">Wer sieht was?</a>. Spezialevent-Termine teilen sich Allianzen mit derselben Server-Nummer.</p>
+      <a class="to-top" href="#top">↑ nach oben</a>
+    </section>
+
+    <div class="footer">lwhub &bull; Handbuch &bull; Kontakt: Lion Tooth, Server 776</div>
+  </main>
+</div>
+
+<a class="back-to-app" href="../../" onclick="return backToApp()">&larr; Zur App</a>
+<script>
+  // Inhaltsverzeichnis auf dem Handy auf- und zuklappen
+  (function () {
+    var toc = document.getElementById('toc');
+    var btn = toc.querySelector('.toc-toggle');
+    btn.addEventListener('click', function () {
+      var open = toc.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    toc.querySelectorAll('nav a').forEach(function (a) {
+      a.addEventListener('click', function () { toc.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); });
+    });
+  })();
+  // Sprachumschalter: zum Abschnitt springen, der gerade oben im Bild ist (Anker sind in allen Sprachen gleich)
+  function currentSectionId() {
+    var id = '';
+    document.querySelectorAll('main [id]').forEach(function (el) {
+      if (el.id !== 'top' && el.getBoundingClientRect().top <= 90) id = el.id;
+    });
+    return id;
+  }
+  document.querySelectorAll('[data-keep-hash]').forEach(function (a) {
+    a.addEventListener('click', function () {
+      var id = currentSectionId();
+      a.href = a.getAttribute('href').split('#')[0] + (id ? '#' + id : '');
+    });
+  });
+  // Tab schliessen, wenn der Browser es erlaubt (frisch per Link geoeffnet), sonst die App hier oeffnen
+  function backToApp() {
+    try { window.close(); } catch (e) {}
+    setTimeout(function () { location.href = '../../'; }, 150);
+    return false;
+  }
+</script>
+</body>
+</html>

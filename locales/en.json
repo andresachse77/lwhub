@@ -1,4 +1,4 @@
-﻿{
+{
   "strings": {
     "s_abbrechen": "Cancel",
     "s_abgesagt": "Canceled",
@@ -553,6 +553,11 @@
     "s_bp_no_warlords_assigned": "No warlords assigned.",
     "s_bp_no_engineers": "no engineers",
     "s_bp_copy_failed": "Copy failed",
+    "s_bp_ask_title": "Ask player",
+    "s_bp_ask_hint": "The text is already copied. Paste it into an in-game mail and send it.",
+    "s_bp_ask_copy_again": "Copy again",
+    "s_bp_ask_close": "Close",
+    "s_bp_ask_copied": "Text copied",
     "s_bp_clipboard_unavailable": "Clipboard unavailable",
     "s_teams_bearbeiten": "Edit teams",
     "s_max_ingenieure_kriegsherr": "Max. engineers per warlord",

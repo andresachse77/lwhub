@@ -1053,6 +1053,16 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 .bp-wrong.bp-pull-right .bp-name-draggable { animation: bpPullRight 2.4s ease-in-out infinite; }
 .bp-dragging .bp-wrong .bp-name-draggable { animation: none; }
 .bp-hint { flex: none; font-size: 11px; font-weight: 600; color: #d29922; white-space: nowrap; }
+.bp-ask-btn {
+  flex: none; margin-left: auto; width: 20px; height: 20px; padding: 0;
+  display: inline-grid; place-items: center;
+  border: 1px solid rgba(255,255,255,0.14); border-radius: 5px;
+  background: rgba(255,255,255,0.04); color: var(--soft);
+  font-size: 11px; line-height: 1; cursor: pointer;
+}
+.bp-ask-btn:hover { color: var(--gold); border-color: var(--gold); }
+.bp-queue-item .bp-ask-btn { margin-left: 0; }
+#bp-ask-text { width: 100%; min-height: 110px; resize: vertical; font-size: 13px; line-height: 1.45; }
 @keyframes bpPullRight {
   0%, 55%, 100% { transform: translateX(0) rotate(0); }
   60% { transform: translateX(3px) rotate(.6deg); } 65% { transform: translateX(-1px) rotate(-.4deg); }
@@ -1724,6 +1734,20 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="copyApiToken(this)">Kopieren</button>
       <button class="btn btn-gold" onclick="closeApiTokenCreated()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg hidden" id="modal-bp-ask">
+  <div class="modal">
+    <div class="modal-title">✉ <span data-i18n="s_bp_ask_title">Spieler fragen</span>: <span id="bp-ask-name" data-i18n-skip="1"></span></div>
+    <div class="hint" style="margin-bottom:10px" data-i18n="s_bp_ask_hint">Der Text ist schon kopiert. Im Spiel als Mail einfügen und senden.</div>
+    <div class="field" data-i18n-skip="1">
+      <textarea id="bp-ask-text"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="bpAskCopyAgain(this)" data-i18n="s_bp_ask_copy_again">Nochmal kopieren</button>
+      <button class="btn btn-gold" onclick="closeModal('modal-bp-ask')" data-i18n="s_bp_ask_close">Schließen</button>
     </div>
   </div>
 </div>
@@ -8915,6 +8939,86 @@ async function revokeApiToken(tokenId, clientName) {
     return { cls, hint };
   }
 
+  // Spieler fragen (B7): Standardvorlage je Sprache, Text in der Sprache des Spielers. Eigene Vorlagen
+  // (B8) kommen spaeter als alliance_config berufe_frage_vorlagen = {"de": "...", ...} und gehen vor.
+  const BP_ASK_DEFAULTS = {
+    de: { ing: 'Ingenieur', kh: 'Kriegsherr', none: 'noch keiner', text: 'Hallo $Spieler, kannst du mir bitte deinen aktuellen Beruf bestätigen? Bei uns gilt: R2 = $R2Beruf, R3 = $R3Beruf. Danke! – $Absender' },
+    en: { ing: 'Engineer', kh: 'Warlord', none: 'none yet', text: 'Hi $Spieler, could you please confirm your current profession? Our rule: R2 = $R2Beruf, R3 = $R3Beruf. Thanks! – $Absender' },
+    fr: { ing: 'Ingénieur', kh: 'Seigneur de guerre', none: 'aucun pour l\'instant', text: 'Salut $Spieler, peux-tu me confirmer ton métier actuel ? Chez nous : R2 = $R2Beruf, R3 = $R3Beruf. Merci ! – $Absender' },
+    es: { ing: 'Ingeniero', kh: 'Señor de la guerra', none: 'ninguno todavía', text: 'Hola $Spieler, ¿puedes confirmarme tu profesión actual? Nuestra regla: R2 = $R2Beruf, R3 = $R3Beruf. ¡Gracias! – $Absender' },
+    it: { ing: 'Ingegnere', kh: 'Signore della guerra', none: 'ancora nessuna', text: 'Ciao $Spieler, puoi confermarmi la tua professione attuale? Da noi vale: R2 = $R2Beruf, R3 = $R3Beruf. Grazie! – $Absender' },
+    pl: { ing: 'Inżynier', kh: 'Warlord', none: 'jeszcze brak', text: 'Cześć $Spieler, czy możesz potwierdzić swój obecny zawód? U nas: R2 = $R2Beruf, R3 = $R3Beruf. Dzięki! – $Absender' },
+    zh: { ing: '工程师', kh: '战争领主', none: '暂无', text: '你好 $Spieler，请确认一下你当前的职业。我们的规定：R2 = $R2Beruf，R3 = $R3Beruf。谢谢！– $Absender' },
+  };
+
+  function bpAskTemplate(lang) {
+    let custom = flagConfig?.berufe_frage_vorlagen;
+    if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch (e) { custom = null; } }
+    const base = BP_ASK_DEFAULTS[lang] || BP_ASK_DEFAULTS.de;
+    const text = (custom && typeof custom[lang] === 'string' && custom[lang].trim()) ? custom[lang] : base.text;
+    return { ...base, text };
+  }
+
+  function bpBuildAskText(name) {
+    const meta = memberMeta[name] || {};
+    const lang = BP_ASK_DEFAULTS[meta.preferredLanguage] ? meta.preferredLanguage : 'de';
+    const tpl = bpAskTemplate(lang);
+    const word = b => b === 'kriegsherr' ? tpl.kh : b === 'ingenieur' ? tpl.ing : '';
+    const rank = Number(PREV[name]);
+    const r2 = getBerufRankCheckR2();
+    const r3 = r2 === 'ingenieur' ? 'kriegsherr' : 'ingenieur';
+    // Wie im Planer einsortiert: Ingenieur nur mit gueltigem Kriegsherrn, sonst steht er in der Warteschlange
+    const placed = meta.beruf === 'kriegsherr' ? 'kriegsherr'
+      : (meta.beruf === 'ingenieur' && !bpQueueList().includes(name)) ? 'ingenieur' : null;
+    const vars = {
+      Spieler: name,
+      Rang: Number.isInteger(rank) && rank > 0 ? `R${rank}` : '',
+      R2Beruf: word(r2),
+      R3Beruf: word(r3),
+      BerufIst: placed ? word(placed) : tpl.none,
+      BerufSoll: rank === 2 ? word(r2) : rank === 3 ? word(r3) : '',
+      Allianz: authMember?.alliance || '',
+      Absender: authMember?.member_name || '',
+    };
+    return tpl.text.replace(/\$(Spieler|Rang|R2Beruf|R3Beruf|BerufIst|BerufSoll|Allianz|Absender)\b/g, (m, k) => vars[k]);
+  }
+
+  function bpAskBtn(name) {
+    return `<button class="bp-ask-btn" type="button" draggable="false" title="${escHtml(tr('s_bp_ask_title'))}" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();bpAskPlayer('${encodeURIComponent(name)}')">✉</button>`;
+  }
+
+  function bpCopyText(text, onDone) {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      toast(tr('s_bp_clipboard_unavailable'), 'err');
+      return;
+    }
+    navigator.clipboard.writeText(text).then(onDone).catch(() => toast(tr('s_bp_copy_failed'), 'err'));
+  }
+
+  window.bpAskPlayer = function(nameEnc) {
+    const name = decodeURIComponent(String(nameEnc || ''));
+    const ta = document.getElementById('bp-ask-text');
+    const who = document.getElementById('bp-ask-name');
+    if (!ta) return;
+    if (who) who.textContent = name;
+    ta.value = bpBuildAskText(name);
+    openModal('modal-bp-ask');
+    ta.focus();
+    ta.select();
+    bpCopyText(ta.value, () => toast(tr('s_bp_ask_copied'), 'ok'));
+  };
+
+  window.bpAskCopyAgain = function(btn) {
+    const ta = document.getElementById('bp-ask-text');
+    if (!ta) return;
+    bpCopyText(ta.value, () => {
+      if (!btn) return;
+      const orig = btn.textContent;
+      btn.textContent = '✓';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    });
+  };
+
   function bpCanEditRankCheck() {
     if (authMember?.can_set_features) return true;
     if (authMember?.read_only || authMember?.honor_role) return false;
@@ -8982,6 +9086,7 @@ async function revokeApiToken(tokenId, clientName) {
           <span class="bp-queue-handle">⠿</span>
           ${bpRankShield(name)}
           <span class="bp-queue-name">${escHtml(name)}</span>
+          ${bpAskBtn(name)}
           <button class="bp-queue-promote-btn" onclick="event.preventDefault();event.stopPropagation();bpMakeWarlord('${encodeURIComponent(name)}')" title="${escHtml(tr('s_bp_make_warlord'))}">+</button>
         </div>`
       ).join('');
@@ -9009,6 +9114,7 @@ async function revokeApiToken(tokenId, clientName) {
       html += '<span style="font-size:12px;color:#f09080;">⚔</span>';
       html += `<span class="bp-name-text kh">${escHtml(kh)}</span>`;
       html += khCheck.hint;
+      html += bpAskBtn(kh);
       html += '</div></td>';
 
       for (let i = 0; i < maxIng; i++) {
@@ -9021,6 +9127,7 @@ async function revokeApiToken(tokenId, clientName) {
           html += '<span style="font-size:12px;color:#80b8ff;">⚗</span>';
           html += `<span class="bp-name-text ing">${escHtml(eng)}</span>`;
           html += engCheck.hint;
+          html += bpAskBtn(eng);
           html += '</div>';
         } else {
           html += `<span class="bp-slot-text">${escHtml(tr('s_bp_slot_free'))}</span>`;

@@ -206,6 +206,8 @@ function handleSelfRename(PDO $pdo, string $alliance, string $oldNameEncoded, ar
             ->execute([$newName, $alliance, $playerId]);
         $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)")
             ->execute([$alliance, uuid4(), $playerId, $newName]);
+        $pdo->prepare("UPDATE players SET beruf_winwin = ? WHERE alliance = ? AND beruf_winwin = ?")
+            ->execute([$newName, $alliance, $oldName]);
         try {
             $pdo->prepare("UPDATE member_presence SET member_name = ? WHERE alliance = ? AND member_name = ?")
                 ->execute([$newName, $alliance, $oldName]);

@@ -811,6 +811,8 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
         if ($newName !== $row['current_name']) {
             $stmt = $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)");
             $stmt->execute([$alliance, uuid4(), $playerId, $newName]);
+            $pdo->prepare("UPDATE players SET beruf_winwin = ? WHERE alliance = ? AND beruf_winwin = ?")
+                ->execute([$newName, $alliance, $row['current_name']]);
         }
 
         if ($discordIdSet) {

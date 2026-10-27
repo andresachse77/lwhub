@@ -8864,11 +8864,13 @@ async function revokeApiToken(tokenId, clientName) {
     return warlords;
   }
 
+  // Ingenieure, deren Kriegsherr umbenannt, archiviert oder kein Kriegsherr mehr ist, landen wieder in der Warteschlange
   function bpQueueList() {
+    const warlords = new Set(members.filter(n => (memberMeta[n]?.beruf || null) === 'kriegsherr'));
     return members.filter(n => {
       const m = memberMeta[n] || {};
       if (m.beruf === 'kriegsherr') return false;
-      if (m.beruf === 'ingenieur' && m.berufWinwin) return false;
+      if (m.beruf === 'ingenieur' && warlords.has(m.berufWinwin)) return false;
       return true;
     }).sort((a, b) => a.localeCompare(b, 'de'));
   }

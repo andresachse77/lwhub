@@ -92,6 +92,7 @@ try {
     upsertAllianceFromConfig($pdo, $ALLIANCE);
     ensureSiteAdminsTable($pdo);
     ensurePreferredLanguageColumn($pdo);
+    ensureBerufColumns($pdo);
     ensureHonorRoleColumn($pdo);
     ensureMemberTeamTables($pdo);
     ensureScannerColumns($pdo);

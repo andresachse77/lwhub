@@ -88,8 +88,37 @@ function ensureBerufColumns(PDO $pdo): void {
         "ALTER TABLE players ADD COLUMN beruf VARCHAR(20) NULL DEFAULT NULL",
         "ALTER TABLE players ADD COLUMN beruf_med_hilfe TINYINT(1) NOT NULL DEFAULT 0",
         "ALTER TABLE players ADD COLUMN beruf_winwin VARCHAR(150) NULL DEFAULT NULL",
+        "ALTER TABLE players ADD COLUMN beruf_winwin_id VARCHAR(64) NULL DEFAULT NULL",
     ] as $sql) {
         try { $pdo->exec($sql); } catch (\PDOException) {}
+    }
+    // Einmalig: alte Zuordnung per Name (beruf_winwin) auf die Spieler-ID des Kriegsherrn umstellen
+    if (!$pdo->query("SELECT 1 FROM players WHERE beruf_winwin IS NOT NULL LIMIT 1")->fetch()) return;
+    $pdo->exec("
+        UPDATE players p
+        JOIN players k ON k.alliance = p.alliance AND k.current_name = p.beruf_winwin AND k.beruf = 'kriegsherr' AND k.is_active = 1
+        SET p.beruf_winwin_id = k.player_id
+        WHERE p.beruf_winwin IS NOT NULL AND p.beruf_winwin_id IS NULL
+    ");
+    $pdo->exec("UPDATE players SET beruf_winwin = NULL WHERE beruf_winwin IS NOT NULL");
+    releaseOrphanEngineers($pdo);
+}
+
+// Name des zugeordneten Kriegsherrn fuer SELECTs mit Alias p; die API liefert weiter beruf_winwin als Namen
+const SQL_BERUF_WINWIN = "(SELECT k.current_name FROM players k WHERE k.alliance = p.alliance AND k.player_id = p.beruf_winwin_id) AS beruf_winwin";
+
+// Zuordnung loesen, wo der Kriegsherr archiviert, verschoben oder kein Kriegsherr mehr ist (oder der Spieler kein Ingenieur)
+function releaseOrphanEngineers(PDO $pdo, ?string $alliance = null): void {
+    $sql = "
+        UPDATE players p
+        LEFT JOIN players k ON k.alliance = p.alliance AND k.player_id = p.beruf_winwin_id AND k.beruf = 'kriegsherr' AND k.is_active = 1
+        SET p.beruf_winwin_id = NULL
+        WHERE p.beruf_winwin_id IS NOT NULL AND (k.player_id IS NULL OR p.beruf IS NULL OR p.beruf <> 'ingenieur')
+    ";
+    if ($alliance === null) {
+        $pdo->exec($sql);
+    } else {
+        $pdo->prepare($sql . " AND p.alliance = ?")->execute([$alliance]);
     }
 }
 

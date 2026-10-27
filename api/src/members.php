@@ -364,7 +364,7 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
 
     $stmt = $pdo->prepare("
         SELECT p.player_id, p.alliance, p.current_name, p.current_rank_code, p.honor_role, p.honor_home, p.last_visit_at, p.preferred_language,
-               p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+               p.beruf, p.beruf_med_hilfe, " . SQL_BERUF_WINWIN . ",
                p.current_power, p.hq_level, p.last_scanned_at, p.last_seen_status,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
@@ -603,12 +603,12 @@ function reassignPlayerRefs(PDO $pdo, string $alliance, string $fromId, string $
             $pdo->prepare("DELETE FROM `$tbl` WHERE alliance = ? AND player_id = ?")->execute([$alliance, $fromId]);
         } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
     }
+    $pdo->prepare("UPDATE players SET beruf_winwin_id = ? WHERE alliance = ? AND beruf_winwin_id = ?")->execute([$toId, $alliance, $fromId]);
     if ($fromName !== '' && $fromName !== $toName) {
         try {
             $pdo->prepare("UPDATE IGNORE zug_queue SET member_name = ? WHERE alliance = ? AND member_name = ?")->execute([$toName, $alliance, $fromName]);
             $pdo->prepare("DELETE FROM zug_queue WHERE alliance = ? AND member_name = ?")->execute([$alliance, $fromName]);
         } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
-        $pdo->prepare("UPDATE players SET beruf_winwin = ? WHERE alliance = ? AND beruf_winwin = ?")->execute([$toName, $alliance, $fromName]);
         // Der Name des Duplikats bleibt als Alias, damit Scanner ihn weiter erkennen
         try {
             $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)")
@@ -685,9 +685,10 @@ function handleMergePlayer(PDO $pdo, string $alliance, string $nameEncoded, arra
                 $pdo->prepare("UPDATE players SET current_power = COALESCE(?, current_power), hq_level = COALESCE(?, hq_level), last_scanned_at = ?, last_seen_status = COALESCE(?, last_seen_status) WHERE alliance = ? AND player_id = ?")
                     ->execute([$drop['current_power'], $drop['hq_level'], $drop['last_scanned_at'], $drop['last_seen_status'], $alliance, $keepId]);
             }
-            $pdo->prepare("UPDATE players SET beruf = COALESCE(beruf, ?), beruf_med_hilfe = beruf_med_hilfe OR ?, beruf_winwin = COALESCE(beruf_winwin, ?) WHERE alliance = ? AND player_id = ?")
-                ->execute([$drop['beruf'], (int)($drop['beruf_med_hilfe'] ?? 0), $drop['beruf_winwin'], $alliance, $keepId]);
+            $pdo->prepare("UPDATE players SET beruf = COALESCE(beruf, ?), beruf_med_hilfe = beruf_med_hilfe OR ?, beruf_winwin_id = COALESCE(beruf_winwin_id, ?) WHERE alliance = ? AND player_id = ?")
+                ->execute([$drop['beruf'], (int)($drop['beruf_med_hilfe'] ?? 0), $drop['beruf_winwin_id'] ?? null, $alliance, $keepId]);
             $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$alliance, $fromPlayerId]);
+            releaseOrphanEngineers($pdo, $alliance);
         } else {
             $stmt = $pdo->prepare("SELECT * FROM archived_players WHERE archive_id = ? FOR UPDATE");
             $stmt->execute([$fromArchiveId]);
@@ -811,8 +812,6 @@ function handleUpdateMember(PDO $pdo, string $alliance, string $oldNameEncoded, 
         if ($newName !== $row['current_name']) {
             $stmt = $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)");
             $stmt->execute([$alliance, uuid4(), $playerId, $newName]);
-            $pdo->prepare("UPDATE players SET beruf_winwin = ? WHERE alliance = ? AND beruf_winwin = ?")
-                ->execute([$newName, $alliance, $row['current_name']]);
         }
 
         if ($discordIdSet) {
@@ -942,6 +941,7 @@ function archivePlayerInternal(PDO $pdo, string $alliance, string $playerId, ?st
     try {
         $pdo->prepare("DELETE FROM user_active_char WHERE alliance = ? AND player_id = ?")->execute([$alliance, $playerId]);
     } catch (\PDOException) {}
+    releaseOrphanEngineers($pdo, $alliance);
 
     return true;
 }
@@ -1020,11 +1020,15 @@ function handleSwapIdToDiscord(PDO $pdo, string $alliance, string $nameEncoded):
     try {
         $tempName = '__swap__' . substr(str_replace('-', '', uuid4()), 0, 12);
         $pdo->prepare("UPDATE players SET current_name = ? WHERE alliance = ? AND player_id = ?")->execute([$tempName, $alliance, $oldPlayerId]);
-        $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, created_at, retired_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            ->execute([$alliance, $discordUserId, $rows[0]['current_name'], $rows[0]['current_rank_code'], $rows[0]['is_active'], $rows[0]['created_at'], $rows[0]['retired_at']]);
+        // Alle Spalten uebernehmen (Beruf, Sprache, Scan-Werte ...), nur ID und Name neu
+        $cols = array_values(array_diff(array_column($pdo->query("SHOW COLUMNS FROM players")->fetchAll(), 'Field'), ['player_id', 'current_name']));
+        $list = implode(', ', array_map(fn($c) => "`$c`", $cols));
+        $pdo->prepare("INSERT INTO players (player_id, current_name, $list) SELECT ?, ?, $list FROM players WHERE alliance = ? AND player_id = ?")
+            ->execute([$discordUserId, $rows[0]['current_name'], $alliance, $oldPlayerId]);
         foreach (['weekly_entries', 'player_name_history', 'player_identities', 'player_user_links'] as $tbl) {
             $pdo->prepare("UPDATE {$tbl} SET player_id = ? WHERE alliance = ? AND player_id = ?")->execute([$discordUserId, $alliance, $oldPlayerId]);
         }
+        $pdo->prepare("UPDATE players SET beruf_winwin_id = ? WHERE alliance = ? AND beruf_winwin_id = ?")->execute([$discordUserId, $alliance, $oldPlayerId]);
         $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$alliance, $oldPlayerId]);
         $pdo->commit();
         jsonOut(200, ['ok' => true, 'swapped' => true, 'old_player_id' => $oldPlayerId, 'player_id' => $discordUserId]);
@@ -1262,29 +1266,32 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
     $medHilfe = ($beruf === 'ingenieur' && !empty($body['med_hilfe'])) ? 1 : 0;
     $winwin   = ($beruf === 'ingenieur') ? (trim((string)($body['winwin'] ?? '')) ?: null) : null;
 
+    // Die Oberflaeche schickt den Namen des Kriegsherrn, gespeichert wird seine Spieler-ID
+    $winwinId = null;
     if ($winwin !== null) {
         $maxEngineers = getBerufeMaxEngineersPerKriegsherr($pdo, $alliance);
-        $chk = $pdo->prepare("SELECT beruf FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 AND " . sqlNoHonor('') . " LIMIT 1");
+        $chk = $pdo->prepare("SELECT player_id, beruf FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 AND " . sqlNoHonor('') . " LIMIT 1");
         $chk->execute([$alliance, $winwin]);
         $chkRow = $chk->fetch();
         if (!$chkRow || $chkRow['beruf'] !== 'kriegsherr') {
             jsonOut(400, ['error' => 'Win-Win Ziel ist kein Kriegsherr']);
         }
+        $winwinId = $chkRow['player_id'];
         $cntStmt = $pdo->prepare(
-            "SELECT COUNT(*) AS cnt FROM players WHERE alliance = ? AND beruf_winwin = ? AND player_id != ? AND is_active = 1 AND " . sqlNoHonor('')
+            "SELECT COUNT(*) AS cnt FROM players WHERE alliance = ? AND beruf_winwin_id = ? AND player_id != ? AND is_active = 1 AND " . sqlNoHonor('')
         );
-        $cntStmt->execute([$alliance, $winwin, $target['player_id']]);
+        $cntStmt->execute([$alliance, $winwinId, $target['player_id']]);
         if ((int)($cntStmt->fetch()['cnt'] ?? 0) >= $maxEngineers) {
             jsonOut(409, ['error' => "Dieser Kriegsherr hat bereits {$maxEngineers} Ingenieure"]);
         }
     }
 
-    $pdo->prepare("UPDATE players SET beruf = ?, beruf_med_hilfe = ?, beruf_winwin = ? WHERE alliance = ? AND player_id = ?")
-        ->execute([$beruf, $medHilfe, $winwin, $alliance, $target['player_id']]);
+    $pdo->prepare("UPDATE players SET beruf = ?, beruf_med_hilfe = ?, beruf_winwin_id = ? WHERE alliance = ? AND player_id = ?")
+        ->execute([$beruf, $medHilfe, $winwinId, $alliance, $target['player_id']]);
 
     if ($beruf !== 'kriegsherr') {
-        $pdo->prepare("UPDATE players SET beruf_winwin = NULL WHERE alliance = ? AND beruf_winwin = ?")
-            ->execute([$alliance, $targetName]);
+        $pdo->prepare("UPDATE players SET beruf_winwin_id = NULL WHERE alliance = ? AND beruf_winwin_id = ?")
+            ->execute([$alliance, $target['player_id']]);
     }
 
     jsonOut(200, ['ok' => true]);
@@ -1340,6 +1347,9 @@ function movePlayerToAlliance(PDO $pdo, string $playerId, string $fromAlliance, 
         } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
     }
     $pdo->prepare("DELETE FROM players WHERE alliance = ? AND player_id = ?")->execute([$fromAlliance, $playerId]);
+    // Seine Ingenieure in der alten Allianz und seine eigene Zuordnung dorthin gelten nicht mehr
+    releaseOrphanEngineers($pdo, $fromAlliance);
+    releaseOrphanEngineers($pdo, $toAlliance);
 }
 
 // Vergleichsschluessel fuer Namen aus dem Scanner: OCR verwechselt Gross/klein, I/l/1, O/0 und liest

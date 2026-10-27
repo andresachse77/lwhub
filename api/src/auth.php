@@ -60,7 +60,7 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
     if ($withCache) {
         return "
                  SELECT p.player_id, p.current_name, p.current_rank_code, p.honor_role,
-                     p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+                     p.beruf, p.beruf_med_hilfe, " . SQL_BERUF_WINWIN . ",
                                          p.preferred_language,
                    COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                    COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
@@ -91,7 +91,7 @@ function getDiscordMemberSql(bool $withCache, bool $leadershipOnly): string {
     }
     return "
          SELECT p.player_id, p.current_name, p.current_rank_code, p.honor_role,
-             p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+             p.beruf, p.beruf_med_hilfe, " . SQL_BERUF_WINWIN . ",
                          p.preferred_language,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                puld.discord_username, puld.discord_avatar
@@ -122,7 +122,7 @@ function getDiscordMemberByActiveChar(PDO $pdo, string $alliance, string $discor
     try {
         $stmt = $pdo->prepare(" 
                  SELECT p.player_id, p.current_name, p.current_rank_code, p.honor_role,
-                     p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+                     p.beruf, p.beruf_med_hilfe, " . SQL_BERUF_WINWIN . ",
                                          p.preferred_language,
                    uac.discord_user_id AS discord_user_id,
                    COALESCE(uda.discord_username, dpc.discord_username) AS discord_username,
@@ -218,7 +218,7 @@ function getDiscordMemberAcrossAlliancesSql(bool $withCache, bool $leadershipOnl
     if ($withCache) {
         return "
                  SELECT p.alliance, p.player_id, p.current_name, p.current_rank_code, p.honor_role,
-                   p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+                   p.beruf, p.beruf_med_hilfe, " . SQL_BERUF_WINWIN . ",
                    p.preferred_language,
                    COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                    COALESCE(puld.discord_username, dpc.discord_username) AS discord_username,
@@ -254,7 +254,7 @@ function getDiscordMemberAcrossAlliancesSql(bool $withCache, bool $leadershipOnl
     }
     return "
         SELECT p.alliance, p.player_id, p.current_name, p.current_rank_code, p.honor_role,
-               p.beruf, p.beruf_med_hilfe, p.beruf_winwin,
+               p.beruf, p.beruf_med_hilfe, " . SQL_BERUF_WINWIN . ",
                p.preferred_language,
                COALESCE(pid.discord_user_id, puld.discord_user_id) AS discord_user_id,
                puld.discord_username, puld.discord_avatar,

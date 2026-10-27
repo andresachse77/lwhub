@@ -50,7 +50,7 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
         ? array_map(static fn($k) => trim((string)$k), array_keys($body['config']))
         : [trim((string)($body['key'] ?? ''))];
     // Rangcheck im Berufeplaner duerfen auch R4 schalten, alles andere nur R5 oder Betreiber
-    $berufeKeys = ['berufe_rangcheck', 'berufe_rangcheck_r2'];
+    $berufeKeys = ['berufe_rangcheck', 'berufe_rangcheck_r2', 'berufe_frage_vorlagen'];
     if ($keys && !array_diff($keys, $berufeKeys)) {
         $admin = requireBerufeConfigWriter($pdo, $alliance, $claim);
     } else {
@@ -83,6 +83,18 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
         }
         if ($key === 'berufe_rangcheck' && !in_array($value, ['true', 'false'], true)) {
             jsonOut(400, ['error' => 'berufe_rangcheck muss true oder false sein']);
+        }
+        // "Spieler fragen"-Vorlagen: leer (= Standardtexte) oder JSON {"de": "...", ...} mit bekannten Sprachen
+        if ($key === 'berufe_frage_vorlagen' && $value !== '') {
+            $tpl = json_decode($value, true);
+            if (!is_array($tpl) || array_is_list($tpl)) {
+                jsonOut(400, ['error' => 'berufe_frage_vorlagen muss ein JSON-Objekt sein']);
+            }
+            foreach ($tpl as $lang => $text) {
+                if (!in_array($lang, ['de', 'en', 'es', 'fr', 'it', 'pl', 'zh'], true) || !is_string($text) || mb_strlen($text) > 1000) {
+                    jsonOut(400, ['error' => 'berufe_frage_vorlagen: unbekannte Sprache oder Text zu lang (max. 1000 Zeichen)']);
+                }
+            }
         }
     };
 

@@ -1062,7 +1062,18 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 }
 .bp-ask-btn:hover { color: var(--gold); border-color: var(--gold); }
 .bp-queue-item .bp-ask-btn { margin-left: 0; }
-#bp-ask-text { width: 100%; min-height: 110px; resize: vertical; font-size: 13px; line-height: 1.45; }
+#bp-ask-text, #bp-tpl-text { width: 100%; min-height: 110px; resize: vertical; font-size: 13px; line-height: 1.45; }
+.bp-tpl-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.bp-tpl-chip {
+  border: 1px solid var(--line2); border-radius: 999px; background: var(--card2); color: var(--text);
+  padding: 3px 10px; font-size: 12px; font-family: monospace; cursor: pointer;
+}
+.bp-tpl-chip:hover { border-color: var(--gold); color: var(--gold); }
+.bp-tpl-preview-label { font-size: 11px; color: var(--soft); text-transform: uppercase; letter-spacing: .06em; margin: 4px 0 4px; }
+.bp-tpl-preview {
+  white-space: pre-wrap; font-size: 13px; line-height: 1.45; padding: 10px 12px;
+  border: 1px dashed var(--line2); border-radius: 8px; background: rgba(255,255,255,0.02);
+}
 @keyframes bpPullRight {
   0%, 55%, 100% { transform: translateX(0) rotate(0); }
   60% { transform: translateX(3px) rotate(.6deg); } 65% { transform: translateX(-1px) rotate(-.4deg); }
@@ -1748,6 +1759,35 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="bpAskCopyAgain(this)" data-i18n="s_bp_ask_copy_again">Nochmal kopieren</button>
       <button class="btn btn-gold" onclick="closeModal('modal-bp-ask')" data-i18n="s_bp_ask_close">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg hidden" id="modal-bp-templates">
+  <div class="modal" style="width:min(560px, 100%)">
+    <div class="modal-title">✎ <span data-i18n="s_bp_tpl_title">Fragetexte für „Spieler fragen“</span></div>
+    <div class="hint" style="margin-bottom:10px" data-i18n="s_bp_tpl_hint">Jeder Spieler bekommt den Text in seiner Sprache. Klick auf einen Platzhalter fügt ihn ein.</div>
+    <div class="field">
+      <select id="bp-tpl-lang" onchange="bpTplSwitchLang(this.value)" data-i18n-skip="1">
+        <option value="de">Deutsch</option>
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+        <option value="it">Italiano</option>
+        <option value="pl">Polski</option>
+        <option value="zh">中文</option>
+      </select>
+    </div>
+    <div id="bp-tpl-chips" class="bp-tpl-chips" data-i18n-skip="1"></div>
+    <div class="field" data-i18n-skip="1">
+      <textarea id="bp-tpl-text" maxlength="1000" oninput="bpTplRenderPreview()"></textarea>
+    </div>
+    <div class="bp-tpl-preview-label" data-i18n="s_bp_tpl_preview">Vorschau</div>
+    <div id="bp-tpl-preview" class="bp-tpl-preview" data-i18n-skip="1"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="bpTplResetLang()" data-i18n="s_bp_tpl_reset">Standard wiederherstellen</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-bp-templates')" data-i18n="s_abbrechen">Abbrechen</button>
+      <button class="btn btn-gold" onclick="bpTplSave(this)" data-i18n="s_bp_tpl_save">Speichern</button>
     </div>
   </div>
 </div>
@@ -8951,18 +8991,30 @@ async function revokeApiToken(tokenId, clientName) {
     zh: { ing: '工程师', kh: '战争领主', none: '暂无', text: '你好 $Spieler，请确认一下你当前的职业。我们的规定：R2 = $R2Beruf，R3 = $R3Beruf。谢谢！– $Absender' },
   };
 
-  function bpAskTemplate(lang) {
+  const BP_ASK_VARS = ['Spieler', 'Rang', 'R2Beruf', 'R3Beruf', 'BerufIst', 'BerufSoll', 'Allianz', 'Absender'];
+
+  function bpCustomAskTemplates() {
     let custom = flagConfig?.berufe_frage_vorlagen;
     if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch (e) { custom = null; } }
+    return (custom && typeof custom === 'object' && !Array.isArray(custom)) ? custom : {};
+  }
+
+  function bpAskTemplate(lang) {
+    const custom = bpCustomAskTemplates();
     const base = BP_ASK_DEFAULTS[lang] || BP_ASK_DEFAULTS.de;
-    const text = (custom && typeof custom[lang] === 'string' && custom[lang].trim()) ? custom[lang] : base.text;
+    const text = (typeof custom[lang] === 'string' && custom[lang].trim()) ? custom[lang] : base.text;
     return { ...base, text };
   }
 
-  function bpBuildAskText(name) {
+  function bpAskLang(name) {
+    const lang = memberMeta[name]?.preferredLanguage;
+    return BP_ASK_DEFAULTS[lang] ? lang : 'de';
+  }
+
+  function bpBuildAskText(name, lang = bpAskLang(name), text = null) {
     const meta = memberMeta[name] || {};
-    const lang = BP_ASK_DEFAULTS[meta.preferredLanguage] ? meta.preferredLanguage : 'de';
     const tpl = bpAskTemplate(lang);
+    if (text !== null) tpl.text = text;
     const word = b => b === 'kriegsherr' ? tpl.kh : b === 'ingenieur' ? tpl.ing : '';
     const rank = Number(PREV[name]);
     const r2 = getBerufRankCheckR2();
@@ -8980,8 +9032,96 @@ async function revokeApiToken(tokenId, clientName) {
       Allianz: authMember?.alliance || '',
       Absender: authMember?.member_name || '',
     };
-    return tpl.text.replace(/\$(Spieler|Rang|R2Beruf|R3Beruf|BerufIst|BerufSoll|Allianz|Absender)\b/g, (m, k) => vars[k]);
+    return tpl.text.replace(new RegExp(`\\$(${BP_ASK_VARS.join('|')})\\b`, 'g'), (m, k) => vars[k]);
   }
+
+  // Vorlagen-Editor (B8): Entwurf je Sprache, gespeichert werden nur Texte, die vom Standard abweichen
+  let bpTplDraft = {};
+  let bpTplLang = 'de';
+
+  function bpTplSample() {
+    return members.find(n => [2, 3].includes(Number(PREV[n]))) || members[0] || 'Kiwi';
+  }
+
+  function bpTplRenderPreview() {
+    const ta = document.getElementById('bp-tpl-text');
+    const pv = document.getElementById('bp-tpl-preview');
+    if (!ta || !pv) return;
+    bpTplDraft[bpTplLang] = ta.value;
+    pv.textContent = bpBuildAskText(bpTplSample(), bpTplLang, ta.value);
+  }
+
+  window.bpOpenTemplates = function() {
+    if (!bpCanEditRankCheck()) { toast(tr('s_bp_rc_only_r4'), 'err'); return; }
+    const custom = bpCustomAskTemplates();
+    bpTplDraft = {};
+    Object.keys(BP_ASK_DEFAULTS).forEach(l => {
+      bpTplDraft[l] = (typeof custom[l] === 'string' && custom[l].trim()) ? custom[l] : BP_ASK_DEFAULTS[l].text;
+    });
+    const langEl = document.getElementById('bp-tpl-lang');
+    bpTplLang = BP_ASK_DEFAULTS[langEl?.value] ? langEl.value : 'de';
+    const chips = document.getElementById('bp-tpl-chips');
+    if (chips) {
+      chips.innerHTML = BP_ASK_VARS.map(v => `<button type="button" class="bp-tpl-chip" onclick="bpTplInsertVar('${v}')">$${v}</button>`).join('');
+    }
+    document.getElementById('bp-tpl-text').value = bpTplDraft[bpTplLang];
+    bpTplRenderPreview();
+    openModal('modal-bp-templates');
+  };
+
+  window.bpTplSwitchLang = function(lang) {
+    const ta = document.getElementById('bp-tpl-text');
+    if (!ta || !BP_ASK_DEFAULTS[lang]) return;
+    bpTplDraft[bpTplLang] = ta.value;
+    bpTplLang = lang;
+    ta.value = bpTplDraft[lang];
+    bpTplRenderPreview();
+  };
+
+  window.bpTplInsertVar = function(v) {
+    const ta = document.getElementById('bp-tpl-text');
+    if (!ta) return;
+    const start = ta.selectionStart ?? ta.value.length;
+    const end = ta.selectionEnd ?? start;
+    ta.value = ta.value.slice(0, start) + '$' + v + ta.value.slice(end);
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = start + v.length + 1;
+    bpTplRenderPreview();
+  };
+
+  window.bpTplResetLang = function() {
+    const ta = document.getElementById('bp-tpl-text');
+    if (!ta) return;
+    ta.value = BP_ASK_DEFAULTS[bpTplLang].text;
+    bpTplRenderPreview();
+  };
+
+  window.bpTplSave = async function(btn) {
+    bpTplRenderPreview();
+    const out = {};
+    Object.keys(BP_ASK_DEFAULTS).forEach(l => {
+      const t = String(bpTplDraft[l] || '').trim();
+      if (t && t !== BP_ASK_DEFAULTS[l].text) out[l] = t;
+    });
+    const value = Object.keys(out).length ? JSON.stringify(out) : '';
+    const alliance = getEffectiveAllianceForApi();
+    if (btn) btn.disabled = true;
+    try {
+      await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance)}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ discord_id: authMember?.discord_id || '', config: { berufe_frage_vorlagen: value } })
+      });
+      flagConfig = { ...flagConfig, berufe_frage_vorlagen: value };
+      if (alliance && adminFlagConfigCache[alliance]) adminFlagConfigCache[alliance] = { ...adminFlagConfigCache[alliance], berufe_frage_vorlagen: value };
+      closeModal('modal-bp-templates');
+      toast(tr('s_bp_tpl_saved'), 'ok');
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
 
   function bpAskBtn(name) {
     return `<button class="bp-ask-btn" type="button" draggable="false" title="${escHtml(tr('s_bp_ask_title'))}" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();bpAskPlayer('${encodeURIComponent(name)}')">✉</button>`;
@@ -9036,6 +9176,8 @@ async function revokeApiToken(tokenId, clientName) {
     onEl.disabled = !canEdit;
     r2El.disabled = !canEdit || !onEl.checked;
     box.title = canEdit ? '' : tr('s_bp_rc_only_r4');
+    const tplBtn = document.getElementById('bp-tpl-btn');
+    if (tplBtn) tplBtn.style.display = canEdit ? '' : 'none';
   }
 
   window.bpSaveRankCheck = async function() {

@@ -530,6 +530,7 @@
       <a class="wt-btn" href="docs/konzept-api-scanner-v2-aufgaben.html" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">✅ <span data-i18n="s_docs_tasks">Aufgabenliste</span></a>
       <a class="wt-btn" href="docs/konzept-berufe-rangcheck.html" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">⚗ <span data-i18n="s_docs_bp_concept">Berufe-Rangcheck</span></a>
       <a class="wt-btn" href="docs/konzept-berufe-rangcheck-aufgaben.html" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">✅ <span data-i18n="s_docs_bp_tasks">Aufgaben Berufe</span></a>
+      <a class="wt-btn" href="docs/konzept-berufe-mobil.html" target="_blank" rel="noopener" style="padding:5px 14px;text-decoration:none;">📱 <span data-i18n="s_docs_bp_mobile">Berufeplaner mobil</span></a>
     </div>
   </div>
 

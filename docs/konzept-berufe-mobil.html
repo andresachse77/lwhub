@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LWHub &bull; Berufeplaner mobil – Konzept</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
+  :root {
+    --bg-primary: #0e1117; --bg-secondary: #161b22; --bg-tertiary: #21262d; --bg-card: #1c2128;
+    --border-color: #30363d; --accent: #58a6ff; --success: #3fb950; --warning: #d29922; --danger: #f85149;
+    --purple: #bc8cff; --text-primary: #f0f6fc; --text-secondary: #8b949e; --text-muted: #6e7681;
+    --gold: #f0a500; --kh: #f09080; --ing: #80b8ff;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    --tap: 48px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); line-height: 1.6; padding: 32px 16px; display: flex; justify-content: center; }
+  .container { max-width: 980px; width: 100%; min-width: 0; }
+  .header { border-bottom: 1px solid var(--border-color); padding-bottom: 24px; margin-bottom: 36px; display: flex; flex-direction: column; gap: 12px; }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; padding: 3px 9px; border-radius: 20px; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+  .badge.blue { background: rgba(88,166,255,.15); color: var(--accent); border-color: rgba(88,166,255,.3); }
+  .badge.green { background: rgba(63,185,80,.15); color: var(--success); border-color: rgba(63,185,80,.3); }
+  .badge.amber { background: rgba(210,153,34,.15); color: var(--warning); border-color: rgba(210,153,34,.3); }
+  h1 { font-size: 28px; font-weight: 700; color: #fff; line-height: 1.25; }
+  .subtitle { color: var(--text-secondary); font-size: 15px; }
+  section { margin-bottom: 40px; }
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+  p { color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; }
+  ul, ol { margin: 0 0 16px 24px; color: var(--text-secondary); font-size: 14px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text-primary); }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+  .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; }
+  .card h4 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .card p { font-size: 13px; margin-bottom: 0; }
+  .card.ok { border-left: 4px solid var(--success); }
+  .card.bad { border-left: 4px solid var(--danger); }
+  .vid { font-family: var(--font-mono); font-size: 12px; color: var(--gold); background: rgba(240,165,0,.12); border: 1px solid rgba(240,165,0,.3); padding: 1px 7px; border-radius: 999px; }
+  .note { border-left: 3px solid var(--accent); background: rgba(88,166,255,.08); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 14px 0; font-size: 13.5px; color: var(--text-secondary); }
+  .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center; font-size: 12px; color: var(--text-muted); }
+  a { color: var(--accent); text-decoration: none; }
+  code { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-tertiary); padding: 2px 5px; border-radius: 4px; color: #f0883e; }
+
+  /* ── Test-Bereich: links Anleitung, rechts Handy ── */
+  .try { display: grid; grid-template-columns: 1fr 400px; gap: 28px; align-items: start; }
+  .try > * { min-width: 0; }
+  .try-help { position: sticky; top: 16px; }
+  .try-help ol { margin-left: 20px; }
+  .phone { width: 100%; max-width: 400px; margin: 0 auto; border: 10px solid #000; border-radius: 34px; background: #000; box-shadow: 0 0 0 1px #333, 0 24px 60px rgba(0,0,0,.55); }
+  .screen { position: relative; height: 760px; border-radius: 24px; overflow: hidden; background: #10141b; display: flex; flex-direction: column; }
+  @media (max-width: 760px) {
+    body { padding: 20px 0; }
+    .container > :not(#try), #try > h2 { padding-left: 16px; padding-right: 16px; }
+    .try { grid-template-columns: 1fr; }
+    .try-help { position: static; padding: 0 16px; }
+    /* Auf dem echten Handy ohne Rahmen, volle Hoehe */
+    .phone { border: 0; border-radius: 0; box-shadow: none; max-width: none; }
+    .screen { border-radius: 0; height: 100dvh; }
+  }
+
+  /* App-Kopf */
+  .m-top { flex: none; padding: 12px 14px 10px; background: #161b22; border-bottom: 1px solid #2a313b; }
+  .m-title { display: flex; align-items: center; gap: 8px; }
+  .m-title b { font-size: 17px; }
+  .m-sub { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+  .m-view { margin-left: auto; height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid #3a424d; background: transparent; color: var(--text-secondary); font-size: 13px; }
+  .m-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .m-tab { height: var(--tap); border-radius: 12px; border: 1px solid #2f3742; background: #1c222b; color: var(--text-secondary); font-size: 15px; font-weight: 600; }
+  .m-tab.on { background: rgba(240,165,0,.14); border-color: rgba(240,165,0,.5); color: var(--gold); }
+  .m-tab.drop-on { outline: 3px solid var(--gold); outline-offset: -3px; }
+  .m-tab .cnt { display: inline-block; min-width: 22px; padding: 0 6px; margin-left: 4px; border-radius: 11px; background: #2a313b; color: var(--text-primary); font-size: 12px; line-height: 22px; }
+
+  .m-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 10px 90px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* Kriegsherr-Karte: Name oben, Ingenieure darunter */
+  /* flex: none, sonst staucht die Liste die Karten zu Strichen */
+  .kh-card, .q-row, .m-list > .empty { flex: none; }
+  .kh-card { border-radius: 14px; background: #171c24; border: 1px solid #2a313b; overflow: hidden; transition: box-shadow .15s, border-color .15s; }
+  .kh-card.drop-on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+  .kh-card.drop-full { border-color: var(--danger); box-shadow: 0 0 0 2px var(--danger); }
+  .kh-head { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 6px 6px 12px; background: rgba(224,85,69,.10); border-bottom: 1px solid rgba(224,85,69,.22); }
+  .kh-name { flex: 1; min-width: 0; font-size: 17px; font-weight: 700; color: #fff; overflow-wrap: anywhere; line-height: 1.25; }
+  .cap { flex: none; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: #2a313b; color: var(--text-secondary); }
+  .cap.full { background: rgba(63,185,80,.18); color: var(--success); }
+  .more { flex: none; width: var(--tap); height: var(--tap); border-radius: 12px; border: 0; background: transparent; color: var(--text-secondary); font-size: 22px; }
+  .more:active, .eng:active, .add:active, .sheet-btn:active, .pick:active { background: rgba(255,255,255,.08); }
+
+  .eng { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 2px 4px 2px 0; border-top: 1px solid #222934; background: rgba(74,158,255,.05); }
+  .eng:first-of-type { border-top: 0; }
+  .grip { flex: none; width: 40px; height: 52px; display: grid; place-items: center; color: #5b6573; font-size: 18px; touch-action: none; cursor: grab; }
+  .eng-name { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; line-height: 1.25; }
+  .eng.wrong { box-shadow: inset 4px 0 0 var(--warning); }
+  .flag { flex: none; font-size: 11px; font-weight: 700; color: var(--warning); white-space: nowrap; }
+  .add { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 0 14px; border: 0; border-top: 1px dashed #2f3742; background: transparent; color: var(--accent); font-size: 15px; font-weight: 600; text-align: left; }
+
+  /* Kompaktansicht: Ingenieure als Chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px 0 8px; border-radius: 22px; border: 1px solid rgba(74,158,255,.3); background: rgba(74,158,255,.08); color: var(--text-primary); font-size: 15px; font-weight: 600; }
+  .chip.addc { border-style: dashed; color: var(--accent); background: transparent; padding: 0 14px; }
+
+  /* Warteschlange */
+  .q-row { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 6px 6px 6px 4px; border-radius: 14px; background: #171c24; border: 1px solid #2a313b; }
+  .q-row.exp-kh { box-shadow: inset 4px 0 0 rgba(224,85,69,.8); }
+  .q-row.exp-ing { box-shadow: inset 4px 0 0 rgba(74,158,255,.8); }
+  .q-btn { flex: none; height: var(--tap); padding: 0 12px; border-radius: 12px; border: 1px solid #3a424d; background: #1f2630; color: var(--text-primary); font-size: 14px; font-weight: 600; }
+  .q-btn.kh { color: var(--kh); border-color: rgba(224,85,69,.45); }
+  .empty { padding: 24px 12px; text-align: center; color: var(--text-secondary); font-size: 14px; }
+
+  /* Rangwappen wie im Hub (V7) */
+  .sh { position: relative; flex: none; display: inline-grid; place-items: center; width: 24px; height: 28px; }
+  .sh svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .sh b { position: relative; margin-top: -3px; font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; color: #fff; line-height: 1; text-shadow: 0 0 2px rgba(0,0,0,.9), 0 1px 1px rgba(0,0,0,.8); }
+
+  /* Bottom Sheet */
+  .veil { position: absolute; inset: 0; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .18s; z-index: 20; }
+  .veil.on { opacity: 1; pointer-events: auto; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 82%; display: flex; flex-direction: column; background: #1a2029; border-radius: 20px 20px 0 0; border-top: 1px solid #3a424d; transform: translateY(102%); transition: transform .22s ease-out; z-index: 21; }
+  .sheet.on { transform: none; }
+  .sheet-grab { width: 44px; height: 5px; border-radius: 3px; background: #4a525e; margin: 8px auto 4px; flex: none; }
+  .sheet-head { padding: 4px 16px 10px; flex: none; }
+  .sheet-head b { font-size: 17px; display: block; }
+  .sheet-head small { color: var(--text-secondary); font-size: 13px; }
+  .sheet-body { overflow-y: auto; padding: 0 10px 16px; }
+  .sheet-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 14px; border: 0; border-radius: 12px; background: transparent; color: var(--text-primary); font-size: 16px; text-align: left; }
+  .sheet-btn .i { width: 26px; text-align: center; font-size: 18px; }
+  .sheet-btn.danger { color: #ff9f94; }
+  .sheet-btn.cancel { justify-content: center; margin-top: 6px; background: #232a34; font-weight: 600; }
+  .search { width: 100%; height: var(--tap); border-radius: 12px; border: 1px solid #3a424d; background: #10141b; color: var(--text-primary); font-size: 16px; padding: 0 14px; margin-bottom: 8px; }
+  .filters { display: flex; gap: 6px; margin-bottom: 6px; overflow-x: auto; }
+  .filter { flex: none; height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid #3a424d; background: transparent; color: var(--text-secondary); font-size: 14px; }
+  .filter.on { color: var(--gold); border-color: rgba(240,165,0,.6); background: rgba(240,165,0,.1); }
+  .pick { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 6px 10px; border: 0; border-bottom: 1px solid #252c36; background: transparent; color: var(--text-primary); text-align: left; }
+  .pick[disabled] { opacity: .4; }
+  .pick .pn { flex: 1; min-width: 0; }
+  .pick .pn b { display: block; font-size: 16px; overflow-wrap: anywhere; line-height: 1.25; }
+  .pick .pn small { color: var(--text-secondary); font-size: 12.5px; }
+
+  /* Ziehen */
+  .ghost { position: absolute; z-index: 30; pointer-events: none; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; background: #24406b; border: 1px solid var(--accent); color: #fff; font-weight: 700; font-size: 15px; box-shadow: 0 10px 30px rgba(0,0,0,.5); transform: translate(-50%, -130%); white-space: nowrap; }
+  .dragging .m-list { scroll-behavior: auto; }
+
+  /* Varianten-Umschalter ueber dem Handy */
+  .variants { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-width: 400px; margin: 0 auto 12px; }
+  .vbtn { min-height: 56px; padding: 6px 4px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-secondary); font-size: 12px; line-height: 1.25; }
+  .vbtn b { display: block; font-size: 16px; color: var(--text-primary); }
+  .vbtn.on { border-color: rgba(240,165,0,.6); background: rgba(240,165,0,.12); color: var(--gold); }
+  .vbtn.on b { color: var(--gold); }
+  .vdesc { max-width: 400px; margin: 0 auto 12px; font-size: 13px; color: var(--text-secondary); min-height: 40px; }
+  @media (max-width: 760px) { .variants, .vdesc { padding: 0 10px; } }
+
+  /* C: Akkordeon */
+  .kh-head.tog { cursor: pointer; }
+  .chev { flex: none; width: 36px; text-align: center; color: var(--text-secondary); font-size: 18px; transition: transform .15s; }
+  .kh-card.open .chev { transform: rotate(90deg); }
+  .mini { padding: 0 12px 8px; font-size: 13px; color: var(--text-secondary); overflow-wrap: anywhere; }
+
+  /* D: Antippen & Platzieren */
+  .eng.sel, .q-row.sel { background: rgba(240,165,0,.16); box-shadow: inset 4px 0 0 var(--gold); }
+  .placing .kh-head { cursor: pointer; }
+  .placing .kh-card:not(.is-full) .kh-head { background: rgba(240,165,0,.10); }
+  .placing .kh-card:not(.is-full) .kh-head::after { content: 'hierher'; flex: none; font-size: 12px; font-weight: 700; color: var(--gold); padding: 0 6px; }
+  .placebar { position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 24; display: none; align-items: center; gap: 8px; min-height: 60px; padding: 6px 6px 6px 14px; border-radius: 14px; background: #3a2f12; border: 1px solid rgba(240,165,0,.6); font-size: 14px; }
+  .placebar.on { display: flex; }
+  .placebar span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .placebar button { flex: none; height: var(--tap); padding: 0 12px; border-radius: 10px; border: 1px solid rgba(240,165,0,.4); background: transparent; color: var(--gold); font-weight: 700; font-size: 14px; }
+  .placebar.on ~ .toast { bottom: 84px; }
+
+  /* Hinweis unten mit Rueckgaengig */
+  .toast { position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 25; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 6px 6px 14px; border-radius: 14px; background: #2b333f; border: 1px solid #3f4855; box-shadow: 0 8px 24px rgba(0,0,0,.45); font-size: 14px; transform: translateY(150%); transition: transform .2s; }
+  .toast.on { transform: none; }
+  .toast span { flex: 1; }
+  .toast button { flex: none; height: 40px; padding: 0 14px; border-radius: 10px; border: 0; background: transparent; color: var(--gold); font-weight: 700; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge-row">
+      <span class="badge blue">Berufeplaner &bull; Handy</span>
+      <span class="badge green">Mockup, speichert nichts</span>
+      <span class="badge amber">Stand: 2026-10-30 (v1)</span>
+    </div>
+    <h1>Berufeplaner auf dem Handy</h1>
+    <p class="subtitle">Auf dem Handy sieht man im Berufeplaner kaum Namen, und Ziehen klappt nicht. Hier ein Vorschlag: Der Kriegsherr steht oben, seine Ingenieure darunter, alles in großen Feldern für den Daumen. Unten kannst du es mit Ivys echter Liste ausprobieren.</p>
+  </div>
+
+  <section>
+    <h2>Was heute auf dem Handy nicht klappt</h2>
+    <div class="card-grid">
+      <div class="card bad"><h4>📏 Tabelle zu breit</h4><p>Die Tabelle ist mindestens 510&nbsp;px breit. Auf dem Handy muss man seitlich wischen, und die Namen werden in den schmalen Spalten abgeschnitten.</p></div>
+      <div class="card bad"><h4>✋ Ziehen geht nicht</h4><p>Das Ziehen im Planer nutzt Drag-and-drop für die Maus. Handy-Browser unterstützen das mit dem Finger praktisch nicht. Dort bleibt nur der kleine <b>+</b>-Knopf.</p></div>
+      <div class="card bad"><h4>👆 Knöpfe zu klein</h4><p><b>+</b> und <b>✉</b> sind 20–24&nbsp;px groß. Für Finger empfehlen Apple und Google mindestens 44–48&nbsp;px.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Vier Varianten zum Vergleichen</h2>
+    <p>Alle vier sind unten im Handy umschaltbar. Sie unterscheiden sich darin, wie viel man auf einmal sieht und wie man Ingenieure verschiebt.</p>
+    <div class="card-grid">
+      <div class="card ok"><h4><span class="vid">A</span> Karten</h4><p>Jeder Kriegsherr ist eine Karte über die volle Breite, Name groß oben, Ingenieure als große Zeilen darunter. Am übersichtlichsten, aber man scrollt viel (22 Karten).</p></div>
+      <div class="card ok"><h4><span class="vid">B</span> Kompakt</h4><p>Wie A, aber die Ingenieure stehen als Chips nebeneinander. Etwa doppelt so viele Kriegsherren auf einem Bildschirm, gut zum Durchschauen.</p></div>
+      <div class="card ok"><h4><span class="vid">C</span> Akkordeon</h4><p>Nur die Kriegsherren mit Anzahl und den Namen klein darunter. Antippen klappt einen auf. Gut, wenn man gezielt einen Kriegsherrn bearbeitet.</p></div>
+      <div class="card ok"><h4><span class="vid">D</span> Tippen &amp; Platzieren</h4><p>Ingenieur antippen, dann den Ziel-Kriegsherrn antippen. Unten steht, wer gerade ausgewählt ist. Das Verschieben geht am schnellsten, ganz ohne Ziehen und Menü.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Gilt für alle Varianten</h2>
+    <div class="card-grid">
+      <div class="card ok"><h4>👍 Daumenfreundlich</h4><p>Tippflächen mindestens 48&nbsp;px, Namen in 16–17&nbsp;px, lange Namen brechen um statt abgeschnitten zu werden. Menüs öffnen sich unten, wo der Daumen ist.</p></div>
+      <div class="card ok"><h4>📋 Aus einer Liste wählen</h4><p>„＋ Ingenieur hinzufügen“ öffnet eine Liste mit Suche und Filtern (Warteschlange, alle, nur R2). Steht der Spieler schon woanders, wird er verschoben.</p></div>
+      <div class="card ok"><h4>⠿ Ziehen am Griff</h4><p>Zusätzlich zum Tippen: am Griff anfassen und auf eine Karte ziehen, oder auf den Reiter „Warteschlange“. Geht mit Finger und Maus.</p></div>
+      <div class="card ok"><h4>↩ Rückgängig</h4><p>Nach jeder Änderung erscheint unten kurz „Rückgängig“. Wer sich vertippt, kann es sofort zurücknehmen.</p></div>
+    </div>
+  </section>
+
+  <section id="try">
+    <h2>Zum Ausprobieren</h2>
+    <div class="try">
+      <div class="try-help">
+        <p>Daten: Ivys Win-Win-Liste aus NxU1, Ränge vom 27.10. Gespeichert wird nichts, nach Neuladen ist alles wieder wie vorher.</p>
+        <ol>
+          <li>Wähle über dem Handy eine Variante <b>A–D</b>.</li>
+          <li>Tippe auf <b>＋ Ingenieur hinzufügen</b> bei einem Kriegsherrn mit 3 Ingenieuren, z.&nbsp;B. Muhammed.</li>
+          <li>Tippe auf einen Ingenieur und verschiebe ihn zu einem anderen Kriegsherrn. In D: Ingenieur antippen, dann Kriegsherrn antippen.</li>
+          <li>Zieh einen Ingenieur am Griff <b>⠿</b> auf eine andere Karte oder auf „Warteschlange“.</li>
+          <li>Probier unten den Knopf <b>Rückgängig</b> aus.</li>
+        </ol>
+        <div class="note">Am besten direkt am Handy öffnen. Auf schmalen Bildschirmen füllt die Vorschau dann die ganze Breite aus.</div>
+        <p>Gelber Strich links: Der Rang passt nicht zum Beruf (Rangcheck R2 = Ingenieur, R3 = Kriegsherr).</p>
+      </div>
+
+      <div>
+      <div class="variants" id="variants">
+        <button class="vbtn on" type="button" data-v="cards"><b>A</b>Karten</button>
+        <button class="vbtn" type="button" data-v="chips"><b>B</b>Kompakt</button>
+        <button class="vbtn" type="button" data-v="accordion"><b>C</b>Akkordeon</button>
+        <button class="vbtn" type="button" data-v="place"><b>D</b>Tippen &amp; Platzieren</button>
+      </div>
+      <div class="vdesc" id="vdesc"></div>
+      <div class="phone"><div class="screen" id="screen">
+        <div class="m-top">
+          <div class="m-title"><b>⚗ Berufeplaner</b></div>
+          <div class="m-sub" id="sub"></div>
+          <div class="m-tabs">
+            <button class="m-tab on" data-tab="kh" type="button">⚔ Kriegsherren</button>
+            <button class="m-tab" data-tab="queue" id="queueTab" type="button">Warteschlange<span class="cnt" id="qcnt">0</span></button>
+          </div>
+        </div>
+        <div class="m-list" id="list"></div>
+        <div class="veil" id="veil"></div>
+        <div class="sheet" id="sheet"><div class="sheet-grab"></div><div class="sheet-head" id="sheetHead"></div><div class="sheet-body" id="sheetBody"></div></div>
+        <div class="placebar" id="placebar"><span id="placeText"></span><button type="button" id="placeQueue">↩ Schlange</button><button type="button" id="placeCancel">✕</button></div>
+        <div class="toast" id="toast"><span id="toastText"></span><button type="button" id="undoBtn">Rückgängig</button></div>
+      </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Umsetzung im Hub</h2>
+    <ul>
+      <li>Die Kartenansicht kommt nur bei schmalem Bildschirm (unter ca. 700&nbsp;px). Am PC bleibt die Tabelle wie heute.</li>
+      <li>Gespeichert wird über dieselbe Schnittstelle wie heute (<code>save_beruf</code>). Am Server ändert sich nichts.</li>
+      <li>Rangwappen, Rangcheck-Hinweise und „Spieler fragen“ werden übernommen.</li>
+      <li>Rückgängig macht die letzte Änderung mit einer Gegenänderung rückgängig.</li>
+    </ul>
+    <div class="note">Offen: Welche Variante soll es werden? Man kann auch kombinieren, z.&nbsp;B. C als Startansicht und D zum Verschieben. Und reicht „Zum Kriegsherrn machen“ im Menü, oder braucht die Warteschlange zusätzlich eine eigene Liste „neuer Kriegsherr“?</div>
+  </section>
+
+  <div class="footer">lwhub &bull; Konzept Berufeplaner mobil &bull; Fragen an Lion Tooth (Server 776)</div>
+</div>
+
+<script>
+(function () {
+  const MAX = 4;
+  const RC = { 1: '#f0a500', 2: '#2ecb7a', 3: '#4a9eff', 4: '#e05545', 5: '#9b6dff' };
+  const R2 = 'ing'; // Rangcheck: R2 = Ingenieur, R3 = Kriegsherr
+
+  // Ivys Liste NxU1 (Name, Rang); erster Eintrag ist der Kriegsherr
+  const DATA = [
+    [['Sprassel',4],['Emiliiee',5],['Darkador',2],['Technodrome',2],['Oberbefehlshaber Tim',2]],
+    [['MR Payne',4],['kliothelast',4],['One more timel',2],['Stalmannen SWE',2],['elsword',2]],
+    [['Archie',4],['ivy',4],['Bavaria Nicki',2],['Bienenflüsterer',2],['SKsk0101',2]],
+    [['Lion Tooth',4],['Metriker',4],['Timimi1985',2],['MelonHead sr',2],['Rico Beskar',2]],
+    [['gil mother of wolves',3],['ooo Rowdy ooo',4],['Höabi',2],['Resoluke',2],['King Kenan',2]],
+    [['soroush64',3],['BratwurstHorn Benny',4],['Lolorm',2],['BiggieTheBandit',2],['Holly1811',2]],
+    [['Hubraum Hugo',3],['MannDesFeuers',4],['Jango111234',2],['WolleTheDragon',2],['Andre8103',2]],
+    [['KRÜMEL',3],['Sharkツ',2],['KanGal',2],['Mike6666',2],['Jackira',2]],
+    [['Conan u Little Beast',3],['Timbo45',2],['DzOnA',2],['Fatih43',2],['LMNTRiX',1]],
+    [['ITJA',3],['Hnvr81',2],['Stefan1211',2],['DoDome 90',2],['Jos44',1]],
+    [['Muhammed.',3],['FranŽ',2],['Roth the Redneck',2],['kzh22',2]],
+    [['Mr Jager Orbit',3],['Bronco BraTzeN',2],['IsaRich',2],['JbeeeeBaby',2]],
+    [['CUAgain',3],['Tarzan84',2],['Nussl7',2],['KOM1',2]],
+    [['wshbR',3],['Muller214',2],['Superman 73',2],['Kenny776',2]],
+    [['ZombieDaddy',3],['Der Große 85',2],['BlauesUfo',2],['LoubesS',2]],
+    [['C0T34Z',3],['Agathe Power',2],['nika',2],['Jarl Ulfhednar',2]],
+    [['Union Berlin 66',3],['Snowblinde',2],['kushminz',2],['strong base',2]],
+    [['Hackepeter Pierro',3],['Yoshi11188',2],['XX El Gore XX',2],['OachkáTzL',2]],
+    [['Zuchtferkel',3],['CoCotier',2],['Ulf216',2],['suizid0815',2]],
+    [['MonGeneral',1],['nicoland92',2],['The One Neo',2],['Atsss',2]],
+    [['El Docco',1],['Pipo2288',2],['Daniel8209',2],['Tacheslah',2]],
+    [['KrawallRudi',1],['Andy891',2],['Urmel aus dem Eis',2],['Boby1933',2]],
+  ];
+  const rank = {};
+  let state = { khs: [], queue: ['THELASTGRAYWOLF'] };
+  rank.THELASTGRAYWOLF = 3;
+  DATA.forEach(g => {
+    g.forEach(([n, r]) => { rank[n] = r; });
+    state.khs.push({ name: g[0][0], engs: g.slice(1).map(x => x[0]) });
+  });
+
+  let tab = 'kh', variant = 'cards', openKh = null, selected = null, undoStack = [];
+  const VDESC = {
+    cards: '<b>A Karten:</b> Kriegsherr oben, Ingenieure als große Zeilen darunter. Tippen öffnet ein Menü, am Griff ⠿ ziehen.',
+    chips: '<b>B Kompakt:</b> Ingenieure als Chips nebeneinander. Mehr Kriegsherren auf einen Blick, Tippen öffnet das Menü.',
+    accordion: '<b>C Akkordeon:</b> Nur die Kriegsherren als Liste mit Anzahl. Antippen klappt die Ingenieure auf, es ist immer nur einer offen.',
+    place: '<b>D Tippen &amp; Platzieren:</b> Erst einen Ingenieur antippen (auch aus der Warteschlange), dann den Kriegsherrn antippen, zu dem er soll. Ganz ohne Ziehen.',
+  };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const enc = s => encodeURIComponent(s);
+
+  function shield(n) {
+    const r = rank[n];
+    if (!r) return '';
+    return `<span class="sh"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="${RC[r]}" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>${r}</b></span>`;
+  }
+  function expected(n) {
+    const r = rank[n];
+    if (r === 2) return R2;
+    if (r === 3) return R2 === 'ing' ? 'kh' : 'ing';
+    return null;
+  }
+  function khOf(n) { return state.khs.find(k => k.engs.includes(n)); }
+
+  // ── Aenderungen (mit Rueckgaengig) ──
+  function change(fn, msg) {
+    undoStack.push(JSON.stringify(state));
+    fn();
+    render();
+    toast(msg, true);
+  }
+  function detach(n) {
+    state.queue = state.queue.filter(x => x !== n);
+    state.khs.forEach(k => { k.engs = k.engs.filter(x => x !== n); });
+  }
+  function assign(n, khName) {
+    const kh = state.khs.find(k => k.name === khName);
+    if (!kh || kh.engs.includes(n)) return;
+    if (kh.engs.length >= MAX) { toast(`${khName} hat schon ${MAX} Ingenieure`, false); return; }
+    change(() => { detach(n); kh.engs.push(n); }, `${n} → ${khName}`);
+  }
+  function toQueue(n) {
+    change(() => {
+      const kh = state.khs.find(k => k.name === n);
+      if (kh) { state.khs = state.khs.filter(k => k !== kh); state.queue.push(...kh.engs); }
+      detach(n);
+      state.queue.push(n);
+    }, `${n} → Warteschlange`);
+  }
+  function makeKh(n) {
+    change(() => { detach(n); state.khs.push({ name: n, engs: [] }); state.khs.sort((a, b) => a.name.localeCompare(b.name, 'de')); }, `${n} ist jetzt Kriegsherr`);
+  }
+
+  // ── Anzeige ──
+  function render() {
+    const engCount = state.khs.reduce((s, k) => s + k.engs.length, 0);
+    $('sub').textContent = `${state.khs.length} Kriegsherren · ${engCount} Ingenieure · max. ${MAX}`;
+    $('qcnt').textContent = state.queue.length;
+    document.querySelectorAll('.m-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+    document.querySelectorAll('.vbtn').forEach(b => b.classList.toggle('on', b.dataset.v === variant));
+    $('vdesc').innerHTML = VDESC[variant];
+    const placing = variant === 'place' && selected !== null;
+    $('screen').classList.toggle('placing', placing);
+    $('placebar').classList.toggle('on', placing);
+    if (placing) $('placeText').innerHTML = `<b>${esc(selected)}</b> ausgewählt – tippe auf einen Kriegsherrn`;
+    const list = $('list');
+    if (tab === 'queue') {
+      list.innerHTML = state.queue.length ? state.queue.map(n => {
+        const e = expected(n);
+        if (variant === 'place') {
+          return `<div class="q-row${e ? ' exp-' + e : ''}${selected === n ? ' sel' : ''}" data-act="select" data-n="${enc(n)}"><span style="width:6px"></span>${shield(n)}<span class="eng-name">${esc(n)}</span>
+            <button class="q-btn kh" type="button" data-act="makekh" data-n="${enc(n)}">⚔ KH</button></div>`;
+        }
+        return `<div class="q-row${e ? ' exp-' + e : ''}"><span style="width:6px"></span>${shield(n)}<span class="eng-name">${esc(n)}</span>
+          <button class="q-btn kh" type="button" data-act="makekh" data-n="${enc(n)}">⚔ KH</button>
+          <button class="q-btn" type="button" data-act="pickkh" data-n="${enc(n)}">⚗ zu …</button></div>`;
+      }).join('') : '<div class="empty">Alle Spieler sind eingeteilt.</div>';
+      return;
+    }
+    list.innerHTML = state.khs.map(k => {
+      const full = k.engs.length >= MAX;
+      const kWrong = expected(k.name) === 'ing';
+      const acc = variant === 'accordion', open = acc && openKh === k.name;
+      const headAct = placing ? ` data-act="place" data-n="${enc(k.name)}"` : acc ? ` data-act="toggle" data-n="${enc(k.name)}"` : '';
+      let h = `<div class="kh-card${open ? ' open' : ''}${full ? ' is-full' : ''}" data-kh="${enc(k.name)}"><div class="kh-head${acc ? ' tog' : ''}"${headAct}${kWrong ? ' style="box-shadow:inset 4px 0 0 var(--warning)"' : ''}>${shield(k.name)}<span class="kh-name">⚔ ${esc(k.name)}</span>${kWrong ? '<span class="flag">→ Ing.?</span>' : ''}<span class="cap${full ? ' full' : ''}">${k.engs.length}/${MAX}</span>`
+        + (acc ? '<span class="chev">›</span>' : `<button class="more" type="button" data-act="khmenu" data-n="${enc(k.name)}" aria-label="Menü">⋯</button>`) + '</div>';
+      if (acc && !open) {
+        h += k.engs.length ? `<div class="mini">${k.engs.map(esc).join(' · ')}</div>` : '';
+        return h + '</div>';
+      }
+      if (variant === 'chips') {
+        h += '<div class="chips">' + k.engs.map(n => `<button class="chip" type="button" data-act="engmenu" data-n="${enc(n)}">${shield(n)}${esc(n)}</button>`).join('')
+          + (full ? '' : `<button class="chip addc" type="button" data-act="pickeng" data-n="${enc(k.name)}">+ Ingenieur</button>`) + '</div>';
+      } else {
+        h += k.engs.map(n => {
+          const wrong = expected(n) === 'kh';
+          return `<div class="eng${wrong ? ' wrong' : ''}${selected === n ? ' sel' : ''}" data-act="${variant === 'place' ? 'select' : 'engmenu'}" data-n="${enc(n)}"><span class="grip" data-drag="${enc(n)}">⠿</span>${shield(n)}<span class="eng-name">${esc(n)}</span>${wrong ? '<span class="flag">← KH?</span>' : ''}${variant === 'place' ? '' : '<span style="color:#5b6573;font-size:20px;padding:0 10px">›</span>'}</div>`;
+        }).join('');
+        if (!full) h += `<button class="add" type="button" data-act="pickeng" data-n="${enc(k.name)}">＋ Ingenieur hinzufügen <span style="color:var(--text-muted);font-weight:400">(${MAX - k.engs.length} frei)</span></button>`;
+      }
+      return h + '</div>';
+    }).join('');
+  }
+
+  // ── Bottom Sheets ──
+  function openSheet(head, body) {
+    $('sheetHead').innerHTML = head;
+    $('sheetBody').innerHTML = body;
+    $('sheetBody').scrollTop = 0;
+    $('veil').classList.add('on');
+    $('sheet').classList.add('on');
+  }
+  function closeSheet() { $('veil').classList.remove('on'); $('sheet').classList.remove('on'); }
+  const btn = (act, n, icon, label, cls = '') => `<button class="sheet-btn ${cls}" type="button" data-act="${act}" data-n="${enc(n)}"><span class="i">${icon}</span>${label}</button>`;
+  const cancel = '<button class="sheet-btn cancel" type="button" data-act="close">Abbrechen</button>';
+
+  function engMenu(n) {
+    const kh = khOf(n);
+    openSheet(`${shield(n)} <b style="display:inline">${esc(n)}</b><small style="display:block">Ingenieur bei ${esc(kh ? kh.name : '–')}</small>`,
+      btn('pickkh', n, '↔', 'Zu anderem Kriegsherrn') + btn('makekh', n, '⚔', 'Zum Kriegsherrn machen') + btn('ask', n, '✉', 'Spieler fragen') + btn('toqueue', n, '↩', 'Zurück in die Warteschlange', 'danger') + cancel);
+  }
+  function khMenu(n) {
+    const kh = state.khs.find(k => k.name === n);
+    openSheet(`${shield(n)} <b style="display:inline">${esc(n)}</b><small style="display:block">Kriegsherr · ${kh.engs.length}/${MAX} Ingenieure</small>`,
+      (kh.engs.length < MAX ? btn('pickeng', n, '＋', 'Ingenieur hinzufügen') : '') + btn('ask', n, '✉', 'Spieler fragen') + btn('toqueue', n, '↩', 'Zurück in die Warteschlange (Ingenieure werden frei)', 'danger') + cancel);
+  }
+
+  // Ingenieur fuer einen Kriegsherrn aussuchen: Suche + Filter
+  let pickFor = null, pickFilter = 'queue';
+  function pickEng(khName) {
+    pickFor = khName;
+    const kh = state.khs.find(k => k.name === khName);
+    openSheet(`<b>Ingenieur für ${esc(khName)}</b><small>${kh.engs.length}/${MAX} belegt · antippen zum Zuordnen</small>`,
+      `<input class="search" id="pickSearch" type="search" placeholder="Name suchen …" autocomplete="off">
+       <div class="filters">${[['queue', 'Warteschlange'], ['all', 'Alle'], ['r2', 'Nur R2']].map(([f, l]) => `<button class="filter${pickFilter === f ? ' on' : ''}" type="button" data-act="filter" data-n="${f}">${l}</button>`).join('')}</div>
+       <div id="pickList"></div>` + cancel);
+    $('pickSearch').addEventListener('input', renderPick);
+    renderPick();
+  }
+  function renderPick() {
+    const q = ($('pickSearch')?.value || '').trim().toLowerCase();
+    let pool = pickFilter === 'queue' ? [...state.queue] : [...state.queue, ...state.khs.flatMap(k => k.engs)];
+    if (pickFilter === 'r2') pool = pool.filter(n => rank[n] === 2);
+    pool = pool.filter(n => !q || n.toLowerCase().includes(q)).sort((a, b) => a.localeCompare(b, 'de'));
+    $('pickList').innerHTML = pool.length ? pool.map(n => {
+      const kh = khOf(n);
+      const here = kh && kh.name === pickFor;
+      const where = here ? 'schon hier' : kh ? `bei ${esc(kh.name)} → wird verschoben` : 'Warteschlange';
+      const warn = expected(n) === 'kh' ? ' · <span style="color:var(--warning)">R3 = Kriegsherr</span>' : '';
+      return `<button class="pick" type="button" data-act="assign" data-n="${enc(n)}"${here ? ' disabled' : ''}>${shield(n)}<span class="pn"><b>${esc(n)}</b><small>${where}${warn}</small></span></button>`;
+    }).join('') : `<div class="empty">${pickFilter === 'queue' ? 'Warteschlange ist leer. Tipp auf „Alle“, um Ingenieure zu verschieben.' : 'Kein Treffer.'}</div>`;
+  }
+
+  // Kriegsherr fuer einen Spieler aussuchen
+  let moveWho = null;
+  function pickKh(n) {
+    moveWho = n;
+    const cur = khOf(n);
+    openSheet(`<b>${esc(n)} zuordnen zu …</b><small>Volle Kriegsherren sind ausgegraut</small>`,
+      state.khs.map(k => {
+        const full = k.engs.length >= MAX, here = cur && cur.name === k.name;
+        return `<button class="pick" type="button" data-act="movekh" data-n="${enc(k.name)}"${full || here ? ' disabled' : ''}>${shield(k.name)}<span class="pn"><b>⚔ ${esc(k.name)}</b><small>${here ? 'aktuell' : `${k.engs.length}/${MAX} Ingenieure`}</small></span></button>`;
+      }).join('') + cancel);
+  }
+
+  // ── Hinweis mit Rueckgaengig ──
+  let toastTimer;
+  function toast(msg, undoable) {
+    $('toastText').textContent = msg;
+    $('undoBtn').style.display = undoable ? '' : 'none';
+    $('toast').classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('toast').classList.remove('on'), 4500);
+  }
+  $('undoBtn').addEventListener('click', () => {
+    if (!undoStack.length) return;
+    state = JSON.parse(undoStack.pop());
+    render();
+    toast('Rückgängig gemacht', false);
+  });
+
+  // ── Klicks ──
+  $('screen').addEventListener('click', e => {
+    const el = e.target.closest('[data-act]');
+    if (!el || dragJustEnded) return;
+    const n = decodeURIComponent(el.dataset.n || '');
+    switch (el.dataset.act) {
+      case 'close': closeSheet(); break;
+      case 'engmenu': engMenu(n); break;
+      case 'khmenu': khMenu(n); break;
+      case 'pickeng': pickEng(n); break;
+      case 'pickkh': pickKh(n); break;
+      case 'filter': pickFilter = el.dataset.n; pickEng(pickFor); break;
+      case 'assign': closeSheet(); assign(n, pickFor); break;
+      case 'movekh': closeSheet(); assign(moveWho, n); break;
+      case 'makekh': closeSheet(); makeKh(n); break;
+      case 'toqueue': closeSheet(); toQueue(n); break;
+      case 'ask': closeSheet(); toast(`Text für ${n} kopiert (im Hub: „Spieler fragen“)`, false); break;
+      case 'toggle': openKh = openKh === n ? null : n; render(); break;
+      case 'select':
+        // Erneut antippen hebt die Auswahl auf; aus der Warteschlange direkt zu den Kriegsherren wechseln
+        selected = selected === n ? null : n;
+        if (selected && tab === 'queue') { tab = 'kh'; render(); $('list').scrollTop = 0; } else render();
+        break;
+      case 'place': {
+        const who = selected;
+        selected = null;
+        if (khOf(who)?.name === n) { render(); break; }
+        assign(who, n);
+        render();
+        break;
+      }
+    }
+  });
+  $('veil').addEventListener('click', closeSheet);
+  document.querySelectorAll('.m-tab').forEach(b => b.addEventListener('click', () => { if (dragJustEnded) return; tab = b.dataset.tab; render(); $('list').scrollTop = 0; }));
+  document.querySelectorAll('.vbtn').forEach(b => b.addEventListener('click', () => { variant = b.dataset.v; selected = null; openKh = null; render(); }));
+  $('placeCancel').addEventListener('click', () => { selected = null; render(); });
+  $('placeQueue').addEventListener('click', () => { const n = selected; selected = null; if (state.queue.includes(n)) render(); else toQueue(n); });
+
+  // ── Ziehen am Griff (Pointer Events: Finger und Maus) ──
+  let drag = null, dragJustEnded = false;
+  const screen = $('screen'), list = $('list');
+  screen.addEventListener('pointerdown', e => {
+    const g = e.target.closest('[data-drag]');
+    if (!g) return;
+    e.preventDefault();
+    g.setPointerCapture(e.pointerId);
+    const n = decodeURIComponent(g.dataset.drag);
+    const ghost = document.createElement('div');
+    ghost.className = 'ghost';
+    ghost.innerHTML = `${shield(n)}${esc(n)}`;
+    screen.appendChild(ghost);
+    drag = { n, g, ghost, target: null, moved: false };
+    screen.classList.add('dragging');
+    moveGhost(e);
+  });
+  function moveGhost(e) {
+    const r = screen.getBoundingClientRect();
+    drag.ghost.style.left = (e.clientX - r.left) + 'px';
+    drag.ghost.style.top = (e.clientY - r.top) + 'px';
+  }
+  function setTarget(el) {
+    if (drag.target === el) return;
+    if (drag.target) drag.target.classList.remove('drop-on', 'drop-full');
+    drag.target = el;
+    if (!el) return;
+    if (el.dataset.kh) {
+      const kh = state.khs.find(k => k.name === decodeURIComponent(el.dataset.kh));
+      const full = kh.engs.length >= MAX && !kh.engs.includes(drag.n);
+      el.classList.add(full ? 'drop-full' : 'drop-on');
+    } else {
+      el.classList.add('drop-on');
+    }
+  }
+  screen.addEventListener('pointermove', e => {
+    if (!drag) return;
+    drag.moved = true;
+    moveGhost(e);
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const card = under && under.closest('.kh-card');
+    const qtab = under && under.closest('#queueTab');
+    setTarget(card || qtab || null);
+    // Am Rand automatisch scrollen
+    const lr = list.getBoundingClientRect();
+    if (e.clientY < lr.top + 50) list.scrollTop -= 12;
+    else if (e.clientY > lr.bottom - 50) list.scrollTop += 12;
+  });
+  function endDrag(cancelled) {
+    if (!drag) return;
+    const { n, ghost, target, moved } = drag;
+    if (target) target.classList.remove('drop-on', 'drop-full');
+    ghost.remove();
+    screen.classList.remove('dragging');
+    drag = null;
+    if (!moved) return; // nur angetippt: Klick oeffnet das Menue
+    dragJustEnded = true;
+    setTimeout(() => { dragJustEnded = false; }, 50);
+    if (cancelled || !target) return;
+    if (target.id === 'queueTab') { if (!state.queue.includes(n)) toQueue(n); }
+    else assign(n, decodeURIComponent(target.dataset.kh));
+  }
+  screen.addEventListener('pointerup', () => endDrag(false));
+  screen.addEventListener('pointercancel', () => endDrag(true));
+
+  // Direktlink auf eine Variante: ?v=cards|chips|accordion|place
+  const qv = new URLSearchParams(location.search).get('v');
+  if (VDESC[qv]) variant = qv;
+  render();
+})();
+</script>
+</body>
+</html>

@@ -318,13 +318,13 @@ $auNav = function (string $active) use ($member): string {
 
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div class="wache-tabs">
-        <button class="wache-tab on" data-ev="w1" onclick="selectEventView(\'w1\', true)">Wache 1</button>
-        <button class="wache-tab" data-ev="w2" onclick="selectEventView(\'w2\', true)">Wache 2</button>
-        <button class="wache-tab" data-ev="w3" onclick="selectEventView(\'w3\', true)">Wache 3</button>
-        <button class="wache-tab" data-ev="wu" onclick="selectEventView(\'wu\', true)">Wüste</button>
-        <button class="wache-tab" data-ev="se" onclick="selectEventView(\'se\', true)">Spezial</button>
-        <button class="wache-tab" data-ev="vs" onclick="selectEventView(\'vs\', true)">VS</button>
-        <button class="wache-tab" data-ev="sp" onclick="selectEventView(\'sp\', true)">Spenden</button>
+        <button class="wache-tab on" data-ev="w1" onclick="selectEventView('w1', true)">Wache 1</button>
+        <button class="wache-tab" data-ev="w2" onclick="selectEventView('w2', true)">Wache 2</button>
+        <button class="wache-tab" data-ev="w3" onclick="selectEventView('w3', true)">Wache 3</button>
+        <button class="wache-tab" data-ev="wu" onclick="selectEventView('wu', true)">Wüste</button>
+        <button class="wache-tab" data-ev="se" onclick="selectEventView('se', true)">Spezial</button>
+        <button class="wache-tab" data-ev="vs" onclick="selectEventView('vs', true)">VS</button>
+        <button class="wache-tab" data-ev="sp" onclick="selectEventView('sp', true)">Spenden</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="flt-toggle" id="btn-event-done-bottom" title="Erfasste ans Ende sortieren (nochmal: ausblenden)" onclick="toggleEventDoneMode()">↓ Erfasste ans Ende</button>

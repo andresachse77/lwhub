@@ -7334,33 +7334,55 @@ async function loadErgebnis() {
   document.getElementById('ergebnis-legend').style.display = withRec ? 'flex' : 'none';
   const ptsOf = p => weeks.reduce((sum, yw) => { const e = p.entries[yw]; return sum + (e && !e.missing && !e.afk ? calcPoints(e.flags) : 0); }, 0);
 
-  // Empfehlungen berechnen und sortieren: Befördern zuerst, dann Herabstufen, dann Rest
   const rows = data.players.map(p => ({ player: p, rec: ergebnisRecommend(p, weeks), sum: ptsOf(p) }));
-  if (!withRec) rows.sort((a, b) => b.sum - a.sum || a.player.name.localeCompare(b.player.name)); // meiste Punkte zuerst
-  else rows.sort((a, b) => {
-    const order = { promote: 0, demote: 1, afk: 2, ok: 3, fixed: 4 };
-    const oa = order[a.rec.type] ?? 5;
-    const ob = order[b.rec.type] ?? 5;
-    if (oa !== ob) return oa - ob;
-    return a.player.name.localeCompare(b.player.name);
-  });
+  ergebnisState = { rows, weeks, withRec };
+  renderErgebnisTable();
+}
 
-  // Tabelle rendern
-  const weekHeaders = weeks.map(yw => `<th style="text-align:center;min-width:80px;">KW ${yw}</th>`).join('');
+// Sortierung der Punkte-Tabelle: Klick auf eine Spalte, nochmal = andersherum. 'default' = Empfehlungen
+// (Befoerdern, Herabstufen, Rest) bzw. ohne Empfehlungen die meisten Punkte zuerst.
+let ergebnisState = null;
+let ergebnisSort = { key: 'default', dir: 1 };
+function ergebnisSortBy(key) {
+  ergebnisSort = ergebnisSort.key === key ? { key, dir: -ergebnisSort.dir } : { key, dir: key === 'name' || key === 'default' ? 1 : -1 };
+  renderErgebnisTable();
+}
+window.ergebnisSortBy = ergebnisSortBy;
+
+function renderErgebnisTable() {
+  if (!ergebnisState) return;
+  const { rows, weeks, withRec } = ergebnisState;
+  const wrap = document.getElementById('ergebnis-table-wrap');
+  const recOrder = { promote: 0, demote: 1, afk: 2, ok: 3, fixed: 4 };
+  const weekPts = (r, yw) => { const e = r.player.entries[yw]; return e && !e.missing && !e.afk ? calcPoints(e.flags) : -1; };
+  const byName = (a, b) => a.player.name.localeCompare(b.player.name, 'de', { sensitivity: 'base' });
+  const { key, dir } = ergebnisSort;
+  const cmp = key === 'name' ? byName
+    : key === 'rank' ? (a, b) => a.player.rank - b.player.rank
+    : key === 'sum' ? (a, b) => a.sum - b.sum
+    : key === 'rec' ? (a, b) => (recOrder[a.rec.type] ?? 5) - (recOrder[b.rec.type] ?? 5)
+    : key.startsWith('kw:') ? (a, b) => weekPts(a, key.slice(3)) - weekPts(b, key.slice(3))
+    : withRec ? (a, b) => (recOrder[a.rec.type] ?? 5) - (recOrder[b.rec.type] ?? 5)
+    : (a, b) => b.sum - a.sum;
+  const sorted = [...rows].sort((a, b) => dir * cmp(a, b) || byName(a, b));
+
+  const th = (k, label, align = 'center') => {
+    const arrow = ergebnisSort.key === k ? (ergebnisSort.dir > 0 ? ' ▴' : ' ▾') : '';
+    return `<th onclick="ergebnisSortBy('${k}')" title="${escHtml(tr('Sortieren'))}" style="text-align:${align};padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;">${escHtml(label)}${arrow}</th>`;
+  };
   let html = `<table class="ergebnis-table" style="width:100%;border-collapse:collapse;font-size:0.85rem;">
     <thead>
       <tr>
-        <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Spieler'))}</th>
-        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Echter Rang'))}</th>
-        ${weekHeaders.replace(/(<th)/g, '$1 style="padding:6px 10px;border-bottom:1px solid var(--border);"')}
-        ${withRec ? `<th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Empfehlung'))}</th>
-        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Aktion'))}</th>`
-        : `<th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Summe'))}</th>`}
+        ${th('name', tr('Spieler'), 'left')}
+        ${th('rank', tr('Echter Rang'))}
+        ${weeks.map(yw => th('kw:' + yw, 'KW ' + yw)).join('')}
+        ${withRec ? th('rec', tr('Empfehlung')) + `<th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Aktion'))}</th>`
+          : th('sum', tr('Summe'))}
       </tr>
     </thead>
     <tbody>`;
 
-  for (const { player, rec, sum } of rows) {
+  for (const { player, rec, sum } of sorted) {
     const rankColor = RC[player.rank] || '#888';
     const recColor = rec.type === 'promote' ? '#2ecb7a' : rec.type === 'demote' ? '#e05545' : rec.type === 'afk' ? '#f0a500' : '#aaa';
     const weekCells = weeks.map(yw => ergebnisWeekCell(player.entries[yw], player.rank, withRec)).join('');

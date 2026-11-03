@@ -3840,7 +3840,7 @@ async function showPage(id, options = {}) {
       };
 
       await ensureCoreDataLoaded({ forceEntries: !entries.length });
-      if (safeId === 'w') selectEventView(activeEventView);
+      if (safeId === 'w') selectEventView(pickEventView());
       if (safeId === 'z') await zugLoadPage();
       if (safeId === 'zv') await window.zugRoLoadPage?.();
       if (safeId === 'bp') await window.berufePlannerLoadPage?.();
@@ -3909,7 +3909,7 @@ function renderAll(){
   if (!document.getElementById('page-d')) return; // R4 pages not yet injected
   renderDashboard();
   if(document.getElementById('page-e')?.classList.contains('active')) renderList();
-  if(document.getElementById('page-w')?.classList.contains('active')) selectEventView(activeEventView);
+  if(document.getElementById('page-w')?.classList.contains('active')) selectEventView(pickEventView());
   if(document.getElementById('page-v')?.classList.contains('active')) renderVerwaltung();
   if(document.getElementById('page-bp')?.classList.contains('active')) window.berufePlannerRender?.();
 }
@@ -5096,7 +5096,24 @@ function selectWache(n) {
   selectEventView('w' + n);
 }
 
-function selectEventView(view) {
+// Welche Event-Kategorie beim Oeffnen aufgeht: die selbst gewaehlte, solange sichtbar; sonst die erste sichtbare
+// mit Haekchen in dieser KW; sonst die erste sichtbare (bisher immer "Wache 1", auch wenn leer oder ausgeschaltet)
+const EVENT_VIEW_FLAGS = {
+  w1: ['wache1', 'wache1dmg'], w2: ['wache2', 'wache2dmg'], w3: ['wache3', 'wache3dmg'],
+  wu: ['wuesteAnmeldung', 'wuesteTeilnahme', 'wuesteFehlen'], se: ['seTeilnahme', 'seTop50', 'seTop20'],
+  vs: ['vsTop10', 'vsTop30', 'vsUnter50', 'vsSpar'], sp: ['spendeTop20', 'spendeUnter35k'],
+};
+let eventViewPicked = false;
+function pickEventView() {
+  updateEventTabVisibility();
+  const visible = [...document.querySelectorAll('.wache-tab')].filter(b => b.style.display !== 'none').map(b => b.dataset.ev);
+  if (eventViewPicked && visible.includes(activeEventView)) return activeEventView;
+  const withValues = visible.find(v => entries.some(e => (EVENT_VIEW_FLAGS[v] || []).some(k => e.flags[k])));
+  return withValues || (visible.includes(activeEventView) ? activeEventView : visible[0] || activeEventView);
+}
+
+function selectEventView(view, byUser = false) {
+  if (byUser) eventViewPicked = true;
   activeEventView = view;
   updateEventTabVisibility();
   document.querySelectorAll('.wache-tab').forEach(b => b.classList.toggle('on', b.dataset.ev === view));

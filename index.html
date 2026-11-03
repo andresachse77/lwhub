@@ -3803,7 +3803,8 @@ async function showPage(id, options = {}) {
   if (pageEl) pageEl.classList.add('active');
   // Update active tab (search all tab containers since R4 ones are injected later)
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(t => t.classList.remove('active'));
-  const tabEl = document.getElementById('tab-' + safeId);
+  // Dashboard gehoert zum Reiter "Auswertungen" (tab-r)
+  const tabEl = document.getElementById('tab-' + (safeId === 'd' ? 'r' : safeId));
   if (tabEl) tabEl.classList.add('active');
   if (safeId === 'sc') {
     // Scanner erst beim ersten Oeffnen laden (OCR-Modelle ~30 MB)
@@ -3873,7 +3874,7 @@ async function showPage(id, options = {}) {
   if (id === 'd') renderDashboard();
   if (id === 'e') renderList();
   if (id === 't') await renderTeamsPage();
-  if (id === 'r') {
+  if (id === 'r' && auView === 'punkte') {
     if (skipBattleLoader) {
       await loadErgebnis();
     } else {
@@ -7249,7 +7250,9 @@ function ergebnisWeekCell(entry, realRank, withRank = true) {
 
 // Auswertungen: Unteransicht waehlen. Trend und Server-Events (Scanner-Seiten) erst beim ersten Oeffnen laden,
 // mit der Allianz des Hubs.
+var auView = 'punkte'; // var: showPage liest es evtl. schon vor dieser Zeile – aktive Ansicht in page-r (Dashboard ist eine eigene Seite, page-d)
 function auShow(view) {
+  auView = view;
   document.querySelectorAll('#page-r [data-au]').forEach(b => b.classList.toggle('on', b.dataset.au === view));
   for (const v of ['punkte', 'trend', 'events']) {
     const el = document.getElementById('au-' + v);
@@ -7262,6 +7265,16 @@ function auShow(view) {
   }
 }
 window.auShow = auShow;
+
+// Leiste der Auswertungen (Dashboard, Punkte, Trend, Server-Events): das Dashboard ist page-d, der Rest page-r
+async function auOpen(view) {
+  if (view === 'dashboard') return showPage('d');
+  const wasOther = auView !== view;
+  auShow(view);
+  if (!document.getElementById('page-r')?.classList.contains('active')) await showPage('r');
+  else if (view === 'punkte' && wasOther) await loadErgebnis();
+}
+window.auOpen = auOpen;
 
 async function loadErgebnis() {
   const weeksN = parseInt(document.getElementById('ergebnis-weeks').value, 10) || 4;

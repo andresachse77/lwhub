@@ -1,4 +1,19 @@
-<?php // R4 Pages – nur nach verifiziertem Rank ≥4 ausgeliefert ?>
+<?php // R4 Pages – nur nach verifiziertem Rank ≥4 ausgeliefert
+// Leiste der Auswertungen: oben im Dashboard (page-d) und in page-r, $active = aktive Ansicht
+$auNav = function (string $active) use ($member): string {
+    $items = [['dashboard', '📋', 's_dashboard', 'Dashboard'], ['punkte', '🏅', 's_punkte_uebersicht', 'Punkte-Übersicht']];
+    if (scannerViewAllowed($member)) {
+        $items[] = ['trend', '📈', 's_scanner_trend', 'Kampfkraft-Trend'];
+        $items[] = ['events', '⚔', 's_server_events', 'Server-Events'];
+    }
+    $html = '<div class="filter-row au-nav" style="margin-bottom:12px;">';
+    foreach ($items as [$key, $icon, $i18n, $label]) {
+        $html .= '<button class="flt' . ($key === $active ? ' on' : '') . '" data-au="' . $key . '" onclick="auOpen(\'' . $key . '\')">'
+            . $icon . ' <span data-i18n="' . $i18n . '">' . $label . '</span></button>';
+    }
+    return $html . '</div>';
+};
+?>
 
 <!-- ═══ ZUG ═══ -->
 <div class="page" id="page-z">
@@ -181,6 +196,7 @@
 
 <!-- ═══ DASHBOARD ═══ -->
 <div class="page" id="page-d">
+  <?= $auNav('dashboard') ?>
 
   <div class="kw-nav" style="margin-bottom:1rem;">
     <button class="kw-btn" type="button" onclick="changeYearWeek(-1)" title="Vorherige Woche">‹</button>
@@ -397,13 +413,7 @@
 <!-- ═══ ERGEBNIS ═══ -->
 <!-- ═══ AUSWERTUNGEN: Punkte-Uebersicht (mit Rang-Empfehlungen nur bei Rang nach Punkten), Trend, Server-Events ═══ -->
 <div class="page" id="page-r">
-  <div class="filter-row au-nav" style="margin-bottom:12px;">
-    <button class="flt on" data-au="punkte" onclick="auShow('punkte')">🏅 <span data-i18n="s_punkte_uebersicht">Punkte-Übersicht</span></button>
-    <?php if (scannerViewAllowed($member)): ?>
-    <button class="flt" data-au="trend" onclick="auShow('trend')">📈 <span data-i18n="s_scanner_trend">Kampfkraft-Trend</span></button>
-    <button class="flt" data-au="events" onclick="auShow('events')">⚔ <span data-i18n="s_server_events">Server-Events</span></button>
-    <?php endif; ?>
-  </div>
+  <?= $auNav('punkte') ?>
   <?php if (scannerViewAllowed($member)): ?>
   <!-- Trend und Event-Auswertung aus dem Scanner, erst beim ersten Oeffnen geladen (auShow) -->
   <div id="au-trend" hidden>

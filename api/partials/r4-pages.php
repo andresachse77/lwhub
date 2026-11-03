@@ -361,6 +361,7 @@ $auNav = function (string $active) use ($member): string {
         <input type="time" id="se-scan-start" value="16:00" title="Start des Events">
         <span>–</span>
         <input type="time" id="se-scan-end" value="20:00" title="Ende des Events">
+        <span id="se-server-time" style="font-size:11px;color:var(--muted);" title="Im Spiel gilt die Serverzeit (UTC−2); bei uns verschiebt sie sich mit der Zeitumstellung"></span>
         <button class="flt-toggle" onclick="spezialSaveEvent()" title="Event für diese KW festlegen (für alle Allianzen des Servers)">💾 <span>Festlegen</span></button>
         <button class="flt-toggle" id="se-btn-none" onclick="spezialSetNoEvent()" title="In dieser KW gibt es auf dem Server kein Spezialevent">🚫 <span>Kein Event</span></button>
         <button class="flt-toggle" id="se-btn-skip" onclick="spezialToggleSkip()" title="Unsere Allianz wertet das Event dieser KW nicht aus (nur für diese Allianz)">⏸ <span>Nicht auswerten</span></button>

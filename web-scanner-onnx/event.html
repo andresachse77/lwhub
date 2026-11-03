@@ -83,6 +83,12 @@
       </section>
 
       <section class="panel">
+        <!-- Gespeicherte Spezialevents (Hub, Events → Spezial) durchblaettern wie Wochen -->
+        <div class="controls" id="evNav" hidden style="margin-bottom:10px;">
+          <button id="evPrev" class="btn btn-secondary" data-i18n-title="ev_nav_prev" title="Früheres Event">‹</button>
+          <span id="evNavLabel" style="font-weight:600;"></span>
+          <button id="evNext" class="btn btn-secondary" data-i18n-title="ev_nav_next" title="Späteres Event">›</button>
+        </div>
         <div class="controls">
           <label><span data-i18n="ev_day">Tag</span> <input type="date" id="evDate"></label>
           <label><span data-i18n="ev_start">Start</span> <input type="time" id="evStart" value="16:00"></label>
@@ -157,6 +163,49 @@ const signed = (v, f) => v == null ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : '�
 const signClass = (v) => v == null ? '' : v > 0 ? 'pos' : v < 0 ? 'neg' : '';
 const hhmm = (at) => at ? at.slice(11, 16) : '—';
 const pad = (n) => String(n).padStart(2, '0');
+// Serverzeit (Spielserver UTC−2) einer Ortszeit, wie im Hub (localToGameTime)
+const gameTime = (date, time) => {
+  const d = new Date(`${date}T${time}`);
+  const m = (((d.getUTCHours() * 60 + d.getUTCMinutes() - 120) % 1440) + 1440) % 1440;
+  return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+};
+
+// Gespeicherte Spezialevents des Servers (GET /special-events), neueste zuerst, ohne "kein Event"
+let savedEvents = [];
+async function loadSavedEvents(alliance) {
+  try {
+    const r = await fetch(`${activeApiUrl}/special-events?alliance=${encodeURIComponent(alliance)}`);
+    const d = await r.json();
+    savedEvents = (d.events || []).filter((e) => !e.no_event && e.event_date && e.start && e.end);
+  } catch { savedEvents = []; }
+}
+const formVal = (id) => document.getElementById(id).value;
+// Index des Events, das gerade im Formular steht (-1 = eigenes Zeitfenster)
+const currentEventIndex = () => savedEvents.findIndex((e) => e.event_date === formVal('evDate') && e.start === formVal('evStart') && e.end === formVal('evEnd'));
+// ‹ = frueher (weiter hinten in der Liste), › = spaeter
+const olderEvent = () => { const i = currentEventIndex(); return i >= 0 ? savedEvents[i + 1] : savedEvents.find((e) => e.event_date < formVal('evDate')); };
+const newerEvent = () => { const i = currentEventIndex(); return i >= 0 ? savedEvents[i - 1] : [...savedEvents].reverse().find((e) => e.event_date > formVal('evDate')); };
+function renderEventNav() {
+  const nav = document.getElementById('evNav');
+  nav.hidden = !savedEvents.length;
+  if (!savedEvents.length) return;
+  const ev = savedEvents[currentEventIndex()];
+  const date = formVal('evDate'), start = formVal('evStart'), end = formVal('evEnd');
+  const day = (d) => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: '2-digit' });
+  const server = `(${t('ev_server_time')} ${gameTime(date, start)}–${gameTime(date, end)})`;
+  document.getElementById('evNavLabel').textContent = ev
+    ? `KW ${ev.year_week % 100} · ${ev.title || t('ev_nav_untitled')} · ${day(date)} ${start}–${end} ${server}`
+    : `${t('ev_nav_custom')} · ${day(date)} ${start}–${end} ${server}`;
+  document.getElementById('evPrev').disabled = !olderEvent();
+  document.getElementById('evNext').disabled = !newerEvent();
+}
+function showSavedEvent(ev) {
+  if (!ev) return;
+  document.getElementById('evDate').value = ev.event_date;
+  document.getElementById('evStart').value = ev.start;
+  document.getElementById('evEnd').value = ev.end;
+  load();
+}
 const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 
 function evaluate(p) {
@@ -251,6 +300,7 @@ function saveForm() {
 
 async function load() {
   saveForm();
+  renderEventNav();
   const alliance = document.getElementById('allianceSelect').value;
   document.getElementById('linkScanner').href = `./`;
   document.getElementById('linkTrend').href = `trend.html?alliance=${encodeURIComponent(alliance)}`;
@@ -294,7 +344,9 @@ document.getElementById('evTable').addEventListener('click', (e) => {
 document.getElementById('searchInput').addEventListener('input', render);
 for (const id of ['thKills', 'thLoss']) document.getElementById(id).addEventListener('input', render);
 for (const id of ['evDate', 'evStart', 'evEnd', 'evAfter']) document.getElementById(id).addEventListener('change', load);
-document.getElementById('allianceSelect').addEventListener('change', load);
+document.getElementById('allianceSelect').addEventListener('change', async () => { await loadSavedEvents(document.getElementById('allianceSelect').value); load(); });
+document.getElementById('evPrev').addEventListener('click', () => showSavedEvent(olderEvent()));
+document.getElementById('evNext').addEventListener('click', () => showSavedEvent(newerEvent()));
 document.getElementById('btnReload').addEventListener('click', load);
 document.getElementById('accessGateRetry').addEventListener('click', load);
 document.getElementById('btnCopy').addEventListener('click', async () => {
@@ -317,6 +369,18 @@ document.getElementById('btnCopy').addEventListener('click', async () => {
   activeApiUrl = apiUrl;
   const wanted = url.get('alliance') || LwhubAccess.preferredAlliance();
   await LwhubAccess.fillOwnAlliances(document.getElementById('allianceSelect'), apiUrl, alliances, wanted, { view: true });
+  await loadSavedEvents(document.getElementById('allianceSelect').value);
+  // Ohne Vorgabe in der Adresse: das letzte gespeicherte Event, das schon begonnen hat
+  if (!url.get('date')) {
+    const now = new Date();
+    const nowKey = `${todayIso()}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const started = savedEvents.find((e) => `${e.event_date}T${e.start}` <= nowKey);
+    if (started) {
+      document.getElementById('evDate').value = started.event_date;
+      document.getElementById('evStart').value = started.start;
+      document.getElementById('evEnd').value = started.end;
+    }
+  }
   await load();
 })();
 </script>

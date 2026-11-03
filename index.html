@@ -5411,6 +5411,23 @@ function saturdayOfYearWeek(yw) {
   const monday = new Date(year, 0, 4 - ((jan4.getDay() || 7) - 1) + (week - 1) * 7);
   return isoDate(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 5));
 }
+// Ortszeit <-> Serverzeit (Spielserver UTC−2, wie scanGameTime). Events liegen im Spiel zu fester Serverzeit,
+// bei uns verschiebt sich die Uhrzeit mit der Zeitumstellung: 12:00 Server = 16:00 im Sommer, 15:00 im Winter.
+const GAME_UTC_OFFSET_MIN = -120;
+function localToGameTime(date, time) {
+  const d = new Date(`${date}T${time}`);
+  const m = (((d.getUTCHours() * 60 + d.getUTCMinutes() + GAME_UTC_OFFSET_MIN) % 1440) + 1440) % 1440;
+  return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+}
+function gameToLocalTime(date, gameTime) {
+  const [y, mo, da] = date.split('-').map(Number);
+  const [h, mi] = gameTime.split(':').map(Number);
+  const d = new Date(Date.UTC(y, mo - 1, da, h, mi) - GAME_UTC_OFFSET_MIN * 60000);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+// Uhrzeit eines frueheren Events auf einen anderen Tag uebertragen – gleiche Serverzeit, nicht gleiche Ortszeit
+const carryEventTime = (fromDate, time, toDate) => gameToLocalTime(toDate, localToGameTime(fromDate, time));
+
 // Spezialevents je KW (GET/POST /special-events): Name, Tag und Zeitfenster gelten fuer alle Allianzen
 // desselben Servers, "kein Event" ebenso; "nicht auswerten" legt jede Allianz fuer sich fest.
 let seEvents = { loaded: false, loading: false, byKw: new Map(), skipped: new Set(), titles: [], server: null };
@@ -5464,13 +5481,19 @@ function fillSpezialForm() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SE_EVENT_FORM_KEY) || '{}') || {}; } catch (_) {}
   const useEv = ev && !ev.no_event;
+  const date = useEv ? ev.event_date : saturdayOfYearWeek(kw);
+  // Zeiten des letzten Events ueber die Serverzeit uebernehmen (Zeitumstellung, siehe carryEventTime)
+  const carry = t => (last?.event_date && t ? carryEventTime(last.event_date, t, date) : null);
   document.getElementById('se-ev-title').value = useEv ? (ev.title || '') : '';
-  document.getElementById('se-scan-date').value = useEv ? ev.event_date : saturdayOfYearWeek(kw);
-  document.getElementById('se-scan-start').value = (useEv && ev.start) || last?.start || saved.start || '16:00';
-  document.getElementById('se-scan-end').value = (useEv && ev.end) || last?.end || saved.end || '20:00';
+  document.getElementById('se-scan-date').value = date;
+  document.getElementById('se-scan-start').value = (useEv && ev.start) || carry(last?.start) || saved.start || '16:00';
+  document.getElementById('se-scan-end').value = (useEv && ev.end) || carry(last?.end) || saved.end || '20:00';
 }
 function syncSpezialEvalLink() {
   const f = seForm();
+  const st = document.getElementById('se-server-time');
+  if (st) st.textContent = f.date && f.start && f.end
+    ? trf('Serverzeit {s}–{e}', { s: localToGameTime(f.date, f.start), e: localToGameTime(f.date, f.end) }) : '';
   const form = { date: f.date, start: f.start, end: f.end };
   try {
     const saved = JSON.parse(localStorage.getItem(SE_EVENT_FORM_KEY) || '{}') || {};

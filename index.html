@@ -198,6 +198,9 @@ body:has(#cs-dropdown.open) #logout-btn { display:none !important; }
 
 /* ── STAT CARDS ── */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+/* Rang nach Beruf (oder Punkte-Rang aus): Aufsteiger/Absteiger und Tendenz kommen aus der Punkte-Rechnung */
+body.no-points-rank .points-rank { display:none !important; }
+body.no-points-rank .stats { grid-template-columns: repeat(2, 1fr); }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
 .stat-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); margin-bottom: 6px; }
 .stat-num { font-family: 'Rajdhani', sans-serif; font-size: 36px; font-weight: 700; line-height: 1; }
@@ -4738,7 +4741,15 @@ function renderList(){
 })();
 
 // ── DASHBOARD ──
+// Punkte-Empfehlung (Aufsteiger/Absteiger, Tendenz) nur, wenn Raenge nach Punkten vergeben werden: Feature
+// "Rang nach Punkten" (ergebnis) an und kein Rangcheck nach Beruf – beides zusammen ergibt keinen Sinn (Handbuch)
+function rankByPoints() {
+  return isFeatureEnabled('ergebnis') && !isBerufRankCheckOn();
+}
+
 function renderDashboard(){
+  document.body.classList.toggle('no-points-rank', !rankByPoints());
+  if(!rankByPoints() && (activeFilter==='up'||activeFilter==='down')) activeFilter='all';
   if(entriesLoading && entries.length===0){
     document.getElementById('s-count').textContent='...';
     document.getElementById('prog-fill').style.width='0%';
@@ -4872,7 +4883,7 @@ function renderTable(){
     return `<tr class="${r.hasEntry?'':'dim'}${formerCls(r.name)}">
       <td style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--softer);">${r.hasEntry?pos:'·'}</td>
       <td style="font-weight:500;"><button class="member-jump" type="button" onclick="openMemberMe('${escName}')">${r.name}</button>${formerTag(r.name)}${isFixed(r.name)?` <span style="font-size:10px;color:var(--gold);">${R5.has(r.name)?'R5':'R4'}</span>`:''}</td>
-      <td>${rb}</td><td>${th}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;">${fh}</div></td><td>${sh}</td>
+      <td>${rb}</td><td class="points-rank">${th}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;">${fh}</div></td><td>${sh}</td>
     </tr>`;
   }).join('');
 }

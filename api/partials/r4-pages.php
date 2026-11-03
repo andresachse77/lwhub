@@ -191,8 +191,8 @@
   <div class="stats">
     <div class="stat"><div class="stat-label">Erfasst</div><div class="stat-num g" id="s-count">0</div><div class="stat-sub" id="s-count-sub">von 100 Mitgliedern</div></div>
     <div class="stat"><div class="stat-label">Warnungen</div><div class="stat-num r" id="s-warn">0</div><div class="stat-sub">Strafpunkte aktiv</div></div>
-    <div class="stat"><div class="stat-label">Aufsteiger</div><div class="stat-num gr" id="s-up">0</div><div class="stat-sub">Rank verbessert</div></div>
-    <div class="stat"><div class="stat-label">Absteiger</div><div class="stat-num b" id="s-down">0</div><div class="stat-sub">Rank verschlechtert</div></div>
+    <div class="stat points-rank"><div class="stat-label">Aufsteiger</div><div class="stat-num gr" id="s-up">0</div><div class="stat-sub">Rank verbessert</div></div>
+    <div class="stat points-rank"><div class="stat-label">Absteiger</div><div class="stat-num b" id="s-down">0</div><div class="stat-sub">Rank verschlechtert</div></div>
   </div>
 
   <div class="prog">
@@ -225,14 +225,14 @@
       <div class="filter-row" id="filterBar">
         <button class="flt on" data-f="all">Alle</button>
         <button class="flt" data-f="warn">⚠ Warnungen</button>
-        <button class="flt" data-f="up">↑ Aufsteiger</button>
-        <button class="flt" data-f="down">↓ Absteiger</button>
+        <button class="flt points-rank" data-f="up">↑ Aufsteiger</button>
+        <button class="flt points-rank" data-f="down">↓ Absteiger</button>
         <button class="flt" data-f="missing">○ Ausstehend</button>
       </div>
     </div>
     <div style="overflow-x:auto;">
       <table class="rtable">
-        <thead><tr><th>#</th><th>Mitglied</th><th>Rank</th><th>Tendenz</th><th>Features</th><th>Status</th></tr></thead>
+        <thead><tr><th>#</th><th>Mitglied</th><th>Rank</th><th class="points-rank">Tendenz</th><th>Features</th><th>Status</th></tr></thead>
         <tbody id="rankingBody"></tbody>
       </table>
     </div>

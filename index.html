@@ -5762,7 +5762,7 @@ async function vsImportFromScanner() {
       delete flags.vsTop10; delete flags.vsTop30; delete flags.vsUnter50; delete flags.vsSpar;
       if (p.place <= 10) flags.vsTop10 = true;
       if (p.place <= 30) flags.vsTop30 = true;
-      if (p.week_points < VS_SCANNER_MIN_POINTS) flags.vsUnter50 = true;
+      if (p.week_points < VS_SCANNER_MIN_POINTS && p.week_final) flags.vsUnter50 = true; // Strafe erst ab Samstags-Scan (isFinalWeekScan)
     }
     const same = ['vsTop10', 'vsTop30', 'vsUnter50', 'vsSpar'].every(k => !!current[k] === !!flags[k]);
     // Mittelfeld ohne Haekchen: trotzdem einen (leeren) Eintrag anlegen, sonst gilt der Spieler im
@@ -5779,6 +5779,8 @@ async function vsImportFromScanner() {
     trf('KW {kw}: {n} Spieler mit gescannten Wochenpunkten', { kw: kw % 100, n: data.players.filter(p => p.place != null).length }),
     trf('Gescannte Tage: {days} · Stand {time}', { days, time: lastScan }),
     missingSat ? tr('⚠ Samstag ist noch nicht gescannt – die Wochenpunkte sind evtl. noch nicht final.') : null,
+    (() => { const n = (data.players || []).filter(p => p.place != null && !p.week_final && p.week_points < VS_SCANNER_MIN_POINTS).length;
+      return n && !spar ? trf('⚠ {n} Spieler unter 43,2 Mio ohne Samstags-Scan der Wochenliste – noch keine Strafe.', { n }) : null; })(),
     '',
     spar ? tr('🐷 Sparwoche: höchstens 10 Mio je VS-Tag → Bonus, keine Top 10/Top 30, keine Strafe') : null,
     trf('Änderungen bei {n} Spielern:', { n: plan.length }),
@@ -5944,7 +5946,7 @@ async function spendeImportFromScanner() {
     const flags = { ...current };
     delete flags.spendeTop20; delete flags.spendeUnter35k;
     if (p.place <= SP_SCANNER_TOP) flags.spendeTop20 = true;
-    if (p.week_points < SP_SCANNER_MIN_POINTS) flags.spendeUnter35k = true;
+    if (p.week_points < SP_SCANNER_MIN_POINTS && p.week_final) flags.spendeUnter35k = true; // erst ab Samstags-Scan
     const same = ['spendeTop20', 'spendeUnter35k'].every(k => !!current[k] === !!flags[k]);
     if (!same || !entry) plan.push({ name, flags }); // leerer Eintrag fuers Mittelfeld, siehe vsImportFromScanner
   }
@@ -5958,6 +5960,8 @@ async function spendeImportFromScanner() {
     trf('Stand {time}', { time: fmtTime(data.last_week_scan || data.last_scan) }),
     !data.last_week_scan ? tr('⚠ Keine Wochen-Rangliste gescannt – Werte sind die Summe der gescannten Tage.') : null,
     fromDays && data.last_week_scan ? trf('⚠ {n} Spieler nur aus Tageswerten (nicht in der Wochen-Rangliste).', { n: fromDays }) : null,
+    (() => { const n = data.players.filter(p => !p.week_final && p.week_points < SP_SCANNER_MIN_POINTS).length;
+      return n ? trf('⚠ {n} Spieler unter 35K ohne Samstags-Scan der Wochenliste – noch keine Strafe.', { n }) : null; })(),
     '',
     trf('Änderungen bei {n} Spielern:', { n: plan.length }),
     `• 🏅 Top 20: ${count('spendeTop20')}`,

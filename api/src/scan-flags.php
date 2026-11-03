@@ -75,7 +75,7 @@ function scanWantedFlags(PDO $pdo, string $alliance, int $yearWeek, string $cate
                 if ($p['place'] === null) { $wanted[$p['player_id']] = null; continue; }
                 if ($p['place'] <= 10) $flags[] = 'vsTop10';
                 if ($p['place'] <= 30) $flags[] = 'vsTop30';
-                if ($p['week_points'] < SCAN_VS_MIN_POINTS) $flags[] = 'vsUnter50';
+                if ($p['week_points'] < SCAN_VS_MIN_POINTS && $p['week_final']) $flags[] = 'vsUnter50'; // Strafe erst ab Samstag
             }
             $wanted[$p['player_id']] = $flags;
         }
@@ -83,7 +83,7 @@ function scanWantedFlags(PDO $pdo, string $alliance, int $yearWeek, string $cate
         foreach (loadDonationWeek($pdo, $alliance, $yearWeek)['players'] as $p) {
             $flags = [];
             if ($p['place'] <= SCAN_DONATION_TOP) $flags[] = 'spendeTop20';
-            if ($p['week_points'] < SCAN_DONATION_MIN_POINTS) $flags[] = 'spendeUnter35k';
+            if ($p['week_points'] < SCAN_DONATION_MIN_POINTS && $p['week_final']) $flags[] = 'spendeUnter35k'; // erst ab Samstag
             $wanted[$p['player_id']] = $flags;
         }
     }

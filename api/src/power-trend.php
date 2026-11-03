@@ -94,9 +94,10 @@ function loadVsWeek(PDO $pdo, string $alliance, int $yearWeek): array {
     $lastScan = null;
     foreach ($stmt as $r) {
         $pid = $r['player_id'];
-        $players[$pid] ??= ['player_id' => $pid, 'name' => $r['current_name'], 'week_points' => null, 'days' => new stdClass()];
+        $players[$pid] ??= ['player_id' => $pid, 'name' => $r['current_name'], 'week_points' => null, 'week_final' => false, 'days' => new stdClass()];
         if ($r['metric_type'] === 'VS_WEEK') {
             $players[$pid]['week_points'] = (int)$r['value_numeric'];
+            $players[$pid]['week_final'] = isFinalWeekScan((string)$r['recorded_at'], $yearWeek);
         } else {
             $players[$pid]['days']->{(int)$r['game_day']} = (int)$r['value_numeric'];
             $daysScanned[(int)$r['game_day']] = true;
@@ -152,9 +153,10 @@ function loadDonationWeek(PDO $pdo, string $alliance, int $yearWeek): array {
     $lastWeekScan = null;
     foreach ($stmt as $r) {
         $pid = $r['player_id'];
-        $players[$pid] ??= ['player_id' => $pid, 'name' => $r['current_name'], 'week_points' => null, 'days' => new stdClass()];
+        $players[$pid] ??= ['player_id' => $pid, 'name' => $r['current_name'], 'week_points' => null, 'week_final' => false, 'days' => new stdClass()];
         if ($r['metric_type'] === 'DONATION_WEEK') {
             $players[$pid]['week_points'] = (int)$r['value_numeric'];
+            $players[$pid]['week_final'] = isFinalWeekScan((string)$r['recorded_at'], $yearWeek);
             if ($lastWeekScan === null || $r['recorded_at'] > $lastWeekScan) $lastWeekScan = $r['recorded_at'];
         } else {
             $players[$pid]['days']->{(int)$r['game_day']} = (int)$r['value_numeric'];
@@ -210,6 +212,19 @@ function handleSetSparwoche(PDO $pdo, string $alliance, array $body): never {
     ")->execute([$alliance, $value, $caller['name'] ?? ($caller['site_admin'] ? 'Site-Admin' : null)]);
 
     jsonOut(200, ['ok' => true, 'vs_sparwochen' => $value]);
+}
+
+/**
+ * Stammt ein Wochenwert aus einem Scan vom Samstag (Spieltag 6) oder spaeter? Erst dann ist er fuer eine
+ * Strafe (unter 43,2 Mio / unter 35K) belastbar – unter der Woche liegt fast jeder noch darunter, und ein
+ * Wert vom Dienstag, den der Samstags-Scan nicht erneuert hat, waere sicher zu niedrig. Gescannt wird meist
+ * nur bis Samstagabend, deshalb reicht Samstag. Die Top-Plaetze gelten auch frueher.
+ */
+function isFinalWeekScan(string $recordedAt, int $yearWeek): bool {
+    $ts = strtotime($recordedAt);
+    if ($ts === false) return false;
+    $t = scanGameTime($ts);
+    return $t['year_week'] > $yearWeek || ($t['year_week'] === $yearWeek && $t['game_day'] >= 6);
 }
 
 /** Kampfkraft absolut; Werte > 10^12 stammen aus dem alten Sync-Fehler (x 10^6) und werden zurueckgerechnet. */

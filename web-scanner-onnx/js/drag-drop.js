@@ -537,6 +537,26 @@ class CockpitState {
       statEl.className = assignedCount === total && total > 0 ? 'badge-stat success' : 'badge-stat warning';
     }
 
+    // Je Liste (Kampfkraft, VS-Tag, VS-Woche, Spenden, Kills): wie viele Mitglieder dort schon einen Wert haben.
+    // "Erfasst" oben steht schon nach der ersten Liste auf voll – hier sieht man live, wo noch Leute fehlen.
+    const listsEl = document.getElementById('statLists');
+    if (listsEl) {
+      const perList = new Map();
+      for (const { tiles } of this.assigned.values()) {
+        const keys = new Set(tiles.map((t) => {
+          const c = t.card || t;
+          return c.vs ? this.vsKey(c) : (c.power ? 'POWER:' : null);
+        }).filter(Boolean));
+        for (const k of keys) perList.set(k, (perList.get(k) || 0) + 1);
+      }
+      listsEl.replaceChildren(...[...perList].map(([key, n]) => {
+        const el = document.createElement('div');
+        el.className = 'badge-stat ' + (n >= total ? 'success' : 'warning');
+        el.textContent = `${this.listLabel(key)} ${n} / ${total}`;
+        return el;
+      }));
+    }
+
     const poolCountEl = document.getElementById('statPoolCount');
     if (poolCountEl) {
       poolCountEl.textContent = `${this.scannedCardsPool.length} Kacheln im Pool`;
@@ -908,6 +928,14 @@ class CockpitState {
     if (vs.type === 'DONATION_WEEK') return `Spenden Woche · ${p}`;
     if (vs.type === 'DONATION_DAY') return `Spenden Tag · ${p}`;
     return `VS ${vs.type === 'VS_WEEK' ? 'Woche' : (vs.day || 'Tag')} · ${p} Pkt`;
+  }
+
+  // Name einer Liste zum Schluessel aus vsKey ("VS_DAY:Di" -> "VS Di"), "POWER:" = Kampfkraft/Mitgliederliste
+  listLabel(key) {
+    const [type, day] = key.split(':');
+    if (type === 'POWER') return 'Kampfkraft';
+    if (type === 'VS_DAY') return `VS ${day || 'Tag'}`;
+    return { VS_WEEK: 'VS Woche', KILLS: 'Kills', DONATION_DAY: 'Spenden Tag', DONATION_WEEK: 'Spenden Woche' }[type] || type;
   }
 
   // Hauptwert einer Kachel: VS-Punkte, Kampfkraft oder HQ-Level

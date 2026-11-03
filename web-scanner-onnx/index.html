@@ -11,6 +11,7 @@
   #screenshotInput { display: none; }
   .rank-gap-box { background: var(--warning-soft); border: 1px solid var(--warning); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font-size: 12px; color: var(--text); display: flex; flex-direction: column; gap: 2px; }
   .rank-gap-box[hidden] { display: none; }
+  .status-lists { display: contents; }
   .rank-gap-box strong { color: var(--warning); font-weight: 600; }
   .workspace-split { position: relative; }
   .processing-progress { margin-bottom: 12px; }
@@ -58,6 +59,7 @@
       <div id="ocrStatusBadge" class="badge-stat warning" title="Texterkennung läuft lokal in diesem Browser – Screenshots verlassen den Rechner nicht.">OCR startet…</div>
       <div id="statPoolCount" class="badge-stat">0 Kacheln im Pool</div>
       <div id="statErfasst" class="badge-stat warning">0 / 0 Erfasst</div>
+      <div id="statLists" class="status-lists" title="Mitglieder mit Wert je gescannter Liste – unter voll: Liste noch einmal durchscrollen"></div>
       <div id="userBadge" class="badge-stat" hidden></div>
       <button id="btnSyncToLwHub" class="btn btn-success" disabled>🚀 Nach LWHub &uuml;bertragen</button>
     </div>
@@ -497,11 +499,12 @@ function noteRanks(result) {
   if (inView.size) rankGapsPending = true;
 }
 
-// Die Hinweise stehen in einem eigenen Kasten ueber dem Protokoll und werden nach jedem Durchlauf neu
-// geschrieben – im Protokoll wuerden sie beim naechsten Scan sofort wegrollen.
-function reportRankGaps() {
+// Die Hinweise stehen in einem eigenen Kasten ueber dem Protokoll – im Protokoll wuerden sie beim naechsten
+// Scan sofort wegrollen. Waehrend des Live-Scans (live = true) nach jeder Ansicht neu, damit man noch beim
+// Scrollen sieht, wo man zurueck muss; ins Protokoll erst am Ende eines Durchlaufs.
+function reportRankGaps(live = false) {
   if (!rankGapsPending) return;
-  rankGapsPending = false;
+  if (!live) rankGapsPending = false;
   const box = document.getElementById('rankGapBox');
   box.replaceChildren();
   for (const [label, counts] of seenRanks) {
@@ -519,11 +522,13 @@ function reportRankGaps() {
     const line = document.createElement('div');
     line.textContent = `${label}: Platz ${text}`;
     box.appendChild(line);
-    log(`⚠️ ${label}: Platz ${text} nicht erfasst.`);
+    if (!live) log(`⚠️ ${label}: Platz ${text} nicht erfasst.`);
   }
   if (box.childElementCount) {
     const head = document.createElement('strong');
-    head.textContent = '⚠️ Nicht erfasst – diese Stellen der Liste noch einmal langsam durchscrollen:';
+    head.textContent = live
+      ? '⚠️ Bisher übersprungen – noch einmal hochscrollen und langsam durch diese Stellen:'
+      : '⚠️ Nicht erfasst – diese Stellen der Liste noch einmal langsam durchscrollen:';
     box.prepend(head);
   }
   box.hidden = box.childElementCount === 0;
@@ -531,6 +536,7 @@ function reportRankGaps() {
 
 function processOcrResult(img, result) {
   noteRanks(result);
+  if (captureStream) reportRankGaps(true);
   if (isValueMode(result.mode)) {
     // VS (Allianz-Duell): beim gemischten Wochen-Rang stehen auch Spieler der Gegner-Allianz in der Liste.
     // Kills und Spenden (Staerke-Rangliste) laufen als gleiche Wert-Kacheln, nur ohne Allianz-Kuerzel.

@@ -3787,7 +3787,7 @@ async function showPage(id, options = {}) {
     if (id === 'z' && !isFeatureEnabled('zug')) return startPageId();
     if (id === 'zv' && !isFeatureEnabled('zug')) return startPageId();
     if (id === 'bp' && !isFeatureEnabled('berufe')) return startPageId();
-    if (id === 'r' && !isFeatureEnabled('ergebnis')) return startPageId();
+    if (id === 'r' && !rankByPoints()) return startPageId(); // Ergebnis nur bei Rang nach Punkten
     if (id === 'p' && !isPointsGuideVisible()) return isFeatureEnabled('my_area') ? 'm' : 't';
     if (id === 'sc' && (!document.getElementById('tab-sc') || !isFeatureEnabled('scanner'))) return startPageId();
     if (!document.getElementById('page-' + id)) return startPageId();
@@ -6593,9 +6593,10 @@ function updateFeatureTabVisibility() {
 
   if (document.getElementById('tab-sc')) setTabVisible('tab-sc', isFeatureEnabled('scanner'));
   // Ergebnis (Rang-Empfehlungen aus Punkten): veraltet, seit R2/R3 dem Beruf folgen – nur noch per Schalter
-  if (document.getElementById('tab-r')) setTabVisible('tab-r', isFeatureEnabled('ergebnis'));
-  setElementVisible('page-r', isFeatureEnabled('ergebnis'));
-  if (!isFeatureEnabled('ergebnis') && document.getElementById('page-r')?.classList.contains('active')) showPage(startPageId(), { remember: false });
+  // Rang-Empfehlungen nach Punkten nicht, wenn der Beruf den Rang bestimmt (Rangcheck an), siehe rankByPoints()
+  if (document.getElementById('tab-r')) setTabVisible('tab-r', rankByPoints());
+  setElementVisible('page-r', rankByPoints());
+  if (!rankByPoints() && document.getElementById('page-r')?.classList.contains('active')) showPage(startPageId(), { remember: false });
 
   setElementVisible('page-z', isFeatureEnabled('zug'));
   setElementVisible('page-zv', isFeatureEnabled('zug'));
@@ -7187,7 +7188,7 @@ window.loadSeInactive = loadSeInactive;
 //   Beförderung: calcRanking(pts, realRank) > realRank in den letzten ≥2 Wochen (nicht AFK)
 //   Herabstufung: calcRanking(pts, realRank) < realRank in den letzten >2 Wochen (nicht AFK)
 //   AFK in einer relevanten Woche: sperrt die Empfehlung
-//   Nur ±1 Schritt, R4/R5 unver�ndert
+//   Nur ±1 Schritt, R4/R5 unverändert
 
 function ergebnisRecommend(playerData, weeks) {
   // weeks ist sortiert absteigend (neueste zuerst)
@@ -7273,7 +7274,7 @@ async function loadErgebnis() {
   const infoEl = document.getElementById('ergebnis-info');
   if (data.currentKwFiltered) {
     infoEl.style.display = 'block';
-    infoEl.textContent = `ℹ KW ${data.currentKw} ${tr('l�uft noch und wird erst ab Sonntag in die Bewertung einbezogen.')}`;
+    infoEl.textContent = `ℹ KW ${data.currentKw} ${tr('läuft noch und wird erst ab Sonntag in die Bewertung einbezogen.')}`;
   } else {
     infoEl.style.display = 'none';
   }
@@ -7384,7 +7385,7 @@ async function syncData(){
 }
 window.syncData = syncData;
 
-// ── PRESENCE PING (unabh�ngig vom Chat-Widget) ──
+// ── PRESENCE PING (unabhängig vom Chat-Widget) ──
 function startPresencePing(memberName, discordId, discordUsername) {
   async function ping() {
     try {
@@ -7740,7 +7741,7 @@ async function loadTransferAlliances() {
       const el = document.getElementById(id);
       if (!el) return;
       const current = el.value;
-      el.innerHTML = '<option value="">– w�hlen –</option>';
+      el.innerHTML = '<option value="">– wählen –</option>';
       alliances.forEach(a => {
         const opt = document.createElement('option');
         opt.value = a.short_name; opt.textContent = a.short_name;
@@ -9271,6 +9272,7 @@ async function revokeApiToken(tokenId, clientName) {
       });
       flagConfig = { ...flagConfig, ...next };
       if (alliance && adminFlagConfigCache[alliance]) adminFlagConfigCache[alliance] = { ...adminFlagConfigCache[alliance], ...next };
+      updateFeatureTabVisibility(); // Reiter "Ergebnis" haengt am Rangcheck (rankByPoints)
     } catch (err) {
       toast(tr('Fehler: ') + err.message, 'err');
     }

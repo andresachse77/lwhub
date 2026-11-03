@@ -195,6 +195,7 @@ body:has(#cs-dropdown.open) #logout-btn { display:none !important; }
 .scanner-frame-bar { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 6px 16px; font-size: 12px; color: var(--muted, #8b949e); }
 .scanner-frame-bar a { color: inherit; }
 #scanner-frame { display: block; width: 100%; height: calc(100vh - 56px - 32px); border: 0; }
+.au-frame { display: block; width: 100%; height: calc(100vh - 56px - 32px - 56px); border: 0; } /* Auswertungen: Trend, Server-Events */
 
 /* ── STAT CARDS ── */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
@@ -3787,7 +3788,6 @@ async function showPage(id, options = {}) {
     if (id === 'z' && !isFeatureEnabled('zug')) return startPageId();
     if (id === 'zv' && !isFeatureEnabled('zug')) return startPageId();
     if (id === 'bp' && !isFeatureEnabled('berufe')) return startPageId();
-    if (id === 'r' && !rankByPoints()) return startPageId(); // Ergebnis nur bei Rang nach Punkten
     if (id === 'p' && !isPointsGuideVisible()) return isFeatureEnabled('my_area') ? 'm' : 't';
     if (id === 'sc' && (!document.getElementById('tab-sc') || !isFeatureEnabled('scanner'))) return startPageId();
     if (!document.getElementById('page-' + id)) return startPageId();
@@ -6593,10 +6593,10 @@ function updateFeatureTabVisibility() {
 
   if (document.getElementById('tab-sc')) setTabVisible('tab-sc', isFeatureEnabled('scanner'));
   // Ergebnis (Rang-Empfehlungen aus Punkten): veraltet, seit R2/R3 dem Beruf folgen – nur noch per Schalter
-  // Rang-Empfehlungen nach Punkten nicht, wenn der Beruf den Rang bestimmt (Rangcheck an), siehe rankByPoints()
-  if (document.getElementById('tab-r')) setTabVisible('tab-r', rankByPoints());
-  setElementVisible('page-r', rankByPoints());
-  if (!rankByPoints() && document.getElementById('page-r')?.classList.contains('active')) showPage(startPageId(), { remember: false });
+  // Auswertungen (Punkte-Uebersicht, Trend, Server-Events) immer; die Rang-Empfehlungen darin nur bei
+  // Rang nach Punkten (rankByPoints, loadErgebnis)
+  if (document.getElementById('tab-r')) setTabVisible('tab-r', true);
+  setElementVisible('page-r', true);
 
   setElementVisible('page-z', isFeatureEnabled('zug'));
   setElementVisible('page-zv', isFeatureEnabled('zug'));
@@ -7235,16 +7235,33 @@ function ergebnisRecommend(playerData, weeks) {
   return { type: 'ok', label: '✔ Halten' };
 }
 
-function ergebnisWeekCell(entry, realRank) {
+function ergebnisWeekCell(entry, realRank, withRank = true) {
   if (!entry || entry.missing) return '<td style="color:#555;text-align:center;">—</td>';
   if (entry.afk) return '<td style="color:#f0a500;text-align:center;">⏸ AFK</td>';
   const pts = calcPoints(entry.flags);
+  if (!withRank) return `<td style="text-align:center;">${pts} Pkt</td>`; // Rang nach Beruf: kein Punkte-Rang
   const sug = calcRanking(pts, realRank);
   let color = '#aaa';
   if (sug > realRank) color = '#2ecb7a';
   else if (sug < realRank) color = '#e05545';
   return `<td style="text-align:center;color:${color};">${pts} Pkt<br><small style="color:${color};">R${sug}</small></td>`;
 }
+
+// Auswertungen: Unteransicht waehlen. Trend und Server-Events (Scanner-Seiten) erst beim ersten Oeffnen laden,
+// mit der Allianz des Hubs.
+function auShow(view) {
+  document.querySelectorAll('#page-r [data-au]').forEach(b => b.classList.toggle('on', b.dataset.au === view));
+  for (const v of ['punkte', 'trend', 'events']) {
+    const el = document.getElementById('au-' + v);
+    if (el) el.hidden = v !== view;
+  }
+  const frame = document.querySelector(`#au-${view} iframe[data-src]`);
+  if (frame && !frame.getAttribute('src')) {
+    const alliance = getEffectiveAllianceForApi();
+    frame.src = frame.dataset.src + '?' + new URLSearchParams({ ...(alliance ? { alliance } : {}), t: Date.now() });
+  }
+}
+window.auShow = auShow;
 
 async function loadErgebnis() {
   const weeksN = parseInt(document.getElementById('ergebnis-weeks').value, 10) || 4;
@@ -7281,9 +7298,16 @@ async function loadErgebnis() {
 
   const weeks = data.weeks; // absteigend sortiert (neueste zuerst)
 
+  // Rang nach Beruf (oder Punkte-Rang aus): nur die Punkte je Woche, ohne Empfehlung, Farben und Knoepfe
+  const withRec = rankByPoints();
+  document.getElementById('ergebnis-title').textContent = tr(withRec ? 'Punkte & Rang-Empfehlungen' : 'Punkte-Übersicht');
+  document.getElementById('ergebnis-legend').style.display = withRec ? 'flex' : 'none';
+  const ptsOf = p => weeks.reduce((sum, yw) => { const e = p.entries[yw]; return sum + (e && !e.missing && !e.afk ? calcPoints(e.flags) : 0); }, 0);
+
   // Empfehlungen berechnen und sortieren: Befördern zuerst, dann Herabstufen, dann Rest
-  const rows = data.players.map(p => ({ player: p, rec: ergebnisRecommend(p, weeks) }));
-  rows.sort((a, b) => {
+  const rows = data.players.map(p => ({ player: p, rec: ergebnisRecommend(p, weeks), sum: ptsOf(p) }));
+  if (!withRec) rows.sort((a, b) => b.sum - a.sum || a.player.name.localeCompare(b.player.name)); // meiste Punkte zuerst
+  else rows.sort((a, b) => {
     const order = { promote: 0, demote: 1, afk: 2, ok: 3, fixed: 4 };
     const oa = order[a.rec.type] ?? 5;
     const ob = order[b.rec.type] ?? 5;
@@ -7299,16 +7323,17 @@ async function loadErgebnis() {
         <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Spieler'))}</th>
         <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Echter Rang'))}</th>
         ${weekHeaders.replace(/(<th)/g, '$1 style="padding:6px 10px;border-bottom:1px solid var(--border);"')}
-        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Empfehlung'))}</th>
-        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Aktion'))}</th>
+        ${withRec ? `<th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Empfehlung'))}</th>
+        <th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Aktion'))}</th>`
+        : `<th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Summe'))}</th>`}
       </tr>
     </thead>
     <tbody>`;
 
-  for (const { player, rec } of rows) {
+  for (const { player, rec, sum } of rows) {
     const rankColor = RC[player.rank] || '#888';
     const recColor = rec.type === 'promote' ? '#2ecb7a' : rec.type === 'demote' ? '#e05545' : rec.type === 'afk' ? '#f0a500' : '#aaa';
-    const weekCells = weeks.map(yw => ergebnisWeekCell(player.entries[yw], player.rank)).join('');
+    const weekCells = weeks.map(yw => ergebnisWeekCell(player.entries[yw], player.rank, withRec)).join('');
 
     let actionCell = '<td></td>';
     if (rec.type === 'promote' || rec.type === 'demote') {
@@ -7327,8 +7352,8 @@ async function loadErgebnis() {
       <td style="padding:6px 10px;font-weight:500;">${player.name}</td>
       <td style="text-align:center;padding:6px 4px;color:${rankColor};">R${player.rank} · ${RL[player.rank]||''}</td>
       ${weekCells}
-      <td style="text-align:center;padding:6px 4px;color:${recColor};white-space:nowrap;">${rec.label}</td>
-      ${actionCell}
+      ${withRec ? `<td style="text-align:center;padding:6px 4px;color:${recColor};white-space:nowrap;">${rec.label}</td>
+      ${actionCell}` : `<td style="text-align:center;padding:6px 4px;font-weight:600;">${sum} Pkt</td>`}
     </tr>`;
   }
 
@@ -9272,7 +9297,7 @@ async function revokeApiToken(tokenId, clientName) {
       });
       flagConfig = { ...flagConfig, ...next };
       if (alliance && adminFlagConfigCache[alliance]) adminFlagConfigCache[alliance] = { ...adminFlagConfigCache[alliance], ...next };
-      updateFeatureTabVisibility(); // Reiter "Ergebnis" haengt am Rangcheck (rankByPoints)
+      if (document.getElementById('page-r')?.classList.contains('active')) loadErgebnis(); // Empfehlungen haengen am Rangcheck
     } catch (err) {
       toast(tr('Fehler: ') + err.message, 'err');
     }

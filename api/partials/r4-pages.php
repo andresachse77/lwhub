@@ -395,10 +395,29 @@
 </div>
 
 <!-- ═══ ERGEBNIS ═══ -->
+<!-- ═══ AUSWERTUNGEN: Punkte-Uebersicht (mit Rang-Empfehlungen nur bei Rang nach Punkten), Trend, Server-Events ═══ -->
 <div class="page" id="page-r">
-  <div class="panel" style="max-width:100%;">
+  <div class="filter-row au-nav" style="margin-bottom:12px;">
+    <button class="flt on" data-au="punkte" onclick="auShow('punkte')">🏅 <span data-i18n="s_punkte_uebersicht">Punkte-Übersicht</span></button>
+    <?php if (scannerViewAllowed($member)): ?>
+    <button class="flt" data-au="trend" onclick="auShow('trend')">📈 <span data-i18n="s_scanner_trend">Kampfkraft-Trend</span></button>
+    <button class="flt" data-au="events" onclick="auShow('events')">⚔ <span data-i18n="s_server_events">Server-Events</span></button>
+    <?php endif; ?>
+  </div>
+  <?php if (scannerViewAllowed($member)): ?>
+  <!-- Trend und Event-Auswertung aus dem Scanner, erst beim ersten Oeffnen geladen (auShow) -->
+  <div id="au-trend" hidden>
+    <div class="scanner-frame-bar"><a href="web-scanner-onnx/trend.html" target="_blank" rel="noopener" data-i18n="s_scanner_open_window_trend">In eigenem Fenster öffnen</a></div>
+    <iframe class="au-frame" data-src="web-scanner-onnx/trend.html" title="Kampfkraft-Trend"></iframe>
+  </div>
+  <div id="au-events" hidden>
+    <div class="scanner-frame-bar"><a href="web-scanner-onnx/event.html" target="_blank" rel="noopener" data-i18n="s_scanner_open_window_trend">In eigenem Fenster öffnen</a></div>
+    <iframe class="au-frame" data-src="web-scanner-onnx/event.html" title="Server-Events"></iframe>
+  </div>
+  <?php endif; ?>
+  <div class="panel" id="au-punkte" style="max-width:100%;">
     <div class="panel-head" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <div class="panel-title">📊 <span>Rang-Empfehlungen</span></div>
+      <div class="panel-title">🏅 <span id="ergebnis-title">Punkte-Übersicht</span></div>
       <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
         <label style="font-size:0.85rem;color:var(--muted);">Wochen:</label>
         <select id="ergebnis-weeks" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.85rem;">

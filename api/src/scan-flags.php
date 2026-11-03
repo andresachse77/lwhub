@@ -18,6 +18,9 @@ const SCAN_VS_MIN_POINTS = 43200000;
 const SCAN_VS_SPAR_MAX_PER_DAY = 10000000;
 const SCAN_DONATION_MIN_POINTS = 35000;
 const SCAN_DONATION_TOP = 20;
+// Hilfsaccounts von Thomas (Test-Accounts in NxU1/NxU2): bekommen nie Event-Haekchen aus dem Scanner.
+// Gleiche Liste in index.html (SCAN_FLAG_SKIP_NAMES).
+const SCAN_FLAG_SKIP_NAMES = ['Thomas1', 'Thomas2'];
 
 function ensureScanFlagLocksTable(PDO $pdo): void {
     $pdo->exec("
@@ -66,6 +69,7 @@ function scanWantedFlags(PDO $pdo, string $alliance, int $yearWeek, string $cate
     if ($category === 'vs') {
         $spar = isScanSparwoche($pdo, $alliance, $yearWeek);
         foreach (loadVsWeek($pdo, $alliance, $yearWeek)['players'] as $p) {
+            if (in_array($p['name'], SCAN_FLAG_SKIP_NAMES, true)) continue;
             $flags = [];
             if ($spar) {
                 $days = array_values((array)$p['days']);
@@ -81,6 +85,7 @@ function scanWantedFlags(PDO $pdo, string $alliance, int $yearWeek, string $cate
         }
     } elseif ($category === 'spende') {
         foreach (loadDonationWeek($pdo, $alliance, $yearWeek)['players'] as $p) {
+            if (in_array($p['name'], SCAN_FLAG_SKIP_NAMES, true)) continue;
             $flags = [];
             if ($p['place'] <= SCAN_DONATION_TOP) $flags[] = 'spendeTop20';
             if ($p['week_points'] < SCAN_DONATION_MIN_POINTS && $p['week_final']) $flags[] = 'spendeUnter35k'; // erst ab Samstag

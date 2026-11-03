@@ -5734,6 +5734,8 @@ window.vsSet = vsSet;
 // Platz 1–10: Top 10 + Top 30, Platz 11–30: Top 30, unter 43,2 Mio: Strafe. Andere Haekchen der Woche
 // (Wache, Wueste, …) bleiben unveraendert; Spieler ohne gescannten Wochenwert werden nicht angefasst.
 const VS_SCANNER_MIN_POINTS = 43200000;
+// Hilfsaccounts von Thomas: nie Event-Haekchen aus dem Scanner (wie SCAN_FLAG_SKIP_NAMES in api/src/scan-flags.php)
+const SCAN_FLAG_SKIP_NAMES = ['Thomas1', 'Thomas2'];
 async function vsImportFromScanner() {
   const token = (() => { try { return localStorage.getItem('discord_token'); } catch (_) { return null; } })();
   let data;
@@ -5748,7 +5750,7 @@ async function vsImportFromScanner() {
   const plan = [];
   for (const name of members) {
     const p = byName.get(name);
-    if (!p) continue;
+    if (!p || SCAN_FLAG_SKIP_NAMES.includes(name)) continue;
     const entry = entries.find(x => x.name === name);
     const current = entry?.flags || {};
     const flags = { ...current };
@@ -5940,7 +5942,7 @@ async function spendeImportFromScanner() {
   const plan = [];
   for (const name of members) {
     const p = byName.get(name);
-    if (!p) continue;
+    if (!p || SCAN_FLAG_SKIP_NAMES.includes(name)) continue;
     const entry = entries.find(x => x.name === name);
     const current = entry?.flags || {};
     const flags = { ...current };

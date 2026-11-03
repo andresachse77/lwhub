@@ -5746,24 +5746,25 @@ async function vsImportFromScanner() {
   for (const name of members) {
     const p = byName.get(name);
     if (!p) continue;
-    const want = {};
+    const entry = entries.find(x => x.name === name);
+    const current = entry?.flags || {};
+    const flags = { ...current };
     if (spar) {
       // Sparwoche: Bonus, wenn an keinem gescannten VS-Tag mehr als 10 Mio – ohne Tageswerte keine Aussage
       const dayValues = Object.values(p.days || {});
       if (!dayValues.length) continue;
-      if (Math.max(...dayValues) <= VS_SPAR_MAX_PER_DAY) want.vsSpar = true;
-    } else {
-      if (p.place == null) continue; // nur Summe der Tageswerte, nicht in der Wochen-Rangliste
-      if (p.place <= 10) want.vsTop10 = true;
-      if (p.place <= 30) want.vsTop30 = true;
-      if (p.week_points < VS_SCANNER_MIN_POINTS) want.vsUnter50 = true;
+      delete flags.vsTop10; delete flags.vsTop30; delete flags.vsUnter50; delete flags.vsSpar;
+      if (Math.max(...dayValues) <= VS_SPAR_MAX_PER_DAY) flags.vsSpar = true;
+    } else if (p.place != null) { // ohne Platz (nur Summe der Tageswerte) bleiben die VS-Haekchen, wie sie sind
+      delete flags.vsTop10; delete flags.vsTop30; delete flags.vsUnter50; delete flags.vsSpar;
+      if (p.place <= 10) flags.vsTop10 = true;
+      if (p.place <= 30) flags.vsTop30 = true;
+      if (p.week_points < VS_SCANNER_MIN_POINTS) flags.vsUnter50 = true;
     }
-    const current = entries.find(x => x.name === name)?.flags || {};
-    const flags = { ...current };
-    delete flags.vsTop10; delete flags.vsTop30; delete flags.vsUnter50; delete flags.vsSpar;
-    Object.assign(flags, want);
     const same = ['vsTop10', 'vsTop30', 'vsUnter50', 'vsSpar'].every(k => !!current[k] === !!flags[k]);
-    if (!same) plan.push({ name, flags, p });
+    // Mittelfeld ohne Haekchen: trotzdem einen (leeren) Eintrag anlegen, sonst gilt der Spieler im
+    // Dashboard als "Ausstehend" und die Woche fehlt in seinem Verlauf (Grundpunkte VS/Spenden zaehlen ja)
+    if (!same || !entry) plan.push({ name, flags, p });
   }
   if (!data.players?.length) { toast(tr('Für diese KW gibt es keine gescannten VS-Wochenpunkte.')); return; }
   const days = (data.days_scanned || []).map(vsDayName).join(', ') || '—';
@@ -5935,13 +5936,14 @@ async function spendeImportFromScanner() {
   for (const name of members) {
     const p = byName.get(name);
     if (!p) continue;
-    const current = entries.find(x => x.name === name)?.flags || {};
+    const entry = entries.find(x => x.name === name);
+    const current = entry?.flags || {};
     const flags = { ...current };
     delete flags.spendeTop20; delete flags.spendeUnter35k;
     if (p.place <= SP_SCANNER_TOP) flags.spendeTop20 = true;
     if (p.week_points < SP_SCANNER_MIN_POINTS) flags.spendeUnter35k = true;
     const same = ['spendeTop20', 'spendeUnter35k'].every(k => !!current[k] === !!flags[k]);
-    if (!same) plan.push({ name, flags });
+    if (!same || !entry) plan.push({ name, flags }); // leerer Eintrag fuers Mittelfeld, siehe vsImportFromScanner
   }
   if (!plan.length) { toast(tr('Spenden-Häkchen sind bereits auf dem Stand der Scanner-Daten.')); return; }
   const count = (k) => plan.filter(x => x.flags[k]).length;
@@ -5965,10 +5967,8 @@ async function spendeImportFromScanner() {
   let done = 0;
   for (const item of plan) {
     try {
-      const empty = Object.keys(item.flags).length === 0;
-      await apiPost(empty
-        ? { action: 'delete_entry', name: item.name }
-        : { action: 'save_wache', name: item.name, rank: PREV[item.name] || 3, flags: item.flags });
+      // auch ohne Haekchen speichern (nicht loeschen): gescannt = erfasst
+      await apiPost({ action: 'save_wache', name: item.name, rank: PREV[item.name] || 3, flags: item.flags });
       done++;
     } catch (err) {
       toast(`${item.name}: ${err.message}`);

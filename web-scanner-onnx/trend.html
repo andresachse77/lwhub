@@ -231,8 +231,10 @@ function render() {
     `<thead><tr>${th('name', 'Spieler')}${th('power', 'Kampfkraft', 'num')}<th>Verlauf</th>` +
     weeks.map((w) => `<th class="num" title="Woche ab ${w.monday}">${w.label}</th>`).join('') +
     `${th('weekly', 'Ø je Woche', 'num')}${th('volatility', 'Bewegung / Tag', 'num')}${th('sacrifice', 'Opfer', 'num')}${th('verdict', 'Einstufung')}</tr></thead><tbody>` +
-    rows.map((p) => `<tr>
-      <td><span class="rank-badge r${p.rank}">R${p.rank}</span> ${esc(p.name)}</td>
+    rows.map((p) => `<tr${p.former ? ' style="opacity:0.55"' : ''}>
+      <td><span class="rank-badge r${p.rank}">R${p.rank}</span> ${esc(p.name)}${p.former
+        ? ` <span class="badge-stat" title="Ehemaliges Mitglied – Werte aus seiner Zeit in dieser Allianz">${p.former === 'moved' && p.now_alliance ? 'jetzt ' + esc(p.now_alliance) : 'ausgetreten'}</span>`
+        : ''}</td>
       <td class="num">${mio(p.last?.v ?? p.current_power)}</td>
       <td>${sparkline(p, firstT, lastT)}</td>
       ${weeks.map((w) => `<td class="num">${weekCell(p.weeks[w.key])}</td>`).join('')}

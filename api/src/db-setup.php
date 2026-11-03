@@ -232,6 +232,9 @@ function ensureScannerV2Columns(PDO $pdo): void {
         // nicht: die Wochen-Ranglisten (loadVsWeek/loadDonationWeek) bilden sich danach. NULL = wie alliance.
         "ALTER TABLE player_metrics ADD COLUMN scan_alliance VARCHAR(50) NULL DEFAULT NULL",
         "ALTER TABLE player_metrics ADD KEY ix_metrics_scan_week (scan_alliance, metric_type, year_week)",
+        // Allianz, in der der Spieler in dieser Woche war. Wochen wandern beim Wechsel mit, origin_alliance nicht:
+        // danach richtet sich, in welcher Allianz die Woche angezeigt wird (week-roster.php). NULL = wie alliance.
+        "ALTER TABLE weekly_entries ADD COLUMN origin_alliance VARCHAR(50) NULL DEFAULT NULL",
         "ALTER TABLE api_tokens ADD COLUMN created_by VARCHAR(50) NULL DEFAULT NULL",
         "ALTER TABLE api_tokens ADD COLUMN expires_at DATETIME NULL DEFAULT NULL",
         "ALTER TABLE api_tokens ADD UNIQUE KEY uq_token_hash (token_hash)",

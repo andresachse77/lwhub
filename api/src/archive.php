@@ -29,8 +29,10 @@ function insertWeeklyEntryWithFlags(PDO $pdo, string $alliance, array $entry, ar
     if ($have->fetch()) return false;
     $pdo->prepare("INSERT INTO week_periods (alliance, year_week) VALUES (?, ?) ON DUPLICATE KEY UPDATE year_week = VALUES(year_week)")
         ->execute([$alliance, $entry['year_week']]);
-    $pdo->prepare("INSERT INTO weekly_entries (alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?)")
-        ->execute([$alliance, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $entry['base_rank_code'], $entry['final_rank_code'], $entry['afk'] ?? 0]);
+    // Herkunft behalten: beim Verschieben origin_alliance bzw. alliance der Quelle, aus dem Archiv dessen alliance
+    $origin = $entry['origin_alliance'] ?? $entry['alliance'] ?? $alliance;
+    $pdo->prepare("INSERT INTO weekly_entries (alliance, origin_alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+        ->execute([$alliance, $origin, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $entry['base_rank_code'], $entry['final_rank_code'], $entry['afk'] ?? 0]);
     foreach ($flagKeys as $flagKey) {
         $pdo->prepare("INSERT INTO weekly_entry_flags (alliance, entry_id, flag_key) SELECT ?, ?, flag_key FROM flags WHERE alliance = ? AND flag_key = ?")
             ->execute([$alliance, $entry['entry_id'], $alliance, $flagKey]);

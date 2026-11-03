@@ -150,8 +150,9 @@ function applyScanWeekFlags(PDO $pdo, string $alliance, int $yearWeek, string $c
             $rankOf->execute([$ea, $playerId]);
             $rank = safeRank((int)($rankOf->fetchColumn() ?: 3));
             $entryId = uuid4();
-            $pdo->prepare("INSERT INTO weekly_entries (alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, 0)")
-                ->execute([$ea, $entryId, $yearWeek, $playerId, $rank, $rank]);
+            // origin_alliance: die Allianz der Rangliste – dort war er in dieser Woche
+            $pdo->prepare("INSERT INTO weekly_entries (alliance, origin_alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?, 0)")
+                ->execute([$ea, $alliance, $entryId, $yearWeek, $playerId, $rank, $rank]);
             $result['created']++;
             $current = [];
         } else {

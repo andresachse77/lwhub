@@ -48,6 +48,7 @@ require_once __DIR__ . '/src/auth.php';
 require_once __DIR__ . '/src/caller-auth.php';
 require_once __DIR__ . '/src/power-trend.php';
 require_once __DIR__ . '/src/scan-flags.php';
+require_once __DIR__ . '/src/week-roster.php';
 require_once __DIR__ . '/src/event-compare.php';
 require_once __DIR__ . '/src/special-events.php';
 require_once __DIR__ . '/src/alliance.php';
@@ -272,6 +273,11 @@ try {
     // POST /scans/sync
     if ($method === 'POST' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'sync') {
         handleSyncScans($pdo, $ALLIANCE, $body, $PROTECTED_R4_NAMES);
+    }
+
+    // GET /week-roster?year_week=2642 – wer in dieser Woche in der Allianz war (week-roster.php)
+    if ($method === 'GET' && $path === '/week-roster') {
+        handleWeekRoster($pdo, $ALLIANCE);
     }
 
     // entries

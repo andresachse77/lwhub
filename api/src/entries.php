@@ -6,25 +6,54 @@ function assertHonorReadOnlyWriter(PDO $pdo, string $alliance, array $body): voi
     requireAllianceWriter($pdo, $alliance, 4, false, (string)($body['discord_id'] ?? ''));
 }
 
+/**
+ * GET /entries/{kw}. Mit ?with_former=1 (Hub) die Woche so, wie sie war: Eintraege nach origin_alliance – auch
+ * von Spielern, die inzwischen gewechselt sind (former 'moved', now_alliance) –, dazu archivierte Eintraege
+ * Ausgetretener (former 'archived'); Wochen, die ein Wechsler aus einer anderen Allianz mitgebracht hat, nicht.
+ * Ohne den Parameter wie bisher: alle Eintraege, die heute in der Allianz liegen.
+ */
 function handleGetEntries(PDO $pdo, string $alliance, int $kw): never {
+    $asWas = !empty($_GET['with_former']);
     $stmt = $pdo->prepare("
-        SELECT we.entry_id, we.final_rank_code, p.current_name
+        SELECT we.entry_id, we.alliance, we.final_rank_code, p.current_name
         FROM weekly_entries we
         JOIN players p ON p.alliance = we.alliance AND p.player_id = we.player_id
-        WHERE we.alliance = ? AND we.year_week = ? AND " . sqlNoHonor() . "
+        WHERE " . ($asWas ? "COALESCE(we.origin_alliance, we.alliance) = ?" : "we.alliance = ?") . " AND we.year_week = ? AND " . sqlNoHonor() . "
         ORDER BY p.current_name
     ");
     $stmt->execute([$alliance, $kw]);
     $rows = $stmt->fetchAll();
 
     $result = [];
+    $fs = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?");
     foreach ($rows as $row) {
-        $fs = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?");
-        $fs->execute([$alliance, $row['entry_id']]);
+        $fs->execute([$row['alliance'], $row['entry_id']]);
         $flags = [];
         foreach ($fs->fetchAll() as $f) $flags[$f['flag_key']] = true;
         // (object): ein Eintrag ohne Haekchen (Mittelfeld aus dem Scanner) kommt als {} statt [] an
-        $result[] = ['name' => $row['current_name'], 'rank' => (int)$row['final_rank_code'], 'flags' => (object)$flags];
+        $e = ['name' => $row['current_name'], 'rank' => (int)$row['final_rank_code'], 'flags' => (object)$flags];
+        if ($row['alliance'] !== $alliance) $e += ['former' => 'moved', 'now_alliance' => $row['alliance']];
+        $result[] = $e;
+    }
+
+    if ($asWas) {
+        $have = array_flip(array_column($result, 'name'));
+        try {
+            $arch = $pdo->prepare("
+                SELECT ae.archive_id, ae.entry_id, ae.final_rank_code, ap.current_name
+                FROM archived_weekly_entries ae JOIN archived_players ap ON ap.archive_id = ae.archive_id
+                WHERE ae.alliance = ? AND ae.year_week = ?
+            ");
+            $arch->execute([$alliance, $kw]);
+            $af = $pdo->prepare("SELECT flag_key FROM archived_entry_flags WHERE archive_id = ? AND entry_id = ?");
+            foreach ($arch->fetchAll() as $row) {
+                if (isset($have[$row['current_name']])) continue; // Name gehoert einem heutigen Mitglied
+                $af->execute([$row['archive_id'], $row['entry_id']]);
+                $flags = [];
+                foreach ($af->fetchAll() as $f) $flags[$f['flag_key']] = true;
+                $result[] = ['name' => $row['current_name'], 'rank' => (int)$row['final_rank_code'], 'flags' => (object)$flags, 'former' => 'archived'];
+            }
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
     }
     jsonOut(200, $result);
 }
@@ -96,8 +125,8 @@ function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array
                 ->execute([$rank, $rank, (!empty($flags['afk'])) ? 1 : 0, $alliance, $entryId]);
         } else {
             $entryId = uuid4();
-            $pdo->prepare("INSERT INTO weekly_entries (alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?)")
-                ->execute([$alliance, $entryId, $kw, $playerId, $rank, $rank, (!empty($flags['afk'])) ? 1 : 0]);
+            $pdo->prepare("INSERT INTO weekly_entries (alliance, origin_alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                ->execute([$alliance, $alliance, $entryId, $kw, $playerId, $rank, $rank, (!empty($flags['afk'])) ? 1 : 0]);
         }
 
         $pdo->prepare("DELETE FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?")->execute([$alliance, $entryId]);

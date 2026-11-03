@@ -616,6 +616,10 @@ body:has(#cs-dropdown.open) #logout-btn { display:none !important; }
 .wache-tab:hover:not(.on) { border-color:var(--line2); color:var(--text); }
 .wache-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
 .wache-tile { position:relative; border-radius:8px; border:1px solid var(--line); background:var(--card); overflow:hidden; transition:all 0.15s; }
+/* Ehemalige in alten Wochen (week-roster): grau, nur lesen */
+.wache-tile.former, .member-row.former, tr.former { opacity:0.5; filter:grayscale(0.7); }
+.wache-tile.former .wt-btn { pointer-events:none; }
+.former-tag { font-size:10px; font-weight:500; color:var(--softer); border:1px solid var(--softer); border-radius:6px; padding:0 4px; margin-left:4px; white-space:nowrap; }
 .wache-tile .wt-top { padding:8px 10px 4px; text-align:center; }
 .wache-tile .wt-name { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wache-tile .wt-rank { font-family:'Rajdhani',sans-serif; font-size:10px; color:#b5c0db; margin-top:1px; }
@@ -2478,7 +2482,7 @@ async function api(action, params = {}) {
     case 'entries': {
       const week = parseInt(params.kw, 10);
       if (!Number.isFinite(week)) return [];
-      return fetchJson(`/entries/${week}`);
+      return fetchJson(`/entries/${week}?with_former=1`); // auch Ehemalige der Woche (former)
     }
     case 'weights':
       return W;
@@ -2799,7 +2803,7 @@ function shiftYearWeek(yw, delta) {
 }
 
 // ── STATE ──
-const ENTRIES_CACHE_PREFIX = 'iny_entries_cache_v1_';
+const ENTRIES_CACHE_PREFIX = 'iny_entries_cache_v2_'; // v2: mit Ehemaligen (with_former)
 const ENTRIES_REFRESH_MS = 60 * 60 * 1000;
 
 let kw=currentYearWeek(), entries=[], activeFilter='all', listFilter='all', search='', edName=null, edFlags={}, edRank=3;
@@ -2884,9 +2888,50 @@ function applyEntriesData(data) {
       baseRank: baseRank,
       flags: flags,
       points: pts,
-      afk: e.afk || !!flags.afk
+      afk: e.afk || !!flags.afk,
+      former: e.former || null,            // 'archived' | 'moved': in dieser Woche dabei, heute nicht mehr
+      nowAlliance: e.now_alliance || null,
     });
   });
+}
+
+// Mitglieder der gewaehlten KW (GET /week-roster): wer damals in der Allianz war – Neue erst ab ihrer
+// Beitrittswoche, Ausgetretene und Gewechselte grau und nur lesen. Bis die Liste da ist: heutige Mitglieder.
+let weekRoster = { kw: null, names: [], former: new Map() };
+async function loadWeekRoster(forKw) {
+  try {
+    const data = await fetchJson(`/week-roster?year_week=${forKw}`);
+    const former = new Map();
+    const names = (data.members || []).map(m => {
+      if (m.former) former.set(m.name, { type: m.former, now: m.now_alliance || null });
+      if (PREV[m.name] == null) PREV[m.name] = m.rank || 3;
+      return m.name;
+    });
+    weekRoster = { kw: forKw, names, former };
+  } catch (_) {
+    weekRoster = { kw: null, names: [], former: new Map() };
+  }
+}
+function weekMembers() { return weekRoster.kw === kw ? weekRoster.names : members; }
+function formerInfo(name) {
+  if (weekRoster.kw === kw && weekRoster.former.has(name)) return weekRoster.former.get(name);
+  const e = entries.find(x => x.name === name);
+  return e?.former ? { type: e.former, now: e.nowAlliance } : null;
+}
+function isFormer(name) { return !!formerInfo(name); }
+function activeWeekMembers() { return weekMembers().filter(n => !isFormer(n)); }
+function formerCls(name) { return isFormer(name) ? ' former' : ''; }
+function formerTag(name) {
+  const f = formerInfo(name);
+  if (!f) return '';
+  const label = f.type === 'moved' && f.now ? trf('jetzt {a}', { a: f.now }) : tr('ausgetreten');
+  return ` <span class="former-tag" title="${escHtml(tr('Ehemaliges Mitglied – nur lesen'))}">${escHtml(label)}</span>`;
+}
+// Ehemalige lassen sich nicht bearbeiten: Speichern wuerde sie sonst als Mitglied neu anlegen
+function guardFormer(name) {
+  if (!isFormer(name)) return false;
+  toast(tr('Ehemaliges Mitglied – in dieser Woche nur lesen'));
+  return true;
 }
 
 async function loadMemberDiscordAvatar(name) {
@@ -2970,7 +3015,7 @@ async function loadMembers() {
 }
 
 async function loadEntries() {
-  const data = await api('entries', { kw });
+  const [data] = await Promise.all([api('entries', { kw }), loadWeekRoster(kw)]);
   applyEntriesData(data);
   entriesLoadedAt = Date.now();
   writeEntriesCache(kw, data || []);
@@ -3149,6 +3194,7 @@ function initR4Listeners() {
 
 // ── RANK BUTTONS ──
 function openEditor(name){
+  if(guardFormer(name)) return;
   edName=name;
   const e=entries.find(x=>x.name===name);
   edFlags=e?{...e.flags}:{};
@@ -4556,10 +4602,10 @@ function toggleDoneMode(){
 window.toggleDoneMode=toggleDoneMode;
 
 function renderList(){
-  const n=entries.length, pct=Math.round(n/members.length*100);
-  document.getElementById('listCounter').textContent=`${n} / ${members.length} ${tr('erfasst')} (${pct}%)`;
+  const wm=weekMembers(), n=entries.filter(e=>wm.includes(e.name)).length, pct=Math.round(n/wm.length*100);
+  document.getElementById('listCounter').textContent=`${n} / ${wm.length} ${tr('erfasst')} (${pct}%)`;
 
-  const shown=members.filter(name=>{
+  const shown=wm.filter(name=>{
     if(search&&!name.toLowerCase().includes(search)) return false;
     const e=entries.find(x=>x.name===name);
     if(listFilter==='missing') return !e;
@@ -4599,9 +4645,9 @@ function renderList(){
     const dimCls=(doneMode===1 && !!e)?' done-dim':'';
     const divider=(i===splitAt)?'<div class="done-divider">✓ Bereits erfasst</div>':'';
 
-    return divider+`<div class="member-row${dimCls}" data-name="${name.replace(/"/g,'&quot;')}" onclick="openEditor('${name.replace(/'/g,"\\'")}')">
+    return divider+`<div class="member-row${dimCls}${formerCls(name)}" data-name="${name.replace(/"/g,'&quot;')}" onclick="openEditor('${name.replace(/'/g,"\\'")}')">
       <span class="m-status">${statusIcon}</span>
-      <span class="m-name">${name}${fixedBadge}</span>
+      <span class="m-name">${name}${fixedBadge}${formerTag(name)}</span>
       <span class="m-rank">${rankBadge}</span>
       <span class="m-tags">${tags}</span>
     </div>`;
@@ -4710,8 +4756,10 @@ function renderDashboard(){
     return;
   }
 
-  const n=entries.length, pct=Math.round(n/members.length*100);
+  const wm=weekMembers(), n=entries.filter(e=>wm.includes(e.name)).length, pct=Math.round(n/wm.length*100);
   document.getElementById('s-count').textContent=n;
+  const countSub=document.getElementById('s-count-sub');
+  if(countSub) countSub.textContent=trf('von {n} Mitgliedern', { n: wm.length });
   document.getElementById('prog-fill').style.width=pct+'%';
   document.getElementById('prog-pct').textContent=pct+'%';
   document.getElementById('kw-d').textContent=kw;
@@ -4756,7 +4804,7 @@ function renderDashboard(){
     </div>`;}).join('');
 
   const dist={1:0,2:0,3:0,4:0,5:0};
-  members.forEach(name=>{
+  weekMembers().forEach(name=>{
     const r=isFixed(name)?fixedRank(name):(PREV[name]||3);
     dist[r]=(dist[r]||0)+1;
   });
@@ -4788,7 +4836,7 @@ function renderDashboard(){
 // ── RANKING TABLE ──
 function renderTable(){
   document.querySelectorAll('.flt[data-f]').forEach(b=>b.classList.toggle('on',b.dataset.f===activeFilter));
-  const rows=members.map(name=>{
+  const rows=weekMembers().map(name=>{
     const e=entries.find(x=>x.name===name);
     const baseRank=isFixed(name)?fixedRank(name):(PREV[name]||3);
     const newRank=e?e.rank:baseRank;
@@ -4821,9 +4869,9 @@ function renderTable(){
       ?`<span class="sdot sd-warn"></span><span style="color:var(--red);font-size:12px;">Warnung</span>`
       :`<span class="sdot sd-ok"></span><span style="color:var(--green);font-size:12px;">OK</span>`;
     const escName = r.name.replace(/'/g, "\\'");
-    return `<tr class="${r.hasEntry?'':'dim'}">
+    return `<tr class="${r.hasEntry?'':'dim'}${formerCls(r.name)}">
       <td style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--softer);">${r.hasEntry?pos:'·'}</td>
-      <td style="font-weight:500;"><button class="member-jump" type="button" onclick="openMemberMe('${escName}')">${r.name}</button>${isFixed(r.name)?` <span style="font-size:10px;color:var(--gold);">${R5.has(r.name)?'R5':'R4'}</span>`:''}</td>
+      <td style="font-weight:500;"><button class="member-jump" type="button" onclick="openMemberMe('${escName}')">${r.name}</button>${formerTag(r.name)}${isFixed(r.name)?` <span style="font-size:10px;color:var(--gold);">${R5.has(r.name)?'R5':'R4'}</span>`:''}</td>
       <td>${rb}</td><td>${th}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;">${fh}</div></td><td>${sh}</td>
     </tr>`;
   }).join('');
@@ -5063,7 +5111,7 @@ function renderWache() {
   const wDmgKey = 'wache' + activeWache + 'dmg';
 
   const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f[wKey]||f[wDmgKey]); };
-  const {list,splitAt} = applyEventDoneSort(members, isDone);
+  const {list,splitAt} = applyEventDoneSort(weekMembers(), isDone);
 
   let teilCount = 0;
   grid.innerHTML = list.map((name,i) => {
@@ -5082,20 +5130,21 @@ function renderWache() {
     const btnGood = `<button class="wt-btn ${(teil&&!dmg)?'on-good':''}" onclick="wacheSet('${esc}','good')" title="guter Schaden">${(teil&&!dmg)?'⚔ gut':'⚔'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
-    return divider+`<div class="wache-tile${dimCls} ${cls}">
+    return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
-        <div class="wt-name">${name}</div>
+        <div class="wt-name">${name}${formerTag(name)}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
       </div>
       <div class="wt-btns">${btnBad}${btnGood}</div>
     </div>`;
   }).join('');
 
-  document.getElementById('w-counter').textContent = `${teilCount} / ${members.length}`;
+  document.getElementById('w-counter').textContent = `${teilCount} / ${weekMembers().length}`;
 }
 
 // Kachel-Button: 'bad' = Teilnahme + kein DMG, 'good' = nur Teilnahme
 async function wacheSet(name, type) {
+  if (guardFormer(name)) return;
   const wKey = 'wache' + activeWache;
   const wDmgKey = 'wache' + activeWache + 'dmg';
   let e = entries.find(x => x.name === name);
@@ -5140,7 +5189,7 @@ function renderWueste() {
   const grid = document.getElementById('wueste-grid');
 
   const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.wuesteAnmeldung||f.wuesteTeilnahme||f.wuesteFehlen); };
-  const {list,splitAt} = applyEventDoneSort(members, isDone);
+  const {list,splitAt} = applyEventDoneSort(weekMembers(), isDone);
 
   let teilCount = 0;
   grid.innerHTML = list.map((name,i) => {
@@ -5161,20 +5210,21 @@ function renderWueste() {
     const btnFehl = `<button class="wt-btn ${fehl?'on-bad':''}" onclick="wuesteSet('${esc}','fehl')" title="Fehlen (Strafe)">${fehl?'⚠ fehlt':'💀'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
-    return divider+`<div class="wache-tile${dimCls} ${cls}">
+    return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
-        <div class="wt-name">${name}</div>
+        <div class="wt-name">${name}${formerTag(name)}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
       </div>
       <div class="wt-btns">${btnAnm}${btnTeil}${btnFehl}</div>
     </div>`;
   }).join('');
 
-  document.getElementById('wu-counter').textContent = `${teilCount} / ${members.length}`;
+  document.getElementById('wu-counter').textContent = `${teilCount} / ${weekMembers().length}`;
 }
 
 // Kachel-Button: Teilnahme/Fehlen sind gegenseitig exklusiv, Anmeldung unabhängig
 async function wuesteSet(name, type) {
+  if (guardFormer(name)) return;
   let e = entries.find(x => x.name === name);
   if (!e) {
     const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
@@ -5219,7 +5269,7 @@ function renderSpezial() {
   initSpezialScanForm();
 
   const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.seTeilnahme||f.seTop50||f.seTop20); };
-  const {list,splitAt} = applyEventDoneSort(members, isDone);
+  const {list,splitAt} = applyEventDoneSort(weekMembers(), isDone);
 
   let teilCount = 0;
   grid.innerHTML = list.map((name,i) => {
@@ -5240,20 +5290,21 @@ function renderSpezial() {
     const btn20  = `<button class="wt-btn ${t20?'on-gold':''}" onclick="spezialSet('${esc}','t20')" title="Top 20">${t20?'🏆 T20':'🏆'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
-    return divider+`<div class="wache-tile${dimCls} ${cls}">
+    return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
-        <div class="wt-name">${name}</div>
+        <div class="wt-name">${name}${formerTag(name)}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
       </div>
       <div class="wt-btns">${btnTeil}${btn50}${btn20}</div>
     </div>`;
   }).join('');
 
-  document.getElementById('se-counter').textContent = `${teilCount} / ${members.length}`;
+  document.getElementById('se-counter').textContent = `${teilCount} / ${weekMembers().length}`;
 }
 
 // Hierarchie: Top 20 impliziert Top 50 impliziert Teilnahme (beim Einschalten)
 async function spezialSet(name, type) {
+  if (guardFormer(name)) return;
   let e = entries.find(x => x.name === name);
   if (!e) {
     const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
@@ -5528,7 +5579,7 @@ async function spezialImportFromScanner() {
 
   const plan = [];
   for (const r of rated) {
-    if (!members.includes(r.name)) continue;
+    if (!activeWeekMembers().includes(r.name)) continue;
     const current = entries.find(x => x.name === r.name)?.flags || {};
     const flags = { ...current };
     // Teilnahme wird nur gesetzt, nie entfernt (ohne Kills/Verlust kein sicherer Beleg fuers Fehlen)
@@ -5646,7 +5697,7 @@ function renderVS() {
   const maxDayOf = scan => Math.max(0, ...Object.values(scan?.days || {}));
 
   const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.vsUnter50||f.vsTop30||f.vsTop10||f.vsSpar) || !!scanOf(name); };
-  const {list,splitAt} = applyEventDoneSort(members, isDone);
+  const {list,splitAt} = applyEventDoneSort(weekMembers(), isDone);
 
   let doneCount = 0;
   grid.innerHTML = list.map((name,i) => {
@@ -5676,9 +5727,9 @@ function renderVS() {
     const btnT10   = `<button class="wt-btn ${t10?'on-gold':''}" onclick="vsSet('${esc}','t10')" title="Top 10">${t10?'🏆 T10':'🏆'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
-    return divider+`<div class="wache-tile${dimCls} ${cls}">
+    return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
-        <div class="wt-name">${name}</div>
+        <div class="wt-name">${name}${formerTag(name)}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
         <div class="wt-scan${scanCls}" title="${escHtml(tr(spar ? 'Höchster gescannter VS-Tageswert (Sparziel: höchstens 10 Mio)' : 'Gescannte VS-Wochenpunkte'))}">${scan ? scanInfo : '&nbsp;'}</div>
       </div>
@@ -5686,10 +5737,11 @@ function renderVS() {
     </div>`;
   }).join('');
 
-  document.getElementById('vs-counter').textContent = `${doneCount} / ${members.length}`;
+  document.getElementById('vs-counter').textContent = `${doneCount} / ${weekMembers().length}`;
 }
 
 async function vsSet(name, type) {
+  if (guardFormer(name)) return;
   let e = entries.find(x => x.name === name);
   if (!e) {
     const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
@@ -5748,7 +5800,7 @@ async function vsImportFromScanner() {
   const byName = new Map((data.players || []).map(p => [p.name, p]));
   const spar = isSparwoche();
   const plan = [];
-  for (const name of members) {
+  for (const name of activeWeekMembers()) {
     const p = byName.get(name);
     if (!p || SCAN_FLAG_SKIP_NAMES.includes(name)) continue;
     const entry = entries.find(x => x.name === name);
@@ -5775,7 +5827,7 @@ async function vsImportFromScanner() {
   const days = (data.days_scanned || []).map(vsDayName).join(', ') || '—';
   const missingSat = !(data.days_scanned || []).includes(6);
   const count = (k) => plan.filter(x => x.flags[k]).length;
-  const unknown = (data.players || []).filter(p => !members.includes(p.name)).length;
+  const unknown = (data.players || []).filter(p => !weekMembers().includes(p.name)).length;
   const lastScan = data.last_scan ? new Date(data.last_scan.replace(' ', 'T')).toLocaleString(uiLang(), { dateStyle: 'short', timeStyle: 'short' }) : '?';
   const msg = [
     trf('KW {kw}: {n} Spieler mit gescannten Wochenpunkten', { kw: kw % 100, n: data.players.filter(p => p.place != null).length }),
@@ -5858,7 +5910,7 @@ function renderSpende() {
   }
 
   const isDone = name => { const e=entries.find(x=>x.name===name); const f=e?e.flags:{}; return !!(f.spendeUnter35k||f.spendeTop20) || !!scanOf(name); };
-  const {list,splitAt} = applyEventDoneSort(members, isDone);
+  const {list,splitAt} = applyEventDoneSort(weekMembers(), isDone);
 
   let doneCount = 0;
   grid.innerHTML = list.map((name,i) => {
@@ -5879,9 +5931,9 @@ function renderSpende() {
     const btnTop20 = `<button class="wt-btn ${top20?'on-anm':''}" onclick="spendeSet('${esc}','top20')" title="Top 20 Spender (Bonus)">${top20?'🏅 T20':'🏅'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
-    return divider+`<div class="wache-tile${dimCls} ${cls}">
+    return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
-        <div class="wt-name">${name}</div>
+        <div class="wt-name">${name}${formerTag(name)}</div>
         <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
         <div class="wt-scan" title="${escHtml(tr(scan?.from_days ? 'Gescannte Spenden (Summe der Tageswerte, keine Wochen-Rangliste)' : 'Gescannte Wochenspenden'))}">${scanInfo}</div>
       </div>
@@ -5889,10 +5941,11 @@ function renderSpende() {
     </div>`;
   }).join('');
 
-  document.getElementById('sp-counter').textContent = `${doneCount} / ${members.length}`;
+  document.getElementById('sp-counter').textContent = `${doneCount} / ${weekMembers().length}`;
 }
 
 async function spendeSet(name, type) {
+  if (guardFormer(name)) return;
   let e = entries.find(x => x.name === name);
   if (!e) {
     const rank = isFixed(name) ? fixedRank(name) : (PREV[name] || 3);
@@ -5940,7 +5993,7 @@ async function spendeImportFromScanner() {
   if (!data.players?.length) { toast(tr('Für diese KW gibt es keine gescannten Spenden.')); return; }
   const byName = new Map(data.players.map(p => [p.name, p]));
   const plan = [];
-  for (const name of members) {
+  for (const name of activeWeekMembers()) {
     const p = byName.get(name);
     if (!p || SCAN_FLAG_SKIP_NAMES.includes(name)) continue;
     const entry = entries.find(x => x.name === name);
@@ -5954,7 +6007,7 @@ async function spendeImportFromScanner() {
   }
   if (!plan.length) { toast(tr('Spenden-Häkchen sind bereits auf dem Stand der Scanner-Daten.')); return; }
   const count = (k) => plan.filter(x => x.flags[k]).length;
-  const unknown = data.players.filter(p => !members.includes(p.name)).length;
+  const unknown = data.players.filter(p => !weekMembers().includes(p.name)).length;
   const fromDays = data.players.filter(p => p.from_days).length;
   const fmtTime = s => s ? new Date(s.replace(' ', 'T')).toLocaleString(uiLang(), { dateStyle: 'short', timeStyle: 'short' }) : '?';
   const msg = [

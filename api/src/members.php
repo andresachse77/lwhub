@@ -904,8 +904,9 @@ function archivePlayerInternal(PDO $pdo, string $alliance, string $playerId, ?st
         $entries->execute([$alliance, $playerId]);
         foreach ($entries->fetchAll() as $entry) {
             $brc = $entry['base_rank_code'] ?? $entry['final_rank_code'];
+            // alliance im Archiv = Allianz der Woche (origin_alliance), nicht die, in der er zuletzt war
             $pdo->prepare("INSERT INTO archived_weekly_entries (archive_id, entry_id, year_week, player_id, alliance, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-                ->execute([$archiveId, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $alliance, $brc, $entry['final_rank_code'], $entry['afk'] ?? 0]);
+                ->execute([$archiveId, $entry['entry_id'], $entry['year_week'], $entry['player_id'], $entry['origin_alliance'] ?? $alliance, $brc, $entry['final_rank_code'], $entry['afk'] ?? 0]);
             $flags = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?");
             $flags->execute([$alliance, $entry['entry_id']]);
             foreach ($flags->fetchAll() as $flag) {

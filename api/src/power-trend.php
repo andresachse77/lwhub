@@ -31,15 +31,44 @@ function handlePowerHistory(PDO $pdo, string $alliance): never {
         ];
     }
 
+    // Werte nach der Allianz, in der sie gescannt wurden: wer gewechselt hat, zaehlt hier nur fuer seine Zeit
+    // hier (dann mit former/now_alliance), ein Neuzugang erst ab seinem Wechsel; Ausgetretene mit ihren Werten
+    // bis zum Austritt (former 'archived'). Siehe week-roster.php.
     $stmt = $pdo->prepare("
         SELECT player_id, value_numeric, recorded_at
         FROM player_metrics
-        WHERE alliance = ? AND metric_type = 'POWER' AND recorded_at >= ?
+        WHERE COALESCE(scan_alliance, alliance) = ? AND metric_type = 'POWER' AND recorded_at >= ?
         ORDER BY recorded_at
     ");
     $stmt->execute([$alliance, $since . ' 00:00:00']);
+    $rows = $stmt->fetchAll();
+    $missing = array_values(array_diff(array_unique(array_column($rows, 'player_id')), array_keys($players)));
+    if ($missing) {
+        $in = implode(',', array_fill(0, count($missing), '?'));
+        $other = $pdo->prepare("SELECT player_id, alliance, current_name, current_rank_code, current_power, honor_role FROM players WHERE is_active = 1 AND player_id IN ($in)");
+        $other->execute($missing);
+        foreach ($other->fetchAll() as $p) {
+            if (normalizeHonorRole($p['honor_role'] ?? null) !== null) continue;
+            $players[$p['player_id']] = [
+                'player_id' => $p['player_id'], 'name' => $p['current_name'], 'rank' => (int)$p['current_rank_code'],
+                'honor_role' => null, 'current_power' => null, 'days' => [],
+                'former' => 'moved', 'now_alliance' => $p['alliance'],
+            ];
+        }
+        try {
+            $arch = $pdo->prepare("SELECT player_id, current_name, current_rank_code FROM archived_players WHERE player_id IN ($in) ORDER BY archived_at");
+            $arch->execute($missing);
+            foreach ($arch->fetchAll() as $p) {
+                if (isset($players[$p['player_id']]) && empty($players[$p['player_id']]['former'])) continue;
+                $players[$p['player_id']] ??= [
+                    'player_id' => $p['player_id'], 'name' => $p['current_name'], 'rank' => (int)$p['current_rank_code'],
+                    'honor_role' => null, 'current_power' => null, 'days' => [], 'former' => 'archived', 'now_alliance' => null,
+                ];
+            }
+        } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    }
     $best = []; // player_id -> date -> [value, exact]
-    foreach ($stmt as $m) {
+    foreach ($rows as $m) {
         if (!isset($players[$m['player_id']])) continue;
         $value = normalizeStoredPower($m['value_numeric']);
         if ($value === null) continue;

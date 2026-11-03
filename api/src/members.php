@@ -200,7 +200,7 @@ function handleMemberHistory(PDO $pdo, string $alliance): never {
             'final_rank' => safeRank((int)$row['final_rank_code']),
             'afk'        => (bool)$row['afk'],
             'updated_at' => $row['updated_at'],
-            'flags'      => $flags,
+            'flags'      => (object)$flags, // ohne Haekchen {} statt []
         ];
     }
 
@@ -1497,6 +1497,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
         'ignored_other_alliance' => 0,
     ];
     $replacedPrevious = false;
+    $flagWeeks = []; // "KW:Kategorie" mit VS- bzw. Spenden-Werten in diesem Upload
     $details = [];
     $conflicts = [];
     $unmatched = [];
@@ -1884,6 +1885,21 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                     ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsType, $vsPoints, $vs['day'] ?? null, $source, $recordedAt, $yearWeek, $gameDay, $scanId, $readStatus, $observations]);
                 }
                 $summary[$countKey] = ($summary[$countKey] ?? 0) + 1;
+                $flagWeeks[$yearWeek . ':' . ($countKey === 'vs' ? 'vs' : 'spende')] = true;
+            }
+        }
+
+        // VS-/Spenden-Haekchen der betroffenen KW gleich mitsetzen (scan-flags.php). Ein Fehler dabei rollt
+        // nur diesen Teil zurueck – die Scan-Werte selbst sollen trotzdem gespeichert werden.
+        foreach (array_keys($flagWeeks) as $key) {
+            [$week, $category] = explode(':', $key);
+            $pdo->exec('SAVEPOINT scan_flags');
+            try {
+                $summary['scan_flags'][] = applyScanWeekFlags($pdo, $targetAlliance, (int)$week, $category);
+            } catch (\Throwable $flagError) {
+                $pdo->exec('ROLLBACK TO SAVEPOINT scan_flags');
+                error_log("applyScanWeekFlags {$targetAlliance} {$week} {$category}: " . $flagError->getMessage());
+                $summary['scan_flags'][] = ['year_week' => (int)$week, 'category' => $category, 'error' => $flagError->getMessage()];
             }
         }
 

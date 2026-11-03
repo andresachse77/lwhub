@@ -23,7 +23,8 @@ function handleGetEntries(PDO $pdo, string $alliance, int $kw): never {
         $fs->execute([$alliance, $row['entry_id']]);
         $flags = [];
         foreach ($fs->fetchAll() as $f) $flags[$f['flag_key']] = true;
-        $result[] = ['name' => $row['current_name'], 'rank' => (int)$row['final_rank_code'], 'flags' => $flags];
+        // (object): ein Eintrag ohne Haekchen (Mittelfeld aus dem Scanner) kommt als {} statt [] an
+        $result[] = ['name' => $row['current_name'], 'rank' => (int)$row['final_rank_code'], 'flags' => (object)$flags];
     }
     jsonOut(200, $result);
 }
@@ -104,6 +105,10 @@ function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array
             if (!$active) continue;
             $pdo->prepare("INSERT INTO weekly_entry_flags (alliance, entry_id, flag_key) VALUES (?, ?, ?)")->execute([$alliance, $entryId, $flagKey]);
         }
+        // Von Hand gesetzt (scan_lock) bzw. aus dem Scanner uebernommen (scan_unlock): steuert, ob der
+        // Scanner-Upload diese Kategorie bei dem Spieler in der KW neu setzt (scan-flags.php)
+        if (!empty($body['scan_lock'])) setScanFlagLock($pdo, $alliance, $kw, $playerId, (string)$body['scan_lock'], true);
+        if (!empty($body['scan_unlock'])) setScanFlagLock($pdo, $alliance, $kw, $playerId, (string)$body['scan_unlock'], false);
 
         if ($txStarted && $pdo->inTransaction()) {
             $pdo->commit();
@@ -118,7 +123,7 @@ function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array
 function handleDeleteEntry(PDO $pdo, string $alliance, int $kw, string $nameEncoded, array $body = []): never {
     assertHonorReadOnlyWriter($pdo, $alliance, $body);
     $name = rawurldecode($nameEncoded);
-    $stmt = $pdo->prepare("SELECT we.entry_id FROM weekly_entries we JOIN players p ON p.alliance = we.alliance AND p.player_id = we.player_id WHERE we.alliance = ? AND we.year_week = ? AND p.current_name = ?");
+    $stmt = $pdo->prepare("SELECT we.entry_id, we.player_id FROM weekly_entries we JOIN players p ON p.alliance = we.alliance AND p.player_id = we.player_id WHERE we.alliance = ? AND we.year_week = ? AND p.current_name = ?");
     $stmt->execute([$alliance, $kw, $name]);
     $row = $stmt->fetch();
     if (!$row) jsonOut(200, ['ok' => true]);
@@ -127,6 +132,7 @@ function handleDeleteEntry(PDO $pdo, string $alliance, int $kw, string $nameEnco
     try {
         $pdo->prepare("DELETE FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ?")->execute([$alliance, $row['entry_id']]);
         $pdo->prepare("DELETE FROM weekly_entries WHERE alliance = ? AND entry_id = ?")->execute([$alliance, $row['entry_id']]);
+        if (!empty($body['scan_lock'])) setScanFlagLock($pdo, $alliance, $kw, $row['player_id'], (string)$body['scan_lock'], true);
         $pdo->commit();
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {

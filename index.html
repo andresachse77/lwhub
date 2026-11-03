@@ -2519,6 +2519,8 @@ async function apiPost(data) {
           name: data.name,
           rank: data.rank != null ? data.rank : getEntryRankByName(data.name, 3),
           flags: data.flags || {},
+          scan_lock: data.scanLock || undefined,     // 'vs' | 'spende': von Hand gesetzt, Upload laesst es stehen
+          scan_unlock: data.scanUnlock || undefined, // aus dem Scanner uebernommen: Upload darf wieder setzen
           discord_id: authMember?.discord_id || ''
         })
       });
@@ -2606,7 +2608,7 @@ async function apiPost(data) {
       return fetchJson(`/entries/${kw}/${name}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ discord_id: authMember?.discord_id || '' })
+        body: JSON.stringify({ discord_id: authMember?.discord_id || '', scan_lock: data.scanLock || undefined })
       });
     }
     case 'save_beruf': {
@@ -2872,7 +2874,7 @@ function applyEntriesData(data) {
   entries = [];
   if (!data || data.error) return;
   data.forEach(e => {
-    const flags = e.flags || {};
+    const flags = (e.flags && !Array.isArray(e.flags)) ? e.flags : {}; // alter Cache: [] bei leeren Eintraegen
     const pts = e.points != null ? e.points : calcPoints(flags);
     const baseRank = e.rank || PREV[e.name] || 3;
     const nr = e.newRank != null ? e.newRank : calcRanking(pts, baseRank);
@@ -5717,9 +5719,10 @@ async function vsSet(name, type) {
   try {
     if (Object.keys(flags).length === 0) {
       entries = entries.filter(x => x.name !== name);
-      await apiPost({ action: 'delete_entry', name });
+      await apiPost({ action: 'delete_entry', name, scanLock: 'vs' });
     } else {
-      await apiPost({ action: 'save_wache', name, rank: PREV[name] || e.baseRank || 3, flags: { ...flags } });
+      // scanLock: von Hand gesetzt – der naechste Scanner-Upload ueberschreibt die VS-Haekchen dann nicht
+      await apiPost({ action: 'save_wache', name, rank: PREV[name] || e.baseRank || 3, flags: { ...flags }, scanLock: 'vs' });
     }
     await loadEntries();
     renderVS();
@@ -5800,7 +5803,7 @@ async function vsImportFromScanner() {
   let done = 0;
   for (const item of plan) {
     try {
-      await apiPost({ action: 'save_wache', name: item.name, rank: PREV[item.name] || 3, flags: item.flags });
+      await apiPost({ action: 'save_wache', name: item.name, rank: PREV[item.name] || 3, flags: item.flags, scanUnlock: 'vs' });
       done++;
     } catch (err) {
       toast(`${item.name}: ${err.message}`);
@@ -5909,9 +5912,9 @@ async function spendeSet(name, type) {
   try {
     if (Object.keys(flags).length === 0) {
       entries = entries.filter(x => x.name !== name);
-      await apiPost({ action: 'delete_entry', name });
+      await apiPost({ action: 'delete_entry', name, scanLock: 'spende' });
     } else {
-      await apiPost({ action: 'save_wache', name, rank: PREV[name] || e.baseRank || 3, flags: { ...flags } });
+      await apiPost({ action: 'save_wache', name, rank: PREV[name] || e.baseRank || 3, flags: { ...flags }, scanLock: 'spende' });
     }
     await loadEntries();
     renderSpende();
@@ -5968,7 +5971,7 @@ async function spendeImportFromScanner() {
   for (const item of plan) {
     try {
       // auch ohne Haekchen speichern (nicht loeschen): gescannt = erfasst
-      await apiPost({ action: 'save_wache', name: item.name, rank: PREV[item.name] || 3, flags: item.flags });
+      await apiPost({ action: 'save_wache', name: item.name, rank: PREV[item.name] || 3, flags: item.flags, scanUnlock: 'spende' });
       done++;
     } catch (err) {
       toast(`${item.name}: ${err.message}`);

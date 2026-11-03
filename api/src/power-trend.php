@@ -76,7 +76,11 @@ function handleVsWeek(PDO $pdo, string $alliance): never {
     requireScannerAccess($pdo, $alliance, null, true);
     $yearWeek = (int)($_GET['year_week'] ?? 0);
     if ($yearWeek < 1000 || $yearWeek > 9953) jsonOut(400, ['error' => 'Ungueltige Woche']);
+    jsonOut(200, ['ok' => true, 'alliance' => $alliance, 'year_week' => $yearWeek, ...loadVsWeek($pdo, $alliance, $yearWeek)]);
+}
 
+/** Daten fuer handleVsWeek, auch genutzt vom Scanner-Sync (applyScanWeekFlags in scan-flags.php). */
+function loadVsWeek(PDO $pdo, string $alliance, int $yearWeek): array {
     $stmt = $pdo->prepare("
         SELECT m.player_id, p.current_name, m.metric_type, m.game_day, m.value_numeric, m.recorded_at
         FROM player_metrics m
@@ -112,14 +116,11 @@ function handleVsWeek(PDO $pdo, string $alliance): never {
     }
     ksort($daysScanned);
 
-    jsonOut(200, [
-        'ok' => true,
-        'alliance' => $alliance,
-        'year_week' => $yearWeek,
+    return [
         'days_scanned' => array_keys($daysScanned),
         'last_scan' => $lastScan,
         'players' => $list,
-    ]);
+    ];
 }
 
 /**
@@ -132,7 +133,11 @@ function handleDonationWeek(PDO $pdo, string $alliance): never {
     requireScannerAccess($pdo, $alliance, null, true);
     $yearWeek = (int)($_GET['year_week'] ?? 0);
     if ($yearWeek < 1000 || $yearWeek > 9953) jsonOut(400, ['error' => 'Ungueltige Woche']);
+    jsonOut(200, ['ok' => true, 'alliance' => $alliance, 'year_week' => $yearWeek, ...loadDonationWeek($pdo, $alliance, $yearWeek)]);
+}
 
+/** Daten fuer handleDonationWeek, auch genutzt vom Scanner-Sync (applyScanWeekFlags in scan-flags.php). */
+function loadDonationWeek(PDO $pdo, string $alliance, int $yearWeek): array {
     $stmt = $pdo->prepare("
         SELECT m.player_id, p.current_name, m.metric_type, m.game_day, m.value_numeric, m.recorded_at
         FROM player_metrics m
@@ -171,15 +176,12 @@ function handleDonationWeek(PDO $pdo, string $alliance): never {
     unset($p);
     ksort($daysScanned);
 
-    jsonOut(200, [
-        'ok' => true,
-        'alliance' => $alliance,
-        'year_week' => $yearWeek,
+    return [
         'days_scanned' => array_keys($daysScanned),
         'last_scan' => $lastScan,
         'last_week_scan' => $lastWeekScan,
         'players' => $list,
-    ]);
+    ];
 }
 
 /**

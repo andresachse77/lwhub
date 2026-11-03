@@ -1,0 +1,152 @@
+<?php
+declare(strict_types=1);
+
+// ─── VS- und Spenden-Haekchen direkt beim Scanner-Upload ─────────────────────────────────────────
+// Nach jedem Sync mit VS- bzw. Spenden-Werten rechnet der Hub die Haekchen der betroffenen KW neu – die
+// gleichen Regeln wie "Aus Scanner uebernehmen" (vsImportFromScanner / spendeImportFromScanner in
+// index.html, dort bei Aenderungen mitziehen). Jeder gescannte Spieler bekommt einen Wocheneintrag, auch
+// ohne Haekchen, damit er im Dashboard als erfasst zaehlt.
+// Hat ein R4/R5 die Haekchen einer Kategorie bei einem Spieler von Hand gesetzt (Kachel im Event), steht
+// eine Sperre in scan_flag_locks: diese Kategorie ruehrt der Upload bei ihm in der KW nicht mehr an.
+// "Aus Scanner uebernehmen" hebt die Sperre wieder auf.
+
+const SCAN_FLAG_KEYS = [
+    'vs'     => ['vsTop10', 'vsTop30', 'vsUnter50', 'vsSpar'],
+    'spende' => ['spendeTop20', 'spendeUnter35k'],
+];
+const SCAN_VS_MIN_POINTS = 43200000;
+const SCAN_VS_SPAR_MAX_PER_DAY = 10000000;
+const SCAN_DONATION_MIN_POINTS = 35000;
+const SCAN_DONATION_TOP = 20;
+
+function ensureScanFlagLocksTable(PDO $pdo): void {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS scan_flag_locks (
+            alliance VARCHAR(50) NOT NULL,
+            year_week INT NOT NULL,
+            player_id CHAR(36) NOT NULL,
+            category VARCHAR(10) NOT NULL,
+            locked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (alliance, year_week, player_id, category)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+/** Sperre setzen (lock) oder aufheben (unlock) – aus dem Speichern/Loeschen eines Wocheneintrags. */
+function setScanFlagLock(PDO $pdo, string $alliance, int $yearWeek, string $playerId, string $category, bool $lock): void {
+    if (!isset(SCAN_FLAG_KEYS[$category])) return;
+    if ($lock) {
+        $pdo->prepare("INSERT INTO scan_flag_locks (alliance, year_week, player_id, category) VALUES (?, ?, ?, ?)
+                       ON DUPLICATE KEY UPDATE locked_at = CURRENT_TIMESTAMP")
+            ->execute([$alliance, $yearWeek, $playerId, $category]);
+    } else {
+        $pdo->prepare("DELETE FROM scan_flag_locks WHERE alliance = ? AND year_week = ? AND player_id = ? AND category = ?")
+            ->execute([$alliance, $yearWeek, $playerId, $category]);
+    }
+}
+
+function isScanSparwoche(PDO $pdo, string $alliance, int $yearWeek): bool {
+    try {
+        $stmt = $pdo->prepare("SELECT config_value FROM alliance_config WHERE alliance = ? AND config_key = 'vs_sparwochen'");
+        $stmt->execute([$alliance]);
+        return in_array($yearWeek, array_map('intval', explode(',', (string)($stmt->fetchColumn() ?: ''))), true);
+    } catch (\PDOException $e) {
+        if (isOptionalTableError($e)) return false;
+        throw $e;
+    }
+}
+
+/**
+ * Gewuenschte Haekchen je player_id fuer eine Kategorie und KW: [player_id => [flag_key, …]].
+ * null = nur erfasst, Haekchen bleiben (VS: nur Tageswerte, kein Platz in der Wochen-Rangliste).
+ * Spieler ohne verwertbare Werte fehlen (Sparwoche: ohne Tageswerte).
+ */
+function scanWantedFlags(PDO $pdo, string $alliance, int $yearWeek, string $category): array {
+    $wanted = [];
+    if ($category === 'vs') {
+        $spar = isScanSparwoche($pdo, $alliance, $yearWeek);
+        foreach (loadVsWeek($pdo, $alliance, $yearWeek)['players'] as $p) {
+            $flags = [];
+            if ($spar) {
+                $days = array_values((array)$p['days']);
+                if (!$days) continue;
+                if (max($days) <= SCAN_VS_SPAR_MAX_PER_DAY) $flags[] = 'vsSpar';
+            } else {
+                if ($p['place'] === null) { $wanted[$p['player_id']] = null; continue; }
+                if ($p['place'] <= 10) $flags[] = 'vsTop10';
+                if ($p['place'] <= 30) $flags[] = 'vsTop30';
+                if ($p['week_points'] < SCAN_VS_MIN_POINTS) $flags[] = 'vsUnter50';
+            }
+            $wanted[$p['player_id']] = $flags;
+        }
+    } elseif ($category === 'spende') {
+        foreach (loadDonationWeek($pdo, $alliance, $yearWeek)['players'] as $p) {
+            $flags = [];
+            if ($p['place'] <= SCAN_DONATION_TOP) $flags[] = 'spendeTop20';
+            if ($p['week_points'] < SCAN_DONATION_MIN_POINTS) $flags[] = 'spendeUnter35k';
+            $wanted[$p['player_id']] = $flags;
+        }
+    }
+    return $wanted;
+}
+
+/**
+ * Haekchen einer Kategorie in einer KW aus den Scan-Werten setzen. Nur die Haekchen dieser Kategorie werden
+ * ersetzt, andere bleiben; fehlt der Eintrag, wird er mit dem aktuellen Rang angelegt. Gesperrte Spieler
+ * (scan_flag_locks) bleiben unberuehrt. Kennt die Allianz die Haekchen nicht (Kategorie nicht eingerichtet),
+ * passiert nichts. Laeuft innerhalb der Transaktion des Syncs. Rueckgabe: Zaehler fuer die Sync-Antwort.
+ */
+function applyScanWeekFlags(PDO $pdo, string $alliance, int $yearWeek, string $category): array {
+    $result = ['year_week' => $yearWeek, 'category' => $category, 'changed' => 0, 'created' => 0, 'locked' => 0];
+    $keys = SCAN_FLAG_KEYS[$category] ?? [];
+    $in = implode(',', array_fill(0, count($keys), '?'));
+    $known = $pdo->prepare("SELECT flag_key FROM flags WHERE alliance = ? AND flag_key IN ($in)");
+    $known->execute([$alliance, ...$keys]);
+    $knownKeys = array_column($known->fetchAll(), 'flag_key');
+    if (!$knownKeys) return $result;
+
+    $wanted = scanWantedFlags($pdo, $alliance, $yearWeek, $category);
+    if (!$wanted) return $result;
+
+    $locks = $pdo->prepare("SELECT player_id FROM scan_flag_locks WHERE alliance = ? AND year_week = ? AND category = ?");
+    $locks->execute([$alliance, $yearWeek, $category]);
+    $locked = array_flip(array_column($locks->fetchAll(), 'player_id'));
+
+    $pdo->prepare("INSERT INTO week_periods (alliance, year_week) VALUES (?, ?) ON DUPLICATE KEY UPDATE year_week = VALUES(year_week)")
+        ->execute([$alliance, $yearWeek]);
+    $findEntry = $pdo->prepare("SELECT entry_id FROM weekly_entries WHERE alliance = ? AND year_week = ? AND player_id = ?");
+    $entryFlags = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ? AND flag_key IN ($in)");
+    $rankOf = $pdo->prepare("SELECT current_rank_code FROM players WHERE alliance = ? AND player_id = ?");
+    $delFlags = $pdo->prepare("DELETE FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ? AND flag_key IN ($in)");
+    $addFlag = $pdo->prepare("INSERT INTO weekly_entry_flags (alliance, entry_id, flag_key) VALUES (?, ?, ?)");
+
+    foreach ($wanted as $playerId => $flags) {
+        if (isset($locked[$playerId])) { $result['locked']++; continue; }
+
+        $findEntry->execute([$alliance, $yearWeek, $playerId]);
+        $entryId = $findEntry->fetchColumn();
+        if ($entryId === false) {
+            $rankOf->execute([$alliance, $playerId]);
+            $rank = safeRank((int)($rankOf->fetchColumn() ?: 3));
+            $entryId = uuid4();
+            $pdo->prepare("INSERT INTO weekly_entries (alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, 0)")
+                ->execute([$alliance, $entryId, $yearWeek, $playerId, $rank, $rank]);
+            $result['created']++;
+            $current = [];
+        } else {
+            $entryFlags->execute([$alliance, $entryId, ...$keys]);
+            $current = array_column($entryFlags->fetchAll(), 'flag_key');
+        }
+        if ($flags === null) continue;
+        $flags = array_values(array_intersect($flags, $knownKeys));
+
+        $same = !array_diff($flags, $current) && !array_diff($current, $flags);
+        if ($same) continue;
+        $delFlags->execute([$alliance, $entryId, ...$keys]);
+        foreach ($flags as $flagKey) $addFlag->execute([$alliance, $entryId, $flagKey]);
+        $pdo->prepare("UPDATE weekly_entries SET updated_at = CURRENT_TIMESTAMP WHERE alliance = ? AND entry_id = ?")
+            ->execute([$alliance, $entryId]);
+        $result['changed']++;
+    }
+    return $result;
+}

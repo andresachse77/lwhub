@@ -47,6 +47,7 @@ require_once __DIR__ . '/src/db-setup.php';
 require_once __DIR__ . '/src/auth.php';
 require_once __DIR__ . '/src/caller-auth.php';
 require_once __DIR__ . '/src/power-trend.php';
+require_once __DIR__ . '/src/scan-flags.php';
 require_once __DIR__ . '/src/event-compare.php';
 require_once __DIR__ . '/src/special-events.php';
 require_once __DIR__ . '/src/alliance.php';
@@ -102,6 +103,7 @@ try {
     ensureMetricsValueKey($pdo);
     ensureApiAuthTables($pdo);
     ensureVsSparFlag($pdo);
+    ensureScanFlagLocksTable($pdo);
     seedProtectedAdmins($pdo, $PROTECTED_R4_NAMES);
     enforceProtectedRanks($pdo, $ALLIANCE, $PROTECTED_R4_NAMES);
     try {

@@ -41,7 +41,7 @@
           </ol>
         </li>
         <li><a href="#special-event-server">Spezialevent je Server &amp; KW</a></li>
-        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#dashboard">Auswertungen &amp; Dashboard</a></li>
         <li><a href="#professions">Berufeplaner &amp; Rangcheck</a></li>
         <li><a href="#results">Optional: Rang nach Punkten</a></li>
         <li><a href="#train">Zugplaner</a></li>
@@ -78,7 +78,7 @@
       <div class="table-wrap"><table>
         <tr><th>Rolle</th><th>Sieht</th><th>Darf ändern</th></tr>
         <tr><td><strong>Mitglied</strong> (R1–R3)</td><td>Mein Bereich, Meine Teams, Punkte-Guide, Zug-Übersicht</td><td>Eigene Teams, eigenen Beruf, eigenen Charakternamen</td></tr>
-        <tr><td><strong>R4</strong></td><td>Zusätzlich Events, Zugplan, Berufeplaner, Verwaltung, Dashboard, Scanner</td><td>Erfassung, Planung, Mitglieder, Login-Anfragen</td></tr>
+        <tr><td><strong>R4</strong></td><td>Zusätzlich Events, Zugplan, Berufeplaner, Verwaltung, Auswertungen (Dashboard, Punkte, Trend, Server-Events), Scanner</td><td>Erfassung, Planung, Mitglieder, Login-Anfragen</td></tr>
         <tr><td><strong>R5</strong></td><td>Zusätzlich den Admin-Bereich</td><td>Feature-Schalter, API-Tokens, Archiv, Transfer, Allianzen</td></tr>
         <tr><td><strong>Ehren-R4</strong></td><td>Alles wie ein R4, beim Scanner nur den Kampfkraft-Trend</td><td>Nichts. Zählt nirgends mit.</td></tr>
         <tr><td><strong>Ehrenmitglied</strong></td><td>Höchstens die Mitgliederansicht (Zugriff wie R3)</td><td>Nichts</td></tr>
@@ -231,9 +231,10 @@
       <h3>So geht's</h3>
       <ol>
         <li>Tab „Events“ öffnen und mit ‹ › die Kalenderwoche (KW) wählen.</li>
-        <li>Oben das Event wählen: Wache 1–3, Wüste, Spezial, VS oder Spenden.</li>
+        <li>Oben das Event wählen: Wache 1–3, Wüste, Spezial, VS oder Spenden. Beim Öffnen geht schon die erste Kategorie mit Häkchen auf; was du selbst anklickst, bleibt.</li>
         <li>Kacheln antippen, um den Status zu setzen. Gespeichert wird sofort.</li>
         <li>„↓ Erfasste ans Ende“ sortiert erledigte Mitglieder nach unten (zweiter Klick blendet sie aus). „◐ High Contrast“ hilft bei hellem Licht am Handy.</li>
+        <li>In einer älteren KW siehst du die Mitglieder von damals: Neue erst ab ihrer Beitrittswoche, Ausgetretene und Gewechselte grau mit „ausgetreten“ bzw. „jetzt NxU2“. Die kann man nur ansehen, nicht ändern.</li>
       </ol>
 
       <div class="sub" id="events-guard">
@@ -253,16 +254,18 @@
         <h3>⚔ VS mit Sparwoche</h3>
         <p>Top 10 🏆 und Top 30 🥈 geben Bonus, wer unter der Wochen-Schwelle bleibt (derzeit 43,2 Mio), bekommt ⚠.</p>
         <p><strong>Sparwoche 🐷:</strong> Manche Wochen soll die Allianz bewusst wenig VS-Punkte machen. Dann gilt: höchstens 10 Mio je VS-Tag (Ziel 7,2 Mio) gibt Bonus, darüber gibt es keinen Bonus, eine Strafe gibt es nicht. Der Knopf „Sparwoche“ legt das für die gewählte KW fest oder hebt es auf.</p>
-        <p><strong>Aus Scanner übernehmen:</strong> nimmt die gescannten VS-Wochenpunkte. Platz 1–10 Top 10, Platz 1–30 Top 30, unter der Schwelle Strafe.</p>
+        <p><strong>Automatisch beim Scannen:</strong> Sobald VS-Werte hochgeladen werden, setzt lwhub die Häkchen der Woche selbst: Platz 1–10 Top 10, Platz 1–30 Top 30. Die Top-Plätze verschieben sich mit jedem Scan. Die Strafe kommt erst, wenn die Wochenliste am Samstag gescannt ist – unter der Woche liegt ja fast jeder noch darunter. Wer beim Scrollen in der Wochenliste übersprungen wurde, bekommt seinen Platz aus der Summe seiner Tage (nur für Top-Plätze, nie für eine Strafe).</p>
+        <p><strong>Aus Scanner übernehmen</strong> rechnet dasselbe noch einmal von Hand nach, mit einer Vorschau.</p>
       </div>
       <div class="sub" id="events-donations">
         <h3>💰 Spenden</h3>
         <p>Top 20 🏅 gibt Bonus, unter 35K ⚠ Strafe.</p>
-        <p><strong>Aus Scanner übernehmen:</strong> nimmt den letzten Spenden-Scan der gewählten KW (der Stand steht neben dem Knopf). Platz 1–20 Top 20, unter 35K Strafe.</p>
+        <p><strong>Automatisch beim Scannen:</strong> wie bei VS – Platz 1–20 Top 20 sofort, „unter 35K“ erst mit dem Samstags-Scan der Wochenliste. Wir scannen meist bis Samstagabend, das reicht. „Aus Scanner übernehmen“ rechnet es von Hand nach (der Stand steht neben dem Knopf).</p>
       </div>
       <h3>Tipps &amp; Grenzen</h3>
       <ul>
-        <li>Die Scanner-Übernahme setzt nur Häkchen. Du kannst danach jede Kachel von Hand korrigieren.</li>
+        <li>Jeder gescannte Spieler zählt als erfasst, auch ohne Häkchen – das solide Mittelfeld bekommt so seine Grundpunkte und steht nicht mehr auf „ausstehend“.</li>
+        <li>Du kannst jede Kachel von Hand korrigieren. Korrigierst du bei VS oder Spenden einen Spieler, lässt der nächste Scan ihn in dieser Woche in Ruhe. „Aus Scanner übernehmen“ gibt ihn wieder frei.</li>
         <li>Die Schwellen (43,2 Mio, 35K, 2G) stehen in der Legende über den Kacheln.</li>
       </ul>
       <a class="to-top" href="#top">↑ nach oben</a>
@@ -280,12 +283,13 @@
       <h3>So geht's</h3>
       <ol>
         <li>KW wählen und im Feld „Welches Event?“ den Namen eintragen (frühere Namen werden vorgeschlagen).</li>
-        <li>Tag, Start und Ende eintragen (Standard 16:00–20:00) und „💾 Festlegen“ drücken. Das gilt für alle Allianzen des Servers.</li>
+        <li>Tag, Start und Ende eintragen und „💾 Festlegen“ drücken. Das gilt für alle Allianzen des Servers. Für eine neue Woche schlägt lwhub die Zeit des letzten Events vor.</li>
         <li>„🚫 Kein Event“: Auf dem Server gibt es diese Woche kein Spezialevent.</li>
         <li>„⏸ Nicht auswerten“: Nur deine Allianz wertet das Event dieser Woche nicht aus. Die anderen Allianzen sind davon nicht betroffen.</li>
       </ol>
       <h3>Tipps &amp; Grenzen</h3>
       <ul>
+        <li>Im Spiel liegt das Event zu einer festen Serverzeit (UTC−2). Bei uns ist das im Sommer z. B. 16:00, im Winter 15:00. lwhub rechnet den Vorschlag über die Serverzeit um und zeigt sie neben den Feldern an.</li>
         <li>Tag und Uhrzeit nutzt die <a href="#event-analysis">Eventauswertung</a>, um Vorher- und Nachher-Scans zu finden.</li>
         <li>In der Verwaltung listet „Kein Spezialevent in letzten Wochen“ alle, die 2–6 Wochen lang nicht dabei waren.</li>
       </ul>
@@ -294,12 +298,18 @@
 
     <!-- Dashboard -->
     <section id="dashboard">
-      <h2>📊 Dashboard</h2>
+      <h2>📊 Auswertungen &amp; Dashboard</h2>
       <div class="facts">
-        <div class="fact"><b>Wer sieht es?</b>R4/R5</div>
+        <div class="fact"><b>Wer sieht es?</b>R4/R5 (Trend und Server-Events auch Ehren-R4 und Betreiber)</div>
         <div class="fact"><b>Feature-Schalter?</b>Nein, immer da</div>
       </div>
-      <p>Die Wochenübersicht für die Leitung: wie viele Mitglieder für die gewählte KW schon erfasst sind, Hinweise, Top-Performer, Rang-Verteilung, die häufigsten Einträge und eine filterbare Tabelle.</p>
+      <p>Im Tab „Auswertungen“ liegt alles zum Anschauen an einem Ort. Oben wählst du die Ansicht:</p>
+      <ul>
+        <li><strong>📋 Dashboard:</strong> die Wochenübersicht für die Leitung – wie viele Mitglieder für die gewählte KW schon erfasst sind, Warnungen, Top-Performer, Rang-Verteilung, die häufigsten Einträge und eine filterbare Tabelle. In älteren Wochen zählen die Mitglieder von damals.</li>
+        <li><strong>🏅 Punkte-Übersicht:</strong> die Punkte je Spieler über mehrere Wochen, mit Summe. Ein Klick auf eine Spalte sortiert, ein zweiter dreht die Richtung.</li>
+        <li><strong>📈 <a href="#power-trend">Kampfkraft-Trend</a></strong> und <strong>⚔ Server-Events</strong> (die <a href="#event-analysis">Eventauswertung</a>) – direkt hier, ohne Umweg über den Scanner.</li>
+      </ul>
+      <p>Aufsteiger, Absteiger, die Spalte „Tendenz“ und die Rang-Empfehlungen in der Punkte-Übersicht gibt es nur bei <a href="#results">Rang nach Punkten</a>. Vergibt deine Allianz die Ränge nach Beruf, bleiben sie weg.</p>
       <a class="to-top" href="#top">↑ nach oben</a>
     </section>
 
@@ -428,7 +438,7 @@
         <li><strong>Allianzen:</strong> Kürzel und Titel ändern. Beim Umbenennen des Kürzels wandern alle Spielerdaten mit. Je Allianz: „nimmt Login-Anfragen an“ und die Feature-Schalter.</li>
         <li><strong>Archiv:</strong> gelöschte Spieler wiederherstellen.</li>
         <li><strong>Transfer:</strong> Spieler mit allen Daten in eine andere Allianz verschieben.</li>
-        <li><strong>Zusammenführen:</strong> Doppelte Einträge (z. B. nach Namenswechsel) zu einem Spieler vereinen.</li>
+        <li><strong>Zusammenführen:</strong> Doppelte Einträge (z. B. nach Namenswechsel) zu einem Spieler vereinen – auch mit einem Archiv-Eintrag einer anderen Allianz, etwa nach einem Wechsel. Seine Wochen und Scan-Werte kommen mit.</li>
         <li><strong>API-Tokens:</strong> siehe <a href="#android-app">Android-App</a>.</li>
       </ul>
       <a class="to-top" href="#top">↑ nach oben</a>
@@ -449,12 +459,13 @@
         <li>Entweder „Fenster wählen &amp; Scan starten“ und das Spielfenster (z. B. Emulator) freigeben, dann langsam scrollen. Geänderte Ansichten werden automatisch erfasst. Oder „Screenshots / Video laden“.</li>
         <li>Links steht die Mitgliederliste aus lwhub, in der Mitte der Pool der erkannten Kacheln. Was eindeutig ist, wird zugeordnet.</li>
         <li>Unklare Kacheln per Drag-and-drop auf das richtige Mitglied ziehen, oder auf „Neuer Spieler“, um einen Neuzugang anzulegen. Wer nicht mehr in der Allianz ist, landet unter „Archivieren“.</li>
-        <li>Synchronisieren. Danach zeigt der Scanner, was übernommen wurde und wo es Konflikte gab.</li>
+        <li>Synchronisieren. Danach zeigt der Scanner, was übernommen wurde und wo es Konflikte gab. Die VS- und Spenden-Häkchen setzt lwhub dabei gleich mit (siehe <a href="#events-vs">VS</a>).</li>
       </ol>
       <h3>Tipps &amp; Grenzen</h3>
       <ul>
         <li>Rechenart: Grafikkarte (WebGPU) ist Standard, sonst CPU. Die Zahl der CPU-Kerne ist einstellbar.</li>
-        <li>Lücken in den Platznummern (z. B. zu schnell gescrollt) zeigt der Scanner an.</li>
+        <li>Oben zählt der Scanner je Liste mit, z. B. „VS Di 87 / 100“. Lücken in den Platznummern (zu schnell gescrollt) zeigt er schon während des Scrollens – dann einfach noch einmal hochscrollen.</li>
+        <li>Wechselt jemand die Allianz, findet ihn der Upload auch mit anderer Schreibweise (Akzente wie „MonGénéral“, frühere Namen) und nimmt seine Werte mit. In alten Wochen zählt er weiter für die Allianz, in der er damals war.</li>
         <li>Die Aufnahmen kannst du für später lokal herunterladen oder verwerfen.</li>
         <li>Spieler anderer Allianzen in der Liste werden am Allianz-Kürzel erkannt und aussortiert.</li>
       </ul>
@@ -477,7 +488,7 @@
       <h3>So geht's</h3>
       <ol>
         <li>Regelmäßig die Kampfkraft-Rangliste scannen. Am besten: Freitag (vor dem Event), Sonntag (danach) und einmal unter der Woche.</li>
-        <li>Trend öffnen, nach Einstufung filtern oder sortieren.</li>
+        <li>Unter Auswertungen → Kampfkraft-Trend öffnen, nach Einstufung filtern oder sortieren. Ehemalige stehen grau mit ihren Werten aus der Zeit in der Allianz.</li>
         <li>Bei Bedarf „Schwellen anpassen“, z. B. ab wie viel Prozent ein Samstags-Verlust zählt.</li>
       </ol>
       <a class="to-top" href="#top">↑ nach oben</a>
@@ -487,7 +498,7 @@
     <section id="event-analysis">
       <h2>🔍 Eventauswertung (Vorher/Nachher)</h2>
       <div class="facts">
-        <div class="fact"><b>Wer sieht es?</b>R4/R5 mit Scan-Recht</div>
+        <div class="fact"><b>Wer sieht es?</b>R4/R5, Ehren-R4 und Betreiber (nur ansehen)</div>
         <div class="fact"><b>Feature-Schalter?</b>Teil von <code>scanner</code></div>
       </div>
       <h3>Wofür ist das?</h3>
@@ -495,7 +506,7 @@
       <h3>So geht's</h3>
       <ol>
         <li>Vor dem Event und danach je einmal Kampfkraft und Kills scannen.</li>
-        <li>Auswertung öffnen (in Events → Spezial über 🔍). Tag, Start, Ende, Nachlauf in Minuten, „Kills ab“ und „Verlust ab (%)“ einstellen.</li>
+        <li>Auswertungen → Server-Events öffnen (oder in Events → Spezial über 🔍). Mit ‹ › blätterst du durch die gespeicherten Spezialevents, das letzte geht von selbst auf. Nachlauf in Minuten, „Kills ab“ und „Verlust ab (%)“ kannst du anpassen.</li>
         <li>Ergebnis prüfen, mit „📋 Namen kopieren“ in den Chat geben oder im Event-Tab mit „Aus Scanner übernehmen“ als Häkchen setzen.</li>
       </ol>
       <a class="to-top" href="#top">↑ nach oben</a>

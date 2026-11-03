@@ -41,7 +41,7 @@
           </ol>
         </li>
         <li><a href="#special-event-server">Événement spécial par serveur et semaine</a></li>
-        <li><a href="#dashboard">Tableau de bord</a></li>
+        <li><a href="#dashboard">Analyses &amp; tableau de bord</a></li>
         <li><a href="#professions">Professions &amp; contrôle des rangs</a></li>
         <li><a href="#results">Option : rang selon les points</a></li>
         <li><a href="#train">Planning du train</a></li>
@@ -77,7 +77,7 @@
       <div class="table-wrap"><table>
         <tr><th>Rôle</th><th>Voit</th><th>Peut modifier</th></tr>
         <tr><td><strong>Membre</strong> (R1–R3)</td><td>Mon espace, Mes équipes, Guide des points, aperçu du train</td><td>Ses équipes, sa profession, le nom de son personnage</td></tr>
-        <tr><td><strong>R4</strong></td><td>En plus : Événements, planning du train, professions, Gestion, tableau de bord, Scanner</td><td>Saisie, planning, membres, demandes de connexion</td></tr>
+        <tr><td><strong>R4</strong></td><td>En plus : Événements, planning du train, professions, Gestion, Analyses (tableau de bord, points, tendance, événements serveur), Scanner</td><td>Saisie, planning, membres, demandes de connexion</td></tr>
         <tr><td><strong>R5</strong></td><td>En plus : l'espace Admin</td><td>Fonctions activables, jetons API, archives, transferts, alliances</td></tr>
         <tr><td><strong>R4 honoraire</strong></td><td>Tout comme un R4 ; pour le scanner, seulement la tendance de puissance</td><td>Rien. N'est compté nulle part.</td></tr>
         <tr><td><strong>Membre honoraire</strong></td><td>Au plus la vue membre (accès comme un R3)</td><td>Rien</td></tr>
@@ -224,9 +224,10 @@
       <h3>Comment faire</h3>
       <ol>
         <li>Ouvre « Événements » et choisis la semaine avec ‹ ›.</li>
-        <li>Choisis l'événement en haut : Garde 1–3, Désert, Spécial, VS ou Dons.</li>
+        <li>Choisis l'événement en haut : Garde 1–3, Désert, Spécial, VS ou Dons. La première catégorie avec des coches s'ouvre toute seule ; ce que tu choisis toi-même reste.</li>
         <li>Appuie sur les tuiles pour changer le statut. C'est enregistré tout de suite.</li>
         <li>« ↓ Saisis en bas » fait descendre les membres déjà notés (second clic : les masque). « ◐ Contraste élevé » aide en plein soleil sur téléphone.</li>
+        <li>Dans une semaine plus ancienne, tu vois les membres de l'époque : les nouveaux seulement à partir de leur semaine d'arrivée, les anciens en gris avec « parti » ou « maintenant NxU2 ». On peut les consulter, pas les modifier.</li>
       </ol>
 
       <div class="sub" id="events-guard">
@@ -246,16 +247,18 @@
         <h3>⚔ VS avec semaine à score réduit</h3>
         <p>Top 10 🏆 et Top 30 🥈 donnent un bonus ; sous le seuil hebdomadaire (actuellement 43,2 M) on reçoit ⚠.</p>
         <p><strong>Semaine à score réduit 🐷 :</strong> certaines semaines, l'alliance garde volontairement peu de points VS. Règle : au plus 10 M par jour de VS (objectif 7,2 M) donne le bonus, au-delà pas de bonus, et aucune pénalité. Le bouton « Semaine à score réduit » active ou annule ce mode pour la semaine choisie.</p>
-        <p><strong>Importer du scanner :</strong> reprend les points VS hebdomadaires scannés. Places 1–10 Top 10, 1–30 Top 30, sous le seuil pénalité.</p>
+        <p><strong>Automatique au scan :</strong> dès que des valeurs VS sont envoyées, lwhub pose lui-même les coches de la semaine : places 1–10 Top 10, 1–30 Top 30. Les places du haut bougent à chaque scan. La pénalité n'arrive qu'une fois la liste hebdomadaire scannée le samedi – en semaine, presque tout le monde est encore en dessous. Qui a été sauté en faisant défiler la liste hebdomadaire reçoit sa place d'après la somme de ses jours (seulement pour le haut du classement, jamais pour une pénalité).</p>
+        <p><strong>Importer du scanner</strong> refait le même calcul à la main, avec un aperçu.</p>
       </div>
       <div class="sub" id="events-donations">
         <h3>💰 Dons</h3>
         <p>Top 20 🏅 donne un bonus, moins de 35K ⚠ une pénalité.</p>
-        <p><strong>Importer du scanner :</strong> reprend le dernier scan des dons de la semaine choisie (son horodatage s'affiche à côté du bouton). Places 1–20 Top 20, moins de 35K pénalité.</p>
+        <p><strong>Automatique au scan :</strong> comme pour le VS – places 1–20 Top 20 tout de suite, « moins de 35K » seulement avec le scan du samedi de la liste hebdomadaire. Scanner jusqu'au samedi soir suffit. « Importer du scanner » refait le calcul à la main (l'heure du scan s'affiche à côté du bouton).</p>
       </div>
       <h3>Astuces &amp; limites</h3>
       <ul>
-        <li>L'import ne fait que poser des coches. Tu peux corriger chaque tuile à la main ensuite.</li>
+        <li>Chaque joueur scanné compte comme saisi, même sans coche – le bon milieu de tableau reçoit ainsi ses points de base et n'apparaît plus « en attente ».</li>
+        <li>Tu peux corriger chaque tuile à la main. Si tu corriges un joueur en VS ou en Dons, le prochain scan le laisse tranquille pour cette semaine. « Importer du scanner » le libère à nouveau.</li>
         <li>Les seuils (43,2 M, 35K, 2G) figurent dans la légende au-dessus des tuiles.</li>
       </ul>
       <a class="to-top" href="#top">↑ haut de page</a>
@@ -272,12 +275,13 @@
       <h3>Comment faire</h3>
       <ol>
         <li>Choisis la semaine et tape le nom dans « Quel événement ? » (les noms déjà utilisés sont proposés).</li>
-        <li>Indique le jour, le début et la fin (par défaut 16:00–20:00) puis « 💾 Fixer ». Cela vaut pour toutes les alliances du serveur.</li>
+        <li>Indique le jour, le début et la fin puis « 💾 Fixer ». Cela vaut pour toutes les alliances du serveur. Pour une nouvelle semaine, lwhub propose l'heure du dernier événement.</li>
         <li>« 🚫 Pas d'événement » : pas d'événement spécial sur le serveur cette semaine.</li>
         <li>« ⏸ Ne pas évaluer » : seule ton alliance ignore l'événement de cette semaine. Les autres alliances ne sont pas concernées.</li>
       </ol>
       <h3>Astuces &amp; limites</h3>
       <ul>
+        <li>Dans le jeu, l'événement a lieu à une heure serveur fixe (UTC−2). Chez nous en Allemagne, c'est par exemple 16:00 en été et 15:00 en hiver. lwhub convertit la proposition via l'heure serveur et l'affiche à côté des champs.</li>
         <li>L'<a href="#event-analysis">analyse d'événement</a> se sert du jour et de l'heure pour trouver les scans d'avant et d'après.</li>
         <li>Dans la gestion, « Pas d'événement spécial ces dernières semaines » liste ceux qui ont manqué 2 à 6 semaines.</li>
       </ul>
@@ -285,12 +289,18 @@
     </section>
 
     <section id="dashboard">
-      <h2>📊 Tableau de bord</h2>
+      <h2>📊 Analyses &amp; tableau de bord</h2>
       <div class="facts">
-        <div class="fact"><b>Qui le voit ?</b>R4/R5</div>
+        <div class="fact"><b>Qui le voit ?</b>R4/R5 (tendance et événements serveur aussi R4 honoraire et exploitant)</div>
         <div class="fact"><b>Activable ?</b>Non, toujours présent</div>
       </div>
-      <p>L'aperçu de la semaine pour la direction : combien de membres sont déjà saisis pour la semaine choisie, remarques, meilleurs joueurs, répartition des rangs, entrées les plus fréquentes et un tableau filtrable.</p>
+      <p>L'onglet « Analyses » réunit tout ce qu'on consulte. Choisis la vue en haut :</p>
+      <ul>
+        <li><strong>📋 Tableau de bord :</strong> l'aperçu de la semaine pour la direction – combien de membres sont déjà saisis pour la semaine choisie, avertissements, meilleurs joueurs, répartition des rangs, entrées les plus fréquentes et un tableau filtrable. Les semaines plus anciennes comptent les membres de l'époque.</li>
+        <li><strong>🏅 Aperçu des points :</strong> les points par joueur sur plusieurs semaines, avec le total. Un clic sur une colonne trie, un second inverse l'ordre.</li>
+        <li><strong>📈 <a href="#power-trend">Tendance de puissance</a></strong> et <strong>⚔ Événements serveur</strong> (l'<a href="#event-analysis">analyse d'événement</a>) – directement ici, sans passer par le scanner.</li>
+      </ul>
+      <p>Les montées, les descentes, la colonne « Tendance » et les conseils de rang dans l'aperçu des points n'apparaissent qu'avec le <a href="#results">rang selon les points</a>. Si ton alliance attribue les rangs selon la profession, ils restent masqués.</p>
       <a class="to-top" href="#top">↑ haut de page</a>
     </section>
 
@@ -416,7 +426,7 @@
         <li><strong>Alliances :</strong> modifier tag et nom. En renommant le tag, toutes les données des joueurs suivent. Par alliance : « accepte les demandes de connexion » et les fonctions activables.</li>
         <li><strong>Archives :</strong> restaurer des joueurs supprimés.</li>
         <li><strong>Transfert :</strong> déplacer un joueur avec toutes ses données vers une autre alliance.</li>
-        <li><strong>Fusion :</strong> réunir des doublons (par exemple après un changement de nom) en un seul joueur.</li>
+        <li><strong>Fusion :</strong> réunir des doublons (par exemple après un changement de nom) en un seul joueur – aussi avec une entrée d'archive d'une autre alliance, par exemple après un changement. Ses semaines et ses valeurs de scan suivent.</li>
         <li><strong>Jetons API :</strong> voir <a href="#android-app">Appli Android</a>.</li>
       </ul>
       <a class="to-top" href="#top">↑ haut de page</a>
@@ -436,12 +446,13 @@
         <li>Soit « Choisir la fenêtre &amp; lancer le scan », partager la fenêtre du jeu (par exemple un émulateur) et faire défiler lentement – les vues qui changent sont capturées automatiquement. Soit « Charger captures / vidéo ».</li>
         <li>À gauche, ta liste de membres lwhub ; au milieu, les tuiles reconnues. Ce qui est sûr est attribué automatiquement.</li>
         <li>Glisse les tuiles douteuses sur le bon membre, ou sur « Nouveau joueur » pour ajouter une recrue. Ceux qui ne sont plus dans l'alliance apparaissent sous « Archiver ».</li>
-        <li>Synchronise. Le scanner affiche ensuite ce qui a été repris et où il y a eu des conflits.</li>
+        <li>Synchronise. Le scanner affiche ensuite ce qui a été repris et où il y a eu des conflits. lwhub pose en même temps les coches VS et Dons (voir <a href="#events-vs">VS</a>).</li>
       </ol>
       <h3>Astuces &amp; limites</h3>
       <ul>
         <li>Calcul : carte graphique (WebGPU) par défaut, sinon processeur. Le nombre de cœurs utilisés est réglable.</li>
-        <li>Le scanner signale les trous dans les numéros de place (par exemple si tu as fait défiler trop vite).</li>
+        <li>En haut, le scanner compte par liste, par exemple « VS mar 87 / 100 ». Les trous dans les numéros de place (défilement trop rapide) s'affichent pendant que tu fais encore défiler – remonte simplement une fois de plus.</li>
+        <li>Quand quelqu'un change d'alliance, l'envoi le retrouve même avec une autre orthographe (accents comme « MonGénéral », anciens noms) et emporte ses valeurs. Dans les semaines plus anciennes, il compte toujours pour l'alliance où il était alors.</li>
         <li>Tu peux télécharger les captures en local pour plus tard, ou les jeter.</li>
         <li>Les joueurs d'autres alliances présents dans une liste sont reconnus à leur tag et écartés.</li>
       </ul>
@@ -463,7 +474,7 @@
       <h3>Comment faire</h3>
       <ol>
         <li>Scanne régulièrement le classement de puissance. Idéal : vendredi (avant l'événement), dimanche (après) et une fois en semaine.</li>
-        <li>Ouvre la tendance, filtre ou trie par classement.</li>
+        <li>Ouvre Analyses → Tendance de puissance, filtre ou trie par classement. Les anciens membres sont en gris avec leurs valeurs de leur temps dans l'alliance.</li>
         <li>Au besoin, « Ajuster les seuils », par exemple à partir de quel pourcentage une perte du samedi compte.</li>
       </ol>
       <a class="to-top" href="#top">↑ haut de page</a>
@@ -472,7 +483,7 @@
     <section id="event-analysis">
       <h2>🔍 Analyse d'événement (avant/après)</h2>
       <div class="facts">
-        <div class="fact"><b>Qui le voit ?</b>R4/R5 avec droit de scan</div>
+        <div class="fact"><b>Qui le voit ?</b>R4/R5, R4 honoraire et exploitant (consultation)</div>
         <div class="fact"><b>Activable ?</b>Fait partie de <code>scanner</code></div>
       </div>
       <h3>À quoi ça sert ?</h3>
@@ -480,7 +491,7 @@
       <h3>Comment faire</h3>
       <ol>
         <li>Scanne la puissance et les kills une fois avant et une fois après l'événement.</li>
-        <li>Ouvre l'analyse (Événements → Spécial, via 🔍). Règle le jour, le début, la fin, la marge en minutes, « kills à partir de » et « perte à partir de (%) ».</li>
+        <li>Ouvre Analyses → Événements serveur (ou Événements → Spécial via 🔍). Avec ‹ › tu parcours les événements spéciaux enregistrés ; le dernier s'ouvre tout seul. Tu peux ajuster la marge en minutes, « kills à partir de » et « perte à partir de (%) ».</li>
         <li>Vérifie le résultat, utilise « 📋 Copier les noms » pour le chat, ou pose les coches dans l'onglet Événements avec « Importer du scanner ».</li>
       </ol>
       <a class="to-top" href="#top">↑ haut de page</a>

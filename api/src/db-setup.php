@@ -228,6 +228,10 @@ function ensureScannerV2Columns(PDO $pdo): void {
         "ALTER TABLE player_metrics ADD COLUMN observations SMALLINT NULL DEFAULT NULL",
         "ALTER TABLE player_metrics ADD KEY ix_metrics_scan (alliance, scan_id)",
         "ALTER TABLE player_metrics ADD KEY ix_metrics_week (alliance, metric_type, year_week)",
+        // Allianz, aus der der Wert gescannt wurde. alliance wandert beim Wechsel mit dem Spieler mit, scan_alliance
+        // nicht: die Wochen-Ranglisten (loadVsWeek/loadDonationWeek) bilden sich danach. NULL = wie alliance.
+        "ALTER TABLE player_metrics ADD COLUMN scan_alliance VARCHAR(50) NULL DEFAULT NULL",
+        "ALTER TABLE player_metrics ADD KEY ix_metrics_scan_week (scan_alliance, metric_type, year_week)",
         "ALTER TABLE api_tokens ADD COLUMN created_by VARCHAR(50) NULL DEFAULT NULL",
         "ALTER TABLE api_tokens ADD COLUMN expires_at DATETIME NULL DEFAULT NULL",
         "ALTER TABLE api_tokens ADD UNIQUE KEY uq_token_hash (token_hash)",

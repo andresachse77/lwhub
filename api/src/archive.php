@@ -46,6 +46,17 @@ function insertWeeklyEntryWithFlags(PDO $pdo, string $alliance, array $entry, ar
  * Genutzt vom Wiederherstellen-Knopf (archive.php) und vom Scanner-Sync (members.php handleSyncScans).
  */
 function restoreArchivedPlayerData(PDO $pdo, string $archiveId, string $alliance): void {
+    // Scan-Werte werden nicht archiviert, sie liegen weiter in der alten Allianz. Kommt der Spieler in einer
+    // anderen Allianz zurueck, ziehen sie mit um (wie movePlayerToAlliance) – bis 03.11. blieben sie verwaist.
+    $arch = $pdo->prepare("SELECT alliance, player_id FROM archived_players WHERE archive_id = ?");
+    $arch->execute([$archiveId]);
+    $from = $arch->fetch();
+    if ($from && $from['alliance'] !== $alliance) {
+        dropLowerMaxMetrics($pdo, $from['alliance'], $from['player_id'], $alliance, $from['player_id']);
+        $pdo->prepare("UPDATE player_metrics SET alliance = ? WHERE alliance = ? AND player_id = ?")
+            ->execute([$alliance, $from['alliance'], $from['player_id']]);
+    }
+
     $entries = $pdo->prepare("SELECT * FROM archived_weekly_entries WHERE archive_id = ?");
     $entries->execute([$archiveId]);
     $flags = $pdo->prepare("SELECT flag_key FROM archived_entry_flags WHERE archive_id = ? AND entry_id = ?");

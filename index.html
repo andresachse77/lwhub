@@ -5669,7 +5669,7 @@ function renderVS() {
     const scanInfo = !scan ? '' : spar
       ? `📸 ${escHtml(trf('max {v} Mio/Tag', { v: fmtMio(maxDay) }))} ${maxDay > VS_SPAR_MAX_PER_DAY ? '✗' : '✓'}`
       : scan.place == null ? `📸 Σ ${escHtml(trf('{v} Mio', { v: fmtMio(scan.week_points) }))}`
-      : `📸 ${escHtml(trf('{v} Mio · Platz {p}', { v: fmtMio(scan.week_points), p: scan.place }))}`;
+      : `📸 ${escHtml(trf('{v} Mio · Platz {p}', { v: fmtMio(scan.week_points), p: scan.place }))}${scan.from_days ? ' Σ' : ''}`; // Σ: Summe der Tage, nicht in der Wochenliste
     const scanCls = spar && scan ? (maxDay > VS_SPAR_MAX_PER_DAY ? ' spar-over' : ' spar-ok') : '';
     const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="vsSet('${esc}','unter')" title="unter 43,2 Mio Punkte (Strafe)">${unter?'⚠ &lt;43,2M':'🟥'}</button>`;
     const btnT30   = `<button class="wt-btn ${t30?'on-anm':''}" onclick="vsSet('${esc}','t30')" title="Top 30">${t30?'🥈 T30':'🥈'}</button>`;
@@ -5760,7 +5760,7 @@ async function vsImportFromScanner() {
       if (!dayValues.length) continue;
       delete flags.vsTop10; delete flags.vsTop30; delete flags.vsUnter50; delete flags.vsSpar;
       if (Math.max(...dayValues) <= VS_SPAR_MAX_PER_DAY) flags.vsSpar = true;
-    } else if (p.place != null) { // ohne Platz (nur Summe der Tageswerte) bleiben die VS-Haekchen, wie sie sind
+    } else if (p.place != null) { // Platz auch aus der Summe der Tage (from_days, Untergrenze); Strafe nur mit week_final
       delete flags.vsTop10; delete flags.vsTop30; delete flags.vsUnter50; delete flags.vsSpar;
       if (p.place <= 10) flags.vsTop10 = true;
       if (p.place <= 30) flags.vsTop30 = true;
@@ -7745,19 +7745,21 @@ async function loadMergePlayers() {
   keepEl.innerHTML = dropEl.innerHTML = '<option value="">Lade …</option>';
   try {
     const discordId = encodeURIComponent(authMember?.discord_id || '');
-    const [membersData, archiveData] = await Promise.all([
+    // Archiv aller Allianzen, in denen man R5 ist: wer gewechselt hat, liegt oft im Archiv der alten Allianz
+    const allAlliances = [...document.getElementById('merge-alliance').options].map(o => o.value).filter(Boolean);
+    const [membersData, ...archiveData] = await Promise.all([
       adminApi(`/members?alliance=${encodeURIComponent(alliance)}&discord_id=${discordId}`),
-      adminApi(`/archived-players?alliance=${encodeURIComponent(alliance)}&discord_id=${discordId}`).catch(() => ({ players: [] })),
+      ...allAlliances.map(a => adminApi(`/archived-players?alliance=${encodeURIComponent(a)}&discord_id=${discordId}`).catch(() => ({ players: [] }))),
     ]);
     const members = (Array.isArray(membersData) ? membersData : (membersData.members || []))
       .slice().sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
-    const archived = (archiveData.players || [])
-      .slice().sort((a, b) => a.current_name.localeCompare(b.current_name, 'de', { sensitivity: 'base' }));
+    const archived = archiveData.flatMap(d => d.players || [])
+      .sort((a, b) => a.current_name.localeCompare(b.current_name, 'de', { sensitivity: 'base' }));
     const memberOpts = members.map(m => `<option value="${escHtml(m.name)}" data-id="${escHtml(m.id)}">${escHtml(m.name)} (R${m.default_rank ?? m.rank})</option>`).join('');
     keepEl.innerHTML = '<option value="">' + escHtml(tr('Spieler wählen ...')) + '</option>' + memberOpts;
     dropEl.innerHTML = '<option value="">' + escHtml(tr('Spieler wählen ...')) + '</option>' +
       '<optgroup label="Aktiv">' + members.map(m => `<option value="p:${escHtml(m.id)}">${escHtml(m.name)} (R${m.default_rank ?? m.rank})</option>`).join('') + '</optgroup>' +
-      (archived.length ? '<optgroup label="Archiv">' + archived.map(p => `<option value="a:${escHtml(p.archive_id)}">${escHtml(p.current_name)} (Archiv, ${escHtml((p.archived_at || '').slice(0, 10))})</option>`).join('') + '</optgroup>' : '');
+      (archived.length ? '<optgroup label="Archiv">' + archived.map(p => `<option value="a:${escHtml(p.archive_id)}">${escHtml(p.current_name)} (Archiv${p.alliance !== alliance ? ' ' + escHtml(p.alliance) : ''}, ${escHtml((p.archived_at || '').slice(0, 10))})</option>`).join('') + '</optgroup>' : '');
   } catch (_) {
     keepEl.innerHTML = dropEl.innerHTML = '<option value="">' + escHtml(tr('Fehler beim Laden')) + '</option>';
   }

@@ -693,7 +693,10 @@ function handleMergePlayer(PDO $pdo, string $alliance, string $nameEncoded, arra
             $stmt = $pdo->prepare("SELECT * FROM archived_players WHERE archive_id = ? FOR UPDATE");
             $stmt->execute([$fromArchiveId]);
             $arch = $stmt->fetch();
-            if (!$arch || $arch['alliance'] !== $alliance) jsonOut(404, ['error' => 'Archiv-Eintrag nicht gefunden (nur innerhalb derselben Allianz)']);
+            if (!$arch) jsonOut(404, ['error' => 'Archiv-Eintrag nicht gefunden']);
+            // Archiv einer anderen Allianz (Spieler hat gewechselt): dort ebenfalls R5 noetig. Die Scan-Werte
+            // holt restoreArchivedPlayerData mit herueber.
+            if ($arch['alliance'] !== $alliance) requireR5($pdo, $discordId, $arch['alliance']);
             $oldId = $arch['player_id'];
             $dropName = (string)$arch['current_name'];
             $dropCreated = $arch['player_created_at'];
@@ -1352,10 +1355,25 @@ function movePlayerToAlliance(PDO $pdo, string $playerId, string $fromAlliance, 
     releaseOrphanEngineers($pdo, $toAlliance);
 }
 
+// Akzente und Umlaute auf den Grundbuchstaben (ohne intl/mbstring, die nicht ueberall installiert sind)
+const SCAN_NAME_FOLD = [
+    'Ä' => 'a', 'Ö' => 'o', 'Ü' => 'u', 'ä' => 'a', 'ö' => 'o', 'ü' => 'u', 'ß' => 'b', 'Ø' => '0', 'ø' => '0',
+    'À' => 'a', 'Á' => 'a', 'Â' => 'a', 'Ã' => 'a', 'Å' => 'a', 'Ā' => 'a', 'Ą' => 'a', 'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'å' => 'a', 'ā' => 'a', 'ą' => 'a',
+    'Ç' => 'c', 'Ć' => 'c', 'Č' => 'c', 'ç' => 'c', 'ć' => 'c', 'č' => 'c', 'Ď' => 'd', 'ď' => 'd', 'Đ' => 'd', 'đ' => 'd',
+    'È' => 'e', 'É' => 'e', 'Ê' => 'e', 'Ë' => 'e', 'Ē' => 'e', 'Ę' => 'e', 'Ě' => 'e', 'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e', 'ē' => 'e', 'ę' => 'e', 'ě' => 'e',
+    'Ğ' => 'g', 'ğ' => 'g', 'Ì' => 'i', 'Í' => 'i', 'Î' => 'i', 'Ï' => 'i', 'İ' => 'i', 'Ī' => 'i', 'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i', 'ı' => 'i', 'ī' => 'i',
+    'Ł' => 'l', 'ł' => 'l', 'Ñ' => 'n', 'Ń' => 'n', 'Ň' => 'n', 'ñ' => 'n', 'ń' => 'n', 'ň' => 'n',
+    'Ò' => 'o', 'Ó' => 'o', 'Ô' => 'o', 'Õ' => 'o', 'Ō' => 'o', 'Ő' => 'o', 'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ō' => 'o', 'ő' => 'o',
+    'Ř' => 'r', 'ř' => 'r', 'Ś' => 's', 'Š' => 's', 'Ş' => 's', 'ś' => 's', 'š' => 's', 'ş' => 's', 'Ť' => 't', 'ť' => 't',
+    'Ù' => 'u', 'Ú' => 'u', 'Û' => 'u', 'Ū' => 'u', 'Ů' => 'u', 'Ű' => 'u', 'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ū' => 'u', 'ů' => 'u', 'ű' => 'u',
+    'Ý' => 'y', 'Ÿ' => 'y', 'ý' => 'y', 'ÿ' => 'y', 'Ź' => 'z', 'Ż' => 'z', 'Ž' => 'z', 'ź' => 'z', 'ż' => 'z', 'ž' => 'z',
+];
+
 // Vergleichsschluessel fuer Namen aus dem Scanner: OCR verwechselt Gross/klein, I/l/1, O/0 und liest
-// Umlaute ohne Punkte bzw. ß als B ("LMNTRIX" fuer "LMNTRiX", "Muller214" fuer "Müller214").
+// Umlaute ohne Punkte bzw. ß als B ("LMNTRIX" fuer "LMNTRiX", "Muller214" fuer "Müller214"). Akzente
+// zaehlen nicht ("MonGénéral" = "MonGeneral"): Spieler schreiben ihren Namen je nach Allianz mal so, mal so.
 function scanNameKey(string $name): string {
-    $s = strtr(trim($name), ['Ä' => 'a', 'Ö' => 'o', 'Ü' => 'u', 'ä' => 'a', 'ö' => 'o', 'ü' => 'u', 'ß' => 'b', 'Ø' => '0', 'ø' => '0']);
+    $s = strtr(trim($name), SCAN_NAME_FOLD);
     $s = strtolower($s); // nur ASCII; andere Schriften bleiben, wie sie sind (beide Seiten gleich behandelt)
     $s = preg_replace('/[^\p{L}\p{N}]/u', '', $s) ?? '';
     return strtr($s, ['i' => '1', 'l' => '1', '|' => '1', 'o' => '0']);
@@ -1364,7 +1382,7 @@ function scanNameKey(string $name): string {
 /**
  * Archivierten Spieler zu einem gescannten Namen finden, der in der Ziel-Allianz nicht aktiv ist.
  * Reihenfolge: gleicher Name in der Ziel-Allianz, gleicher Name in einer anderen Allianz, dann gleicher
- * Vergleichsschluessel (scanNameKey) – zuerst in der Ziel-Allianz. Beim Vergleichsschluessel nur, wenn genau
+ * Vergleichsschluessel (scanNameKey, auch gegen fruehere Namen) – zuerst in der Ziel-Allianz. Beim Vergleichsschluessel nur, wenn genau
  * ein archivierter Spieler passt und der Archiv-Name in der Ziel-Allianz nicht schon vergeben ist.
  * $allowed(alliance) grenzt ein, aus welchen Archiven geholt werden darf (Konzept v2, A5: nur Allianzen, in
  * denen der Aufrufer selbst R4/R5 ist).
@@ -1380,7 +1398,13 @@ function findArchivedPlayerForScan(PDO $pdo, string $name, string $targetAllianc
     $key = scanNameKey($name);
     if (strlen($key) < 3) return null;
     $all = $pdo->query("SELECT $cols, archived_at FROM archived_players ORDER BY archived_at DESC")->fetchAll();
-    $matches = array_values(array_filter($all, fn($a) => scanNameKey((string)$a['current_name']) === $key && $allowed($a['alliance'])));
+    // Fruehere Namen aus dem Archiv zaehlen mit (Namens-Historie)
+    $oldNames = [];
+    foreach ($pdo->query("SELECT archive_id, player_name FROM archived_name_history")->fetchAll() as $h) {
+        $oldNames[$h['archive_id']][] = (string)$h['player_name'];
+    }
+    $matches = array_values(array_filter($all, fn($a) => $allowed($a['alliance']) && in_array($key,
+        array_map('scanNameKey', [(string)$a['current_name'], ...($oldNames[$a['archive_id']] ?? [])]), true)));
     if (!$matches) return null;
     $home = array_values(array_filter($matches, fn($a) => $a['alliance'] === $targetAlliance));
     $pool = $home ?: $matches;
@@ -1389,6 +1413,36 @@ function findArchivedPlayerForScan(PDO $pdo, string $name, string $targetAllianc
     $taken = $pdo->prepare("SELECT 1 FROM players WHERE alliance = ? AND current_name = ? AND player_id <> ? LIMIT 1");
     $taken->execute([$targetAlliance, $pool[0]['current_name'], $pool[0]['player_id']]);
     return $taken->fetch() ? null : $pool[0];
+}
+
+/**
+ * Aktive Spieler anderer Allianzen zu einem gescannten Namen (Allianz-Wechsel). Zuerst der exakte Name, sonst
+ * der Vergleichsschluessel gegen aktuelle und fruehere Namen (Namens-Historie): "MonGénéral" in NxU2 ist
+ * "MonGeneral" aus NxU1. Mehr als ein Treffer -> der Aufrufer meldet einen Konflikt statt zu raten.
+ * $allowed wie bei findArchivedPlayerForScan.
+ */
+function findOtherAlliancePlayersForScan(PDO $pdo, string $name, string $targetAlliance, callable $allowed): array {
+    $cols = "p.player_id, p.alliance, p.current_name, p.current_rank_code, p.honor_role";
+    $stmt = $pdo->prepare("SELECT $cols FROM players p WHERE p.current_name = ? AND p.is_active = 1 AND p.alliance <> ? AND " . sqlNoHonor('p'));
+    $stmt->execute([$name, $targetAlliance]);
+    $exact = array_values(array_filter($stmt->fetchAll(), fn($o) => $allowed($o['alliance'])));
+    if ($exact) return $exact;
+
+    $key = scanNameKey($name);
+    if (strlen($key) < 3) return [];
+    $stmt = $pdo->prepare("
+        SELECT $cols, h.player_name AS old_name FROM players p
+        LEFT JOIN player_name_history h ON h.alliance = p.alliance AND h.player_id = p.player_id
+        WHERE p.is_active = 1 AND p.alliance <> ? AND " . sqlNoHonor('p'));
+    $stmt->execute([$targetAlliance]);
+    $hits = [];
+    foreach ($stmt->fetchAll() as $o) {
+        if (scanNameKey((string)$o['current_name']) !== $key && scanNameKey((string)($o['old_name'] ?? '')) !== $key) continue;
+        if (!$allowed($o['alliance'])) continue;
+        unset($o['old_name']);
+        $hits[$o['alliance'] . '|' . $o['player_id']] = $o;
+    }
+    return array_values($hits);
 }
 
 // Allianz-Kuerzel aus einer VS-Liste ("[NxU1]") gegen die eigene Allianz. OCR-Verwechslungen (I/l/1, O/0,
@@ -1651,6 +1705,18 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 $stmt->execute([$targetAlliance, $name]);
                 $player = $stmt->fetch();
             }
+            // Frueherer Name bzw. andere Schreibweise aus der Namens-Historie ("MonGénéral" fuer "MonGeneral"),
+            // nur bei genau einem Spieler
+            if (!$player && !$scannerOnly) {
+                $stmt = $pdo->prepare("
+                    SELECT DISTINCT p.player_id, p.current_name, p.alliance, p.current_rank_code, p.honor_role
+                    FROM player_name_history h JOIN players p ON p.alliance = h.alliance AND p.player_id = h.player_id
+                    WHERE h.alliance = ? AND h.player_name = ? AND p.is_active = 1
+                ");
+                $stmt->execute([$targetAlliance, $name]);
+                $hits = $stmt->fetchAll();
+                if (count($hits) === 1) $player = $hits[0];
+            }
 
             // Ehrenrollen sind im Spiel nicht in dieser Allianz: ein Treffer ist ein Namensvetter oder OCR-Zufall.
             // Nichts uebernehmen (keine Werte, kein Rang), damit sie in keiner Auswertung auftauchen.
@@ -1701,6 +1767,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                     $finalPlayerId = $arch['player_id'];
                     $oldRank = (int)$arch['current_rank_code'];
                     // Der Name aus dem Archiv ist die richtige Schreibweise; der gescannte kann eine OCR-Variante sein
+                    $scannedName = $name;
                     $name = $arch['current_name'];
                     [$finalRank, $blocked, $reason] = $resolveScanRank($name, $requestedRank, $oldRank, null, null);
 
@@ -1712,6 +1779,10 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                     // Wochen-Eintraege, Namens-Historie und Discord-Verknuepfung mit zurueckholen (wie der
                     // Wiederherstellen-Knopf); bis 17.10. blieben sie verwaist im Archiv liegen.
                     restoreArchivedPlayerData($pdo, $arch['archive_id'], $targetAlliance);
+                    if ($scannedName !== $name) { // andere Schreibweise als Alias, siehe Verschieben unten
+                        $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)")
+                            ->execute([$targetAlliance, uuid4(), $finalPlayerId, $scannedName]);
+                    }
 
                     if ($blocked || $finalRank !== $oldRank) {
                         logRankChange($pdo, $targetAlliance, [
@@ -1734,9 +1805,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                     // auch wenn ihn seine Heimat-Allianz scannt (dort bekommt er einen eigenen Eintrag).
                     // Nur Allianzen, in denen der Aufrufer selbst R4/R5 ist; Spieler fremder Allianzen bleiben
                     // unangetastet (dann Neuanlage hier). Verschieben selbst fuer R4/R5.
-                    $otherStmt = $pdo->prepare("SELECT player_id, alliance, current_rank_code, honor_role FROM players WHERE current_name = ? AND is_active = 1 AND alliance <> ? AND " . sqlNoHonor(''));
-                    $otherStmt->execute([$name, $targetAlliance]);
-                    $others = array_values(array_filter($otherStmt->fetchAll(), fn($o) => $canManage($o['alliance'])));
+                    $others = findOtherAlliancePlayersForScan($pdo, $name, $targetAlliance, $canManage);
                     $other = $others[0] ?? null;
                     if (count($others) > 1) {
                         $conflicts[] = ['name' => $name, 'blocked' => true, 'reason' => 'ambiguous-other-alliance', 'alliances' => array_column($others, 'alliance')];
@@ -1753,6 +1822,12 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                         [$finalRank, $blocked, $reason] = $resolveScanRank($name, $requestedRank, $oldRank, normalizeHonorRole($other['honor_role'] ?? null), $finalPlayerId);
 
                         movePlayerToAlliance($pdo, $finalPlayerId, $other['alliance'], $targetAlliance);
+                        // Ueber den Vergleichsschluessel gefunden: gescannte Schreibweise als Alias merken, damit der
+                        // naechste Scan ihn hier direkt findet
+                        if ($name !== $other['current_name']) {
+                            $pdo->prepare("INSERT IGNORE INTO player_name_history (alliance, name_event_id, player_id, player_name, valid_from_yw) VALUES (?, ?, ?, ?, 0)")
+                                ->execute([$targetAlliance, uuid4(), $finalPlayerId, $name]);
+                        }
                         $pdo->prepare("UPDATE players SET current_rank_code = ?, current_power = COALESCE(?, current_power), hq_level = COALESCE(?, hq_level), last_scanned_at = ?, last_seen_status = COALESCE(?, last_seen_status) WHERE alliance = ? AND player_id = ?")
                             ->execute([$finalRank, $powerNum, $levelNum, $recordedAt, $statusStr, $targetAlliance, $finalPlayerId]);
 
@@ -1819,9 +1894,9 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
 
             if ($powerNum !== null) {
                 $pdo->prepare("
-                    INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, source, recorded_at, scan_id, year_week, game_day, read_status, observations)
-                    VALUES (?, ?, ?, 'POWER', ?, ?, ?, ?, ?, ?, ?, ?)
-                ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $powerNum, $source, $recordedAt, $scanId, $yearWeek, $gameTime['game_day'], $readStatus, $observations]);
+                    INSERT INTO player_metrics (metric_id, alliance, scan_alliance, player_id, metric_type, value_numeric, source, recorded_at, scan_id, year_week, game_day, read_status, observations)
+                    VALUES (?, ?, ?, ?, 'POWER', ?, ?, ?, ?, ?, ?, ?, ?)
+                ")->execute([uuid4(), $targetAlliance, $targetAlliance, $finalPlayerId, $powerNum, $source, $recordedAt, $scanId, $yearWeek, $gameTime['game_day'], $readStatus, $observations]);
             }
 
             // VS-Punkte (Allianz-Duell): ein Wert je Spieler, Woche und Tag (VS_DAY, game_day 1 = Mo … 6 = Sa)
@@ -1838,9 +1913,9 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
 
                 if ($vsType === 'KILLS') {
                     $pdo->prepare("
-                        INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, source, recorded_at, year_week, game_day, scan_id, read_status, observations)
-                        VALUES (?, ?, ?, 'KILLS', ?, ?, ?, ?, ?, ?, ?, ?)
-                    ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsPoints, $source, $recordedAt, $yearWeek, $gameTime['game_day'], $scanId, $readStatus, $observations]);
+                        INSERT INTO player_metrics (metric_id, alliance, scan_alliance, player_id, metric_type, value_numeric, source, recorded_at, year_week, game_day, scan_id, read_status, observations)
+                        VALUES (?, ?, ?, ?, 'KILLS', ?, ?, ?, ?, ?, ?, ?, ?)
+                    ")->execute([uuid4(), $targetAlliance, $targetAlliance, $finalPlayerId, $vsPoints, $source, $recordedAt, $yearWeek, $gameTime['game_day'], $scanId, $readStatus, $observations]);
                     $summary[$countKey] = ($summary[$countKey] ?? 0) + 1;
                     continue;
                 }
@@ -1866,23 +1941,24 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
                 if ($existing) {
                     // Der Wert gehoert dann zu dieser Erfassung (scan_id): ein erneuter Upload ersetzt ihn
                     if ($vsPoints > (int)$existing['value_numeric']) {
-                        $pdo->prepare("UPDATE player_metrics SET value_numeric = ?, source = ?, recorded_at = ?, scan_id = ?, read_status = ?, observations = ? WHERE alliance = ? AND metric_id = ?")
-                            ->execute([$vsPoints, $source, $recordedAt, $scanId, $readStatus, $observations, $targetAlliance, $existing['metric_id']]);
+                        $pdo->prepare("UPDATE player_metrics SET value_numeric = ?, scan_alliance = ?, source = ?, recorded_at = ?, scan_id = ?, read_status = ?, observations = ? WHERE alliance = ? AND metric_id = ?")
+                            ->execute([$vsPoints, $targetAlliance, $source, $recordedAt, $scanId, $readStatus, $observations, $targetAlliance, $existing['metric_id']]);
                     }
                 } else {
                     // Hat ein gleichzeitiger Sync den Wert inzwischen angelegt, greift uq_metrics_value: dann wie
                     // oben nur hoeher setzen. value_numeric zuletzt – MySQL wertet die Zuweisungen von links aus.
                     $pdo->prepare("
-                        INSERT INTO player_metrics (metric_id, alliance, player_id, metric_type, value_numeric, value_text, source, recorded_at, year_week, game_day, scan_id, read_status, observations)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO player_metrics (metric_id, alliance, scan_alliance, player_id, metric_type, value_numeric, value_text, source, recorded_at, year_week, game_day, scan_id, read_status, observations)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON DUPLICATE KEY UPDATE
+                            scan_alliance = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(scan_alliance), scan_alliance),
                             source       = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(source), source),
                             recorded_at  = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(recorded_at), recorded_at),
                             scan_id      = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(scan_id), scan_id),
                             read_status  = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(read_status), read_status),
                             observations = IF(VALUES(value_numeric) > COALESCE(value_numeric, -1), VALUES(observations), observations),
                             value_numeric = GREATEST(COALESCE(value_numeric, -1), VALUES(value_numeric))
-                    ")->execute([uuid4(), $targetAlliance, $finalPlayerId, $vsType, $vsPoints, $vs['day'] ?? null, $source, $recordedAt, $yearWeek, $gameDay, $scanId, $readStatus, $observations]);
+                    ")->execute([uuid4(), $targetAlliance, $targetAlliance, $finalPlayerId, $vsType, $vsPoints, $vs['day'] ?? null, $source, $recordedAt, $yearWeek, $gameDay, $scanId, $readStatus, $observations]);
                 }
                 $summary[$countKey] = ($summary[$countKey] ?? 0) + 1;
                 $flagWeeks[$yearWeek . ':' . ($countKey === 'vs' ? 'vs' : 'spende')] = true;

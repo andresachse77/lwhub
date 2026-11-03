@@ -79,13 +79,17 @@ function handleVsWeek(PDO $pdo, string $alliance): never {
     jsonOut(200, ['ok' => true, 'alliance' => $alliance, 'year_week' => $yearWeek, ...loadVsWeek($pdo, $alliance, $yearWeek)]);
 }
 
-/** Daten fuer handleVsWeek, auch genutzt vom Scanner-Sync (applyScanWeekFlags in scan-flags.php). */
+/**
+ * Daten fuer handleVsWeek, auch genutzt vom Scanner-Sync (applyScanWeekFlags in scan-flags.php). Die Rangliste
+ * enthaelt alle Werte, die in $alliance gescannt wurden (scan_alliance) – auch von Spielern, die inzwischen
+ * gewechselt sind: Bienenfluesterer war bis 01.11. in NxU1, seine Wochen 42–44 zaehlen dort, nicht in NxU2.
+ */
 function loadVsWeek(PDO $pdo, string $alliance, int $yearWeek): array {
     $stmt = $pdo->prepare("
-        SELECT m.player_id, p.current_name, m.metric_type, m.game_day, m.value_numeric, m.recorded_at
+        SELECT m.player_id, p.current_name, p.alliance AS current_alliance, m.metric_type, m.game_day, m.value_numeric, m.recorded_at
         FROM player_metrics m
         JOIN players p ON p.alliance = m.alliance AND p.player_id = m.player_id AND p.is_active = 1
-        WHERE m.alliance = ? AND m.year_week = ? AND m.metric_type IN ('VS_DAY', 'VS_WEEK')
+        WHERE COALESCE(m.scan_alliance, m.alliance) = ? AND m.year_week = ? AND m.metric_type IN ('VS_DAY', 'VS_WEEK')
           AND " . sqlNoHonor() . "
     ");
     $stmt->execute([$alliance, $yearWeek]);
@@ -94,7 +98,8 @@ function loadVsWeek(PDO $pdo, string $alliance, int $yearWeek): array {
     $lastScan = null;
     foreach ($stmt as $r) {
         $pid = $r['player_id'];
-        $players[$pid] ??= ['player_id' => $pid, 'name' => $r['current_name'], 'week_points' => null, 'week_final' => false, 'days' => new stdClass()];
+        // alliance: wo der Spieler heute ist (nach einem Wechsel nicht die Allianz der Rangliste) – dort liegen seine Wochen
+        $players[$pid] ??= ['player_id' => $pid, 'name' => $r['current_name'], 'alliance' => $r['current_alliance'], 'week_points' => null, 'week_final' => false, 'days' => new stdClass()];
         if ($r['metric_type'] === 'VS_WEEK') {
             $players[$pid]['week_points'] = (int)$r['value_numeric'];
             $players[$pid]['week_final'] = isFinalWeekScan((string)$r['recorded_at'], $yearWeek);
@@ -104,17 +109,22 @@ function loadVsWeek(PDO $pdo, string $alliance, int $yearWeek): array {
         }
         if ($lastScan === null || $r['recorded_at'] > $lastScan) $lastScan = $r['recorded_at'];
     }
-    // Platz nur aus der Wochen-Rangliste. Spieler, die dort fehlen, aber Tageswerte haben, kommen zum
-    // Anzeigen mit der Summe der Tage dazu (from_days, place = null) – Top 10/30 und Strafe setzt der Hub
-    // daraus nicht, die Sparwoche wertet ohnehin die Tageswerte.
+    // Wer in der Wochen-Rangliste fehlt (beim Scrollen uebersprungen), aber Tageswerte hat, kommt mit der Summe
+    // der Tage in die Rangliste (from_days). Die Summe ist eine Untergrenze – sein echter Wochenwert ist
+    // mindestens so hoch –, darum zaehlt sein Platz fuer Top 10/30 (NxU2 KW43: Bienenfluesterer Mo–Fr 63,4 Mio
+    // = Platz 21 ohne Haekchen). week_final bleibt false: eine Strafe gibt es aus der Summe nie.
+    foreach ($players as &$p) {
+        $p['from_days'] = false;
+        if ($p['week_points'] === null && count((array)$p['days'])) {
+            $p['week_points'] = array_sum((array)$p['days']);
+            $p['from_days'] = true;
+        }
+    }
+    unset($p);
     $list = array_values(array_filter($players, fn($p) => $p['week_points'] !== null));
     usort($list, fn($a, $b) => $b['week_points'] <=> $a['week_points']);
-    foreach ($list as $i => &$p) { $p['place'] = $i + 1; $p['from_days'] = false; }
+    foreach ($list as $i => &$p) $p['place'] = $i + 1;
     unset($p);
-    foreach ($players as $p) {
-        if ($p['week_points'] !== null || !count((array)$p['days'])) continue;
-        $list[] = array_merge($p, ['week_points' => array_sum((array)$p['days']), 'place' => null, 'from_days' => true]);
-    }
     ksort($daysScanned);
 
     return [
@@ -140,10 +150,10 @@ function handleDonationWeek(PDO $pdo, string $alliance): never {
 /** Daten fuer handleDonationWeek, auch genutzt vom Scanner-Sync (applyScanWeekFlags in scan-flags.php). */
 function loadDonationWeek(PDO $pdo, string $alliance, int $yearWeek): array {
     $stmt = $pdo->prepare("
-        SELECT m.player_id, p.current_name, m.metric_type, m.game_day, m.value_numeric, m.recorded_at
+        SELECT m.player_id, p.current_name, p.alliance AS current_alliance, m.metric_type, m.game_day, m.value_numeric, m.recorded_at
         FROM player_metrics m
         JOIN players p ON p.alliance = m.alliance AND p.player_id = m.player_id AND p.is_active = 1
-        WHERE m.alliance = ? AND m.year_week = ? AND m.metric_type IN ('DONATION_DAY', 'DONATION_WEEK')
+        WHERE COALESCE(m.scan_alliance, m.alliance) = ? AND m.year_week = ? AND m.metric_type IN ('DONATION_DAY', 'DONATION_WEEK')
           AND " . sqlNoHonor() . "
     ");
     $stmt->execute([$alliance, $yearWeek]);
@@ -153,7 +163,8 @@ function loadDonationWeek(PDO $pdo, string $alliance, int $yearWeek): array {
     $lastWeekScan = null;
     foreach ($stmt as $r) {
         $pid = $r['player_id'];
-        $players[$pid] ??= ['player_id' => $pid, 'name' => $r['current_name'], 'week_points' => null, 'week_final' => false, 'days' => new stdClass()];
+        // alliance: wo der Spieler heute ist (nach einem Wechsel nicht die Allianz der Rangliste) – dort liegen seine Wochen
+        $players[$pid] ??= ['player_id' => $pid, 'name' => $r['current_name'], 'alliance' => $r['current_alliance'], 'week_points' => null, 'week_final' => false, 'days' => new stdClass()];
         if ($r['metric_type'] === 'DONATION_WEEK') {
             $players[$pid]['week_points'] = (int)$r['value_numeric'];
             $players[$pid]['week_final'] = isFinalWeekScan((string)$r['recorded_at'], $yearWeek);

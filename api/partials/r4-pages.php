@@ -157,6 +157,10 @@ $auNav = function (string $active) use ($member): string {
             <option value="kriegsherr" data-i18n="s_bp_rc_r2_kh">R2 = Kriegsherr</option>
           </select>
         </div>
+        <div class="bp-view" id="bp-view" title="Ansicht">
+          <button type="button" data-bpview="acc" onclick="bpSetView('acc')">☰ <span data-i18n="s_bp_view_acc">Akkordeon</span></button>
+          <button type="button" data-bpview="table" onclick="bpSetView('table')">▦ <span data-i18n="s_bp_view_table">Tabelle</span></button>
+        </div>
         <label style="font-size:12px;color:var(--soft);" data-i18n="s_bp_sort_label">Sortierung:</label>
         <select id="bp-sort-select" onchange="berufePlannerSetSort(this.value)" style="background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:12px;">
           <option value="asc" data-i18n="s_bp_sort_az">Kriegsherr A-Z</option>

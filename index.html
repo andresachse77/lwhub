@@ -937,6 +937,32 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   align-items: flex-start;
 }
 .bp-queue-panel { min-width: 0; }
+/* Berufeplaner als Akkordeon (Mockup C, docs/konzept-berufe-mobil.html): Kriegsherren als Karten, Namen ungekuerzt */
+.bp-view { display: inline-flex; border: 1px solid var(--line2); border-radius: 6px; overflow: hidden; }
+.bp-view button { background: transparent; color: var(--soft); border: 0; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+.bp-view button.on { background: rgba(240,165,0,.14); color: var(--gold); }
+.bp-acc { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; align-items: start; }
+.bp-acc-card { border: 1px solid var(--line); border-radius: 10px; background: var(--card); overflow: hidden; }
+.bp-acc-card.open { border-color: rgba(240,165,0,.45); }
+.bp-acc-card.wrong .bp-acc-head { box-shadow: inset 4px 0 0 #d29922; }
+.bp-acc-head { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 8px 6px 6px; background: rgba(224,85,69,.10); cursor: pointer; user-select: none; }
+.bp-acc-kh { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: #f3c2b8; overflow-wrap: anywhere; line-height: 1.25; }
+.bp-acc-cap { flex: none; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9px; background: var(--card2); color: var(--soft); }
+.bp-acc-cap.full { background: rgba(46,203,122,.18); color: var(--green); }
+.bp-acc-chev { flex: none; width: 18px; text-align: center; color: var(--soft); transition: transform .15s; }
+.bp-acc-card.open .bp-acc-chev { transform: rotate(90deg); }
+.bp-acc-mini { padding: 5px 12px 8px 34px; font-size: 12px; color: var(--soft); overflow-wrap: anywhere; line-height: 1.4; }
+.bp-acc-mini .wrong { color: #d29922; }
+.bp-acc-eng { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px 4px 6px; border-top: 1px solid var(--line); background: rgba(74,158,255,.05); cursor: grab; }
+.bp-acc-eng.wrong { box-shadow: inset 4px 0 0 #d29922; }
+.bp-acc-ing { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; line-height: 1.25; }
+.bp-acc-grip { flex: none; color: var(--soft-2); cursor: grab; padding: 0 2px; }
+.bp-acc-btn { flex: none; background: transparent; border: 1px solid var(--line2); color: var(--soft); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+.bp-acc-btn:hover { color: var(--text); }
+.bp-acc-add { padding: 6px 8px; border-top: 1px dashed var(--line2); }
+.bp-acc-add select { width: 100%; background: var(--card2); color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 5px 8px; font-size: 12px; }
+.bp-acc-foot { padding: 6px 8px; border-top: 1px solid var(--line); text-align: right; }
+.bp-acc-empty { padding: 12px; color: var(--soft); font-size: 12px; border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px; }
 .bp-grid-panel { min-width: 0; }
 .bp-queue-list {
   display: flex;
@@ -9082,6 +9108,9 @@ async function revokeApiToken(tokenId, clientName) {
 // BERUFEPLANNER
 // ══════════════════════════════════════════════════════════════════════════════
 (function() {
+  // Namen fuer onclick-Argumente: encodeURIComponent laesst ' stehen und bricht bei "O'Brien" den Handler;
+  // decodeURIComponent macht aus %27 wieder ein '
+  const bpEnc = s => encodeURIComponent(s).replace(/'/g, '%27');
   let bpSort = 'asc';
 
   function bpEngineerListFor(kriegsherrName) {
@@ -9283,7 +9312,7 @@ async function revokeApiToken(tokenId, clientName) {
     const alliance = getEffectiveAllianceForApi();
     if (btn) btn.disabled = true;
     try {
-      await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance)}`, {
+      await adminApi(`/alliance-config?alliance=${bpEnc(alliance)}`, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ discord_id: authMember?.discord_id || '', config: { berufe_frage_vorlagen: value } })
@@ -9300,7 +9329,7 @@ async function revokeApiToken(tokenId, clientName) {
   };
 
   function bpAskBtn(name) {
-    return `<button class="bp-ask-btn" type="button" draggable="false" title="${escHtml(tr('s_bp_ask_title'))}" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();bpAskPlayer('${encodeURIComponent(name)}')">✉</button>`;
+    return `<button class="bp-ask-btn" type="button" draggable="false" title="${escHtml(tr('s_bp_ask_title'))}" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();bpAskPlayer('${bpEnc(name)}')">✉</button>`;
   }
 
   function bpCopyText(text, onDone) {
@@ -9365,7 +9394,7 @@ async function revokeApiToken(tokenId, clientName) {
     onEl.disabled = true;
     r2El.disabled = true;
     try {
-      await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance)}`, {
+      await adminApi(`/alliance-config?alliance=${bpEnc(alliance)}`, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ discord_id: authMember?.discord_id || '', config: next })
@@ -9382,6 +9411,97 @@ async function revokeApiToken(tokenId, clientName) {
   async function bpSaveBeruf(name, beruf, medHilfe, winwin) {
     await apiPost({ action: 'save_beruf', name, beruf, med_hilfe: medHilfe ? 1 : 0, winwin: winwin || null });
   }
+
+  // Ansicht: Akkordeon (Standard, Mockup C aus docs/konzept-berufe-mobil.html) oder die bisherige Tabelle.
+  // In der Tabelle wurden lange Namen abgeschnitten, auch auf grossen Bildschirmen.
+  let bpView = (() => { try { return localStorage.getItem('lwhub_bp_view') || 'acc'; } catch (_) { return 'acc'; } })();
+  let bpOpenKh = null; // aufgeklappter Kriegsherr, immer nur einer
+  window.bpSetView = function(view) {
+    bpView = view === 'table' ? 'table' : 'acc';
+    try { localStorage.setItem('lwhub_bp_view', bpView); } catch (_) {}
+    window.berufePlannerRender();
+  };
+  window.bpAccToggle = function(khEnc) {
+    const kh = decodeURIComponent(khEnc);
+    bpOpenKh = bpOpenKh === kh ? null : kh;
+    window.berufePlannerRender();
+  };
+
+  function bpAccordionHtml(warlords, maxIng) {
+    if (!warlords.length) return `<div class="bp-acc-empty">${escHtml(tr('s_bp_no_warlords'))}</div>`;
+    const queue = bpQueueList();
+    const isWrong = c => c.cls.includes('bp-wrong');
+    return '<div class="bp-acc">' + warlords.map(kh => {
+      const engs = bpEngineerListFor(kh);
+      const khEnc = bpEnc(kh);
+      const open = bpOpenKh === kh;
+      const full = engs.length >= maxIng;
+      const khCheck = bpCheckMarkup(kh, 'kriegsherr');
+      let h = `<div class="bp-acc-card${open ? ' open' : ''}${isWrong(khCheck) ? ' wrong' : ''}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpAccDrop(event,'${khEnc}',this)">`
+        + `<div class="bp-acc-head" onclick="bpAccToggle('${khEnc}')">`
+        + `<span class="bp-acc-grip" draggable="true" data-member="${escHtml(kh)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()" onclick="event.stopPropagation()">⠿</span>`
+        + bpRankShield(kh) + `<span class="bp-acc-kh">⚔ ${escHtml(kh)}</span>` + khCheck.hint
+        + `<span class="bp-acc-cap${full ? ' full' : ''}">${engs.length}/${maxIng}</span>` + bpAskBtn(kh)
+        + '<span class="bp-acc-chev">›</span></div>';
+      if (!open) {
+        if (engs.length) {
+          h += '<div class="bp-acc-mini">' + engs.map(n => `<span${isWrong(bpCheckMarkup(n, 'ingenieur')) ? ' class="wrong"' : ''}>${escHtml(n)}</span>`).join(' · ') + '</div>';
+        }
+        return h + '</div>';
+      }
+      h += engs.map(n => {
+        const c = bpCheckMarkup(n, 'ingenieur');
+        return `<div class="bp-acc-eng${isWrong(c) ? ' wrong' : ''}" draggable="true" data-member="${escHtml(n)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`
+          + `<span class="bp-acc-grip">⠿</span>${bpRankShield(n)}<span class="bp-acc-ing">⚗ ${escHtml(n)}</span>${c.hint}${bpAskBtn(n)}`
+          + `<button class="bp-acc-btn" type="button" title="${escHtml(tr('s_bp_drop_to_queue'))}" onclick="bpAccToQueue('${bpEnc(n)}')">↩</button></div>`;
+      }).join('');
+      if (!full) {
+        h += `<div class="bp-acc-add"><select onchange="bpAccAssign(this,'${khEnc}')">`
+          + `<option value="">＋ ${escHtml(tr('s_bp_acc_add'))} (${maxIng - engs.length} ${escHtml(tr('s_bp_acc_free'))})</option>`
+          + (queue.length ? `<optgroup label="${escHtml(tr('s_bp_queue_title'))}">${queue.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('')}</optgroup>` : '')
+          + '</select></div>';
+      }
+      h += `<div class="bp-acc-foot"><button class="wt-btn" onclick="bpUnsetWarlord('${khEnc}')" style="font-size:11px;padding:5px 10px;">${escHtml(tr('s_bp_to_queue_btn'))}</button></div>`;
+      return h + '</div>';
+    }).join('') + '</div>';
+  }
+
+  // Spieler als Ingenieur zu einem Kriegsherrn (Akkordeon: Ziehen auf die Karte oder Auswahl "+ Ingenieur")
+  async function bpAccAssignName(name, kh) {
+    const engs = bpEngineerListFor(kh);
+    if (!name || name === kh || engs.includes(name)) return;
+    if (engs.length >= getBerufeMaxEngineers()) { toast(trf('{kh} hat schon {n} Ingenieure', { kh, n: engs.length }), 'err'); return; }
+    const meta = memberMeta[name] || {};
+    if (meta.beruf === 'kriegsherr' && !confirm(trf('{name} ist Kriegsherr. Zum Ingenieur bei {kh} machen? Seine Ingenieure kommen in die Warteschlange.', { name, kh }))) return;
+    try {
+      await bpSaveBeruf(name, 'ingenieur', !!meta.berufMedHilfe, kh);
+      bpOpenKh = kh;
+      await loadMembers();
+      window.berufePlannerRender();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+  }
+  window.bpAccDrop = async function(event, khEnc, el) {
+    event.preventDefault();
+    bpDropLeave(el);
+    await bpAccAssignName(bpReadDragMember(event), decodeURIComponent(khEnc));
+  };
+  window.bpAccAssign = function(select, khEnc) {
+    const name = select.value;
+    select.value = '';
+    if (name) bpAccAssignName(name, decodeURIComponent(khEnc));
+  };
+  window.bpAccToQueue = async function(nameEnc) {
+    const name = decodeURIComponent(nameEnc);
+    try {
+      await bpSaveBeruf(name, 'ingenieur', !!(memberMeta[name] || {}).berufMedHilfe, null);
+      await loadMembers();
+      window.berufePlannerRender();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+  };
 
   window.berufePlannerRender = function() {
     const queueEl = document.getElementById('bp-queue');
@@ -9406,7 +9526,7 @@ async function revokeApiToken(tokenId, clientName) {
           ${bpRankShield(name)}
           <span class="bp-queue-name">${escHtml(name)}</span>
           ${bpAskBtn(name)}
-          <button class="bp-queue-promote-btn" onclick="event.preventDefault();event.stopPropagation();bpMakeWarlord('${encodeURIComponent(name)}')" title="${escHtml(tr('s_bp_make_warlord'))}">+</button>
+          <button class="bp-queue-promote-btn" onclick="event.preventDefault();event.stopPropagation();bpMakeWarlord('${bpEnc(name)}')" title="${escHtml(tr('s_bp_make_warlord'))}">+</button>
         </div>`
       ).join('');
     }
@@ -9415,6 +9535,11 @@ async function revokeApiToken(tokenId, clientName) {
       + `<div ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropNewWarlord(event,this)" style="padding:8px;border:1px dashed rgba(224,85,69,0.35);border-radius:8px;color:#f09080;font-size:11px;">${escHtml(tr('s_bp_drop_new_warlord'))}</div>`
       + `<div ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToQueue(event,this)" style="padding:8px;border:1px dashed rgba(255,255,255,0.2);border-radius:8px;color:var(--soft);font-size:11px;">${escHtml(tr('s_bp_drop_to_queue'))}</div>`
       + '</div>';
+    document.querySelectorAll('#bp-view [data-bpview]').forEach(b => b.classList.toggle('on', b.dataset.bpview === bpView));
+    if (bpView === 'acc') {
+      gridEl.innerHTML = html + bpAccordionHtml(warlords, maxIng);
+      return;
+    }
     html += '<div class="bp-table-wrap"><table class="bp-table">';
     html += `<thead><tr><th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;">${escHtml(tr('s_kriegsherr'))}</th>`;
     for (let i = 1; i <= maxIng; i++) {
@@ -9424,7 +9549,7 @@ async function revokeApiToken(tokenId, clientName) {
 
     warlords.forEach((kh) => {
       const engineers = bpEngineerListFor(kh);
-      const khEnc = encodeURIComponent(kh);
+      const khEnc = bpEnc(kh);
       html += '<tr>';
       const khCheck = bpCheckMarkup(kh, 'kriegsherr');
       html += `<td class="bp-cell-name${khCheck.cls}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToWarlord(event,'${khEnc}',this)">`;

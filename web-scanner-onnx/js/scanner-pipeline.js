@@ -455,6 +455,60 @@
       .map((l) => l.text.trim());
   }
 
+  // Die einzelne "0" (Spieler ohne Kills/Spenden) findet die Texterkennung nicht – sie sucht Textflaechen,
+  // und eine einzelne Ziffer ist ihr zu klein. Ohne Wert bekam der Spieler keine Kachel, und der Zaehler
+  // "Kills 72 / 100" wurde nie voll, obwohl keine Stelle uebersprungen war (NxU1 04.11.: Platz 73–100).
+  // Fuer jede volle Platzzeile mit Namen, aber ohne Wert, wird daher die Wert-Zelle unter der Spalten-
+  // ueberschrift direkt gelesen (ohne Detektion, ~10 ms je Bild). Das chinesische Modell liest die einzelne
+  // "0" als "。" (Score 0,6–0,85), eine leere Zelle als "" (Score 0) – beides gilt als 0 nur so eindeutig.
+  // Kills und Spenden: Name und Wert stehen auf derselben Hoehe. Bei VS steht der Wert unter dem Namen.
+  const ZERO_RE = /^[0oO。〇○]$/;
+  const ZERO_MIN_SCORE = 0.5;
+
+  function cropImage(image, left, top, right, bottom) {
+    const x0 = Math.max(0, Math.floor(left)), x1 = Math.min(image.w, Math.ceil(right));
+    const y0 = Math.max(0, Math.floor(top)), y1 = Math.min(image.h, Math.ceil(bottom));
+    const w = x1 - x0, h = y1 - y0;
+    if (w < 4 || h < 4) return null;
+    const data = new Uint8Array(w * h * 3);
+    for (let y = 0; y < h; y++) data.set(image.data.subarray(((y0 + y) * image.w + x0) * 3, ((y0 + y) * image.w + x1) * 3), y * w * 3);
+    return { w, h, data };
+  }
+
+  async function zeroValueRescue(engine, image, lines) {
+    const col = columnHeader(lines);
+    if (!col) return [];
+    // Ueberschrift der Wert-Spalte ("Kills", "Spendenpunkte"): rechts von "Kommandant"
+    const valueHead = minBy(lines.filter((l) => l !== col.header && l.left > col.header.right
+      && Math.abs(cy(l) - cy(col.header)) < height(col.header)), (l) => l.left);
+    if (!valueHead) return [];
+    const top = col.header.bottom;
+    const values = lines.filter((l) => cy(l) > top && l.left > image.w * 0.6 && VALUE_RE.test(l.text.trim()));
+    const rankHeight = rankColumnHeight(lines, image);
+    const reach = Math.max(typicalHeight(values), rankHeight * 0.6) * 2.5;
+    const cells = [];
+    for (const pos of lines.filter((l) => cy(l) > top && isRankColumn(l, image) && isFullRankNumber(l, rankHeight))) {
+      if (values.some((v) => Math.abs(cy(v) - cy(pos)) < reach)) continue;
+      const nameLine = minBy(lines.filter((l) => l.left > image.w * 0.3 && l.right < valueHead.left
+        && !RANK_BADGE_RE.test(l.text.trim()) && Math.abs(cy(l) - cy(pos)) < height(pos)), (l) => Math.abs(cy(l) - cy(pos)));
+      if (!nameLine) continue;
+      const h = height(nameLine);
+      // Eng um die Ziffer: breitere Ausschnitte lesen die "0" oft gar nicht mehr
+      const box = { left: cx(valueHead) - h * 1.2, right: cx(valueHead) + h * 1.2, top: cy(nameLine) - h * 0.9, bottom: cy(nameLine) + h * 0.9 };
+      const crop = cropImage(image, box.left, box.top, box.right, box.bottom);
+      if (crop) cells.push({ box, crop });
+    }
+    if (!cells.length) return [];
+    const recs = await engine.recognize(cells.map((c) => c.crop));
+    const found = [];
+    cells.forEach(({ box }, i) => {
+      if (!ZERO_RE.test(recs[i].text.trim()) || recs[i].score < ZERO_MIN_SCORE) return;
+      const h = height(box) / 1.8; // Hoehe der Namenszeile
+      found.push({ text: '0', score: recs[i].score, left: cx(valueHead) - h / 3, right: cx(valueHead) + h / 3, top: cy(box) - h / 2, bottom: cy(box) + h / 2 });
+    });
+    return found;
+  }
+
   // Erkannte Textzeile mit Position (gerundet) – fuer die gesammelten Aufnahmen zur Nacharbeit
   const rawLine = (l) => ({ text: l.text, score: Math.round(l.score * 1000) / 1000,
     left: Math.round(l.left), top: Math.round(l.top), right: Math.round(l.right), bottom: Math.round(l.bottom) });
@@ -467,6 +521,11 @@
     if (mode === 'vs' || mode === 'kills' || mode === 'donation') {
       // VS, Kills und Spenden laufen als Wert-Kacheln (vs_rows + vs.type) durch Cockpit und Sync,
       // nie als Kampfkraft.
+      if (mode !== 'vs') {
+        const t = performance.now();
+        lines.push(...await zeroValueRescue(engine, image, lines));
+        engine.lap('zero_rescue', t);
+      }
       return {
         width: image.w, height: image.h, mode,
         raw_lines: lines.map(rawLine),

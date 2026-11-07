@@ -26,6 +26,9 @@
   .ocr-job { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); font-size: 11px; color: var(--text-muted); max-width: 120px; }
   .ocr-job canvas { height: 90px; width: auto; max-width: 108px; object-fit: contain; border-radius: 3px; background: #000; }
   .ocr-job-label { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .queue-warn-box { border: 2px solid var(--warning); background: var(--warning-soft); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--text); }
+  .queue-warn-box.drop { border-color: var(--danger); background: var(--danger-soft); }
+  .queue-warn-box[hidden] { display: none; }
   .desert-box { border: 1px solid var(--accent); border-radius: 6px; background: var(--bg-card); padding: 10px 12px; margin-bottom: 8px; font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
   .desert-box[hidden] { display: none; }
   .desert-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
@@ -178,6 +181,9 @@
           </div>
           <div id="ocrActive" class="ocr-active" hidden title="Bilder, die gerade erkannt werden"></div>
         </div>
+
+        <!-- Live-Scan kommt nicht hinterher: deutlich oben statt nur im Protokoll -->
+        <div id="queueWarnBox" class="queue-warn-box" hidden aria-live="polite"></div>
 
         <!-- Uebersprungene Plaetze ganz oben, damit man sie schon beim Scrollen sieht -->
         <div id="rankGapBox" class="rank-gap-box" hidden></div>
@@ -1184,7 +1190,11 @@ rightPane.addEventListener('drop', (e) => {
 // Changed frames are captured on a fixed tick and queued; the OCR worker pool drains the queue
 // (one frame per worker at a time) and keeps draining after Stop.
 const CHANGE_THRESHOLD = 0.015;
-const MAX_LIVE_QUEUE = 40; // ~5 MB per queued frame; older frames are dropped beyond this
+// Wartende Ansichten liegen als PNG im Speicher (~1 MB statt ~5 MB als Rohbild): so passen 250 hinein,
+// genug fuer ein langes Wuestensturm-Protokoll und gleich danach die Mail. Erst darueber wird verworfen.
+const MAX_LIVE_QUEUE = 250;
+const QUEUE_WARN_AT = 60; // ab hier oben deutlich "Bitte kurz warten"
+let liveDropped = 0;
 let captureStream = null;
 let captureTimer = null;
 let prevSignature = null;
@@ -1251,13 +1261,40 @@ function updateLiveStatus() {
     bar.max = Math.max(1, liveFrameCount);
     bar.value = liveFrameCount - busy;
   }
+  // Deutlicher Hinweis statt nur einer Zeile im Protokoll
+  const warn = document.getElementById('queueWarnBox');
+  if (liveDropped > 0) {
+    warn.className = 'queue-warn-box drop';
+    warn.textContent = `⚠️ ${liveDropped} Ansichten verworfen, weil zu schnell gescrollt wurde. Die zuletzt gescannte Liste noch einmal langsam durchscrollen.`;
+    warn.hidden = false;
+  } else if (liveQueue.length >= QUEUE_WARN_AT) {
+    warn.className = 'queue-warn-box';
+    warn.textContent = `⏳ Bitte kurz warten – der Scanner holt auf (${liveQueue.length} Ansichten wartend). Erst weiterscrollen oder die nächste Liste öffnen, wenn die Zahl deutlich kleiner ist.`;
+    warn.hidden = false;
+  } else {
+    warn.hidden = true;
+  }
+}
+
+// Wartende Ansicht als PNG packen und erst bei der Erkennung wieder auspacken
+function packFrame(canvas) {
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+async function unpackFrame(blob) {
+  const bmp = await createImageBitmap(blob);
+  const canvas = document.createElement('canvas');
+  canvas.width = bmp.width;
+  canvas.height = bmp.height;
+  canvas.getContext('2d').drawImage(bmp, 0, 0);
+  bmp.close();
+  return canvas;
 }
 
 // Live frames go through the same ordered runner: every free worker takes the next queued frame.
-const liveRunner = createOrderedRunner(({ meta: { canvas, label }, data, error }) => {
+const liveRunner = createOrderedRunner(({ meta: { canvas, label, blob }, data, error }) => {
   if (error) { log(`FEHLER bei ${label}: ${error.message}`); return; }
   processOcrResult(canvas, data);
-  if (keepCaptureEnabled()) keepCapture(`${label}.png`, new Promise((resolve) => canvas.toBlob(resolve, 'image/png')), data);
+  if (keepCaptureEnabled()) keepCapture(`${label}.png`, blob || packFrame(canvas), data);
   const count = resultCount(data);
   log(`${label}: ${count} Kachel(n) erkannt (${(data.elapsed_ms / 1000).toFixed(1)} s, ${liveQueue.length} wartend).`);
 });
@@ -1265,7 +1302,11 @@ const liveRunner = createOrderedRunner(({ meta: { canvas, label }, data, error }
 function drainLiveQueue() {
   while (liveQueue.length > 0 && liveRunner.running < ocr.size) {
     const job = liveQueue.shift();
-    liveRunner.submit(job, () => ocrTracked(job.canvas, job.label));
+    liveRunner.submit(job, async () => {
+      job.blob = await job.packed;
+      job.canvas = await unpackFrame(job.blob);
+      return ocrTracked(job.canvas, job.label);
+    });
   }
   updateLiveStatus();
   updateProcessingStopButton();
@@ -1286,6 +1327,7 @@ async function startCapture() {
 
     prevSignature = null;
     liveFrameCount = 0;
+    liveDropped = 0;
     updateCaptureButtons(true);
     document.getElementById('scanStatusBadge').textContent = 'Scan läuft';
     document.getElementById('scanStatusBadge').className = 'badge-stat success';
@@ -1305,9 +1347,11 @@ async function startCapture() {
       liveFrameCount++;
       if (liveQueue.length >= MAX_LIVE_QUEUE) {
         liveQueue.shift();
+        liveDropped++;
         log('Warteschlange voll – älteste Ansicht verworfen. Bitte langsamer scrollen.');
       }
-      liveQueue.push({ canvas, label: `Ansicht ${liveFrameCount}` });
+      // Gleich packen; das Rohbild wird danach nicht mehr gebraucht
+      liveQueue.push({ packed: packFrame(canvas), label: `Ansicht ${liveFrameCount}` });
       updateLiveStatus();
       drainLiveQueue();
     }, 800);

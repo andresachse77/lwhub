@@ -268,7 +268,7 @@
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
-<script src="js/desert-storm.js?v=20261107f"></script>
+<script src="js/desert-storm.js?v=20261107g"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -652,6 +652,12 @@ function renderDesert() {
     if (b.noShow.length) sec.appendChild(miss);
     // Stellvertreter kommen nur rein, wenn ein Platz frei wird: nur zur Info, keine Strafpunkte
     const idleSubs = b.substitutes.filter((s) => !s.attended);
+    if (b.unregistered.length) {
+      sec.appendChild(el('div', 'desert-note warn', `➕ Auf dem Feld, aber im Protokoll nicht in Team ${b.team} gefunden (bekommen trotzdem Anmeldung + Teilnahme). Meist wurde ein Protokoll-Eintrag nicht gelesen – das Protokoll an der Stelle noch einmal langsam scrollen:`));
+      const ul = el('ul', 'desert-list');
+      for (const p of b.unregistered) ul.appendChild(el('li', 'ok', `${p.name}${p.points != null ? ` (${p.points.toLocaleString('de-DE')})` : ''}`));
+      sec.appendChild(ul);
+    }
     if (idleSubs.length) {
       sec.appendChild(el('div', 'desert-note', 'ℹ️ Stellvertreter, nicht dabei (keine Strafe – Stellvertreter kommen nur rein, wenn ein Platz frei wird):'));
       const ul = el('ul', 'desert-list');

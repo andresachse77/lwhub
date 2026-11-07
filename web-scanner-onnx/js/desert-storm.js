@@ -378,6 +378,8 @@
       // Stellvertreter kommen nur rein, wenn ein Platz frei wird – nur zur Info, keine Strafpunkte
       const idle = b.substitutes.filter((s) => !s.attended);
       if (idle.length) lines.push(`ℹ️ Stellvertreter, nicht dabei (keine Strafe): ${idle.map((s) => s.name).join(', ')}`);
+      // Auf dem Feld, aber im gelesenen Protokoll nicht in diesem Team – meist fehlt ein Protokolleintrag
+      if (b.unregistered.length) lines.push(`➕ Auf dem Feld, aber nicht im Protokoll: ${b.unregistered.map((s) => s.name).join(', ')}`);
     }
     return lines.join('\n');
   }

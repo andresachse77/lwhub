@@ -268,7 +268,7 @@
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
-<script src="js/desert-storm.js?v=20261107c"></script>
+<script src="js/desert-storm.js?v=20261107d"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -600,6 +600,12 @@ function renderDesert() {
     setTimeout(() => { copy.textContent = '📋 Ergebnis kopieren'; }, 1500);
   });
   head.appendChild(copy);
+  // Haekchen auf der Eventseite (Wueste) fuer die Kampfwoche setzen – nur die drei Wueste-Haekchen
+  const push = el('button', 'btn btn-sm btn-success', '🚀 Häkchen nach LWHub');
+  push.title = 'Teilnehmer da: Anmeldung + Teilnahme · Teilnehmer gefehlt: Fehlen · Ersatz eingesprungen: Anmeldung + Teilnahme · Ersatz nicht dabei: Anmeldung';
+  push.disabled = !report.battles.length || report.battles.some((b) => !b.logCount);
+  push.addEventListener('click', () => pushDesertFlags(push));
+  head.appendChild(push);
   box.appendChild(head);
 
   box.appendChild(el('div', 'desert-note', hasLog
@@ -680,6 +686,38 @@ function renderDesert() {
     if (b.unregistered.length) roster('Auf dem Feld, aber laut Protokoll nicht in diesem Team:', b.unregistered.map((p) => ({ ...p, attended: true })));
     sec.appendChild(det);
     box.appendChild(sec);
+  }
+}
+
+async function pushDesertFlags(btn) {
+  const alliance = document.getElementById('allianceSelect').value;
+  const weeks = DesertStorm.hubFlags(desertReport());
+  const count = (w, flag) => w.players.filter((p) => p.flags.includes(flag)).length;
+  const summary = weeks.map((w) => `KW ${w.year_week % 100}: ${w.players.length} Spieler – ${count(w, 'wuesteTeilnahme')}× Teilnahme, `
+    + `${count(w, 'wuesteFehlen')}× Fehlen, ${w.players.filter((p) => p.flags.length === 1 && p.flags[0] === 'wuesteAnmeldung').length}× nur Anmeldung`
+    + `\nFehlen (−15): ${w.players.filter((p) => p.flags.includes('wuesteFehlen')).map((p) => p.name).join(', ') || 'niemand'}`
+    + (w.unmatched.length ? `\nNicht zugeordnet (bekommen nichts): ${w.unmatched.join(', ')}` : '')).join('\n');
+  if (!confirm(`Wüste-Häkchen in ${alliance} setzen?\n\n${summary}\n\nAndere Häkchen (VS, Spenden, Wache …) bleiben unverändert.`)) return;
+  btn.disabled = true;
+  try {
+    let changed = 0, unchanged = 0, skipped = 0;
+    for (const w of weeks) {
+      const resp = await fetch(`${activeApiUrl}/scans/desert-flags?alliance=${encodeURIComponent(alliance)}`, {
+        method: 'POST',
+        headers: { ...LwhubAccess.authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alliance, year_week: w.year_week, players: w.players.map(({ player_id, flags }) => ({ player_id, flags })) }),
+      });
+      const res = await resp.json().catch(() => ({}));
+      if (!resp.ok || !res.ok) throw new Error(res.error || `HTTP ${resp.status}`);
+      changed += res.changed; unchanged += res.unchanged; skipped += res.skipped.length;
+    }
+    log(`🏜 Wüste-Häkchen übertragen: ${changed} geändert, ${unchanged} schon richtig${skipped ? `, ${skipped} übersprungen` : ''}.`);
+    btn.textContent = '✅ Übertragen';
+    setTimeout(() => { btn.textContent = '🚀 Häkchen nach LWHub'; btn.disabled = false; }, 2500);
+  } catch (err) {
+    log(`⚠️ Wüste-Häkchen nicht übertragen: ${err.message}`);
+    alert(`Wüste-Häkchen nicht übertragen: ${err.message}`);
+    btn.disabled = false;
   }
 }
 

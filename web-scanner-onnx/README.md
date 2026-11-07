@@ -181,3 +181,19 @@ erschienen“ im Kasten über dem Kachel-Pool, Stellvertreter nicht.
 Test mit den JSON-Dateien einer Aufnahmen-ZIP (7.11.2026: 130 Ansichten, 2 Mails, 195 Protokolleinträge):
 Team B 20 angemeldet, 2 nicht erschienen; Team A 20 angemeldet, 3 nicht erschienen (davon El Docco
 mit unlesbarem Namen).
+
+**🚀 Häkchen nach LWHub** setzt auf der Eventseite (Wüste) die Häkchen der Kampfwoche
+(`POST /api/scans/desert-flags`, `api/src/scan-flags.php`). Ersetzt werden nur `wuesteAnmeldung`,
+`wuesteTeilnahme` und `wuesteFehlen`; Rang und alle anderen Häkchen bleiben. Regel (7.11.2026):
+
+| Fall | Häkchen |
+|---|---|
+| Teilnehmer, erschienen | Anmeldung + Teilnahme (+35) |
+| Teilnehmer, nicht erschienen | Fehlen (−15) |
+| Stellvertreter, eingesprungen | Anmeldung + Teilnahme (+35) |
+| Stellvertreter, nicht dabei | Anmeldung (+10), keine Strafe |
+| Auf dem Feld, laut Protokoll nicht im Team | Anmeldung + Teilnahme (+35) |
+
+Der Button ist gesperrt, solange zu einem Kampf kein Protokoll erfasst ist. Vor dem Übertragen
+zeigt eine Rückfrage die Zahlen und alle Namen mit „Fehlen“. Thomas1/Thomas2 und Ehrenmitglieder
+bekommen keine Häkchen.

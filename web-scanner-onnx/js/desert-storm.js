@@ -248,17 +248,17 @@
       const roster = new Map(); // id -> { name, team, role }
       for (const e of window) {
         const who = identify(e.target);
-        if (e.action === 'add') roster.set(who.id, { name: who.name, member: who.member, team: e.team, role: e.role });
+        if (e.action === 'add') roster.set(who.id, { id: who.id, name: who.name, member: who.member, team: e.team, role: e.role });
         else if (e.action === 'remove' && roster.get(who.id)?.team === e.team) roster.delete(who.id);
       }
       const attended = new Map();
       for (const p of b.players) {
         const who = identify(p.name);
-        attended.set(who.id, { name: who.name, member: who.member, points: p.points });
+        attended.set(who.id, { id: who.id, name: who.name, member: who.member, points: p.points });
       }
       for (const [id, r] of roster) {
         const k = `${b.at}|${r.name}`;
-        if (!attended.has(id) && present.has(k)) attended.set(id, { name: r.name, member: r.member, points: present.get(k) ?? null, manual: true });
+        if (!attended.has(id) && present.has(k)) attended.set(id, { id, name: r.name, member: r.member, points: present.get(k) ?? null, manual: true });
       }
       const points = new Set(b.players.map((p) => p.points));
       for (const a of attended.values()) if (a.manual && a.points != null) points.add(a.points);
@@ -286,6 +286,44 @@
     return { battles: out, logFrom: allLog[0]?.at || null, logTo: allLog[allLog.length - 1]?.at || null, logCount: allLog.length };
   }
 
+  // Kalenderwoche wie im Hub: (Jahr % 100) * 100 + ISO-Woche, z. B. Fr 06.11.2026 -> 2645
+  function yearWeekOf(at) {
+    const d = new Date(`${at.slice(0, 10)}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const y = d.getUTCFullYear();
+    const week = Math.ceil(((d - Date.UTC(y, 0, 1)) / 86400000 + 1) / 7);
+    return (y % 100) * 100 + week;
+  }
+
+  /**
+   * Wueste-Haekchen fuer die Eventseite (Regel der Allianz, 07.11.2026):
+   *   Teilnehmer da: Anmeldung + Teilnahme · Teilnehmer gefehlt: nur Fehlen
+   *   Ersatz eingesprungen: Anmeldung + Teilnahme · Ersatz nicht dabei: nur Anmeldung (keine Strafe)
+   *   Auf dem Feld, aber laut Protokoll nicht im Team: Anmeldung + Teilnahme
+   * Nur Spieler, die einem lwhub-Mitglied zugeordnet sind (id "m:<player_id>"); der Rest steht in unmatched.
+   * Rueckgabe je Kampfwoche: [{ year_week, players: [{ player_id, name, flags }], unmatched: [Namen] }]
+   */
+  function hubFlags(report) {
+    const weeks = new Map();
+    const put = (b, p, flags) => {
+      const yw = yearWeekOf(b.at);
+      if (!weeks.has(yw)) weeks.set(yw, { year_week: yw, players: new Map(), unmatched: new Set() });
+      const w = weeks.get(yw);
+      if (!p.member || !String(p.id || '').startsWith('m:')) { w.unmatched.add(p.name); return; }
+      const pid = p.id.slice(2);
+      const prev = w.players.get(pid);
+      // Kommt jemand in beiden Kaempfen vor, zaehlt das Bessere (Teilnahme vor Fehlen)
+      if (prev && prev.flags.includes('wuesteTeilnahme')) return;
+      w.players.set(pid, { player_id: pid, name: p.name, flags });
+    };
+    for (const b of report.battles) {
+      for (const p of b.participants) put(b, p, p.attended ? ['wuesteAnmeldung', 'wuesteTeilnahme'] : ['wuesteFehlen']);
+      for (const p of b.substitutes) put(b, p, p.attended ? ['wuesteAnmeldung', 'wuesteTeilnahme'] : ['wuesteAnmeldung']);
+      for (const p of b.unregistered) put(b, p, ['wuesteAnmeldung', 'wuesteTeilnahme']);
+    }
+    return [...weeks.values()].map((w) => ({ year_week: w.year_week, players: [...w.players.values()], unmatched: [...w.unmatched] }));
+  }
+
   function fmtAt(at) {
     const d = new Date(`${at.slice(0, 10)}T12:00:00`);
     return `${d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })} ${at.slice(11, 16)}`;
@@ -311,5 +349,5 @@
     return lines.join('\n');
   }
 
-  return { createCollector, evaluate, reportText, parseTs, parseEntry, nameKey, flipName, detect, fmtAt };
+  return { createCollector, evaluate, reportText, hubFlags, yearWeekOf, parseTs, parseEntry, nameKey, flipName, detect, fmtAt };
 });

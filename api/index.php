@@ -270,6 +270,11 @@ try {
         handleEventCompare($pdo, $ALLIANCE);
     }
 
+    // POST /scans/desert-flags – Wueste-Haekchen einer KW aus dem Scanner (scan-flags.php)
+    if ($method === 'POST' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'desert-flags') {
+        handleDesertFlags($pdo, $ALLIANCE, $body);
+    }
+
     // POST /scans/sync
     if ($method === 'POST' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'sync') {
         handleSyncScans($pdo, $ALLIANCE, $body, $PROTECTED_R4_NAMES);

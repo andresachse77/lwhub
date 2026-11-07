@@ -172,3 +172,72 @@ function applyScanWeekFlags(PDO $pdo, string $alliance, int $yearWeek, string $c
     }
     return $result;
 }
+
+// ─── Wuestensturm-Haekchen aus dem Scanner (POST /scans/desert-flags) ─────────────────────────────
+// Der Scanner vergleicht Protokoll und Kampfergebnis-Mail (web-scanner-onnx/js/desert-storm.js) und schickt
+// je Spieler die Wueste-Haekchen der Kampfwoche. Ersetzt werden nur wuesteAnmeldung/-Teilnahme/-Fehlen;
+// alle anderen Haekchen und der Rang bleiben. Fehlt der Wocheneintrag, wird er mit dem aktuellen Rang angelegt.
+const DESERT_FLAG_KEYS = ['wuesteAnmeldung', 'wuesteTeilnahme', 'wuesteFehlen'];
+
+function handleDesertFlags(PDO $pdo, string $alliance, array $body): never {
+    $alliance = trim((string)($body['alliance'] ?? $alliance)) ?: $alliance;
+    requireScannerAccess($pdo, $alliance);
+    $yearWeek = (int)($body['year_week'] ?? 0);
+    if ($yearWeek < 1000 || $yearWeek > 9953) jsonOut(400, ['error' => 'Ungueltige Woche']);
+    $players = $body['players'] ?? null;
+    if (!is_array($players) || !$players) jsonOut(400, ['error' => 'Keine Spieler']);
+
+    $in = implode(',', array_fill(0, count(DESERT_FLAG_KEYS), '?'));
+    $known = $pdo->prepare("SELECT flag_key FROM flags WHERE alliance = ? AND flag_key IN ($in)");
+    $known->execute([$alliance, ...DESERT_FLAG_KEYS]);
+    $knownKeys = array_column($known->fetchAll(), 'flag_key');
+    if (!$knownKeys) jsonOut(400, ['error' => 'Die Allianz hat keine Wueste-Haekchen']);
+
+    $result = ['year_week' => $yearWeek, 'changed' => 0, 'unchanged' => 0, 'created' => 0, 'skipped' => []];
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare("INSERT INTO week_periods (alliance, year_week) VALUES (?, ?) ON DUPLICATE KEY UPDATE year_week = VALUES(year_week)")
+            ->execute([$alliance, $yearWeek]);
+        $player = $pdo->prepare("SELECT current_name, current_rank_code, honor_role FROM players WHERE alliance = ? AND player_id = ? AND is_active = 1");
+        $findEntry = $pdo->prepare("SELECT entry_id FROM weekly_entries WHERE alliance = ? AND year_week = ? AND player_id = ?");
+        $entryFlags = $pdo->prepare("SELECT flag_key FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ? AND flag_key IN ($in)");
+        $delFlags = $pdo->prepare("DELETE FROM weekly_entry_flags WHERE alliance = ? AND entry_id = ? AND flag_key IN ($in)");
+        $addFlag = $pdo->prepare("INSERT INTO weekly_entry_flags (alliance, entry_id, flag_key) VALUES (?, ?, ?)");
+
+        foreach ($players as $p) {
+            $playerId = (string)($p['player_id'] ?? '');
+            $flags = array_values(array_intersect((array)($p['flags'] ?? []), $knownKeys));
+            $player->execute([$alliance, $playerId]);
+            $row = $player->fetch();
+            if (!$row) { $result['skipped'][] = ['player_id' => $playerId, 'reason' => 'not-in-alliance']; continue; }
+            if (normalizeHonorRole($row['honor_role'] ?? null) !== null || in_array($row['current_name'], SCAN_FLAG_SKIP_NAMES, true)) {
+                $result['skipped'][] = ['name' => $row['current_name'], 'reason' => 'no-event-flags'];
+                continue;
+            }
+            $findEntry->execute([$alliance, $yearWeek, $playerId]);
+            $entryId = $findEntry->fetchColumn();
+            $current = [];
+            if ($entryId === false) {
+                $rank = safeRank((int)($row['current_rank_code'] ?: 3));
+                $entryId = uuid4();
+                $pdo->prepare("INSERT INTO weekly_entries (alliance, origin_alliance, entry_id, year_week, player_id, base_rank_code, final_rank_code, afk) VALUES (?, ?, ?, ?, ?, ?, ?, 0)")
+                    ->execute([$alliance, $alliance, $entryId, $yearWeek, $playerId, $rank, $rank]);
+                $result['created']++;
+            } else {
+                $entryFlags->execute([$alliance, $entryId, ...DESERT_FLAG_KEYS]);
+                $current = array_column($entryFlags->fetchAll(), 'flag_key');
+            }
+            if (!array_diff($flags, $current) && !array_diff($current, $flags)) { $result['unchanged']++; continue; }
+            $delFlags->execute([$alliance, $entryId, ...DESERT_FLAG_KEYS]);
+            foreach ($flags as $flagKey) $addFlag->execute([$alliance, $entryId, $flagKey]);
+            $pdo->prepare("UPDATE weekly_entries SET updated_at = CURRENT_TIMESTAMP WHERE alliance = ? AND entry_id = ?")
+                ->execute([$alliance, $entryId]);
+            $result['changed']++;
+        }
+        $pdo->commit();
+    } catch (\Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+    jsonOut(200, ['ok' => true] + $result);
+}

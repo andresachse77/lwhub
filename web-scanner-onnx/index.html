@@ -268,7 +268,7 @@
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
-<script src="js/desert-storm.js?v=20261107e"></script>
+<script src="js/desert-storm.js?v=20261107f"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -603,7 +603,10 @@ function renderDesert() {
   // Haekchen auf der Eventseite (Wueste) fuer die Kampfwoche setzen – nur die drei Wueste-Haekchen
   const push = el('button', 'btn btn-sm btn-success', '🚀 Häkchen nach LWHub');
   push.title = 'Teilnehmer da: Anmeldung + Teilnahme · Teilnehmer gefehlt: Fehlen · Ersatz eingesprungen: Anmeldung + Teilnahme · Ersatz nicht dabei: Anmeldung';
-  push.disabled = !report.battles.length || report.battles.some((b) => !b.logCount);
+  // Gesperrt ohne Protokoll und solange Mail-Zeilen fehlen – sonst bekaeme jemand zu Unrecht "Fehlen"
+  const incomplete = report.battles.some((b) => b.lastRank > b.players.length + b.unnamed.length);
+  push.disabled = !report.battles.length || report.battles.some((b) => !b.logCount) || incomplete;
+  if (incomplete) push.title = 'Gesperrt: In einer Mail fehlen noch Zeilen (siehe Warnung). Erst die fehlenden Plätze nachscannen.';
   push.addEventListener('click', () => pushDesertFlags(push));
   head.appendChild(push);
   box.appendChild(head);
@@ -621,7 +624,14 @@ function renderDesert() {
     sec.appendChild(el('h3', null, `⚔ Team ${b.team} (${b.team === 'B' ? 'Mittag' : 'Abend'}) · ${DesertStorm.fmtAt(b.at)}`));
     const field = b.players.length + b.unnamed.length;
     sec.appendChild(el('div', 'desert-note', `Angemeldet: ${b.participants.length} · davon erschienen: ${came} · auf dem Feld: ${field}`));
-    if (b.lastRank > field) sec.appendChild(el('div', 'desert-note warn', `⚠️ Die Mail hat ${b.lastRank} Plätze, erfasst sind nur ${field}. Die Mail noch einmal langsam von oben bis unten durchscrollen.`));
+    // Lueckenpruefung wie bei VS/Kampfkraft: welche Plaetze der Mail wurden nie gelesen?
+    const gaps = DesertStorm.missingPlaces(b);
+    if (b.lastRank > field || gaps.length) {
+      const where = gaps.length ? ` Nicht erfasst: <b>Platz ${gaps.join(', ')}</b>.` : '';
+      const warn = el('div', 'desert-note warn');
+      warn.innerHTML = `⚠️ Die Mail hat ${b.lastRank} Plätze, erfasst sind ${field}.${where} Die Mail noch einmal öffnen und langsam über diese Stelle scrollen – sonst fehlt jemand zu Unrecht.`;
+      sec.appendChild(warn);
+    }
     // Protokoll muss bis Montag der Kampfwoche zurueckreichen, sonst fehlen Anmeldungen
     const monday = new Date(`${b.at.slice(0, 10)}T12:00:00`);
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));

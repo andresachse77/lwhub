@@ -174,8 +174,10 @@ erschienen“ im Kasten über dem Kachel-Pool, Stellvertreter nicht.
 - **Unlesbare Namen** (nur Punkte erkannt, z. B. gespiegeltes „ɘ| Docco“, ab zwei Ansichten) zeigen den
   Bildausschnitt der Mail-Zeile und eine Auswahl „Wer ist das?“. „war da“ markiert einen Spieler ohne
   Zuordnung als erschienen.
-- **Übersprungene Zeilen:** Die Platznummern links (ab Platz 4) ergeben die Zahl der Spieler auf dem
-  Feld. Sind weniger Zeilen erfasst, warnt der Kasten.
+- **Lückenprüfung:** Die Platznummern links (ab Platz 4) ergeben die Zahl der Spieler auf dem Feld und
+  welche Plätze nie gelesen wurden („Nicht erfasst: Platz 13“). Liest die OCR eine Ziffer nicht, wird
+  der Platz nur zwischen zwei gelesenen Ziffern mit passendem Abstand ergänzt. Solange Zeilen fehlen,
+  ist „Häkchen nach LWHub“ gesperrt.
 - **📋 Ergebnis kopieren** legt den Text für Discord oder eine Allianzmail in die Zwischenablage.
 
 Test mit den JSON-Dateien einer Aufnahmen-ZIP (7.11.2026: 130 Ansichten, 2 Mails, 195 Protokolleinträge):

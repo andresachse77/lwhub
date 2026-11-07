@@ -107,9 +107,28 @@
       if (nameKey(name).length >= 2 && x.l.bottom > height * 0.6) rows.push({ name, points: null });
     }
     // Platznummern links (ab Platz 4, 1–3 sind Medaillen): der hoechste Platz = Zahl der Spieler auf dem Feld
-    const ranks = lines.filter((l) => l.left > width * 0.06 && l.left < width * 0.2 && l.top > height * 0.25 && /^\d{1,2}$/.test(despace(l.text)))
-      .map((l) => Number(despace(l.text))).filter((n) => n >= 4 && n <= 60);
-    return { at, rows, unnamed, ranks };
+    const rankLines = lines.filter((l) => l.left > width * 0.06 && l.left < width * 0.2 && l.top > height * 0.25 && /^\d{1,2}$/.test(despace(l.text)))
+      .filter((l) => Number(despace(l.text)) >= 4 && Number(despace(l.text)) <= 60);
+    const ranks = rankLines.map((l) => Number(despace(l.text)));
+    // Plaetze, deren Punkte in dieser Ansicht gelesen wurden: daraus ergeben sich die Luecken ("Platz 13 fehlt")
+    // Ziffer je Zeile; fehlt sie (OCR liest "9" nicht), ergibt sie sich aus der Reihenfolge in der Ansicht
+    const sorted = [...values].sort((a, b) => a.top - b.top);
+    const placeOf = sorted.map((v) => {
+      const h = v.bottom - v.top;
+      const r = rankLines.find((l) => { const cy = (l.top + l.bottom) / 2; return cy > v.top - h * 2.6 && cy < v.bottom + h * 0.5; });
+      return r ? Number(despace(r.text)) : null;
+    });
+    // Nur zwischen zwei gelesenen Ziffern ergaenzen, und nur wenn deren Abstand genau zur Zeilenzahl passt –
+    // sonst fehlt dazwischen eine Zeile, und genau die soll als Luecke auffallen
+    const covered = sorted.map((_, i) => {
+      if (placeOf[i] != null) return placeOf[i];
+      let a = i - 1, b = i + 1;
+      while (a >= 0 && placeOf[a] == null) a--;
+      while (b < sorted.length && placeOf[b] == null) b++;
+      if (a < 0 || b >= sorted.length || placeOf[b] - placeOf[a] !== b - a) return null;
+      return placeOf[a] + (i - a);
+    }).filter((p) => p != null && p >= 4);
+    return { at, rows, unnamed, ranks, covered };
   }
 
   // ── Protokoll ─────────────────────────────────────────────────────────────────────────
@@ -185,12 +204,14 @@
         const kind = detect(lines, height);
         lastUnnamed = [];
         if (kind === 'result') {
-          const { at, rows, unnamed, ranks } = parseResult(lines, width, height);
+          const { at, rows, unnamed, ranks, covered } = parseResult(lines, width, height);
           if (!at) return null; // Datum nicht lesbar: Zeilen keinem Kampf zuzuordnen
           if (!battles.has(at)) battles.set(at, { at, players: [], unnamed: new Map() });
           for (const r of rows) addPlayer(battles.get(at), r);
           const rc = battles.get(at).ranks || (battles.get(at).ranks = new Map());
           for (const n of ranks) rc.set(n, (rc.get(n) || 0) + 1);
+          const cov = battles.get(at).covered || (battles.get(at).covered = new Set());
+          for (const n of covered) cov.add(n);
           lastUnnamed = unnamed.map((u) => ({ at, ...u }));
           for (const u of unnamed) {
             const known = battles.get(at).unnamed.get(u.points);
@@ -282,6 +303,7 @@
         unnamed,
         // Hoechster in mindestens zwei Ansichten gelesener Platz; mehr als erfasst = Zeilen uebersprungen
         lastRank: Math.max(0, ...[...(b.ranks || [])].filter(([, n]) => n >= 2).map(([r]) => r)),
+        coveredPlaces: [...(b.covered || [])],
       };
     });
     const allLog = [...collector.log.values()].sort((a, b) => a.at.localeCompare(b.at));
@@ -331,16 +353,25 @@
     return `${d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })} ${at.slice(11, 16)}`;
   }
 
+  // Plaetze ab 4 (1–3 sind Medaillen ohne Ziffer), deren Zeile in keiner Ansicht gelesen wurde
+  function missingPlaces(b) {
+    const seen = new Set(b.coveredPlaces || []);
+    const out = [];
+    for (let p = 4; p <= (b.lastRank || 0); p++) if (!seen.has(p)) out.push(p);
+    return out;
+  }
+
   function reportText(report, alliance = '') {
     const lines = [`🏜 Wüstensturm${alliance ? ` – ${alliance}` : ''}`];
     for (const b of report.battles) {
       const came = b.participants.filter((p) => p.attended).length;
       lines.push('', `⚔ Team ${b.team} (${b.team === 'B' ? 'Mittag' : 'Abend'}) · ${fmtAt(b.at)}`);
       lines.push(`Angemeldet: ${b.participants.length} · davon erschienen: ${came} · auf dem Feld: ${b.players.length + b.unnamed.length}`);
+      const field = b.players.length + b.unnamed.length;
+      const gaps = missingPlaces(b);
+      if (b.lastRank > field || gaps.length) lines.push(`⚠️ Mail hat ${b.lastRank} Plätze, erfasst sind ${field}${gaps.length ? ` – nicht erfasst: Platz ${gaps.join(', ')}` : ''}. Das Ergebnis ist unvollständig.`);
       lines.push(b.noShow.length ? '❌ Angemeldet, aber nicht erschienen:' : '✅ Alle Angemeldeten waren da.');
       for (const p of b.noShow) lines.push(`- ${p.name}`);
-      const field = b.players.length + b.unnamed.length;
-      if (b.lastRank > field) lines.push(`⚠️ Mail hat ${b.lastRank} Plätze, erfasst sind nur ${field}.`);
       if (b.unnamed.length) lines.push(`❔ Name in der Mail nicht lesbar (Punkte): ${b.unnamed.map((p) => p.toLocaleString('de-DE')).join(', ')}`);
       const subs = b.substitutes.filter((s) => s.attended);
       if (subs.length) lines.push(`🔄 Ersatz eingesprungen: ${subs.map((s) => s.name).join(', ')}`);
@@ -351,5 +382,5 @@
     return lines.join('\n');
   }
 
-  return { createCollector, evaluate, reportText, hubFlags, yearWeekOf, parseTs, parseEntry, nameKey, flipName, detect, fmtAt };
+  return { createCollector, evaluate, reportText, hubFlags, missingPlaces, yearWeekOf, parseTs, parseEntry, nameKey, flipName, detect, fmtAt };
 });

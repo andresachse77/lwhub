@@ -169,8 +169,13 @@ erschienen“ im Kasten über dem Kachel-Pool, Stellvertreter nicht.
 
 - **Namen auf dem Kopf** (z. B. „ʞnsɥɯınz“, gelesen als „zuiwysny“) werden zusätzlich gedreht gegen
   die Mitgliederliste abgeglichen.
-- **Unlesbare Namen** (nur Punkte erkannt, z. B. gespiegeltes „ɘ| Docco“) erscheinen als Hinweis mit
-  den Punkten; mit „war da“ lässt sich ein Spieler von Hand als erschienen markieren.
+- **Zeilen** gehen von den Punkten in der Punktespalte aus, der Name ist die Zeile direkt darüber.
+  Ein verlesenes Kürzel („INxU1]“, „[NxU1j“) kostet so keine Zeile mehr.
+- **Unlesbare Namen** (nur Punkte erkannt, z. B. gespiegeltes „ɘ| Docco“, ab zwei Ansichten) zeigen den
+  Bildausschnitt der Mail-Zeile und eine Auswahl „Wer ist das?“. „war da“ markiert einen Spieler ohne
+  Zuordnung als erschienen.
+- **Übersprungene Zeilen:** Die Platznummern links (ab Platz 4) ergeben die Zahl der Spieler auf dem
+  Feld. Sind weniger Zeilen erfasst, warnt der Kasten.
 - **📋 Ergebnis kopieren** legt den Text für Discord oder eine Allianzmail in die Zwischenablage.
 
 Test mit den JSON-Dateien einer Aufnahmen-ZIP (7.11.2026: 130 Ansichten, 2 Mails, 195 Protokolleinträge):

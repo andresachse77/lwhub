@@ -65,29 +65,51 @@
 
   // ── Kampfergebnis-Mail ────────────────────────────────────────────────────────────────
   const TAG_NAME_RE = /^[[(]([A-Za-z0-9]{2,5})[\]jJ|)](.+)$/;
+  // Kuerzel auch verlesen abtrennen: "INxU1]shark", "[NxU1jshark", "NxU1]shark"
+  const LOOSE_TAG_RE = /^[[(|Il1i]?\s*([A-Za-z0-9]{2,5})\s*[\]jJ|)]\s*(.+)$/;
+  function stripTag(text, tagKey) {
+    const t = text.trim();
+    const m = LOOSE_TAG_RE.exec(t);
+    if (m && (/^[[(]/.test(t) || (tagKey && similarity(nameKey(m[1]), tagKey) >= 0.5))) return m[2].trim();
+    return t;
+  }
+  // Zeilen gehen von den Punkten aus (Ziffern in der Punktespalte); der Name steht direkt darueber.
+  // So zaehlt jede Zeile, auch wenn das Kuerzel verlesen ist oder der Name gar nicht lesbar.
   function parseResult(lines, width, height) {
     const stamps = lines.map((l) => ({ l, at: parseTs(l.text) })).filter((x) => x.at).sort((a, b) => b.l.top - a.l.top);
     const at = stamps.length ? stamps[0].at : null;
+    const strict = lines.filter((l) => l.left > width * 0.25).map((l) => ({ l, m: TAG_NAME_RE.exec(l.text.trim()) })).filter((x) => x.m);
+    const tagCount = new Map();
+    for (const x of strict) tagCount.set(nameKey(x.m[1]), (tagCount.get(nameKey(x.m[1])) || 0) + 1);
+    const tagKey = [...tagCount].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const colLeft = strict.length ? strict.reduce((s, x) => s + x.l.left, 0) / strict.length : width * 0.405;
+    const isNum = (l) => /^\d{3,9}$/.test(despace(l.text));
+    const values = lines.filter((v) => isNum(v) && Math.abs(v.left - colLeft) < width * 0.04 && v.top > height * 0.25);
     const rows = [];
-    for (const l of lines) {
-      if (l.left < width * 0.25) continue;
-      const m = TAG_NAME_RE.exec(l.text.trim());
-      if (!m) continue;
-      const name = m[2].trim();
-      if (nameKey(name).length < 2) continue;
-      const h = l.bottom - l.top;
-      const val = lines.find((v) => v !== l && /^\d{1,9}$/.test(despace(v.text).replace(/[.,]/g, ''))
-        && v.top > l.top + h * 0.5 && v.top < l.bottom + h * 1.8 && Math.abs(v.left - l.left) < width * 0.06);
-      rows.push({ name, tag: m[1], points: val ? Number(despace(val.text).replace(/[.,]/g, '')) : null, valueLine: val });
+    const unnamed = [];
+    const usedNames = new Set();
+    for (const v of values) {
+      const h = v.bottom - v.top;
+      const above = lines
+        .filter((l) => l !== v && !isNum(l) && !parseTs(l.text) && l.top < v.top && l.top > v.top - h * 2.6
+          && Math.abs(l.left - v.left) < width * 0.06)
+        .sort((a, b) => b.top - a.top)[0];
+      const points = Number(despace(v.text));
+      const box = { top: Math.max(0, Math.round(v.top - h * 2.8)), bottom: Math.round(v.bottom + h * 0.6) };
+      const name = above ? stripTag(above.text, tagKey) : '';
+      if (above && nameKey(name).length >= 2) { usedNames.add(above); rows.push({ name, points }); }
+      else unnamed.push({ points, box });
     }
-    // Punkte ohne lesbaren Namen darueber (Name gespiegelt/verziert): als unbenannte Zeile merken
-    const tagged = rows.filter((r) => r.valueLine);
-    const colLeft = tagged.length ? tagged.reduce((s, r) => s + r.valueLine.left, 0) / tagged.length : width * 0.405;
-    const unnamed = lines
-      .filter((v) => !rows.some((r) => r.valueLine === v) && /^\d{4,9}$/.test(despace(v.text))
-        && Math.abs(v.left - colLeft) < width * 0.03 && v.top > height * 0.25)
-      .map((v) => Number(despace(v.text)));
-    return { at, rows, unnamed };
+    // Name unten angeschnitten, Punkte schon ausserhalb des Bildes: Name ohne Punkte
+    for (const x of strict) {
+      if (usedNames.has(x.l)) continue;
+      const name = x.m[2].trim();
+      if (nameKey(name).length >= 2 && x.l.bottom > height * 0.6) rows.push({ name, points: null });
+    }
+    // Platznummern links (ab Platz 4, 1–3 sind Medaillen): der hoechste Platz = Zahl der Spieler auf dem Feld
+    const ranks = lines.filter((l) => l.left > width * 0.06 && l.left < width * 0.2 && l.top > height * 0.25 && /^\d{1,2}$/.test(despace(l.text)))
+      .map((l) => Number(despace(l.text))).filter((n) => n >= 4 && n <= 60);
+    return { at, rows, unnamed, ranks };
   }
 
   // ── Protokoll ─────────────────────────────────────────────────────────────────────────
@@ -136,7 +158,8 @@
 
   // ── Sammeln ueber viele Ansichten ─────────────────────────────────────────────────────
   function createCollector() {
-    const battles = new Map(); // at -> { at, players: [{ name, points }], unnamed: Set(Punkte) }
+    const battles = new Map(); // at -> { at, players: [{ name, points }], unnamed: Map(Punkte -> Bildausschnitt) }
+    let lastUnnamed = [];      // unlesbare Zeilen der zuletzt gelesenen Ansicht (fuer den Bildausschnitt im Cockpit)
     const log = new Map();     // Schluessel -> Eintrag
     let frames = 0;
     function addPlayer(battle, row) {
@@ -156,15 +179,23 @@
     return {
       battles, log,
       get frames() { return frames; },
+      get lastUnnamed() { return lastUnnamed; },
       feed(rawLines, width, height) {
         const lines = (rawLines || []).filter((l) => l && l.text);
         const kind = detect(lines, height);
+        lastUnnamed = [];
         if (kind === 'result') {
-          const { at, rows, unnamed } = parseResult(lines, width, height);
+          const { at, rows, unnamed, ranks } = parseResult(lines, width, height);
           if (!at) return null; // Datum nicht lesbar: Zeilen keinem Kampf zuzuordnen
-          if (!battles.has(at)) battles.set(at, { at, players: [], unnamed: new Set() });
+          if (!battles.has(at)) battles.set(at, { at, players: [], unnamed: new Map() });
           for (const r of rows) addPlayer(battles.get(at), r);
-          for (const p of unnamed) battles.get(at).unnamed.add(p);
+          const rc = battles.get(at).ranks || (battles.get(at).ranks = new Map());
+          for (const n of ranks) rc.set(n, (rc.get(n) || 0) + 1);
+          lastUnnamed = unnamed.map((u) => ({ at, ...u }));
+          for (const u of unnamed) {
+            const known = battles.get(at).unnamed.get(u.points);
+            battles.get(at).unnamed.set(u.points, { box: known?.box || u.box, seen: (known?.seen || 0) + 1 });
+          }
         } else if (kind === 'log') {
           for (const e of parseLog(lines, width, height)) {
             const k = `${e.at}|${e.action}|${e.role || ''}|${e.team}|${nameKey(e.target || e.time)}`;
@@ -174,7 +205,7 @@
         if (kind) frames++;
         return kind;
       },
-      clear() { battles.clear(); log.clear(); frames = 0; },
+      clear() { battles.clear(); log.clear(); frames = 0; lastUnnamed = []; },
     };
   }
 
@@ -188,7 +219,8 @@
 
   function evaluate(collector, opts = {}) {
     const match = opts.match || (() => null);
-    const present = opts.present || new Set(); // "${at}|${name}": von Hand als erschienen markiert
+    // "${at}|${name}" -> Punkte der unlesbaren Mail-Zeile, die dieser Spieler ist (oder null: einfach "war da")
+    const present = opts.present || new Map();
     // Identitaet: Mitglied aus lwhub, sonst der Schluessel; nicht zugeordnete Namen fuzzy gegen schon bekannte
     const known = [];
     function identify(name) {
@@ -225,12 +257,13 @@
         attended.set(who.id, { name: who.name, member: who.member, points: p.points });
       }
       for (const [id, r] of roster) {
-        if (!attended.has(id) && present.has(`${b.at}|${r.name}`)) attended.set(id, { name: r.name, member: r.member, points: null, manual: true });
+        const k = `${b.at}|${r.name}`;
+        if (!attended.has(id) && present.has(k)) attended.set(id, { name: r.name, member: r.member, points: present.get(k) ?? null, manual: true });
       }
       const points = new Set(b.players.map((p) => p.points));
-      // Von Hand als erschienen markierte Spieler erklaeren die unlesbaren Zeilen (hoechste Punkte zuerst)
-      const manualCount = [...attended.values()].filter((x) => x.manual).length;
-      const unnamed = [...(b.unnamed || [])].filter((p) => !points.has(p)).sort((x, y) => y - x).slice(manualCount);
+      for (const a of attended.values()) if (a.manual && a.points != null) points.add(a.points);
+      // Erst ab zwei Ansichten: ein einmal verlesener Wert ("1026611" statt "4926641") ist keine eigene Zeile
+      const unnamed = [...(b.unnamed || [])].filter(([p, u]) => u.seen >= 2 && !points.has(p)).map(([p]) => p).sort((x, y) => y - x);
       const inTeam = [...roster].filter(([, r]) => r.team === team);
       const byPoints = (a, c) => (c.points ?? -1) - (a.points ?? -1) || a.name.localeCompare(c.name);
       const byName = (a, c) => a.name.localeCompare(c.name);
@@ -245,6 +278,8 @@
         unregistered: [...attended].filter(([id]) => !inTeam.some(([rid]) => rid === id)).map(([, a]) => a).sort(byPoints),
         players: [...attended.values()].sort(byPoints),
         unnamed,
+        // Hoechster in mindestens zwei Ansichten gelesener Platz; mehr als erfasst = Zeilen uebersprungen
+        lastRank: Math.max(0, ...[...(b.ranks || [])].filter(([, n]) => n >= 2).map(([r]) => r)),
       };
     });
     const allLog = [...collector.log.values()].sort((a, b) => a.at.localeCompare(b.at));
@@ -264,6 +299,8 @@
       lines.push(`Angemeldet: ${b.participants.length} · davon erschienen: ${came} · auf dem Feld: ${b.players.length + b.unnamed.length}`);
       lines.push(b.noShow.length ? '❌ Angemeldet, aber nicht erschienen:' : '✅ Alle Angemeldeten waren da.');
       for (const p of b.noShow) lines.push(`- ${p.name}`);
+      const field = b.players.length + b.unnamed.length;
+      if (b.lastRank > field) lines.push(`⚠️ Mail hat ${b.lastRank} Plätze, erfasst sind nur ${field}.`);
       if (b.unnamed.length) lines.push(`❔ Name in der Mail nicht lesbar (Punkte): ${b.unnamed.map((p) => p.toLocaleString('de-DE')).join(', ')}`);
       const subs = b.substitutes.filter((s) => s.attended);
       if (subs.length) lines.push(`🔄 Ersatz eingesprungen: ${subs.map((s) => s.name).join(', ')}`);

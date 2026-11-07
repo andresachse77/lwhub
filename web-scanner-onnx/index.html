@@ -40,6 +40,9 @@
   .desert-list li.ok { border-color: var(--success); }
   .desert-list li.manual { border-style: dashed; }
   .desert-list li button { font-size: 10px; padding: 0 5px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; }
+  .desert-unnamed { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .desert-unnamed canvas { max-width: 100%; height: auto; max-height: 90px; border-radius: 4px; border: 1px solid var(--border); }
+  .desert-unnamed select { background: var(--bg-main); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font-size: 12px; }
   .desert-box details summary { cursor: pointer; color: var(--text-muted); }
   .access-gate { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: var(--bg-main); }
   .access-gate[hidden] { display: none; }
@@ -265,7 +268,7 @@
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
-<script src="js/desert-storm.js?v=20261107a"></script>
+<script src="js/desert-storm.js?v=20261107b"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -463,6 +466,7 @@ document.getElementById('btnResetPool').addEventListener('click', () => {
     window.cockpit.resetAllScans();
     desertStorm.clear();
     desertPresent.clear();
+    desertCrops.clear();
     renderDesert();
     seenRanks.clear();
     rankGapsPending = false;
@@ -561,7 +565,9 @@ function reportRankGaps(live = false) {
 
 // Wuestensturm (js/desert-storm.js): Mails und Protokoll werden nur gesammelt, keine Kacheln
 const desertStorm = DesertStorm.createCollector();
-const desertPresent = new Set(); // "<Kampfzeit>|<Name>": von Hand als erschienen markiert (Name in der Mail unlesbar)
+// "<Kampfzeit>|<Name>" -> Punkte der unlesbaren Mail-Zeile (Auswahl "Wer ist das?") oder null ("war da")
+const desertPresent = new Map();
+const desertCrops = new Map(); // "<Kampfzeit>|<Punkte>" -> Bildausschnitt der unlesbaren Mail-Zeile
 let desertRenderTimer = null;
 function scheduleDesertRender() {
   clearTimeout(desertRenderTimer);
@@ -607,7 +613,9 @@ function renderDesert() {
     const sec = el('div', 'desert-team');
     const came = b.participants.filter((p) => p.attended).length;
     sec.appendChild(el('h3', null, `⚔ Team ${b.team} (${b.team === 'B' ? 'Mittag' : 'Abend'}) · ${DesertStorm.fmtAt(b.at)}`));
-    sec.appendChild(el('div', 'desert-note', `Angemeldet: ${b.participants.length} · davon erschienen: ${came} · auf dem Feld: ${b.players.length + b.unnamed.length}`));
+    const field = b.players.length + b.unnamed.length;
+    sec.appendChild(el('div', 'desert-note', `Angemeldet: ${b.participants.length} · davon erschienen: ${came} · auf dem Feld: ${field}`));
+    if (b.lastRank > field) sec.appendChild(el('div', 'desert-note warn', `⚠️ Die Mail hat ${b.lastRank} Plätze, erfasst sind nur ${field}. Die Mail noch einmal langsam von oben bis unten durchscrollen.`));
     // Protokoll muss bis Montag der Kampfwoche zurueckreichen, sonst fehlen Anmeldungen
     const monday = new Date(`${b.at.slice(0, 10)}T12:00:00`);
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
@@ -621,13 +629,24 @@ function renderDesert() {
       const li = el('li', 'miss', p.name);
       const btn = el('button', null, 'war da');
       btn.title = 'Name in der Mail nicht lesbar? Als erschienen markieren';
-      btn.addEventListener('click', () => { desertPresent.add(`${b.at}|${p.name}`); renderDesert(); });
+      btn.addEventListener('click', () => { desertPresent.set(`${b.at}|${p.name}`, null); renderDesert(); });
       li.appendChild(btn);
       miss.appendChild(li);
     }
     if (b.noShow.length) sec.appendChild(miss);
-    if (b.unnamed.length) {
-      sec.appendChild(el('div', 'desert-note warn', `❔ ${b.unnamed.length} Name(n) in der Mail nicht lesbar, Punkte: ${b.unnamed.map((p) => p.toLocaleString('de-DE')).join(', ')} – gehört einer davon zu oben? Dann „war da“ klicken.`));
+    // Unlesbare Namen: Bildausschnitt der Mail-Zeile zeigen und zuordnen lassen
+    const open = [...b.participants, ...b.substitutes].filter((p) => !p.attended);
+    for (const pts of b.unnamed) {
+      const row = el('div', 'desert-unnamed');
+      row.appendChild(el('div', 'desert-note warn', `❔ Name in der Mail nicht lesbar (${pts.toLocaleString('de-DE')} Punkte). Wer ist das?`));
+      const crop = desertCrops.get(`${b.at}|${pts}`);
+      if (crop) row.appendChild(crop);
+      const sel = el('select');
+      sel.appendChild(el('option', null, '– Spieler wählen –')).value = '';
+      for (const p of open) sel.appendChild(el('option', null, `${p.name}${p.role === 'sub' ? ' (Ersatz)' : ''}`)).value = p.name;
+      sel.addEventListener('change', () => { if (sel.value) { desertPresent.set(`${b.at}|${sel.value}`, pts); renderDesert(); } });
+      row.appendChild(sel);
+      sec.appendChild(row);
     }
 
     const det = el('details');
@@ -659,6 +678,13 @@ function renderDesert() {
 function processOcrResult(img, result) {
   if (result.mode === 'unknown' && DesertStorm.detect(result.raw_lines || [], result.height)) {
     desertStorm.feed(result.raw_lines, result.width, result.height);
+    // Ausschnitt der unlesbaren Zeile (Avatar + Name) einmal je Kampf und Punktzahl aufheben
+    for (const u of desertStorm.lastUnnamed) {
+      const key = `${u.at}|${u.points}`;
+      if (img && !desertCrops.has(key)) {
+        desertCrops.set(key, cropCanvas(img, { left: Math.round(result.width * 0.08), right: Math.round(result.width * 0.92), top: u.box.top, bottom: u.box.bottom }, 0));
+      }
+    }
     scheduleDesertRender();
     return;
   }

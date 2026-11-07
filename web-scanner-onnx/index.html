@@ -268,7 +268,7 @@
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
-<script src="js/desert-storm.js?v=20261107b"></script>
+<script src="js/desert-storm.js?v=20261107c"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -634,6 +634,14 @@ function renderDesert() {
       miss.appendChild(li);
     }
     if (b.noShow.length) sec.appendChild(miss);
+    // Stellvertreter kommen nur rein, wenn ein Platz frei wird: nur zur Info, keine Strafpunkte
+    const idleSubs = b.substitutes.filter((s) => !s.attended);
+    if (idleSubs.length) {
+      sec.appendChild(el('div', 'desert-note', 'ℹ️ Stellvertreter, nicht dabei (keine Strafe – Stellvertreter kommen nur rein, wenn ein Platz frei wird):'));
+      const ul = el('ul', 'desert-list');
+      for (const s of idleSubs) ul.appendChild(el('li', null, s.name));
+      sec.appendChild(ul);
+    }
     // Unlesbare Namen: Bildausschnitt der Mail-Zeile zeigen und zuordnen lassen
     const open = [...b.participants, ...b.substitutes].filter((p) => !p.attended);
     for (const pts of b.unnamed) {

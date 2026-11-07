@@ -304,6 +304,9 @@
       if (b.unnamed.length) lines.push(`❔ Name in der Mail nicht lesbar (Punkte): ${b.unnamed.map((p) => p.toLocaleString('de-DE')).join(', ')}`);
       const subs = b.substitutes.filter((s) => s.attended);
       if (subs.length) lines.push(`🔄 Ersatz eingesprungen: ${subs.map((s) => s.name).join(', ')}`);
+      // Stellvertreter kommen nur rein, wenn ein Platz frei wird – nur zur Info, keine Strafpunkte
+      const idle = b.substitutes.filter((s) => !s.attended);
+      if (idle.length) lines.push(`ℹ️ Stellvertreter, nicht dabei (keine Strafe): ${idle.map((s) => s.name).join(', ')}`);
     }
     return lines.join('\n');
   }

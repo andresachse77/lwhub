@@ -358,7 +358,7 @@ document.getElementById('btnCopy').addEventListener('click', async () => {
 });
 
 // Allianzmail: Eventname, Zeitfenster und Rangliste der Teilnehmer nach Killpunkten
-// (alle Teilnehmer ohne Ehrenrollen, unabhaengig von Filter/Suche; gleiche Kills = gleicher Platz)
+// (nur Teilnehmer mit Killpunkten > 0, ohne Ehrenrollen, unabhaengig von Filter/Suche; gleiche Kills = gleicher Platz)
 function buildMailText() {
   if (!raw) return '';
   const date = formVal('evDate'), start = formVal('evStart'), end = formVal('evEnd');
@@ -367,14 +367,14 @@ function buildMailText() {
   const alliance = document.getElementById('allianceSelect').value;
   const day = new Date(`${date}T12:00:00`).toLocaleDateString(NUM_LOCALE, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
   const lines = [`🎯 ${title} – ${alliance}`, `${day} · ${t('ev_server_time')} ${gameTime(date, start)}–${gameTime(date, end)}`, '', t('ev_mail_ranking')];
-  const list = rows.filter((r) => r.participated && !r.honor_role).sort((a, b) => (b.dk ?? 0) - (a.dk ?? 0));
+  const list = rows.filter((r) => r.participated && !r.honor_role && r.dk > 0).sort((a, b) => b.dk - a.dk);
   if (!list.length) lines.push(t('ev_mail_none'));
   let place = 0;
   list.forEach((r, i) => {
-    if (i === 0 || (r.dk ?? 0) !== (list[i - 1].dk ?? 0)) place = i + 1;
-    lines.push(`${place}. ${r.name} – ${num(Math.max(0, r.dk ?? 0))}`);
+    if (i === 0 || r.dk !== list[i - 1].dk) place = i + 1;
+    lines.push(`${place}. ${r.name} – ${num(r.dk)}`);
   });
-  const killsSum = list.reduce((s, r) => s + (r.dk > 0 ? r.dk : 0), 0);
+  const killsSum = list.reduce((s, r) => s + r.dk, 0);
   lines.push('', t('ev_mail_footer', { n: list.length, v: num(killsSum) }));
   return lines.join('\n');
 }

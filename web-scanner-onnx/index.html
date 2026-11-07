@@ -268,7 +268,7 @@
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
-<script src="js/desert-storm.js?v=20261107d"></script>
+<script src="js/desert-storm.js?v=20261107e"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -657,7 +657,19 @@ function renderDesert() {
       if (crop) row.appendChild(crop);
       const sel = el('select');
       sel.appendChild(el('option', null, '– Spieler wählen –')).value = '';
-      for (const p of open) sel.appendChild(el('option', null, `${p.name}${p.role === 'sub' ? ' (Ersatz)' : ''}`)).value = p.name;
+      // Oben: laut Protokoll angemeldet und nicht auf dem Feld; darunter alle anderen Mitglieder (auch ohne Protokoll)
+      if (open.length) {
+        const g = sel.appendChild(el('optgroup'));
+        g.label = 'Angemeldet, nicht auf dem Feld';
+        for (const p of open) g.appendChild(el('option', null, `${p.name}${p.role === 'sub' ? ' (Ersatz)' : ''}`)).value = p.name;
+      }
+      const taken = new Set([...open.map((p) => p.name), ...b.players.map((p) => p.name)]);
+      const rest = (window.cockpit.members || []).map((m) => m.name).filter((n) => n && !taken.has(n)).sort((x, y) => x.localeCompare(y));
+      if (rest.length) {
+        const g = sel.appendChild(el('optgroup'));
+        g.label = open.length ? 'Alle anderen Mitglieder' : 'Mitglieder';
+        for (const n of rest) g.appendChild(el('option', null, n)).value = n;
+      }
       sel.addEventListener('change', () => { if (sel.value) { desertPresent.set(`${b.at}|${sel.value}`, pts); renderDesert(); } });
       row.appendChild(sel);
       sec.appendChild(row);

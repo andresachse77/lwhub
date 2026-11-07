@@ -256,9 +256,11 @@
         const who = identify(p.name);
         attended.set(who.id, { id: who.id, name: who.name, member: who.member, points: p.points });
       }
-      for (const [id, r] of roster) {
-        const k = `${b.at}|${r.name}`;
-        if (!attended.has(id) && present.has(k)) attended.set(id, { id, name: r.name, member: r.member, points: present.get(k) ?? null, manual: true });
+      // Von Hand zugeordnet ("Wer ist das?" / "war da") – auch Mitglieder, die laut Protokoll nicht im Team sind
+      for (const [k, pts] of present) {
+        if (!k.startsWith(`${b.at}|`)) continue;
+        const who = identify(k.slice(b.at.length + 1));
+        if (!attended.has(who.id)) attended.set(who.id, { id: who.id, name: who.name, member: who.member, points: pts ?? null, manual: true });
       }
       const points = new Set(b.players.map((p) => p.points));
       for (const a of attended.values()) if (a.manual && a.points != null) points.add(a.points);

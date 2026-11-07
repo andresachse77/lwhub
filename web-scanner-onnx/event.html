@@ -107,6 +107,7 @@
           <div class="filter-pills" id="verdictPills"></div>
           <input id="searchInput" class="input-search" data-i18n-ph="ev_search" placeholder="🔍 Spieler filtern…">
           <button id="btnCopy" class="btn btn-secondary" data-i18n-title="ev_copy_t">📋 <span data-i18n="ev_copy">Namen kopieren</span></button>
+          <button id="btnMail" class="btn btn-secondary" data-i18n-title="ev_mail_t">✉ <span data-i18n="ev_mail">Allianzmail kopieren</span></button>
         </div>
       </section>
 
@@ -354,6 +355,36 @@ document.getElementById('btnCopy').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(names); document.getElementById('btnCopy').textContent = `✅ ${t('ev_copied')}`; }
   catch { prompt(t('ev_copy_prompt'), names.replace(/\n/g, ', ')); }
   setTimeout(() => { document.getElementById('btnCopy').textContent = `📋 ${t('ev_copy')}`; }, 1500);
+});
+
+// Allianzmail: Eventname, Zeitfenster und Rangliste der Teilnehmer nach Killpunkten
+// (alle Teilnehmer ohne Ehrenrollen, unabhaengig von Filter/Suche; gleiche Kills = gleicher Platz)
+function buildMailText() {
+  if (!raw) return '';
+  const date = formVal('evDate'), start = formVal('evStart'), end = formVal('evEnd');
+  const ev = savedEvents[currentEventIndex()];
+  const title = ev?.title || t('ev_title');
+  const alliance = document.getElementById('allianceSelect').value;
+  const day = new Date(`${date}T12:00:00`).toLocaleDateString(NUM_LOCALE, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+  const lines = [`🎯 ${title} – ${alliance}`, `${day} · ${t('ev_server_time')} ${gameTime(date, start)}–${gameTime(date, end)}`, '', t('ev_mail_ranking')];
+  const list = rows.filter((r) => r.participated && !r.honor_role).sort((a, b) => (b.dk ?? 0) - (a.dk ?? 0));
+  if (!list.length) lines.push(t('ev_mail_none'));
+  let place = 0;
+  list.forEach((r, i) => {
+    if (i === 0 || (r.dk ?? 0) !== (list[i - 1].dk ?? 0)) place = i + 1;
+    lines.push(`${place}. ${r.name} – ${num(Math.max(0, r.dk ?? 0))}`);
+  });
+  const killsSum = list.reduce((s, r) => s + (r.dk > 0 ? r.dk : 0), 0);
+  lines.push('', t('ev_mail_footer', { n: list.length, v: num(killsSum) }));
+  return lines.join('\n');
+}
+document.getElementById('btnMail').addEventListener('click', async () => {
+  const text = buildMailText();
+  if (!text) return;
+  const btn = document.getElementById('btnMail');
+  try { await navigator.clipboard.writeText(text); btn.textContent = `✅ ${t('ev_copied')}`; }
+  catch { prompt(t('ev_mail_prompt'), text); }
+  setTimeout(() => { btn.textContent = `✉ ${t('ev_mail')}`; }, 1500);
 });
 
 (async () => {

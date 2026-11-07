@@ -268,7 +268,7 @@
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
-<script src="js/desert-storm.js?v=20261107g"></script>
+<script src="js/desert-storm.js?v=20261107h"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -577,7 +577,11 @@ function desertReport() {
   const members = window.cockpit.members || [];
   return DesertStorm.evaluate(desertStorm, {
     present: desertPresent,
-    match: (name) => members.length ? MatchingEngine.findMatch({ name }, members)?.member || null : null,
+    // Mitglied samt Trefferguete: unter mehreren Lesarten eines Namens gewinnt die beste
+    match: (name) => {
+      const m = members.length ? MatchingEngine.findMatch({ name }, members) : null;
+      return m && !m.byPower ? { ...m.member, score: m.score } : null;
+    },
   });
 }
 function renderDesert() {

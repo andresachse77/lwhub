@@ -65,6 +65,7 @@
 
   // ── Kampfergebnis-Mail ────────────────────────────────────────────────────────────────
   const TAG_NAME_RE = /^[[(]([A-Za-z0-9]{2,5})[\]jJ|)](.+)$/;
+  const HEADER_RE = /individuel|punkte$|kampfstatus|^mvp$|kampfergebn/i;
   // Kuerzel auch verlesen abtrennen: "INxU1]shark", "[NxU1jshark", "NxU1]shark"
   const LOOSE_TAG_RE = /^[[(|Il1i]?\s*([A-Za-z0-9]{2,5})\s*[\]jJ|)]\s*(.+)$/;
   function stripTag(text, tagKey) {
@@ -90,9 +91,10 @@
     const usedNames = new Set();
     for (const v of values) {
       const h = v.bottom - v.top;
+      // Name direkt darueber (Abstand im Spiel ~0,045 der Breite); Ueberschriften sind nie ein Name
       const above = lines
-        .filter((l) => l !== v && !isNum(l) && !parseTs(l.text) && l.top < v.top && l.top > v.top - h * 2.6
-          && Math.abs(l.left - v.left) < width * 0.06)
+        .filter((l) => l !== v && !isNum(l) && !parseTs(l.text) && l.top < v.top && l.top > v.top - Math.min(h * 2.6, width * 0.075)
+          && Math.abs(l.left - v.left) < width * 0.06 && !HEADER_RE.test(despace(l.text)))
         .sort((a, b) => b.top - a.top)[0];
       const points = Number(despace(v.text));
       const box = { top: Math.max(0, Math.round(v.top - h * 2.8)), bottom: Math.round(v.bottom + h * 0.6) };
@@ -183,12 +185,17 @@
     let frames = 0;
     function addPlayer(battle, row) {
       const k = nameKey(row.name);
-      // Gleiche Punkte und aehnlicher Name, oder gleicher Schluessel: derselbe Spieler aus einer anderen Ansicht
-      const same = battle.players.find((p) => p.key === k
-        || (row.points != null && p.points === row.points && similarity(p.key, k) >= 0.5));
-      const target = same || { name: row.name, key: k, points: null, seen: 0, votes: new Map() };
+      // Gleiche Punktzahl im selben Kampf = derselbe Spieler, auch wenn der Name verlesen ist
+      // ("LINxuijklluLeidst" 1.436.769 = kliothelast). Sonst gleicher Schluessel.
+      const same = (row.points != null && row.points >= 1000 && battle.players.find((p) => p.votes.has(row.points)))
+        || battle.players.find((p) => p.keys.has(k));
+      const target = same || { name: row.name, key: k, keys: new Set(), names: new Map(), points: null, seen: 0, votes: new Map() };
       if (!same) battle.players.push(target);
       target.seen++;
+      target.keys.add(k);
+      // Alle Lesarten des Namens merken; die Auswertung nimmt die, die zu einem Mitglied passt
+      target.names.set(row.name, (target.names.get(row.name) || 0) + 1);
+      target.name = [...target.names].sort((a, b) => b[1] - a[1])[0][0];
       // Punkte: der am haeufigsten gelesene Wert gewinnt (einzelne Lesefehler fallen so heraus)
       if (row.points != null) {
         target.votes.set(row.points, (target.votes.get(row.points) || 0) + 1);
@@ -244,13 +251,37 @@
     const present = opts.present || new Map();
     // Identitaet: Mitglied aus lwhub, sonst der Schluessel; nicht zugeordnete Namen fuzzy gegen schon bekannte
     const known = [];
-    function identify(name) {
-      const m = match(name) || match(flipName(name));
-      if (m) return { id: `m:${m.id}`, name: m.name, member: true };
-      const k = nameKey(name);
-      const hit = known.find((x) => x.key === k || similarity(x.key, k) >= 0.8);
-      if (hit) return hit;
-      const neu = { id: `k:${k}`, key: k, name, member: false };
+    // Lesarten eines Namens: so wie gelesen, ohne verlesenes Kuerzel vorne ("[NxU1ivy" -> "ivy", "vy"),
+    // auf dem Kopf gedreht
+    function variants(name) {
+      const out = [name];
+      const t = String(name);
+      const core = /n\s*x\s*u/i.exec(t.slice(0, 6));
+      if (core) for (let p = core.index + core[0].length; p <= Math.min(t.length - 2, core.index + core[0].length + 3); p++) out.push(t.slice(p));
+      out.push(flipName(name));
+      return out;
+    }
+    function identify(names) {
+      const list = Array.isArray(names) ? names : [names];
+      let best = null;
+      for (const n of list) for (const v of variants(n)) {
+        const m = match(v);
+        if (m && (!best || (m.score ?? 1) > (best.score ?? 1))) best = m;
+      }
+      if (best) {
+        const hit = { id: `m:${best.id}`, key: nameKey(best.name), name: best.name, member: true };
+        if (!known.some((x) => x.id === hit.id)) known.push(hit);
+        return hit;
+      }
+      // Kein Treffer in lwhub: gegen schon bekannte Namen (Mitglieder aus dem Protokoll) mit OCR-Schluessel
+      // vergleichen – "ooo Rowdy 000" = "ooo Rowdy ooo"
+      for (const n of list) {
+        const k = nameKey(n);
+        const hit = known.find((x) => x.key === k || similarity(x.key, k) >= 0.8);
+        if (hit) return hit;
+      }
+      const k = nameKey(list[0]);
+      const neu = { id: `k:${k}`, key: k, name: list[0], member: false };
       known.push(neu);
       return neu;
     }
@@ -274,7 +305,11 @@
       }
       const attended = new Map();
       for (const p of b.players) {
-        const who = identify(p.name);
+        const who = identify(p.names ? [...p.names].sort((a, c) => c[1] - a[1]).map(([n]) => n) : [p.name]);
+        if (attended.has(who.id)) { // zwei Zeilen, ein Spieler (z. B. Punkte einmal verlesen): hoehere Punkte behalten
+          if ((p.points ?? -1) > (attended.get(who.id).points ?? -1)) attended.get(who.id).points = p.points;
+          continue;
+        }
         attended.set(who.id, { id: who.id, name: who.name, member: who.member, points: p.points });
       }
       // Von Hand zugeordnet ("Wer ist das?" / "war da") – auch Mitglieder, die laut Protokoll nicht im Team sind

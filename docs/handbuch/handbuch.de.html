@@ -64,7 +64,7 @@
       <div class="badge-row">
         <span class="badge blue">Handbuch</span>
         <span class="badge purple">Last War &bull; Allianz-Hub</span>
-        <span class="badge amber">Stand: Oktober 2026</span>
+        <span class="badge amber">Stand: 7. November 2026</span>
       </div>
       <h1>lwhub – Handbuch</h1>
       <p class="subtitle">lwhub ist ein Web-Hub für Allianzen in Last War. R4/R5 erfassen damit Woche für Woche, wer bei Wache, Wüstensturm, Spezialevent, VS und Spenden dabei war. Daraus entstehen Punkte, die jedes Mitglied selbst nachlesen kann. Dazu kommen Berufeplaner, Zugplaner und ein Screenshot-Scanner, der im Browser liest. Dieses Handbuch beschreibt jede Funktion: wofür sie da ist, wer sie sieht und wie man sie benutzt.</p>
@@ -243,7 +243,24 @@
       </div>
       <div class="sub" id="events-desert">
         <h3>🏜 Wüstensturm</h3>
-        <p>Drei Zustände: Anmeldung 📋, Teilnahme ⚔ und unentschuldigtes Fehlen ⚠ (Strafe). Wird von Hand erfasst.</p>
+        <p>Drei Zustände: Anmeldung 📋, Teilnahme ⚔ und unentschuldigtes Fehlen ⚠ (Strafe). Du kannst sie von Hand setzen – oder der Scanner erledigt das für dich.</p>
+        <p><strong>Mit dem Scanner (R4/R5):</strong> Der Scanner vergleicht, wer für Team A und B eingeteilt war, mit denen, die wirklich gekämpft haben. Team B kämpft mittags, Team A abends.</p>
+        <ol>
+          <li>Im Spiel die Mail „[Wüstensturm]-Kampfergebnis!“ öffnen und die Punkteliste langsam bis ganz unten durchscrollen. Das für beide Mails machen (Mittag und Abend).</li>
+          <li>Events → Wüstensturm → <em>Protokolle</em> öffnen und bis zum Montag der Woche zurückscrollen. Daraus liest der Scanner, wer als Teilnehmer oder Stellvertreter eingeteilt war.</li>
+          <li>Über dem Kachel-Pool erscheint der Kasten „🏜 Wüstensturm“: je Team, wer angemeldet war und nicht erschienen ist.</li>
+          <li>Steht dort „Nicht erfasst: Platz 13“, wurde beim Scrollen eine Zeile übersprungen. Die Mail einfach noch einmal langsam über diese Stelle scrollen.</li>
+          <li>Ist ein Name im Spiel gespiegelt oder verziert, zeigt der Kasten die Zeile als Bild. Unter „Wer ist das?“ wählst du den Spieler aus.</li>
+          <li>„📋 Ergebnis kopieren“ gibt dir den Text für Discord oder eine Mail. „🚀 Häkchen nach LWHub“ setzt die Häkchen im Wüste-Tab für die Kampfwoche. Vorher zeigt eine Rückfrage, wer „Fehlen“ bekommt.</li>
+        </ol>
+        <table>
+          <tr><th>Fall</th><th>Häkchen</th></tr>
+          <tr><td>Teilnehmer, war da</td><td>📋 Anmeldung + ⚔ Teilnahme (+35)</td></tr>
+          <tr><td>Teilnehmer, hat gefehlt</td><td>⚠ Fehlen (−15)</td></tr>
+          <tr><td>Stellvertreter, ist eingesprungen</td><td>📋 Anmeldung + ⚔ Teilnahme (+35)</td></tr>
+          <tr><td>Stellvertreter, war nicht dabei</td><td>📋 Anmeldung (+10) – keine Strafe, denn Stellvertreter kommen nur rein, wenn ein Platz frei wird</td></tr>
+        </table>
+        <p>Der Scanner ändert dabei nur die drei Wüste-Häkchen. VS, Spenden, Wache und der Rang bleiben, wie sie sind. Solange in einer Mail Zeilen fehlen oder das Protokoll fehlt, ist der Knopf gesperrt – damit niemand zu Unrecht eine Strafe bekommt.</p>
       </div>
       <div class="sub" id="events-special">
         <h3>🎯 Spezialevent</h3>
@@ -509,6 +526,7 @@
         <li>Vor dem Event und danach je einmal Kampfkraft und Kills scannen.</li>
         <li>Auswertungen → Server-Events öffnen (oder in Events → Spezial über 🔍). Mit ‹ › blätterst du durch die gespeicherten Spezialevents, das letzte geht von selbst auf. Nachlauf in Minuten, „Kills ab“ und „Verlust ab (%)“ kannst du anpassen.</li>
         <li>Ergebnis prüfen, mit „📋 Namen kopieren“ in den Chat geben oder im Event-Tab mit „Aus Scanner übernehmen“ als Häkchen setzen.</li>
+        <li>„✉ Allianzmail kopieren“ legt eine fertige Mail in die Zwischenablage: Eventname, Zeit und die Rangliste aller Teilnehmer mit Platz und Killpunkten. Im Spiel als Allianzmail einfügen und senden.</li>
       </ol>
       <a class="to-top" href="#top">↑ nach oben</a>
     </section>

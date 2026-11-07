@@ -64,7 +64,7 @@
       <div class="badge-row">
         <span class="badge blue">Manuel</span>
         <span class="badge purple">Last War &bull; Hub d'alliance</span>
-        <span class="badge amber">Version : octobre 2026</span>
+        <span class="badge amber">Version : 7 novembre 2026</span>
       </div>
       <h1>lwhub – Manuel</h1>
       <p class="subtitle">lwhub est un hub web pour les alliances de Last War. Chaque semaine, les R4/R5 y notent qui a participé à la Garde, à la Tempête du désert, à l'événement spécial, au VS et aux dons. Ça donne des points que chaque membre peut consulter lui-même. En plus : un planificateur de professions, un planning du train et un scanner de captures d'écran qui lit directement dans le navigateur. Ce manuel présente chaque fonction : à quoi elle sert, qui la voit et comment l'utiliser.</p>
@@ -236,7 +236,24 @@
       </div>
       <div class="sub" id="events-desert">
         <h3>🏜 Tempête du désert</h3>
-        <p>Trois états : inscrit 📋, a participé ⚔, absence non excusée ⚠ (pénalité). Saisie à la main.</p>
+        <p>Trois états : inscrit 📋, a participé ⚔, absence non excusée ⚠ (pénalité). Tu peux les poser à la main – ou laisser le scanner s'en charger.</p>
+        <p><strong>Avec le scanner (R4/R5) :</strong> le scanner compare qui était affecté aux équipes A et B avec ceux qui ont vraiment combattu. L'équipe B combat à midi, l'équipe A le soir. La page du scanner est en allemand, les noms des boutons ci-dessous sont donc en allemand.</p>
+        <ol>
+          <li>Dans le jeu, ouvre le mail « [Wüstensturm]-Kampfergebnis! » (résultat de la Tempête du désert) et fais défiler lentement la liste des points jusqu'en bas. Fais-le pour les deux mails (midi et soir).</li>
+          <li>Ouvre Événements → Tempête du désert → <em>Journaux</em> et remonte jusqu'au lundi de la semaine. Le scanner y lit qui était participant ou remplaçant.</li>
+          <li>Le cadre « 🏜 Wüstensturm » apparaît au-dessus du pool de tuiles : par équipe, qui était inscrit et n'est pas venu.</li>
+          <li>S'il indique « Nicht erfasst: Platz 13 » (place 13 non lue), une ligne a été sautée en défilant. Fais simplement défiler à nouveau lentement cet endroit du mail.</li>
+          <li>Si un nom est inversé ou décoré dans le jeu, le cadre montre la ligne en image. Choisis le joueur sous « Wer ist das? » (qui est-ce ?).</li>
+          <li>« 📋 Ergebnis kopieren » copie le texte pour Discord ou un mail. « 🚀 Häkchen nach LWHub » pose les coches dans l'onglet Désert pour la semaine. Une confirmation montre d'abord qui reçoit « absent ».</li>
+        </ol>
+        <table>
+          <tr><th>Cas</th><th>Coches</th></tr>
+          <tr><td>Participant, présent</td><td>📋 inscrit + ⚔ a participé (+35)</td></tr>
+          <tr><td>Participant, absent</td><td>⚠ absence (−15)</td></tr>
+          <tr><td>Remplaçant, est entré</td><td>📋 inscrit + ⚔ a participé (+35)</td></tr>
+          <tr><td>Remplaçant, n'a pas joué</td><td>📋 inscrit (+10) – pas de pénalité, car un remplaçant n'entre que si une place se libère</td></tr>
+        </table>
+        <p>Le scanner ne modifie que les trois coches Désert. VS, dons, garde et rang restent inchangés. Tant qu'il manque des lignes dans un mail ou le journal, le bouton est bloqué – pour que personne ne reçoive une pénalité à tort.</p>
       </div>
       <div class="sub" id="events-special">
         <h3>🎯 Événement spécial</h3>
@@ -494,6 +511,7 @@
         <li>Scanne la puissance et les kills une fois avant et une fois après l'événement.</li>
         <li>Ouvre Analyses → Événements serveur (ou Événements → Spécial via 🔍). Avec ‹ › tu parcours les événements spéciaux enregistrés ; le dernier s'ouvre tout seul. Tu peux ajuster la marge en minutes, « kills à partir de » et « perte à partir de (%) ».</li>
         <li>Vérifie le résultat, utilise « 📋 Copier les noms » pour le chat, ou pose les coches dans l'onglet Événements avec « Importer du scanner ».</li>
+        <li>« ✉ Copier le mail d'alliance » met un mail tout prêt dans le presse-papiers : nom de l'événement, heure et classement de tous les participants avec place et points de kills. Colle-le dans le jeu comme mail d'alliance et envoie-le.</li>
       </ol>
       <a class="to-top" href="#top">↑ haut de page</a>
     </section>

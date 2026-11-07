@@ -64,7 +64,7 @@
       <div class="badge-row">
         <span class="badge blue">Manual</span>
         <span class="badge purple">Last War &bull; Alliance hub</span>
-        <span class="badge amber">As of October 2026</span>
+        <span class="badge amber">As of 7 November 2026</span>
       </div>
       <h1>lwhub – Manual</h1>
       <p class="subtitle">lwhub is a web hub for Last War alliances. Every week, R4/R5 record who showed up for Guard, Desert Storm, the special event, VS and donations. That turns into points every member can check for themselves. On top of that you get a profession planner, a train planner and a screenshot scanner that reads right in your browser. This manual covers each feature: what it's for, who can see it and how to use it.</p>
@@ -236,7 +236,24 @@
       </div>
       <div class="sub" id="events-desert">
         <h3>🏜 Desert Storm</h3>
-        <p>Three states: signed up 📋, took part ⚔, and unexcused absence ⚠ (penalty). Recorded by hand.</p>
+        <p>Three states: signed up 📋, took part ⚔, and unexcused absence ⚠ (penalty). You can set them by hand – or let the scanner do it for you.</p>
+        <p><strong>With the scanner (R4/R5):</strong> The scanner compares who was assigned to team A and B with who actually fought. Team B fights at midday, team A in the evening. The scanner page is in German, so the button names below are given in German.</p>
+        <ol>
+          <li>In the game, open the mail “[Wüstensturm]-Kampfergebnis!” (Desert Storm battle result) and scroll slowly through the points list to the very bottom. Do this for both mails (midday and evening).</li>
+          <li>Open Events → Desert Storm → <em>Logs</em> and scroll back to Monday of that week. This tells the scanner who was assigned as participant or substitute.</li>
+          <li>The box “🏜 Wüstensturm” appears above the tile pool: per team, who signed up and did not show up.</li>
+          <li>If it says “Nicht erfasst: Platz 13” (place 13 not captured), a row was skipped while scrolling. Just scroll slowly over that part of the mail again.</li>
+          <li>If a name is mirrored or decorated in the game, the box shows the row as a picture. Pick the player under “Wer ist das?” (who is this?).</li>
+          <li>“📋 Ergebnis kopieren” copies the text for Discord or a mail. “🚀 Häkchen nach LWHub” sets the ticks in the Desert tab for that week. A confirmation first shows who gets “absent”.</li>
+        </ol>
+        <table>
+          <tr><th>Case</th><th>Ticks</th></tr>
+          <tr><td>Participant, was there</td><td>📋 signed up + ⚔ took part (+35)</td></tr>
+          <tr><td>Participant, was absent</td><td>⚠ absent (−15)</td></tr>
+          <tr><td>Substitute, stepped in</td><td>📋 signed up + ⚔ took part (+35)</td></tr>
+          <tr><td>Substitute, did not play</td><td>📋 signed up (+10) – no penalty, because substitutes only get in when a spot opens up</td></tr>
+        </table>
+        <p>The scanner only changes the three Desert ticks. VS, donations, guard duty and rank stay as they are. As long as rows are missing in a mail or the log is missing, the button is locked – so nobody gets a penalty by mistake.</p>
       </div>
       <div class="sub" id="events-special">
         <h3>🎯 Special event</h3>
@@ -494,6 +511,7 @@
         <li>Scan power and kills once before and once after the event.</li>
         <li>Open Reports → Server events (or Events → Special via 🔍). Use ‹ › to step through the saved special events; the latest one opens by itself. You can adjust the grace period in minutes, "kills from" and "loss from (%)".</li>
         <li>Check the result, use "📋 Copy names" for chat, or set the ticks in the Events tab with "Import from scanner".</li>
+        <li>"✉ Copy alliance mail" puts a ready-made mail on the clipboard: event name, time and the ranking of all participants with place and kill points. Paste it in the game as an alliance mail and send it.</li>
       </ol>
       <a class="to-top" href="#top">↑ back to top</a>
     </section>

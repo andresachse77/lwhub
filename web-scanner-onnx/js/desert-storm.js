@@ -144,15 +144,24 @@
     // "oooRowdyooo entfernt SeanI aus der Einsatztruppe A."
     { re: new RegExp(`^(.+?)entfernt(.+)aus(?:der)?${TRUPPE}`, 'i'), action: 'remove' },
   ];
+  // Laufschrift/Banner des Spiels, die ueber das Protokoll laufen ("Deine Allianzmail ist beeindruckend!",
+  // "Wichtig: Praesident … ernannte …", "Herzlichen Glueckwunsch …")
+  const NOISE_RE = /!$|^wichtig|herzlich|gl[uü]ckwunsch|ernannte|beeindruck/i;
+  // Woerter aus dem Protokolltext – stehen sie im "Namen", sind zwei Eintraege verklebt
+  const NOT_A_NAME_RE = /einsatztrupp|te[il1]{1,3}nehmer|stellvertret|gesendet|schickte|entfernt|allianz/i;
   function parseEntry(text, at) {
-    const t = despace(text);
+    let t = despace(text);
+    // Zwei Eintraege in einem Block (der Zeitstempel des ersten war verdeckt): nur den letzten lesen,
+    // zu ihm gehoert der Zeitstempel
+    const ends = [...t.matchAll(/Einsatztrupp[eo]?[AB8](?:gesendet|als(?:Stellvertreter|Stel))?\.?/gi)];
+    if (ends.length > 1) t = t.slice(ends[ends.length - 2].index + ends[ends.length - 2][0].length);
     const time = /Spielzeitf.r(?:die)?Einsatztrupp[eo]?([AB8])auf(\d\d:\d\d)/i.exec(t);
     if (time) return { at, action: 'time', team: time[1] === '8' ? 'B' : time[1].toUpperCase(), time: time[2], text };
     for (const p of PATTERNS) {
       const m = p.re.exec(t);
       if (!m) continue;
       const target = m[2].trim();
-      if (nameKey(target).length < 2) return null;
+      if (nameKey(target).length < 2 || despace(target).length > 24 || NOT_A_NAME_RE.test(despace(target))) return null;
       return { at, action: p.action, role: p.role || null, team: m[3] === '8' ? 'B' : m[3].toUpperCase(), actor: m[1], target, text };
     }
     return null; // Kommandant ernannt/widerrufen u. a. – fuer die Aufstellung ohne Bedeutung
@@ -160,7 +169,7 @@
   function parseLog(lines, width, height) {
     const header = lines.find((l) => l.top < height * 0.25 && /^protokoll/i.test(despace(l.text)));
     const body = lines
-      .filter((l) => l.top > header.bottom + 15 && l.top < height * 0.9 && l.left > width * 0.25)
+      .filter((l) => l.top > header.bottom + 15 && l.top < height * 0.9 && l.left > width * 0.25 && !NOISE_RE.test(l.text.trim()))
       .sort((a, b) => a.top - b.top || a.left - b.left);
     const entries = [];
     let chunk = [];

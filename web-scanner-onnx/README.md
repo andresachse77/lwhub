@@ -150,3 +150,29 @@ Stand 17.10.2026 über 17 Seiten:
 | Punkte | 119/119 |
 | Namen | 98/103 (I/l, 0/O, ß) |
 | Kürzel | 116/117 |
+
+## Wüstensturm (angemeldet, aber nicht erschienen)
+
+`js/desert-storm.js` erkennt zwei Ansichten aus den OCR-Zeilen (sie ergeben keine Kacheln):
+
+- **Mail „[Wüstensturm]-Kampfergebnis!“**: Kampfzeit unten, darüber „Individuelle Punkte“ mit
+  `[NxU1]Name` und Punkten. Das sind alle, die auf dem Schlachtfeld waren. Die Liste bis ganz unten
+  durchscrollen.
+- **Events → Wüstensturm → Protokolle**: „… hat X als Teilnehmer an die Einsatztruppe A gesendet“,
+  „… schickte X an die Einsatztruppe B als Stellvertreter“, „… entfernt X aus der Einsatztruppe A“.
+  Bis Montag der Kampfwoche zurückscrollen.
+
+Aus dem Protokoll wird die Aufstellung zum Kampfzeitpunkt nachgespielt (ab Montag der Kampfwoche) und
+mit der Mail verglichen. Am selben Tag ist der frühere Kampf Team B (Mittag), der spätere Team A
+(Abend); ein einzelner Kampf vor 16 Uhr gilt als Team B. Fehlende **Teilnehmer** stehen als „nicht
+erschienen“ im Kasten über dem Kachel-Pool, Stellvertreter nicht.
+
+- **Namen auf dem Kopf** (z. B. „ʞnsɥɯınz“, gelesen als „zuiwysny“) werden zusätzlich gedreht gegen
+  die Mitgliederliste abgeglichen.
+- **Unlesbare Namen** (nur Punkte erkannt, z. B. gespiegeltes „ɘ| Docco“) erscheinen als Hinweis mit
+  den Punkten; mit „war da“ lässt sich ein Spieler von Hand als erschienen markieren.
+- **📋 Ergebnis kopieren** legt den Text für Discord oder eine Allianzmail in die Zwischenablage.
+
+Test mit den JSON-Dateien einer Aufnahmen-ZIP (7.11.2026: 130 Ansichten, 2 Mails, 195 Protokolleinträge):
+Team B 20 angemeldet, 2 nicht erschienen; Team A 20 angemeldet, 3 nicht erschienen (davon El Docco
+mit unlesbarem Namen).

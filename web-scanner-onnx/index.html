@@ -26,6 +26,21 @@
   .ocr-job { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); font-size: 11px; color: var(--text-muted); max-width: 120px; }
   .ocr-job canvas { height: 90px; width: auto; max-width: 108px; object-fit: contain; border-radius: 3px; background: #000; }
   .ocr-job-label { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .desert-box { border: 1px solid var(--accent); border-radius: 6px; background: var(--bg-card); padding: 10px 12px; margin-bottom: 8px; font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .desert-box[hidden] { display: none; }
+  .desert-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .desert-head strong { font-size: 13px; }
+  .desert-note { color: var(--text-muted); }
+  .desert-note.warn { color: var(--warning); }
+  .desert-team { border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .desert-team h3 { font-size: 13px; margin: 0; }
+  .desert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+  .desert-list li { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 10px; }
+  .desert-list li.miss { border-color: var(--danger); color: var(--danger); }
+  .desert-list li.ok { border-color: var(--success); }
+  .desert-list li.manual { border-style: dashed; }
+  .desert-list li button { font-size: 10px; padding: 0 5px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; }
+  .desert-box details summary { cursor: pointer; color: var(--text-muted); }
   .access-gate { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: var(--bg-main); }
   .access-gate[hidden] { display: none; }
   .access-gate-box { max-width: 460px; margin: 16px; padding: 24px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); text-align: center; }
@@ -164,6 +179,9 @@
         <!-- Uebersprungene Plaetze ganz oben, damit man sie schon beim Scrollen sieht -->
         <div id="rankGapBox" class="rank-gap-box" hidden></div>
 
+        <!-- Wuestensturm: Kampfergebnis-Mails + Protokoll → wer war angemeldet und ist nicht erschienen -->
+        <div id="desertBox" class="desert-box" hidden></div>
+
         <div class="unclear-tray">
           <div class="tray-header">
             <span class="tray-title">
@@ -247,6 +265,7 @@
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
+<script src="js/desert-storm.js?v=20261107a"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -390,6 +409,7 @@ async function loadMembers() {
     window.cockpit.setMembers(list);
     document.getElementById('memberCountBadge').textContent = `${list.length} Mitglieder`;
     log(`Erfolgreich ${list.length} Mitglieder geladen.`);
+    renderDesert();
   } catch (err) {
     log(`HINWEIS: Konnte LWHub API (${activeApiUrl}) nicht erreichen (${err.message}). Verwende Test-Mitglieder.`);
     const mockList = [
@@ -441,6 +461,9 @@ document.getElementById('btnRematch').addEventListener('click', () => {
 document.getElementById('btnResetPool').addEventListener('click', () => {
   if (confirm('Möchtest du wirklich alle bisher erfassten Scan-Kacheln aus dem Session-Pool verwerfen?')) {
     window.cockpit.resetAllScans();
+    desertStorm.clear();
+    desertPresent.clear();
+    renderDesert();
     seenRanks.clear();
     rankGapsPending = false;
     document.getElementById('rankGapBox').hidden = true;
@@ -536,7 +559,109 @@ function reportRankGaps(live = false) {
   box.hidden = box.childElementCount === 0;
 }
 
+// Wuestensturm (js/desert-storm.js): Mails und Protokoll werden nur gesammelt, keine Kacheln
+const desertStorm = DesertStorm.createCollector();
+const desertPresent = new Set(); // "<Kampfzeit>|<Name>": von Hand als erschienen markiert (Name in der Mail unlesbar)
+let desertRenderTimer = null;
+function scheduleDesertRender() {
+  clearTimeout(desertRenderTimer);
+  desertRenderTimer = setTimeout(renderDesert, 300);
+}
+function desertReport() {
+  const members = window.cockpit.members || [];
+  return DesertStorm.evaluate(desertStorm, {
+    present: desertPresent,
+    match: (name) => members.length ? MatchingEngine.findMatch({ name }, members)?.member || null : null,
+  });
+}
+function renderDesert() {
+  const box = document.getElementById('desertBox');
+  box.replaceChildren();
+  const report = desertReport();
+  const hasLog = report.logCount > 0;
+  if (!report.battles.length && !hasLog) { box.hidden = true; return; }
+  box.hidden = false;
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  const head = el('div', 'desert-head');
+  head.appendChild(el('strong', null, '🏜 Wüstensturm – angemeldet, aber nicht erschienen'));
+  const copy = el('button', 'btn btn-sm btn-secondary', '📋 Ergebnis kopieren');
+  copy.disabled = !report.battles.length;
+  copy.addEventListener('click', async () => {
+    const text = DesertStorm.reportText(desertReport(), document.getElementById('allianceSelect').value);
+    try { await navigator.clipboard.writeText(text); copy.textContent = '✅ Kopiert'; }
+    catch { prompt('Ergebnis zum Kopieren:', text); }
+    setTimeout(() => { copy.textContent = '📋 Ergebnis kopieren'; }, 1500);
+  });
+  head.appendChild(copy);
+  box.appendChild(head);
+
+  box.appendChild(el('div', 'desert-note', hasLog
+    ? `Protokoll: ${report.logCount} Änderungen an der Aufstellung (${DesertStorm.fmtAt(report.logFrom)} – ${DesertStorm.fmtAt(report.logTo)}). Kampfergebnis-Mails: ${report.battles.length}.`
+    : 'Noch kein Protokoll erfasst: Events → Wüstensturm → Protokolle öffnen und bis Montag zurückscrollen.'));
+  if (!report.battles.length) {
+    box.appendChild(el('div', 'desert-note warn', 'Noch keine Kampfergebnis-Mail erfasst: Mail „[Wüstensturm]-Kampfergebnis!“ öffnen und die individuellen Punkte bis ganz unten durchscrollen.'));
+  }
+
+  for (const b of report.battles) {
+    const sec = el('div', 'desert-team');
+    const came = b.participants.filter((p) => p.attended).length;
+    sec.appendChild(el('h3', null, `⚔ Team ${b.team} (${b.team === 'B' ? 'Mittag' : 'Abend'}) · ${DesertStorm.fmtAt(b.at)}`));
+    sec.appendChild(el('div', 'desert-note', `Angemeldet: ${b.participants.length} · davon erschienen: ${came} · auf dem Feld: ${b.players.length + b.unnamed.length}`));
+    // Protokoll muss bis Montag der Kampfwoche zurueckreichen, sonst fehlen Anmeldungen
+    const monday = new Date(`${b.at.slice(0, 10)}T12:00:00`);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    const mondayIso = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+    if (!b.logCount) sec.appendChild(el('div', 'desert-note warn', '⚠️ Kein Protokoll aus dieser Woche erfasst – Anmeldungen unbekannt.'));
+    else if (b.logFrom.slice(0, 10) > mondayIso) sec.appendChild(el('div', 'desert-note warn', `⚠️ Protokoll reicht nur bis ${DesertStorm.fmtAt(b.logFrom)} zurück – frühere Anmeldungen fehlen. Bis Montag zurückscrollen.`));
+
+    sec.appendChild(el('div', null, b.noShow.length ? '❌ Angemeldet, aber nicht erschienen:' : '✅ Alle Angemeldeten waren da.'));
+    const miss = el('ul', 'desert-list');
+    for (const p of b.noShow) {
+      const li = el('li', 'miss', p.name);
+      const btn = el('button', null, 'war da');
+      btn.title = 'Name in der Mail nicht lesbar? Als erschienen markieren';
+      btn.addEventListener('click', () => { desertPresent.add(`${b.at}|${p.name}`); renderDesert(); });
+      li.appendChild(btn);
+      miss.appendChild(li);
+    }
+    if (b.noShow.length) sec.appendChild(miss);
+    if (b.unnamed.length) {
+      sec.appendChild(el('div', 'desert-note warn', `❔ ${b.unnamed.length} Name(n) in der Mail nicht lesbar, Punkte: ${b.unnamed.map((p) => p.toLocaleString('de-DE')).join(', ')} – gehört einer davon zu oben? Dann „war da“ klicken.`));
+    }
+
+    const det = el('details');
+    det.appendChild(el('summary', null, `Aufstellung laut Protokoll (${b.participants.length} Teilnehmer, ${b.substitutes.length} Ersatz)`));
+    const roster = (title, list) => {
+      det.appendChild(el('div', 'desert-note', title));
+      const ul = el('ul', 'desert-list');
+      for (const p of list) {
+        const manual = desertPresent.has(`${b.at}|${p.name}`);
+        const li = el('li', (p.attended ? 'ok' : '') + (manual ? ' manual' : ''), `${p.attended ? '✓' : '·'} ${p.name}${p.points != null ? ` (${p.points.toLocaleString('de-DE')})` : ''}`);
+        if (manual) {
+          const undo = el('button', null, '↶');
+          undo.title = 'Markierung „war da“ zurücknehmen';
+          undo.addEventListener('click', () => { desertPresent.delete(`${b.at}|${p.name}`); renderDesert(); });
+          li.appendChild(undo);
+        }
+        ul.appendChild(li);
+      }
+      det.appendChild(ul);
+    };
+    roster('Teilnehmer:', b.participants);
+    roster('Stellvertreter:', b.substitutes);
+    if (b.unregistered.length) roster('Auf dem Feld, aber laut Protokoll nicht in diesem Team:', b.unregistered.map((p) => ({ ...p, attended: true })));
+    sec.appendChild(det);
+    box.appendChild(sec);
+  }
+}
+
 function processOcrResult(img, result) {
+  if (result.mode === 'unknown' && DesertStorm.detect(result.raw_lines || [], result.height)) {
+    desertStorm.feed(result.raw_lines, result.width, result.height);
+    scheduleDesertRender();
+    return;
+  }
   noteRanks(result);
   if (captureStream) reportRankGaps(true);
   if (isValueMode(result.mode)) {

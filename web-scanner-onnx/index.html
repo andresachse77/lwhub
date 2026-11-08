@@ -13,7 +13,7 @@
   .rank-gap-box[hidden] { display: none; }
   .status-lists { display: contents; }
   .rank-gap-box strong { color: var(--warning); font-weight: 600; }
-  .workspace-split { position: relative; }
+  .workspace-split { position: relative; min-height: 0; }
   .processing-progress { margin-bottom: 12px; }
   .processing-head { display: flex; gap: 16px; align-items: center; }
   .processing-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -35,6 +35,7 @@
   .desert-head strong { font-size: 13px; }
   .desert-note { color: var(--text-muted); }
   .desert-note.warn { color: var(--warning); }
+  .desert-note.ok { color: var(--success); }
   .desert-team { border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 4px; }
   .desert-team h3 { font-size: 13px; margin: 0; }
   .desert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
@@ -610,16 +611,12 @@ function renderDesert() {
     setTimeout(() => { copy.textContent = '📋 Ergebnis kopieren'; }, 1500);
   });
   head.appendChild(copy);
-  // Haekchen auf der Eventseite (Wueste) fuer die Kampfwoche setzen – nur die drei Wueste-Haekchen
-  const push = el('button', 'btn btn-sm btn-success', '🚀 Häkchen nach LWHub');
-  push.title = 'Teilnehmer da: Anmeldung + Teilnahme · Teilnehmer gefehlt: Fehlen · Ersatz eingesprungen: Anmeldung + Teilnahme · Ersatz nicht dabei: Anmeldung';
-  // Gesperrt ohne Protokoll und solange Mail-Zeilen fehlen – sonst bekaeme jemand zu Unrecht "Fehlen"
-  const incomplete = report.battles.some((b) => b.lastRank > b.players.length + b.unnamed.length);
-  push.disabled = !report.battles.length || report.battles.some((b) => !b.logCount) || incomplete;
-  if (incomplete) push.title = 'Gesperrt: In einer Mail fehlen noch Zeilen (siehe Warnung). Erst die fehlenden Plätze nachscannen.';
-  push.addEventListener('click', () => pushDesertFlags(push));
-  head.appendChild(push);
   box.appendChild(head);
+  // Hochgeladen wird mit dem einen Knopf "Nach LWHub übertragen" oben – hier nur, ob die Häkchen mitgehen
+  const block = desertBlockReason(report);
+  box.appendChild(el('div', 'desert-note' + (block ? ' warn' : ' ok'), block
+    ? `🚫 Wüste-Häkchen gehen noch nicht mit: ${block}`
+    : '🚀 Die Wüste-Häkchen (Anmeldung, Teilnahme, Fehlen) gehen mit „Nach LWHub übertragen“ oben mit.'));
 
   box.appendChild(el('div', 'desert-note', hasLog
     ? `Protokoll: ${report.logCount} Änderungen an der Aufstellung (${DesertStorm.fmtAt(report.logFrom)} – ${DesertStorm.fmtAt(report.logTo)}). Kampfergebnis-Mails: ${report.battles.length}.`
@@ -727,36 +724,44 @@ function renderDesert() {
   }
 }
 
-async function pushDesertFlags(btn) {
-  const alliance = document.getElementById('allianceSelect').value;
+// Warum die Wueste-Haekchen (noch) nicht hochgeladen werden duerfen; null = bereit.
+// Gesperrt ohne Protokoll und solange Mail-Zeilen fehlen – sonst bekaeme jemand zu Unrecht "Fehlen".
+function desertBlockReason(report = desertReport()) {
+  if (!report.battles.length) return 'noch keine Kampfergebnis-Mail erfasst.';
+  if (report.battles.some((b) => !b.logCount)) return 'Protokoll der Woche fehlt (Events → Wüstensturm → Protokolle).';
+  if (report.battles.some((b) => b.lastRank > b.players.length + b.unnamed.length)) return 'in einer Mail fehlen noch Zeilen – die fehlenden Plätze nachscannen.';
+  return null;
+}
+function desertHasData(report = desertReport()) {
+  return report.battles.length > 0 || report.logCount > 0;
+}
+
+function desertSummary() {
   const weeks = DesertStorm.hubFlags(desertReport());
   const count = (w, flag) => w.players.filter((p) => p.flags.includes(flag)).length;
   const summary = weeks.map((w) => `KW ${w.year_week % 100}: ${w.players.length} Spieler – ${count(w, 'wuesteTeilnahme')}× Teilnahme, `
     + `${count(w, 'wuesteFehlen')}× Fehlen, ${w.players.filter((p) => p.flags.length === 1 && p.flags[0] === 'wuesteAnmeldung').length}× nur Anmeldung`
     + `\nFehlen (−15): ${w.players.filter((p) => p.flags.includes('wuesteFehlen')).map((p) => p.name).join(', ') || 'niemand'}`
     + (w.unmatched.length ? `\nNicht zugeordnet (bekommen nichts): ${w.unmatched.join(', ')}` : '')).join('\n');
-  if (!confirm(`Wüste-Häkchen in ${alliance} setzen?\n\n${summary}\n\nAndere Häkchen (VS, Spenden, Wache …) bleiben unverändert.`)) return;
-  btn.disabled = true;
-  try {
-    let changed = 0, unchanged = 0, skipped = 0;
-    for (const w of weeks) {
-      const resp = await fetch(`${activeApiUrl}/scans/desert-flags?alliance=${encodeURIComponent(alliance)}`, {
-        method: 'POST',
-        headers: { ...LwhubAccess.authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ alliance, year_week: w.year_week, players: w.players.map(({ player_id, flags }) => ({ player_id, flags })) }),
-      });
-      const res = await resp.json().catch(() => ({}));
-      if (!resp.ok || !res.ok) throw new Error(res.error || `HTTP ${resp.status}`);
-      changed += res.changed; unchanged += res.unchanged; skipped += res.skipped.length;
-    }
-    log(`🏜 Wüste-Häkchen übertragen: ${changed} geändert, ${unchanged} schon richtig${skipped ? `, ${skipped} übersprungen` : ''}.`);
-    btn.textContent = '✅ Übertragen';
-    setTimeout(() => { btn.textContent = '🚀 Häkchen nach LWHub'; btn.disabled = false; }, 2500);
-  } catch (err) {
-    log(`⚠️ Wüste-Häkchen nicht übertragen: ${err.message}`);
-    alert(`Wüste-Häkchen nicht übertragen: ${err.message}`);
-    btn.disabled = false;
+  return summary;
+}
+
+// Laedt die Wueste-Haekchen hoch (Rueckfrage macht der gemeinsame Upload-Knopf). Wirft bei Fehlern.
+async function uploadDesertFlags(alliance) {
+  const weeks = DesertStorm.hubFlags(desertReport());
+  let changed = 0, unchanged = 0, skipped = 0;
+  for (const w of weeks) {
+    const resp = await fetch(`${activeApiUrl}/scans/desert-flags?alliance=${encodeURIComponent(alliance)}`, {
+      method: 'POST',
+      headers: { ...LwhubAccess.authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alliance, year_week: w.year_week, players: w.players.map(({ player_id, flags }) => ({ player_id, flags })) }),
+    });
+    const res = await resp.json().catch(() => ({}));
+    if (!resp.ok || !res.ok) throw new Error(res.error || `HTTP ${resp.status}`);
+    changed += res.changed; unchanged += res.unchanged; skipped += res.skipped.length;
   }
+  log(`🏜 Wüste-Häkchen übertragen: ${changed} geändert, ${unchanged} schon richtig${skipped ? `, ${skipped} übersprungen` : ''}.`);
+  return { changed, unchanged, skipped };
 }
 
 function processOcrResult(img, result) {
@@ -1407,26 +1412,53 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
   const newPlayers = window.cockpit.newPlayers;
   const toArchive = Array.from(window.cockpit.markedForArchive);
 
-  if (assigned.size === 0 && newPlayers.length === 0 && toArchive.length === 0) {
-    alert('Keine Änderungen zum Synchronisieren vorhanden. Bitte erst scannen oder Kacheln zuordnen.');
+  // Ein Knopf fuer alles: Mitglieder/Werte und – wenn bereit – die Wueste-Haekchen
+  const hasMembers = assigned.size > 0 || newPlayers.length > 0 || toArchive.length > 0;
+  const desertBlock = desertHasData() ? desertBlockReason() : null;
+  const hasDesert = desertHasData() && !desertBlock;
+
+  if (!hasMembers && !hasDesert) {
+    alert(desertBlock
+      ? `Nichts zu übertragen. Wüste-Häkchen gehen noch nicht mit: ${desertBlock}`
+      : 'Keine Änderungen zum Synchronisieren vorhanden. Bitte erst scannen oder Kacheln zuordnen.');
     return;
   }
 
-  let confirmMsg = `Änderungen nach LWHub (${alliance}) übertragen?\n\n` +
-    `• ${assigned.size} Mitglieder aktualisieren\n` +
-    `• ${newPlayers.length} neue Spieler anlegen\n`;
-  if (toArchive.length > 0) {
-    confirmMsg += `• ⚠️ ${toArchive.length} Spieler ARCHIVIEREN\n`;
+  let confirmMsg = `Nach LWHub (${alliance}) übertragen?\n`;
+  if (hasMembers) {
+    confirmMsg += `\n📋 Mitglieder und Werte\n` +
+      `• ${assigned.size} Mitglieder aktualisieren\n` +
+      `• ${newPlayers.length} neue Spieler anlegen\n`;
+    if (toArchive.length > 0) confirmMsg += `• ⚠️ ${toArchive.length} Spieler ARCHIVIEREN\n`;
   }
-
+  if (hasDesert) {
+    confirmMsg += `\n🏜 Wüste-Häkchen\n${desertSummary()}\nAndere Häkchen (VS, Spenden, Wache …) bleiben unverändert.\n`;
+  } else if (desertBlock) {
+    confirmMsg += `\n🏜 Wüste-Häkchen gehen noch nicht mit: ${desertBlock}\n`;
+  }
   if (!confirm(confirmMsg)) return;
 
+  const btn = document.getElementById('btnSyncToLwHub');
+  btn.disabled = true;
   try {
-    const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, LwhubAccess.discordToken());
-    showSyncResult(res, alliance);
-    await loadMembers();
+    if (hasMembers) {
+      const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, LwhubAccess.discordToken());
+      showSyncResult(res, alliance);
+      await loadMembers();
+    }
+    if (hasDesert) {
+      try {
+        const d = await uploadDesertFlags(alliance);
+        if (!hasMembers) alert(`🏜 Wüste-Häkchen übertragen: ${d.changed} geändert, ${d.unchanged} schon richtig${d.skipped ? `, ${d.skipped} übersprungen` : ''}.`);
+      } catch (err) {
+        log(`⚠️ Wüste-Häkchen nicht übertragen: ${err.message}`);
+        alert(`Wüste-Häkchen nicht übertragen: ${err.message}`);
+      }
+    }
   } catch (err) {
     alert(`Fehler beim Sync: ${err.message}`);
+  } finally {
+    btn.disabled = !accessOk;
   }
 });
 

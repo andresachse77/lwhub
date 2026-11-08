@@ -40,22 +40,26 @@ html, body {
 }
 
 /* Header Bar */
+/* Kopf darf umbrechen: Viele Listen-Zaehler duerfen den Upload-Knopf nicht aus dem Bild schieben */
 .top-bar {
-  height: 52px;
+  min-height: 52px;
   background: var(--bg-header);
   border-bottom: 1px solid var(--border);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  gap: 6px 16px;
+  padding: 8px 16px;
   flex-shrink: 0;
   z-index: 10;
 }
 
 .brand-section {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
 }
 
 .brand-title {
@@ -80,9 +84,14 @@ html, body {
 
 .status-section {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-end;
+  gap: 6px 10px;
+  margin-left: auto;
+  min-width: 0;
 }
+#btnSyncToLwHub { flex: none; white-space: nowrap; }
 
 .badge-stat {
   background: var(--bg-card);

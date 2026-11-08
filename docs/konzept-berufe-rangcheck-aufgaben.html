@@ -121,17 +121,18 @@
     <div class="meta-row">
       <span class="chip"><b>Andre</b> · lwhub &amp; Web-Scanner</span>
       <span class="chip"><b>Thomas</b> · Android-App</span>
-      <span class="chip">Stand <b>26.10.2026</b></span>
+      <span class="chip">Stand <b>08.11.2026</b></span>
     </div>
   </header>
 
   <div class="progress-grid" id="progress"></div>
 
   <section class="next">
-    <h2>🎯 Heute</h2>
+    <h2>🎯 Als Nächstes</h2>
     <ol>
-      <li><div><b>B1 Rangwappen:</b> gelbes Wappen mit Rangziffer an jeder Kachel im Berufeplaner (Warteschlange, Kriegsherr, Ingenieur-Slots). Unabhängig vom Rangcheck, sofort nützlich.</div></li>
-      <li><div><b>Offene Fragen</b> unten unter „Gemeinsam klären“ beantworten, dann geht es mit B2 weiter.</div></li>
+      <li><div><b>B6 Zähler:</b> „n falsch einsortiert“ im Planer-Kopf, Klick springt zur nächsten falschen Kachel.</div></li>
+      <li><div><b>S1–S3 Scanner-Rückmeldung:</b> <code>beruf_mismatches</code> in der Sync-Antwort, Liste im Web-Scanner, Doku für Thomas.</div></li>
+      <li><div><b>G4 klären:</b> Sollen R2/R3 aus der Warteschlange in der Scanner-Liste als „noch nicht eingeteilt“ erscheinen?</div></li>
     </ol>
   </section>
 
@@ -154,9 +155,9 @@
   <section data-owner="Andre">
     <h2>🧑‍💻 Andre <span class="count">lwhub &amp; Web-Scanner</span></h2>
 
-    <div class="phase">Phase 1 · Rangwappen (heute)</div>
+    <div class="phase">Phase 1 · Rangwappen</div>
 
-    <div class="task today" data-status="done">
+    <div class="task" data-status="done">
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B1</span>Rangwappen an allen Planer-Kacheln</div><div class="tags"><span class="tag done">erledigt 26.10.</span><span class="tag blue">index.html</span></div></div>
       <div class="d">Hilfsfunktion <code>bpRankShield(name)</code> liefert ein kleines Inline-SVG (gelbes Wappen, Ziffer aus <code>PREV[name]</code>, Tooltip „R3“). Eingebaut in <code>berufePlannerRender()</code> vor dem ⚔/⚗-Symbol: Warteschlange (<code>.bp-queue-item</code>), Kriegsherr-Zelle und Ingenieur-Slots. CSS-Klasse <code>.bp-shield</code>, ca. 16×19 px, Mobil-Breakpoints prüfen. Nur Ziffer, kein Rangname. Ehrenmitglieder bekommen kein Wappen (sie sind nicht in <code>members</code>).</div>
       <details><summary>Verlauf</summary><div class="log">
@@ -215,8 +216,8 @@
       <div class="d"><code>berufe_frage_vorlagen</code> als JSON in <code>alliance_config</code>. Sprache wählen, Text bearbeiten, Variablen-Chips zum Einfügen, Vorschau mit Beispielspieler, „Standard wiederherstellen“.</div>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B9</span>i18n-Texte in allen 7 Sprachen</div><div class="tags"><span class="tag blue">locales/*.json</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B9</span>i18n-Texte in allen 7 Sprachen</div><div class="tags"><span class="tag done">erledigt</span><span class="tag blue">locales/*.json</span></div></div>
       <div class="d">Neue <code>s_bp_*</code>-Schlüssel (Schalter, Hinweise, Zähler, Fenster) plus Standardvorlage je Sprache in <code>de, en, es, fr, it, pl, zh</code>.</div>
     </div>
 
@@ -236,6 +237,38 @@
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S3</span>Doku: Feld im API- &amp; Scanner-Konzept v2 ergänzen</div><div class="tags"><span class="tag blue">docs</span></div></div>
       <div class="d">Antwortbeispiel von <code>/scans/sync</code> in <a href="konzept-api-scanner-v2.html">Konzept v2</a> um <code>beruf_mismatches</code> erweitern, damit Thomas es findet.</div>
     </div>
+
+    <div class="phase">Phase 5 · Praxis-Feedback NxU1 (08.11.)</div>
+
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">Z1</span>Akkordeon: Zittern dort, wo der Name ganz sichtbar ist; „Alle aufklappen“</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">index.html</span></div></div>
+      <div class="d">In der Tabelle wurden Namen gekürzt, das Zittern brachte dort nichts. Jetzt: Zittern im Akkordeon, Tabelle nur gelber Rahmen + Pfeil.</div>
+    </div>
+
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">Z2</span>Tabelle nutzt die ganze Fensterbreite</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">index.html</span></div></div>
+      <div class="d">Ohne <code>max-width 1400px</code>, Namen auf bis zu 2 Zeilen, Spalte „Aktion“ schmal, ✉ ♡ beim Drüberfahren.</div>
+    </div>
+
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">Z3</span>🎲 Automatisch aufteilen mit Vorschau</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">index.html</span></div></div>
+      <div class="d">Kriegsherren aus dem Rang, ein aktiver Ingenieur je Kriegsherr (Punkte 4 Wochen), Rest gleichmäßig, Umsetzen + Anzahl ausgleichen. Knopf + Blende zeigen, dass gerechnet wird. Ablauf im <a href="konzept-berufe-rangcheck.html">Konzept, Nachtrag v2</a>.</div>
+    </div>
+
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">Z4</span>♥ Feste Paare</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">index.html</span><span class="tag blue">alliance.php</span></div></div>
+      <div class="d"><code>berufe_paare</code> in <code>alliance_config</code>, nur R4/R5. Die Automatik fasst sie nicht an; das Paar löst sich beim Umsetzen/Entfernen von selbst.</div>
+    </div>
+
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">Z5</span>Knöpfe ✉ ♡ 🗑, Mülleimer statt „Zur Queue“</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">index.html</span></div></div>
+      <div class="d">Herz als Puffer zwischen Fragen und Entfernen. Beim Kriegsherrn 🗑 im Kartenkopf (mit Rückfrage), Tabelle 🗑 in der Aktion-Spalte.</div>
+    </div>
+
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">Z6</span>Handbuch de/en/fr</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">docs/handbuch</span></div></div>
+      <div class="d">Neuer Abschnitt „🎲 Automatisch aufteilen &amp; feste Paare“ mit Beispiel, Tipps aktualisiert.</div>
+    </div>
   </section>
 
   <section data-owner="Thomas">
@@ -252,19 +285,19 @@
   <section data-owner="Gemeinsam">
     <h2>🤝 Gemeinsam klären</h2>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G1</span>Sprache der Vorlage</div></div>
-      <div class="open-point">Vorschlag: Text in der Sprache des Spielers (<code>preferred_language</code>). Oder immer die Sprache des R4/R5, der klickt?</div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G1</span>Sprache der Vorlage</div><div class="tags"><span class="tag done">entschieden</span></div></div>
+      <div class="d">Text in der Sprache des Spielers (<code>preferred_language</code>), sonst Deutsch.</div>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G2</span>Hintergrundfarbe</div></div>
-      <div class="open-point">Vorschlag: Tönung nach dem erwarteten Beruf aus dem Rang (R2/R3), R1/R4/R5 neutral. Oder lieber eine Farbe pro Rang (R1–R5), unabhängig vom Rangcheck?</div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G2</span>Hintergrundfarbe</div><div class="tags"><span class="tag done">entschieden</span></div></div>
+      <div class="d">Tönung nach erwartetem Beruf (R2/R3), R1/R4/R5 neutral. Rangfarbe steckt im Wappen (V7).</div>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G3</span>Wer darf den Rangcheck einschalten?</div></div>
-      <div class="open-point">Vorschlag: R4 und R5 der Allianz, wie bei den übrigen Berufe-Einstellungen. Oder nur R5 bzw. Site-Admin?</div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G3</span>Wer darf den Rangcheck einschalten?</div><div class="tags"><span class="tag done">entschieden</span></div></div>
+      <div class="d">R4 und R5 der Allianz (gilt auch für Fragetexte und feste Paare).</div>
     </div>
 
     <div class="task" data-status="open">
@@ -273,7 +306,7 @@
     </div>
   </section>
 
-  <div class="footer">LWHub &bull; Aufgaben Berufe-Rangcheck &bull; 26.10.2026</div>
+  <div class="footer">LWHub &bull; Aufgaben Berufe-Rangcheck &bull; 08.11.2026</div>
 </div>
 <script>
 (function () {

@@ -126,7 +126,7 @@
       <span class="badge blue">Berufeplaner &bull; Subfeature</span>
       <span class="badge purple">Web &bull; Web-Scanner &bull; App</span>
       <span class="badge green">Additiv, blockiert nichts</span>
-      <span class="badge amber">Stand: 2026-10-26 (v1)</span>
+      <span class="badge amber">Stand: 2026-11-08 (v2)</span>
     </div>
     <h1>Berufe-Rangcheck: R2/R3 zeigen den Beruf</h1>
     <p class="subtitle">Im Spiel steht der Beruf nicht in der Mitgliederliste, aber der Rang schon. Wenn die Allianz R2 und R3 nach Beruf vergibt, sieht der Berufeplaner sofort, wer falsch einsortiert ist. Der Scanner pflegt die Ränge laufend und meldet Abweichungen. Aufgaben stehen in der <a href="konzept-berufe-rangcheck-aufgaben.html">Aufgabenliste</a>.</p>
@@ -134,10 +134,10 @@
 
   <section>
     <h2>🎯 Idee in einem Satz</h2>
-    <p><strong>R2 = Ingenieur, R3 = Kriegsherr</strong> (oder andersherum, pro Allianz einstellbar). Steht im Planer ein R2 bei den Kriegsherren, zittert seine Kachel und zieht zur richtigen Seite. Verschoben wird weiter per Drag-and-drop. Bei R1, R4 und R5 lässt sich der Beruf so nicht ablesen, diese Kacheln bleiben neutral.</p>
+    <p><strong>R2 = Ingenieur, R3 = Kriegsherr</strong> (oder andersherum, pro Allianz einstellbar). Steht im Planer ein R2 bei den Kriegsherren, bekommt er einen gelben Rahmen und einen Hinweis; in der Kartenansicht zittert sein Name dazu. Verschoben wird per Drag-and-drop oder mit „Automatisch aufteilen“ (siehe Nachtrag v2). Bei R1, R4 und R5 lässt sich der Beruf so nicht ablesen, diese Kacheln bleiben neutral.</p>
     <div class="card-grid">
-      <div class="card ok"><h4>🛡 Rangwappen</h4><p>Jede Kachel zeigt den Rang als Ziffer in einem gelben Wappen. Gilt immer, auch ohne Rangcheck. Der Name eines Rangs („Elite“ usw.) wird nicht gezeigt, damit niemand falsch benannt wird.</p></div>
-      <div class="card warn"><h4>🎨 Farbe + Zittern</h4><p>Nur wenn der Rangcheck an ist: Hintergrund leicht nach erwartetem Beruf getönt, falsche Kacheln zittern und lehnen sich zur richtigen Spalte.</p></div>
+      <div class="card ok"><h4>🛡 Rangwappen</h4><p>Jede Kachel zeigt den Rang als Ziffer in einem Wappen in Rangfarbe (V7). Gilt immer, auch ohne Rangcheck. Der Name eines Rangs („Elite“ usw.) wird nicht gezeigt, damit niemand falsch benannt wird.</p></div>
+      <div class="card warn"><h4>🎨 Farbe + Zittern</h4><p>Nur wenn der Rangcheck an ist: Hintergrund leicht nach erwartetem Beruf getönt, falsche Kacheln bekommen gelben Rahmen und Hinweis. Zittern nur in der Kartenansicht, in der Tabelle zeigt ein Pfeil die Richtung.</p></div>
       <div class="card"><h4>✉ Spieler fragen</h4><p>Winziger Knopf an jeder Kachel. Öffnet den vorbereiteten Text aus der Vorlage und kopiert ihn in die Zwischenablage, fertig zum Einfügen in die Spielmail.</p></div>
       <div class="card"><h4>📡 Scanner-Rückmeldung</h4><p>Der Sync antwortet zusätzlich mit einer Liste falsch einsortierter Spieler. Kein Upload wird verhindert. Liste per Knopf kopieren und in den R4-Chat geben.</p></div>
     </div>
@@ -196,6 +196,7 @@
       <tr><td><code>berufe_rangcheck</code></td><td><code>true</code> / <code>false</code></td><td><code>false</code></td></tr>
       <tr><td><code>berufe_rangcheck_r2</code></td><td><code>ingenieur</code> / <code>kriegsherr</code> (R3 ist immer das Gegenteil)</td><td><code>ingenieur</code></td></tr>
       <tr><td><code>berufe_frage_vorlagen</code></td><td>JSON, ein Text pro Sprache: <code>{"de": "...", "en": "...", ...}</code></td><td>eingebaute Standardtexte</td></tr>
+      <tr><td><code>berufe_paare</code> <small>(v2)</small></td><td>JSON, feste Paare über Spieler-IDs: <code>{"&lt;Ingenieur-ID&gt;": "&lt;Kriegsherr-ID&gt;"}</code>, max. 500</td><td>leer</td></tr>
     </table></div>
     <p>Im Planer-Kopf ein Schalter „Rangcheck R2/R3“ mit kleinem Auswahlfeld „R2 = Ingenieur / R2 = Kriegsherr“ und ein Zähler „3 falsch einsortiert“. Klick auf den Zähler scrollt zur ersten falschen Kachel.</p>
   </section>
@@ -243,10 +244,30 @@ R2 = Ingenieur · R3 = Kriegsherr
   </section>
 
   <section>
+    <h2>🎲 Nachtrag v2 (08.11.2026): Automatisch aufteilen &amp; feste Paare</h2>
+    <p>Aus dem Praxistest mit NxU1 (100 Mitglieder, 21 Kriegsherren, 4 Plätze je Kriegsherr). Alles läuft im Browser, gespeichert wird über das vorhandene <code>save_beruf</code>. Keine neue Tabelle, keine neue Spalte.</p>
+    <div class="card-grid">
+      <div class="card ok"><h4>🎲 Automatisch aufteilen</h4><p>Knopf im Planer-Kopf. Erst kommt eine Vorschau, gespeichert wird nur mit „Übernehmen“. „Neu würfeln“ zeigt eine andere Aufteilung. Während gerechnet und gespeichert wird: Knopf halb gedrückt mit Spinner, dazu die Blende (Battle-Loader).</p></div>
+      <div class="card ok"><h4>♥ Feste Paare</h4><p>♡ beim Ingenieur, nur R4/R5. Die Automatik setzt ihn nie um. Das Paar löst sich von selbst, wenn der Kriegsherr entfernt oder der Ingenieur woandershin gesetzt wird (zentral in <code>bpSaveBeruf</code>).</p></div>
+      <div class="card"><h4>☰ Karten &amp; ▦ Tabelle</h4><p>Zittern nur in der Kartenansicht (dort ist der ganze Name sichtbar), in der Tabelle nur gelber Rahmen und Pfeil. „Alle aufklappen“. Tabelle nutzt die ganze Fensterbreite, Namen brechen um, ✉ ♡ beim Drüberfahren.</p></div>
+      <div class="card"><h4>✉ ♡ 🗑</h4><p>Reihenfolge der Knöpfe: Das Herz liegt zwischen Fragen und Entfernen, damit man beim Nachfragen nicht versehentlich entfernt. 🗑 ersetzt „Zur Queue“, beim Kriegsherrn mit Rückfrage.</p></div>
+    </div>
+    <h3>Ablauf von „Automatisch aufteilen“</h3>
+    <ol>
+      <li><strong>Neue Kriegsherren:</strong> Wer in der Warteschlange vom Rang her Kriegsherr ist (Rangcheck an), wird Kriegsherr.</li>
+      <li><strong>Aktive zuerst:</strong> aktiv = oberes Drittel nach Punkten der letzten 4 abgeschlossenen Wochen (<code>ranking-history</code>, AFK und fehlende Wochen zählen 0). Kriegsherren ohne aktiven Ingenieur bekommen zuerst die aktivsten aus der Warteschlange.</li>
+      <li><strong>Rest gleichmäßig:</strong> zufällig, immer zum Kriegsherrn mit den meisten freien Plätzen.</li>
+      <li><strong>Umsetzen (Häkchen, Standard an):</strong> Wer 2+ Aktive hat, gibt seinen schwächsten Aktiven an einen Kriegsherrn ohne Aktiven ab (bei vollem Empfänger als Tausch). Danach Anzahl ausgleichen: Kein Kriegsherr hat 2+ Ingenieure mehr als ein anderer.</li>
+      <li><strong>Nie angefasst:</strong> feste Paare ♥ und R4/R5.</li>
+      <li><strong>Speichern:</strong> neue Kriegsherren → Umgesetzte kurz lösen → alle zuordnen. Der Server prüft die Höchstzahl, so blockiert kein Tausch zwischen zwei vollen Kriegsherren.</li>
+    </ol>
+  </section>
+
+  <section>
     <h2>🚫 Bewusst nicht dabei</h2>
     <ul>
       <li>Kein Ablesen des Berufs bei R1, R4, R5 und Ehrenmitgliedern.</li>
-      <li>Kein automatisches Umsortieren, weder im Planer noch beim Scan.</li>
+      <li>Kein Umsortieren ohne Bestätigung: „Automatisch aufteilen“ zeigt immer erst eine Vorschau. Der Scan sortiert nie um.</li>
       <li>Kein Versand von Spielmails aus dem Hub. Nur Zwischenablage.</li>
       <li>Keine neue Tabelle. Alles läuft über <code>alliance_config</code> und vorhandene Spalten.</li>
     </ul>
@@ -330,7 +351,7 @@ R2 = Ingenieur · R3 = Kriegsherr
     </div>
   </section>
 
-  <div class="footer">LWHub &bull; Konzept Berufe-Rangcheck v1 &bull; 26.10.2026</div>
+  <div class="footer">LWHub &bull; Konzept Berufe-Rangcheck v2 &bull; 08.11.2026</div>
 </div>
 <script>
   // Wappen in der Vorschau aus data-r erzeugen (gleiches Markup wie spaeter im Planer)

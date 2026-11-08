@@ -993,7 +993,6 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 .bp-acc-del:hover { color: #ff8a7a; border-color: rgba(224,85,69,.6); background: rgba(224,85,69,.12); }
 .bp-acc-add { padding: 6px 8px; border-top: 1px dashed var(--line2); }
 .bp-acc-add select { width: 100%; background: var(--card2); color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 5px 8px; font-size: 12px; }
-.bp-acc-foot { padding: 6px 8px; border-top: 1px solid var(--line); text-align: right; }
 .bp-acc-empty { padding: 12px; color: var(--soft); font-size: 12px; border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px; }
 .bp-grid-panel { min-width: 0; }
 .bp-queue-list {
@@ -9442,6 +9441,11 @@ async function revokeApiToken(tokenId, clientName) {
     window.berufePlannerRender();
   };
 
+  // Muelleimer "In die Warteschlange" (SVG statt Emoji, sieht ueberall gleich aus). action = JS-Aufruf als Text.
+  function bpDelBtn(action) {
+    return `<button class="bp-acc-btn bp-acc-del" type="button" draggable="false" title="${escHtml(tr('s_bp_to_queue_btn'))}" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();${action}"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.6 6.5v4.5M9.4 6.5v4.5"/></svg></button>`;
+  }
+
   function bpAskBtn(name) {
     return `<button class="bp-ask-btn" type="button" draggable="false" title="${escHtml(tr('s_bp_ask_title'))}" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();bpAskPlayer('${bpEnc(name)}')">✉</button>`;
   }
@@ -9574,7 +9578,7 @@ async function revokeApiToken(tokenId, clientName) {
         + `<div class="bp-acc-head" onclick="bpAccToggle('${khEnc}')">`
         + `<span class="bp-acc-grip" draggable="true" data-member="${escHtml(kh)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()" onclick="event.stopPropagation()">⠿</span>`
         + bpRankShield(kh) + `<span class="bp-acc-kh">⚔ ${escHtml(kh)}</span>` + khCheck.hint
-        + `<span class="bp-acc-cap${full ? ' full' : ''}">${engs.length}/${maxIng}</span>` + bpAskBtn(kh)
+        + `<span class="bp-acc-cap${full ? ' full' : ''}">${engs.length}/${maxIng}</span>` + bpAskBtn(kh) + bpDelBtn(`bpUnsetWarlord('${khEnc}')`)
         + '<span class="bp-acc-chev">›</span></div>';
       if (!open) {
         if (engs.length) {
@@ -9590,7 +9594,7 @@ async function revokeApiToken(tokenId, clientName) {
         return `<div class="bp-acc-eng${isWrong(c) ? ' wrong ' + bpPullCls(c) : ''}" draggable="true" data-member="${escHtml(n)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`
           // Reihenfolge ✉ ♡ 🗑: das Herz liegt zwischen Fragen und Entfernen, damit man nicht versehentlich entfernt
           + `<span class="bp-acc-grip">⠿</span>${bpRankShield(n)}<span class="bp-acc-ing">⚗ ${escHtml(n)}</span>${c.hint}${bpAskBtn(n)}${bpPairBtn(n)}`
-          + `<button class="bp-acc-btn bp-acc-del" type="button" draggable="false" title="${escHtml(tr('s_bp_to_queue_btn'))}" onmousedown="event.stopPropagation()" onclick="bpAccToQueue('${bpEnc(n)}')"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.6 6.5v4.5M9.4 6.5v4.5"/></svg></button></div>`;
+          + bpDelBtn(`bpAccToQueue('${bpEnc(n)}')`) + '</div>';
       }).join('');
       if (!full) {
         h += `<div class="bp-acc-add"><select onchange="bpAccAssign(this,'${khEnc}')">`
@@ -9598,7 +9602,6 @@ async function revokeApiToken(tokenId, clientName) {
           + (queue.length ? `<optgroup label="${escHtml(tr('s_bp_queue_title'))}">${queue.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('')}</optgroup>` : '')
           + '</select></div>';
       }
-      h += `<div class="bp-acc-foot"><button class="wt-btn" onclick="bpUnsetWarlord('${khEnc}')" style="font-size:11px;padding:5px 10px;">${escHtml(tr('s_bp_to_queue_btn'))}</button></div>`;
       return h + '</div>';
     }).join('') + '</div>';
   }
@@ -9683,7 +9686,7 @@ async function revokeApiToken(tokenId, clientName) {
     for (let i = 1; i <= maxIng; i++) {
       html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;">${escHtml(tr('s_bp_ing_prefix'))} ${i}</th>`;
     }
-    html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;width:96px;">${escHtml(tr('s_aktion'))}</th></tr></thead><tbody>`;
+    html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;width:44px;"></th></tr></thead><tbody>`;
 
     warlords.forEach((kh) => {
       const engineers = bpEngineerListFor(kh);
@@ -9718,7 +9721,7 @@ async function revokeApiToken(tokenId, clientName) {
         html += '</td>';
       }
 
-      html += `<td class="bp-cell-action"><button class="wt-btn" onclick="bpUnsetWarlord('${khEnc}')" style="font-size:11px;padding:5px 10px;">${escHtml(tr('s_bp_to_queue_btn'))}</button></td>`;
+      html += `<td class="bp-cell-action">${bpDelBtn(`bpUnsetWarlord('${khEnc}')`)}</td>`;
       html += '</tr>';
     });
 

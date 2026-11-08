@@ -293,13 +293,13 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
 <!-- ───────────────────────────────── -->
 <section id="gzip-test">
   <h2>Live-Test: Komprimierung und Header</h2>
-  <p>Die neuen Server-Einstellungen gelten testweise <strong>nur für den Ordner <code>docs/</code></strong> (eigene <code>docs/.htaccess</code>). Die normale Seite bleibt unverändert. Der Knopf lädt diese Konzeptseite und zum Vergleich die normale Startseite frisch vom Server und zeigt, was wirklich ankommt.</p>
+  <p>Der Test lief zuerst nur im Ordner <code>docs/</code> und war erfolgreich (34,7 KB → 12,3 KB). Seit dem 08.11.2026 gelten die Einstellungen über die <code>.htaccess</code> im Hauptordner <strong>für den ganzen LWHub</strong>. Der Knopf lädt diese Konzeptseite und die Startseite frisch vom Server und zeigt, was wirklich ankommt.</p>
   <p><button type="button" id="gz-run" class="test-btn">Jetzt prüfen</button> <span id="gz-note" class="test-note"></span></p>
   <div class="table-wrap"><table id="gz-table">
     <tr><th>Datei</th><th>Komprimiert</th><th>Übertragen</th><th>Entpackt</th><th>Cache-Control</th><th>nosniff</th><th>CSP (Beobachtung)</th><th>X-Frame-Options</th></tr>
     <tr><td colspan="8">Noch nicht geprüft.</td></tr>
   </table></div>
-  <p>Erwartung: Die Konzeptseite ist komprimiert und hat alle Header. Die Startseite zeigt noch überall „nein“. Erst dann wandern die Zeilen in die <code>.htaccess</code> im Hauptordner. Hinweis: Der Vergleich lädt die Startseite einmal komplett (~500 KB).</p>
+  <p>Erwartung: Beide Zeilen sind grün, die Startseite kommt mit etwa 115 KB statt 484 KB an.</p>
 </section>
 <script>
 (function () {
@@ -307,8 +307,8 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
   var table = document.getElementById('gz-table');
   var note = document.getElementById('gz-note');
   var targets = [
-    { label: 'Diese Konzeptseite (docs/, mit Test-Einstellungen)', url: location.pathname },
-    { label: 'Normale Startseite (soll unverändert sein)', url: '../' }
+    { label: 'Diese Konzeptseite (docs/)', url: location.pathname },
+    { label: 'Startseite', url: '../' }
   ];
 
   function kb(n) { return n ? (n / 1024).toFixed(1).replace('.', ',') + ' KB' : '–'; }

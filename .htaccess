@@ -1,0 +1,40 @@
+# lwhub – Server-Einstellungen (docs/konzept-frontend-umbau.html, Schritt 1, vorher erfolgreich in docs/ getestet)
+# Alles steht in <IfModule>: Fehlt ein Modul beim Hoster, laeuft die Seite unveraendert weiter.
+# Unterordner mit eigener .htaccess (api/, web-scanner-onnx/) erben diese Header zusaetzlich.
+
+# ── 1. Komprimierung ──
+# Gemessen am 08.11.2026: index.html kam mit 496 KB unkomprimiert, mit gzip sind es ~117 KB.
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# ── 2. Cache ──
+# Seiten, Skripte, Styles, JSON: immer beim Server nachfragen (ETag -> 304, wenn unveraendert).
+# Lange Cache-Zeiten erst, wenn die Dateien eine ?v=-Version im Link haben (Konzept A).
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css|json)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(svg|png|jpe?g|webp|gif|ico)$">
+    Header set Cache-Control "max-age=86400"
+  </FilesMatch>
+</IfModule>
+
+# ── 3. Sicherheits-Header ──
+<IfModule mod_headers.c>
+  # Browser darf Dateitypen nicht raten (z. B. Text als Skript ausfuehren)
+  Header always set X-Content-Type-Options "nosniff"
+  # Fremde Seiten sehen beim Klick auf einen Link nur lwhub.de, nicht den ganzen Pfad
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  # LWHub darf nur von sich selbst eingebettet werden (Scanner-iframe ist erlaubt)
+  Header always set X-Frame-Options "SAMEORIGIN"
+  # Kamera, Mikrofon, Standort werden nicht gebraucht
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  # Nur noch HTTPS. Erst einen Tag testen, danach auf 31536000 (1 Jahr) erhoehen.
+  Header always set Strict-Transport-Security "max-age=86400"
+
+  # Content-Security-Policy, NUR im Beobachtungsmodus: blockiert nichts, meldet Verstoesse in der
+  # Browser-Konsole. Das ist die Zielrichtlinie nach Konzept A. Inline-<script> und onclick= tauchen
+  # dort als Meldung auf, bis sie umgebaut sind.
+  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; connect-src 'self' https://discord.com https://unavatar.io https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+</IfModule>

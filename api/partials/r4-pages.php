@@ -156,6 +156,7 @@ $auNav = function (string $active) use ($member): string {
             <option value="ingenieur" data-i18n="s_bp_rc_r2_ing">R2 = Ingenieur</option>
             <option value="kriegsherr" data-i18n="s_bp_rc_r2_kh">R2 = Kriegsherr</option>
           </select>
+          <button type="button" class="bp-wrong-count" id="bp-wrong-count" hidden onclick="bpJumpWrong()"></button>
         </div>
         <div class="bp-view" id="bp-view" title="Ansicht">
           <button type="button" data-bpview="acc" onclick="bpSetView('acc')">☰ <span data-i18n="s_bp_view_acc">Akkordeon</span></button>
@@ -168,7 +169,7 @@ $auNav = function (string $active) use ($member): string {
           <option value="count_desc" data-i18n="s_bp_sort_most">Meiste Ingenieure zuerst</option>
           <option value="count_asc" data-i18n="s_bp_sort_least">Wenigste Ingenieure zuerst</option>
         </select>
-        <button class="wt-btn" onclick="berufePlannerLoadPage()" style="padding:6px 12px;font-size:12px;">↻ <span data-i18n="s_bp_reload">Neu laden</span></button>
+        <button class="wt-btn" onclick="berufePlannerLoadPage()" style="padding:6px 12px;font-size:12px;white-space:nowrap;">↻ <span data-i18n="s_bp_reload">Neu laden</span></button>
         <button class="wt-btn" id="bp-fill-btn" onclick="bpFillRest(this)" style="padding:6px 12px;font-size:12px;white-space:nowrap;">🎲 <span data-i18n="s_bp_fill_btn">Automatisch aufteilen</span></button>
         <button class="wt-btn" id="bp-tpl-btn" onclick="bpOpenTemplates()" style="padding:6px 12px;font-size:12px;">✎ <span data-i18n="s_bp_tpl_btn">Fragetexte</span></button>
         <button class="wt-btn" id="bp-mail-btn" onclick="berufePlannerCopyMail(this)" style="padding:6px 12px;font-size:12px;">✉ <span data-i18n="s_bp_alliance_mail">Allianzmail</span></button>

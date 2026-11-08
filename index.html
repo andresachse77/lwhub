@@ -966,6 +966,13 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 .bp-busy { position: relative; opacity: .7; transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0,0,0,.35); cursor: progress !important; }
 .bp-busy::after { content: ""; display: inline-block; width: 11px; height: 11px; margin-left: 7px; vertical-align: -1px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .bp-busy::after { animation-duration: 2s; } }
+/* B6: Zaehler im Planer-Kopf und Aufleuchten beim Hinspringen */
+.bp-wrong-count { border: 1px solid rgba(210,153,34,.5); background: rgba(210,153,34,.12); color: #e3b341; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.bp-wrong-count:hover:not(:disabled) { background: rgba(210,153,34,.22); }
+.bp-wrong-count.ok { border-color: rgba(46,203,122,.4); background: rgba(46,203,122,.10); color: var(--green); cursor: default; }
+.bp-flash { animation: bpFlash 1.6s ease-out; }
+@keyframes bpFlash { 0%, 30% { box-shadow: 0 0 0 3px rgba(240,165,0,.85), 0 0 18px rgba(240,165,0,.45); } 100% { box-shadow: 0 0 0 0 rgba(240,165,0,0); } }
+@media (prefers-reduced-motion: reduce) { .bp-flash { animation: none; outline: 2px solid var(--gold); } }
 .bp-fill-body { max-height: min(62vh, 640px); overflow-y: auto; font-size: 13px; }
 .bp-fill-h { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); margin: 12px 0 6px; }
 .bp-fill-h.warn { color: #d29922; }
@@ -9396,6 +9403,50 @@ async function revokeApiToken(tokenId, clientName) {
     }
   };
 
+  // B6: Zaehler "n falsch einsortiert". Klick springt der Reihe nach zur naechsten falschen Kachel
+  // (im Akkordeon wird die Karte dafuer aufgeklappt) und laesst sie kurz aufleuchten.
+  let bpWrongIdx = -1;
+  function bpWrongList() {
+    if (!isBerufRankCheckOn()) return [];
+    const out = [];
+    bpWarlordList().forEach(kh => {
+      if (bpBerufStatus(kh, 'kriegsherr') === 'wrong') out.push({ name: kh, kh });
+      bpEngineerListFor(kh).forEach(n => { if (bpBerufStatus(n, 'ingenieur') === 'wrong') out.push({ name: n, kh }); });
+    });
+    return out;
+  }
+  function bpRenderWrongCount() {
+    const el = document.getElementById('bp-wrong-count');
+    if (!el) return;
+    if (!isBerufRankCheckOn()) { el.hidden = true; return; }
+    const n = bpWrongList().length;
+    el.hidden = false;
+    el.classList.toggle('ok', n === 0);
+    el.disabled = n === 0;
+    el.textContent = n ? `⚠ ${trf('s_bp_wrong_count', { n })}` : `✓ ${tr('s_bp_wrong_none')}`;
+    el.title = n ? tr('s_bp_wrong_title') : '';
+  }
+  window.bpJumpWrong = function() {
+    const list = bpWrongList();
+    if (!list.length) return;
+    bpWrongIdx = (bpWrongIdx + 1) % list.length;
+    const target = list[bpWrongIdx];
+    if (bpView === 'acc' && target.name !== target.kh && !bpOpenSet.has(target.kh)) {
+      if (bpOpenSet.size <= 1) bpOpenSet.clear();
+      bpOpenSet.add(target.kh);
+      window.berufePlannerRender();
+    }
+    const sel = `#bp-grid [data-member="${CSS.escape(target.name)}"]`;
+    const hit = document.querySelector(sel);
+    const box = hit?.closest('.bp-acc-head, .bp-acc-eng, td') || hit;
+    if (!box) return;
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    box.classList.remove('bp-flash');
+    void box.offsetWidth; // Animation neu starten
+    box.classList.add('bp-flash');
+    setTimeout(() => box.classList.remove('bp-flash'), 1800);
+  };
+
   // Feste Paare (♥): Ingenieur bleibt bei seinem Kriegsherrn, "Automatisch aufteilen" setzt ihn nie um.
   // alliance_config berufe_paare = {"<Ingenieur-ID>": "<Kriegsherr-ID>"}; IDs ueberstehen Umbenennungen.
   function bpPairs() {
@@ -9683,6 +9734,7 @@ async function revokeApiToken(tokenId, clientName) {
       subEl.textContent = `${tr('s_bp_subtext_prefix')} ${maxIng} ${tr('s_bp_subtext_suffix')}`;
     }
     bpRenderRankCheckControls();
+    bpRenderWrongCount();
 
     if (!queue.length) {
       queueEl.innerHTML = `<div style="font-size:12px;color:var(--soft);padding:8px;">${escHtml(tr('s_bp_queue_empty'))}</div>`;

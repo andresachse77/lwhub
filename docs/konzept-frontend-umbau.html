@@ -59,6 +59,10 @@
   .test-btn:hover { background: #2ea043; }
   .test-btn:disabled { opacity: .6; cursor: wait; }
   .test-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .test-btn.old { background: var(--bg-tertiary); border-color: var(--border-color); }
+  .test-btn.old:hover { background: #30363d; }
+  .demo-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .demo-out { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; color: var(--text-secondary); min-height: 40px; margin-bottom: 16px; white-space: pre-wrap; word-break: break-word; }
   .test-note { font-size: 13px; color: var(--text-secondary); margin-left: 8px; }
   .footer { color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border-color); padding-top: 16px; }
 </style>
@@ -72,6 +76,7 @@
     <span class="badge amber">Entwurf</span>
     <span class="badge">Stand 08.11.2026</span>
     <a class="badge green" href="#gzip-test" style="text-decoration:none;">▶ Live-Test gzip &amp; Header</a>
+    <a class="badge green" href="#handler-test" style="text-decoration:none;">▶ Live-Test Inline-Handler</a>
   </div>
   <h1>Umbau der Startseite: kleinere Seiten, teilbare Links, schneller</h1>
   <p class="subtitle">Drei Wege ohne Node/npm, wie wir <code>index.html</code> aufteilen können, dazu eine Empfehlung. Alle drei nutzen dasselbe englische Link-Schema zum Teilen.</p>
@@ -86,7 +91,7 @@
     <div class="stat"><div class="num">≈ 384 KB</div><div class="lbl">davon JavaScript, alles in einem &lt;script&gt;</div></div>
     <div class="stat"><div class="num">≈ 72 KB</div><div class="lbl">davon CSS</div></div>
     <div class="stat"><div class="num">≈ 330</div><div class="lbl">Funktionen, fast alle global</div></div>
-    <div class="stat"><div class="num">162</div><div class="lbl"><code>onclick=</code> direkt im HTML (113 + 49 in den Partials)</div></div>
+    <div class="stat"><div class="num">232</div><div class="lbl">Inline-Handler (<code>on…=</code>) im HTML, davon 168 <code>onclick=</code> (172 in <code>index.html</code> + 60 in den Partials)</div></div>
   </div>
   <p>Grob, wo das JavaScript liegt (Zeilen in <code>index.html</code>):</p>
   <div class="table-wrap"><table>
@@ -189,7 +194,7 @@ export function hide() { … }                      // clean up timers, listener
       <div class="con"><h4>Nachteile</h4><ul>
         <li>Viele kleine Dateien = mehr Anfragen (bei HTTP/2 kaum spürbar)</li>
         <li>Kein Minifizieren ohne Build, dafür sorgt gzip/brotli am Server</li>
-        <li>Die 162 <code>onclick=</code> brauchen eine Übergangslösung (siehe unten)</li>
+        <li>Die 232 Inline-Handler (<code>onclick=</code>, <code>ondrag…=</code>, <code>onchange=</code> …) brauchen eine Übergangslösung (siehe unten)</li>
         <li>Cache-Versionen müssen wir selbst anhängen (<code>?v=SHA</code>)</li>
       </ul></div>
     </div>
@@ -276,7 +281,15 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
     <li><strong>Kern auslagern:</strong> <code>api.js</code> (<code>fetchJson</code>, <code>API_BASE_CANDIDATES</code>), <code>auth.js</code>, <code>state.js</code>, <code>i18n.js</code>.</li>
     <li><strong>Seiten einzeln herauslösen</strong>, die großen und abgeschlossenen zuerst: Berufeplaner und Zug (beide schon eigene IIFEs), dann Admin, Verwaltung, Auswertungen. Zum Schluss Mein Bereich und Teams.</li>
     <li><strong>Lazy Loading einschalten</strong>, sobald eine Seite ihr eigenes Modul hat.</li>
-    <li><strong><code>onclick=</code> abbauen:</strong> Übergangsweise hängt jedes Seitenmodul seine benötigten Funktionen an ein Objekt (<code>window.lw.zug = { … }</code>). Nach und nach ersetzen wir das durch <code>data-action="…"</code> und einen Klick-Listener pro Seite. Nebenbei verschwinden so auch Fehler wie der „O'Brien“-Fall im Berufeplaner (<code>bpEnc</code>).</li>
+    <li><strong>Inline-Handler abbauen (Ziel: 0 <code>on…=</code>, nicht nur 0 <code>onclick=</code>):</strong> Im HTML steht nur noch, <em>was</em> passieren soll, z. B. <code>&lt;button data-action="toggleFlag" data-key="…"&gt;</code>. Jede Seite hängt <strong>einen</strong> Listener an ihren Container, der per <code>e.target.closest('[data-action]')</code> die passende Funktion aufruft. Weil der Listener am Container hängt und nicht am Knopf, funktioniert das auch für HTML, das später per <code>innerHTML</code> entsteht.
+      <ul>
+        <li>Reihenfolge: zuerst die globalen Aktionen (<code>showPage</code>, <code>closeModal</code>, <code>adminShowTab</code>, <code>discordLogout</code>) mit einem Listener auf <code>document</code>, danach jede Seite, sobald sie ihr eigenes Modul hat. Nur wo ein Modul schon steht, aber noch nicht umgebaut ist, hilft übergangsweise <code>window.lw.zug = { … }</code>.</li>
+        <li>Namen kommen in <code>data-name="${escHtml(name)}"</code> statt in einen JS-String im Attribut. Damit verschwinden <code>bpEnc</code>, <code>replace(/'/g,"\\'")</code> und Fehler wie der „O'Brien“-Fall. <code>closest()</code> findet immer den innersten Knopf, die meisten der 12 <code>event.stopPropagation()</code> fallen weg.</li>
+        <li>Nicht nur Klicks: <code>ondrag…</code> (40), <code>onchange</code>/<code>oninput</code>/<code>onkeydown</code> (12), <code>onmousedown</code>/<code>onmouseover</code>/<code>onmouseout</code> (5) lassen sich genauso zentral abfangen. <code>onfocus</code> wird zu <code>focusin</code> (nur das steigt nach oben), <code>onload</code>/<code>onerror</code> am Battle-Loader-Bild werden direkt im JS gesetzt.</li>
+        <li>Zwei Stellen suchen per <code>querySelector('[onclick=…]')</code> nach Knöpfen. Die müssen auf <code>[data-action=…]</code> umgestellt werden, sonst finden sie nichts mehr.</li>
+        <li>Fortschritt zählen: der Live-Test unten oder <code>grep -oE "\son[a-z]+=[\"'\`]"</code> über <code>index.html</code> und <code>api/partials/</code>.</li>
+      </ul>
+    </li>
     <li><strong>Aufräumen:</strong> <code>goToView()</code> / <code>applyHashRouteIfNeeded()</code> mit den alten <code>me*.html</code>-Zielen entfernen.</li>
   </ol>
 
@@ -377,6 +390,125 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
 </script>
 
 <!-- ───────────────────────────────── -->
+<section id="handler-test">
+  <h2>Live-Test: Inline-Handler und CSP</h2>
+  <p>Die <code>.htaccess</code> schickt schon die Ziel-CSP mit, aber nur im Beobachtungsmodus (<code>Content-Security-Policy-Report-Only</code>). Darin steht <code>script-src-attr 'none'</code>, das heißt: <strong>jeder</strong> Inline-Handler (<code>onclick=</code>, <code>onchange=</code>, <code>ondrop=</code> …) wäre verboten. Heute meldet der Browser das nur, später würde er die Knöpfe blockieren.</p>
+
+  <h3>1. Wie viele Inline-Handler hat die Startseite gerade?</h3>
+  <p>Der Knopf lädt <code>index.html</code> frisch vom Server und zählt. So sieht man nach jedem Umbauschritt, ob die Zahl sinkt.</p>
+  <p><button type="button" id="ih-run" class="test-btn">Startseite zählen</button> <span id="ih-note" class="test-note"></span></p>
+  <div class="table-wrap"><table id="ih-table">
+    <tr><th>Art</th><th>Anzahl</th><th>Ersatz</th></tr>
+    <tr><td colspan="3">Noch nicht gezählt. Stand 08.11.2026 laut Quelltext: 172 in <code>index.html</code>, dazu 60 in den Partials.</td></tr>
+  </table></div>
+  <p>Die Partials (<code>api/partials/</code>, R4- und Admin-Seiten) kommen erst nach dem Login über die API und werden hier nicht mitgezählt. Laut Quelltext sind es dort am 08.11.2026 noch 57 <code>onclick=</code> und 3 <code>onchange=</code>.</p>
+
+  <h3>2. Vorführung: alter und neuer Weg</h3>
+  <p>Beide Knöpfe tun dasselbe: Sie zeigen den Namen „O'Brien“ an. Der linke ist so gebaut wie heute in der App (<code>onclick="…"</code>), der rechte so wie nach dem Umbau (<code>data-action</code> plus ein Listener). Unten steht, ob der Browser einen CSP-Verstoß meldet. Er meldet ihn nur beim <strong>ersten</strong> Klick auf den alten Knopf, danach merkt er sich den Handler.</p>
+  <div class="demo-row" id="ih-demo">
+    <button type="button" class="test-btn old" onclick="window.lwDemoShow('alt', 'O\'Brien')">Alter Weg (onclick)</button>
+    <button type="button" class="test-btn" data-action="show" data-name="O'Brien">Neuer Weg (data-action)</button>
+  </div>
+  <div class="demo-out" id="ih-out">Noch nichts geklickt.</div>
+  <p>Erwartung auf lwhub.de: Beim alten Knopf steht „CSP-Verstoß gemeldet“, beim neuen „keine Meldung“. Sobald wir die CSP scharf schalten, würde der alte Knopf gar nichts mehr tun.</p>
+</section>
+<script>
+(function () {
+  // ---- 1. Zählen ----
+  var groups = [
+    { label: 'onclick', test: /^click$/, fix: 'data-action + ein click-Listener pro Seite' },
+    { label: 'ondragstart / ondrop / ondragover / ondragleave / ondragend', test: /^drag|^drop$/, fix: 'Listener auf dragstart/drop/… am Container, data-drag' },
+    { label: 'onchange / oninput / onkeydown', test: /^(change|input|keydown|keyup|submit)$/, fix: 'Listener auf change/input/keydown am Container' },
+    { label: 'onmousedown / onmouseover / onmouseout', test: /^mouse/, fix: 'Listener auf mousedown/mouseover am Container' },
+    { label: 'onfocus / onblur', test: /^(focus|blur)$/, fix: 'focusin / focusout (steigen nach oben)' },
+    { label: 'onload / onerror', test: /^(load|error)$/, fix: 'im JS setzen: img.addEventListener(\'load\', …)' }
+  ];
+  var runBtn = document.getElementById('ih-run');
+  var table = document.getElementById('ih-table');
+  var note = document.getElementById('ih-note');
+
+  function row(cells, cls) {
+    var tr = table.insertRow();
+    cells.forEach(function (c, i) {
+      var td = tr.insertCell();
+      td.textContent = c;
+      if (i === 1 && cls) td.className = cls;
+    });
+    return tr;
+  }
+
+  runBtn.addEventListener('click', async function () {
+    runBtn.disabled = true;
+    note.textContent = 'Zähle …';
+    while (table.rows.length > 1) table.deleteRow(1);
+    try {
+      var u = new URL('../', location.href);
+      u.searchParams.set('ihcheck', String(Date.now()));
+      var res = await fetch(u.href, { cache: 'no-store' });
+      var text = await res.text();
+      var counts = {};
+      var total = 0;
+      var m, re = /\son([a-z]+)=["'`]/g;
+      while ((m = re.exec(text))) { counts[m[1]] = (counts[m[1]] || 0) + 1; total++; }
+      groups.forEach(function (g) {
+        var n = 0;
+        Object.keys(counts).forEach(function (k) { if (g.test.test(k)) { n += counts[k]; delete counts[k]; } });
+        row([g.label, String(n), g.fix], n ? 'bad' : 'good');
+      });
+      Object.keys(counts).forEach(function (k) { row(['on' + k, String(counts[k]), 'Listener am Container'], 'bad'); });
+      var sel = (text.match(/\[onclick=/g) || []).length;
+      if (sel) row(['querySelector(\'[onclick=…]\')', String(sel), 'auf [data-action=…] umstellen'], 'mid');
+      var sum = row(['Summe in index.html', String(total), total ? 'Ziel: 0' : 'geschafft'], total ? 'bad' : 'good');
+      sum.style.fontWeight = '600';
+      note.textContent = 'Gezählt um ' + new Date().toLocaleTimeString('de-DE') + '.';
+    } catch (err) {
+      var td = table.insertRow().insertCell();
+      td.colSpan = 3; td.className = 'bad';
+      td.textContent = 'Fehler: ' + (err && err.message ? err.message : err);
+      note.textContent = '';
+    }
+    runBtn.disabled = false;
+  });
+
+  // ---- 2. Vorführung ----
+  var out = document.getElementById('ih-out');
+  var demo = document.getElementById('ih-demo');
+  var lastReport = -1;
+  var hasCsp = null;
+
+  document.addEventListener('securitypolicyviolation', function (e) {
+    var d = e.effectiveDirective || e.violatedDirective || '';
+    if (d.indexOf('script-src-attr') === 0 || (d.indexOf('script-src') === 0 && e.blockedURI === 'inline' && demo.contains(e.target))) lastReport = performance.now();
+  });
+
+  fetch(location.pathname + '?cspcheck=' + Date.now(), { cache: 'no-store' }).then(function (r) {
+    hasCsp = !!(r.headers.get('content-security-policy-report-only') || r.headers.get('content-security-policy'));
+  }).catch(function () { hasCsp = false; });
+
+  function show(way, name) {
+    var clickedAt = performance.now() - 50;
+    out.textContent = (way === 'alt' ? 'Alter Weg' : 'Neuer Weg') + ': Name = ' + name + '\nPrüfe CSP …';
+    setTimeout(function () {
+      var csp;
+      if (hasCsp === false) csp = 'Kein CSP-Header auf dieser Seite, Meldungen gibt es nur auf lwhub.de.';
+      else if (lastReport >= clickedAt) csp = 'CSP-Verstoß gemeldet (script-src-attr). Läuft nur, weil die CSP im Beobachtungsmodus ist.';
+      else if (way === 'alt') csp = 'Keine neue Meldung. Der Browser meldet nur den ersten Klick, Seite neu laden zum Wiederholen.';
+      else csp = 'Keine Meldung. Dieser Knopf ist CSP-tauglich.';
+      out.textContent = (way === 'alt' ? 'Alter Weg' : 'Neuer Weg') + ': Name = ' + name + '\n' + csp;
+    }, 150);
+  }
+  window.lwDemoShow = show;
+
+  // So sieht der neue Weg aus: ein Listener für den ganzen Bereich
+  var actions = { show: function (el) { show('neu', el.dataset.name); } };
+  demo.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-action]');
+    if (el && demo.contains(el) && actions[el.dataset.action]) actions[el.dataset.action](el, e);
+  });
+})();
+</script>
+
+<!-- ───────────────────────────────── -->
 <section>
   <h2>6. Messungen und Quellen</h2>
   <p>Einen fertigen Benchmark „Konzept A gegen B gegen C“ gibt es nicht, dafür ist jede App zu verschieden. Wir haben deshalb unsere eigene Seite gemessen und die Zahlen mit allgemeinen Studien abgeglichen.</p>
@@ -388,7 +520,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
     <tr><td>JavaScript für R1–R3 (gzip)</td><td class="mid">94 KB (alles)</td><td class="good">≈ 35–45 KB mit Konzept C (Schätzung aus den Zeilenbereichen)</td></tr>
     <tr><td><code>Cache-Control</code>-Header</td><td class="bad">fehlt</td><td class="good">kurz für die Hülle, 1 Jahr für versionierte Dateien</td></tr>
     <tr><td>Sicherheits-Header (CSP, HSTS, <code>X-Content-Type-Options</code>)</td><td class="bad">fehlen alle</td><td class="good">per <code>.htaccess</code> setzbar</td></tr>
-    <tr><td><code>onclick=</code> im HTML</td><td class="bad">162</td><td class="good">0 (Voraussetzung für eine strenge CSP)</td></tr>
+    <tr><td>Inline-Handler (<code>on…=</code>) im HTML</td><td class="bad">232 (davon 168 <code>onclick=</code>)</td><td class="good">0 (Voraussetzung für eine strenge CSP mit <code>script-src-attr 'none'</code>)</td></tr>
   </table></div>
   <p>Gemessen mit <code>curl</code> (Antwort-Header) und <code>gzip -9</code> auf die Datei. Ob der Server HTTP/2 kann, ließ sich mit dem lokalen curl nicht prüfen.</p>
 
@@ -403,7 +535,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
 
   <h3>Sicherheit</h3>
   <ul>
-    <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html">OWASP: CSP Cheat Sheet</a> und <a href="https://csp.withgoogle.com/docs/faq.html">Google CSP-FAQ</a>: Eine Content-Security-Policy ist der wichtigste Schutz gegen eingeschleustes JavaScript (XSS). Inline-<code>onclick</code> verhindert eine strenge CSP, weil man dafür <code>'unsafe-inline'</code> erlauben müsste. Das Umstellen auf <code>data-action</code> in Konzept A ist also auch ein Sicherheitsgewinn.</li>
+    <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html">OWASP: CSP Cheat Sheet</a> und <a href="https://csp.withgoogle.com/docs/faq.html">Google CSP-FAQ</a>: Eine Content-Security-Policy ist der wichtigste Schutz gegen eingeschleustes JavaScript (XSS). Inline-Handler wie <code>onclick</code> verhindern eine strenge CSP, weil man dafür <code>'unsafe-inline'</code> erlauben müsste. Das Umstellen auf <code>data-action</code> in Konzept A ist also auch ein Sicherheitsgewinn.</li>
     <li><a href="https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/12-Testing_Browser_Storage">OWASP WSTG: Browser Storage</a>: Tokens in <code>localStorage</code> kann jedes eingeschleuste Skript lesen. Das betrifft unser <code>discord_token</code>. Eine strenge CSP senkt das Risiko deutlich. Ganz weg wäre es nur mit einem HttpOnly-Cookie (eigenes Thema, nicht Teil dieses Umbaus).</li>
     <li><a href="https://www.sonatype.com/state-of-the-software-supply-chain/2026/open-source-malware">Sonatype 2026: Open Source Malware</a> und <a href="https://www.kaspersky.com/blog/supply-chain-attacks-in-2025/55522/">Kaspersky: Supply-Chain-Angriffe 2025</a>: über 450.000 neue Schadpakete im Jahr 2025, dazu Angriffe auf sehr verbreitete npm-Pakete (chalk/debug, Shai-Hulud-Wurm). Das bestätigt die Entscheidung gegen Node/npm.</li>
   </ul>

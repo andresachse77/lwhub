@@ -1593,6 +1593,24 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
         $archivePlayerIds = [];
     }
 
+    // Berufe-Rangcheck (S1): Einstellung und Raenge vor dem Scan merken, bevor die Transaktion startet
+    // (ensure* fuehrt DDL aus, das wuerde eine laufende Transaktion beenden und dry_run aushebeln)
+    $berufR2 = null;
+    $ranksBefore = [];
+    try {
+        ensureAllianceConfigTable($pdo);
+        ensureBerufColumns($pdo);
+        $berufR2 = berufRankCheckR2($pdo, $targetAlliance);
+        if ($berufR2 !== null) {
+            $rb = $pdo->prepare("SELECT player_id, current_rank_code FROM players WHERE alliance = ? AND is_active = 1");
+            $rb->execute([$targetAlliance]);
+            $ranksBefore = $rb->fetchAll(PDO::FETCH_KEY_PAIR);
+        }
+    } catch (\Throwable $e) {
+        error_log("beruf_mismatches vorbereiten {$targetAlliance}: " . $e->getMessage());
+        $berufR2 = null;
+    }
+
     $pdo->beginTransaction();
     try {
         if ($scanId !== null) {
@@ -1980,10 +1998,26 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
             }
         }
 
+        // Berufe-Rangcheck (S1): mit den Raengen, die nach diesem Scan gelten (auch bei dry_run, vor dem Rollback).
+        // Nur ein Hinweis, der Upload laeuft immer durch. Rangcheck aus = Feld fehlt.
+        $berufMismatches = null;
+        if ($berufR2 !== null) {
+            try {
+                $berufMismatches = berufMismatches($pdo, $targetAlliance, $berufR2, $ranksBefore);
+            } catch (\Throwable $e) {
+                error_log("beruf_mismatches {$targetAlliance}: " . $e->getMessage());
+            }
+        }
+
         // dry_run: alles ausfuehren, dann zurueckrollen – die Antwort zeigt, was passieren wuerde
         if ($dryRun) $pdo->rollBack();
         else $pdo->commit();
-        jsonOut(200, ['ok' => true, 'dry_run' => $dryRun, 'scan_id' => $scanId, 'replaced_previous_upload' => $replacedPrevious, 'summary' => $summary, 'details' => $details, 'unmatched' => $unmatched, 'conflicts' => $conflicts]);
+        $response = ['ok' => true, 'dry_run' => $dryRun, 'scan_id' => $scanId, 'replaced_previous_upload' => $replacedPrevious, 'summary' => $summary, 'details' => $details, 'unmatched' => $unmatched, 'conflicts' => $conflicts];
+        if ($berufMismatches !== null) {
+            $response['beruf_mismatches'] = $berufMismatches;
+            $response['beruf_rangcheck'] = ['r2' => $berufR2, 'r3' => $berufR2 === 'ingenieur' ? 'kriegsherr' : 'ingenieur'];
+        }
+        jsonOut(200, $response);
     } catch (\Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         jsonOut(500, ['error' => 'Fehler beim Synchronisieren: ' . $e->getMessage()]);

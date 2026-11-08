@@ -145,3 +145,67 @@ function openDb(string $host, int $port, string $db, string $user, string $pass,
     }
     return new PDO($dsn, $user, $pass, $options);
 }
+
+
+// ── Berufe-Rangcheck (S1) ──────────────────────────────────────────────────────
+// Gleiche Regel wie im Browser (index.html: bpExpectedBeruf / bpBerufStatus). Aenderungen bitte an beiden Stellen.
+
+/** Rangcheck-Einstellung der Allianz: null = aus, sonst Beruf, den R2 bedeutet ('ingenieur' | 'kriegsherr').
+ *  Liest nur (kein CREATE TABLE), darf also auch in einer laufenden Transaktion aufgerufen werden. */
+function berufRankCheckR2(PDO $pdo, string $alliance): ?string {
+    try {
+        $stmt = $pdo->prepare("SELECT config_key, config_value FROM alliance_config WHERE alliance = ? AND config_key IN ('berufe_rangcheck', 'berufe_rangcheck_r2')");
+        $stmt->execute([$alliance]);
+        $cfg = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    } catch (\PDOException $e) {
+        return null; // Tabelle fehlt: Rangcheck kann nicht an sein
+    }
+    if (($cfg['berufe_rangcheck'] ?? 'false') !== 'true') return null;
+    return ($cfg['berufe_rangcheck_r2'] ?? 'ingenieur') === 'kriegsherr' ? 'kriegsherr' : 'ingenieur';
+}
+
+/** Erwarteter Beruf aus dem Rang; null = nicht pruefbar (R1/R4/R5). */
+function berufExpectedForRank(int $rank, string $r2): ?string {
+    if ($rank === 2) return $r2;
+    if ($rank === 3) return $r2 === 'ingenieur' ? 'kriegsherr' : 'ingenieur';
+    return null;
+}
+
+/** Aktive Mitglieder (ohne Ehrenmitglieder), deren Beruf nicht zum Rang passt, mit dem Rang, der jetzt gilt.
+ *  beruf = wie im Planer eingeteilt; null = Warteschlange ("noch nicht eingeteilt", G4).
+ *  $ranksBefore: player_id => Rang vor dem Scan, fuer rank_changed / old_rank. */
+function berufMismatches(PDO $pdo, string $alliance, string $r2, array $ranksBefore = []): array {
+    try {
+        $stmt = $pdo->prepare("SELECT player_id, current_name, current_rank_code, beruf, beruf_winwin_id FROM players WHERE alliance = ? AND is_active = 1 AND " . sqlNoHonor('') . " ORDER BY current_name");
+        $stmt->execute([$alliance]);
+        $rows = $stmt->fetchAll();
+    } catch (\PDOException $e) {
+        return []; // Berufe-Spalten fehlen noch: nichts zu pruefen
+    }
+    $warlords = [];
+    foreach ($rows as $r) if (($r['beruf'] ?? null) === 'kriegsherr') $warlords[$r['player_id']] = true;
+
+    $out = [];
+    foreach ($rows as $r) {
+        $rank = (int)$r['current_rank_code'];
+        $expected = berufExpectedForRank($rank, $r2);
+        if ($expected === null) continue;
+        // Wie im Planer: Ingenieur nur mit gueltigem Kriegsherrn, sonst steht er in der Warteschlange
+        $placed = ($r['beruf'] ?? null) === 'kriegsherr' ? 'kriegsherr'
+            : ((($r['beruf'] ?? null) === 'ingenieur' && isset($warlords[$r['beruf_winwin_id'] ?? ''])) ? 'ingenieur' : null);
+        if ($placed === $expected) continue;
+        $old = array_key_exists($r['player_id'], $ranksBefore) ? (int)$ranksBefore[$r['player_id']] : $rank;
+        $out[] = [
+            'name'         => $r['current_name'],
+            'player_id'    => $r['player_id'],
+            'rank'         => $rank,
+            'beruf'        => $placed,
+            'expected'     => $expected,
+            'rank_changed' => $old !== $rank,
+            'old_rank'     => $old !== $rank ? $old : null,
+        ];
+    }
+    // Frisch geaenderte Raenge zuerst (meist Berufswechsel, Planer noch alt), dann falsch Eingeteilte, dann Warteschlange
+    usort($out, static fn($a, $b) => [$b['rank_changed'], $a['beruf'] === null, mb_strtolower($a['name'])] <=> [$a['rank_changed'], $b['beruf'] === null, mb_strtolower($b['name'])]);
+    return $out;
+}

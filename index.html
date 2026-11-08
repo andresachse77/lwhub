@@ -957,8 +957,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 .bp-pair-btn:hover:not(:disabled) { color: #ff6b8b; border-color: rgba(255,107,139,.5); }
 .bp-pair-btn.on { color: #ff4d79; border-color: rgba(255,77,121,.45); background: rgba(255,77,121,.12); }
 .bp-pair-btn:disabled { cursor: default; }
-.bp-acc-eng .bp-pair-btn, .bp-name-draggable .bp-pair-btn { margin-left: auto; }
-.bp-acc-eng .bp-pair-btn + .bp-ask-btn, .bp-name-draggable .bp-pair-btn + .bp-ask-btn { margin-left: 0; }
+/* Reihenfolge ✉ ♡ (🗑): ✉ schiebt sich nach rechts (margin-left:auto), das Herz folgt direkt */
+.bp-acc-eng .bp-pair-btn, .bp-name-draggable .bp-pair-btn { margin-left: 0; }
 .bp-pair-mini { color: #ff4d79; }
 .bp-fill-opt { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; margin-bottom: 8px; cursor: pointer; }
 .bp-fill-opt input { margin-top: 3px; }
@@ -989,6 +989,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 .bp-acc-grip { flex: none; color: var(--soft-2); cursor: grab; padding: 0 2px; }
 .bp-acc-btn { flex: none; background: transparent; border: 1px solid var(--line2); color: var(--soft); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
 .bp-acc-btn:hover { color: var(--text); }
+.bp-acc-del { width: 26px; height: 22px; padding: 0; display: inline-grid; place-items: center; }
+.bp-acc-del:hover { color: #ff8a7a; border-color: rgba(224,85,69,.6); background: rgba(224,85,69,.12); }
 .bp-acc-add { padding: 6px 8px; border-top: 1px dashed var(--line2); }
 .bp-acc-add select { width: 100%; background: var(--card2); color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 5px 8px; font-size: 12px; }
 .bp-acc-foot { padding: 6px 8px; border-top: 1px solid var(--line); text-align: right; }
@@ -1177,11 +1179,12 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   .bp-table td { position: relative; }
   .bp-table .bp-ask-btn,
   .bp-table .bp-pair-btn:not(.on) { display: none; position: absolute; top: 50%; transform: translateY(-50%); margin: 0; background: var(--card2); }
-  .bp-table .bp-ask-btn { right: 6px; }
-  .bp-table .bp-pair-btn:not(.on) { right: 30px; }
+  /* gleiche Reihenfolge wie im Akkordeon: ✉ links, ♡ rechts; ein festes ♥ sitzt im Fluss ganz rechts */
+  .bp-table .bp-ask-btn { right: 30px; }
+  .bp-table .bp-pair-btn:not(.on) { right: 6px; }
+  .bp-table .bp-pair-btn.on { margin-left: auto; }
   .bp-table td:hover .bp-ask-btn, .bp-table td:focus-within .bp-ask-btn,
   .bp-table td:hover .bp-pair-btn, .bp-table td:focus-within .bp-pair-btn { display: inline-grid; }
-  .bp-table td:hover .bp-pair-btn.on, .bp-table td:focus-within .bp-pair-btn.on { margin-right: 24px; }
 }
 @media (max-width: 1500px) {
   .bp-table .bp-cell-name, .bp-table .bp-cell-slot { padding: 6px; }
@@ -9585,8 +9588,9 @@ async function revokeApiToken(tokenId, clientName) {
       h += engs.map(n => {
         const c = bpCheckMarkup(n, 'ingenieur');
         return `<div class="bp-acc-eng${isWrong(c) ? ' wrong ' + bpPullCls(c) : ''}" draggable="true" data-member="${escHtml(n)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`
-          + `<span class="bp-acc-grip">⠿</span>${bpRankShield(n)}<span class="bp-acc-ing">⚗ ${escHtml(n)}</span>${c.hint}${bpPairBtn(n)}${bpAskBtn(n)}`
-          + `<button class="bp-acc-btn" type="button" title="${escHtml(tr('s_bp_drop_to_queue'))}" onclick="bpAccToQueue('${bpEnc(n)}')">↩</button></div>`;
+          // Reihenfolge ✉ ♡ 🗑: das Herz liegt zwischen Fragen und Entfernen, damit man nicht versehentlich entfernt
+          + `<span class="bp-acc-grip">⠿</span>${bpRankShield(n)}<span class="bp-acc-ing">⚗ ${escHtml(n)}</span>${c.hint}${bpAskBtn(n)}${bpPairBtn(n)}`
+          + `<button class="bp-acc-btn bp-acc-del" type="button" draggable="false" title="${escHtml(tr('s_bp_to_queue_btn'))}" onmousedown="event.stopPropagation()" onclick="bpAccToQueue('${bpEnc(n)}')"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.6 6.5v4.5M9.4 6.5v4.5"/></svg></button></div>`;
       }).join('');
       if (!full) {
         h += `<div class="bp-acc-add"><select onchange="bpAccAssign(this,'${khEnc}')">`
@@ -9705,8 +9709,8 @@ async function revokeApiToken(tokenId, clientName) {
           html += '<span class="bp-ico" style="font-size:12px;color:#80b8ff;">⚗</span>';
           html += `<span class="bp-name-text ing" title="${escHtml(eng)}">${escHtml(eng)}</span>`;
           html += engCheck.hint;
-          html += bpPairBtn(eng);
           html += bpAskBtn(eng);
+          html += bpPairBtn(eng);
           html += '</div>';
         } else {
           html += `<span class="bp-slot-text">${escHtml(tr('s_bp_slot_free'))}</span>`;

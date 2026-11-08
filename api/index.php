@@ -55,6 +55,7 @@ require_once __DIR__ . '/src/alliance.php';
 require_once __DIR__ . '/src/presence-chat.php';
 require_once __DIR__ . '/src/members.php';
 require_once __DIR__ . '/src/entries.php';
+require_once __DIR__ . '/src/week-retention.php';
 require_once __DIR__ . '/src/access-requests.php';
 require_once __DIR__ . '/src/admin.php';
 require_once __DIR__ . '/src/api-tokens.php';

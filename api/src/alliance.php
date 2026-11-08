@@ -81,6 +81,9 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
         if ($key === 'server' && !preg_match('/^(\d{1,6})?$/', $value)) {
             jsonOut(400, ['error' => 'server muss eine Zahl sein']);
         }
+        if ($key === 'history_weeks' && (!ctype_digit($value) || (int)$value < 1 || (int)$value > HISTORY_WEEKS_MAX)) {
+            jsonOut(400, ['error' => 'history_weeks muss zwischen 1 und ' . HISTORY_WEEKS_MAX . ' liegen']);
+        }
         if ($key === 'berufe_rangcheck' && !in_array($value, ['true', 'false'], true)) {
             jsonOut(400, ['error' => 'berufe_rangcheck muss true oder false sein']);
         }
@@ -125,6 +128,8 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
         $checkValue($key, $value);
         $stmt->execute([$alliance, $key, $value, $updatedBy]);
     }
+    // Weniger Wertewochen eingestellt: aeltere gleich ablegen (week-retention.php)
+    if (in_array('history_weeks', $keys, true)) pruneOldWeeks($pdo, $alliance);
     handleGetAllianceConfig($pdo, $alliance);
 }
 
@@ -314,7 +319,7 @@ function handleUpdateAlliance(PDO $pdo, string $oldShortEncoded, array $body): n
                 'player_identities', 'player_user_links', 'user_discord_accounts',
                 'rank_change_log', 'access_requests', 'discord_profile_cache',
                 'member_presence', 'member_chat_messages', 'week_periods',
-                'archived_players', 'user_active_char',
+                'archived_players', 'user_active_char', 'old_weekly_entries', 'old_entry_flags',
             ];
             foreach ($tables as $tbl) {
                 try {

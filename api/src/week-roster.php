@@ -31,6 +31,10 @@ function rosterEvidence(PDO $pdo): array {
     try {
         $add($pdo->query("SELECT player_id, alliance a, year_week yw FROM archived_weekly_entries")->fetchAll());
     } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
+    // Abgelegte alte Wertewochen (week-retention.php)
+    try {
+        $add($pdo->query("SELECT player_id, COALESCE(origin_alliance, alliance) a, year_week yw FROM old_weekly_entries")->fetchAll());
+    } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
     return $ev;
 }
 

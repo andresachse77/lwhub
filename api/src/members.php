@@ -127,8 +127,10 @@ function handleVerifyDiscord(PDO $pdo, string $alliance): never {
 function handleMemberHistory(PDO $pdo, string $alliance): never {
     $discordIdRaw = $_GET['discord_id'] ?? '';
     $nameRaw      = $_GET['name'] ?? '';
-    $rawLimit     = isset($_GET['limit']) ? (int)$_GET['limit'] : 16;
-    $limit        = max(1, min(52, $rawLimit));
+    // Historie zeigt hoechstens so viele Wochen, wie die Allianz aufhebt (Einstellung history_weeks)
+    $keepWeeks    = historyWeeksKept($pdo, $alliance);
+    $rawLimit     = isset($_GET['limit']) ? (int)$_GET['limit'] : $keepWeeks;
+    $limit        = max(1, min($keepWeeks, $rawLimit));
 
     $discordId = '';
     if ($discordIdRaw !== '') {
@@ -1020,6 +1022,7 @@ function handleSwapIdToDiscord(PDO $pdo, string $alliance, string $nameEncoded):
     $taken->execute([$alliance, $discordUserId, $oldPlayerId]);
     if ($taken->fetch()) jsonOut(409, ['error' => 'Discord-ID wird bereits von einem anderen Spieler genutzt']);
 
+    ensureOldWeekTables($pdo); // vor der Transaktion (CREATE TABLE committet sonst mitten hinein)
     $pdo->beginTransaction();
     try {
         $tempName = '__swap__' . substr(str_replace('-', '', uuid4()), 0, 12);
@@ -1029,7 +1032,7 @@ function handleSwapIdToDiscord(PDO $pdo, string $alliance, string $nameEncoded):
         $list = implode(', ', array_map(fn($c) => "`$c`", $cols));
         $pdo->prepare("INSERT INTO players (player_id, current_name, $list) SELECT ?, ?, $list FROM players WHERE alliance = ? AND player_id = ?")
             ->execute([$discordUserId, $rows[0]['current_name'], $alliance, $oldPlayerId]);
-        foreach (['weekly_entries', 'player_name_history', 'player_identities', 'player_user_links'] as $tbl) {
+        foreach (['weekly_entries', 'old_weekly_entries', 'player_name_history', 'player_identities', 'player_user_links'] as $tbl) {
             $pdo->prepare("UPDATE {$tbl} SET player_id = ? WHERE alliance = ? AND player_id = ?")->execute([$discordUserId, $alliance, $oldPlayerId]);
         }
         $pdo->prepare("UPDATE players SET beruf_winwin_id = ? WHERE alliance = ? AND beruf_winwin_id = ?")->execute([$discordUserId, $alliance, $oldPlayerId]);
@@ -2015,6 +2018,8 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
             $pdo->commit();
             // Wer hat gescannt (scan-uploads.php) – nach dem Commit, ein Fehler hier stoert den Upload nicht
             logScanUpload($pdo, $targetAlliance, $caller, preg_match('/^\d+$/', $claimedId) ? $claimedId : null, $source, $scanId, $summary);
+            // Neue Woche angelegt? Alte Wertewochen ablegen (week-retention.php)
+            if ($flagWeeks) pruneOldWeeks($pdo, $targetAlliance);
         }
         $response = ['ok' => true, 'dry_run' => $dryRun, 'scan_id' => $scanId, 'replaced_previous_upload' => $replacedPrevious, 'summary' => $summary, 'details' => $details, 'unmatched' => $unmatched, 'conflicts' => $conflicts];
         if ($berufMismatches !== null) {

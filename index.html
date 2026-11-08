@@ -3507,7 +3507,7 @@ async function me_loadHistory(discordId, memberName) {
   meBerufPending = null;
   try {
     await ensureCoreDataLoaded({ forceEntries: !entries.length });
-    const params = new URLSearchParams({ limit: '18' });
+    const params = new URLSearchParams(); // Anzahl Wochen: Allianz-Einstellung history_weeks (Server)
     if (discordId) params.set('discord_id', discordId);
     if (meActiveMemberName) params.set('name', meActiveMemberName);
     meHistoryBundle = await fetchJson(`/member-history?${params.toString()}`);
@@ -6345,6 +6345,7 @@ function renderFeatureToggles(containerId, alliance, config) {
   const combatCorrection = Number.parseInt(String(config?.combat_power_correction_value ?? ''), 10) || 40;
   const inputId = `${containerId}-berufe-max`;
   const correctionInputId = `${containerId}-combat-correction`;
+  const historyWeeks = Math.max(1, Math.min(8, Number.parseInt(String(config?.history_weeks ?? ''), 10) || 4));
   el.innerHTML = `<div style="display:flex;flex-direction:column;">` +
     FEATURE_CAT_DEFS.map(({ key, icon, label, sub }) => {
       const on = isConfiguredFeatureEnabled(key, config);
@@ -6366,6 +6367,13 @@ function renderFeatureToggles(containerId, alliance, config) {
         <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_combat_power_correction_sub'))}</div>
       </div>
       <input id="${escHtml(correctionInputId)}" type="number" min="0" max="998" value="${combatCorrection}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
+    </div>` +
+    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">⚙ ${escHtml(tr('s_history_weeks'))}</div>
+        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_history_weeks_sub'))}</div>
+      </div>
+      <input id="${escHtml(containerId)}-history-weeks" type="number" min="1" max="8" value="${historyWeeks}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
     </div>` +
     `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap;">
       <div style="flex:1;min-width:180px;">
@@ -6395,7 +6403,7 @@ function renderFeatureToggles(containerId, alliance, config) {
 
 
 // Allianz-Einstellungen: EIN Speichern-Knopf unten im Fenster fuer alle Eingabefelder
-// (Max. Ingenieure, Kampfkraft-Korrektur, Rangnamen, Server-Nummer). Die Feature-Schalter wirken weiter sofort.
+// (Max. Ingenieure, Kampfkraft-Korrektur, Wertewochen, Rangnamen, Server-Nummer). Die Feature-Schalter wirken weiter sofort.
 function allianceSettingsDirty(dirty = true) {
   const btn = document.getElementById('alliance-features-save');
   if (!btn) return;
@@ -6412,6 +6420,7 @@ async function saveAllianceSettings(btn) {
   const config = {
     berufe_max_ingenieure: Math.max(1, Math.min(10, Number.parseInt(val('berufe-max'), 10) || 3)),
     combat_power_correction_value: Math.max(0, Math.min(998, Number.parseInt(val('combat-correction'), 10) || 40)),
+    history_weeks: Math.max(1, Math.min(8, Number.parseInt(val('history-weeks'), 10) || 4)),
     server: val('server').replace(/\D/g, '').slice(0, 6),
   };
   for (let r = 1; r <= 5; r++) config['rank_name_' + r] = val('rank-name-' + r).trim().slice(0, 30);
@@ -9988,7 +9997,7 @@ async function revokeApiToken(tokenId, clientName) {
   function bpBuildMailText() {
     const maxIng = getBerufeMaxEngineers();
     const warlords = bpWarlordList();
-    const lines = [`${tr('s_bp_mail_title')} ${authMember?.alliance || ''}`.trim(), `${tr('s_bp_max_engineers_label')}: ${maxIng}`, ''];
+    const lines = [`${tr('s_bp_mail_title')} ${authMember?.alliance || ''}`.trim(), `${tr('s_bp_max_engineers_label')}: ${maxIng}`, '', tr('s_bp_mail_winwin'), ''];
     if (!warlords.length) {
       lines.push(tr('s_bp_no_warlords_assigned'));
       return lines.join('\n');

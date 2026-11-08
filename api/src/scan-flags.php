@@ -239,5 +239,6 @@ function handleDesertFlags(PDO $pdo, string $alliance, array $body): never {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
+    pruneOldWeeks($pdo, $alliance);
     jsonOut(200, ['ok' => true] + $result);
 }

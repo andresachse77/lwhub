@@ -142,6 +142,7 @@ function handleSaveEntry(PDO $pdo, string $alliance, int $kw, array $body, array
         if ($txStarted && $pdo->inTransaction()) {
             $pdo->commit();
         }
+        pruneOldWeeks($pdo, $alliance); // nur die letzten N Wertewochen behalten (week-retention.php)
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {
         if ($txStarted && $pdo->inTransaction()) $pdo->rollBack();

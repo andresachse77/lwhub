@@ -137,11 +137,21 @@ function logAuthDecision(PDO $pdo, string $verdict, string $alliance, ?string $c
 //   'enforce' = ohne gueltiges Discord-Token 401, ohne passenden Rang 403.
 // Ehrenrollen und Betreiber-Zuschauer (Site-Admin ohne eigenen Char) werden in jedem Modus abgewiesen:
 // die Sperre trifft nur Leute, die ohnehin nichts aendern duerfen.
+//
+// Stufenweise (A11): LWHUB_AUTH_MODE_R5 gilt nur fuer die R5-Endpunkte (requireR5, Feature-Schalter,
+// Schreibrechte ab Rang 5). Nicht gesetzt = wie LWHUB_AUTH_MODE. Stufe 1: _R5 = 'enforce', Rest 'log'.
 
-function lwhubAuthMode(): string {
-    $mode = strtolower(trim((string)(getenv('LWHUB_AUTH_MODE')
-        ?: (defined('LWHUB_AUTH_MODE') ? LWHUB_AUTH_MODE : 'log'))));
-    return in_array($mode, ['off', 'log', 'enforce'], true) ? $mode : 'log';
+function lwhubAuthMode(string $stage = 'write'): string {
+    $read = static function (string $name): string {
+        return strtolower(trim((string)(getenv($name) ?: (defined($name) ? constant($name) : ''))));
+    };
+    $valid = ['off', 'log', 'enforce'];
+    if ($stage === 'r5') {
+        $r5 = $read('LWHUB_AUTH_MODE_R5');
+        if (in_array($r5, $valid, true)) return $r5;
+    }
+    $mode = $read('LWHUB_AUTH_MODE');
+    return in_array($mode, $valid, true) ? $mode : 'log';
 }
 
 /** Vom Client behauptete Discord-ID: Header X-Discord-Id (fetchJson), sonst $fallback (z. B. body.discord_id). */
@@ -157,9 +167,9 @@ function claimedCallerId(?string $fallback = null): string {
  * einen Eintrag in api_auth_log. Lokale Requests und Modus 'off' pruefen nichts.
  * Liefert ['id' => string ('' = unbekannt), 'verified' => bool].
  */
-function resolveCallerId(PDO $pdo, string $alliance, ?string $fallbackClaim = null): array {
+function resolveCallerId(PDO $pdo, string $alliance, ?string $fallbackClaim = null, string $stage = 'write'): array {
     static $cache = [];
-    $mode = lwhubAuthMode();
+    $mode = lwhubAuthMode($stage);
     $claimed = claimedCallerId($fallbackClaim);
     $token = requestBearerToken();
     $key = implode('|', [$alliance, $claimed, hash('sha256', $token), $mode]);
@@ -197,10 +207,11 @@ function requireAllianceWriter(PDO $pdo, string $alliance, int $minRank = 1, boo
         $member = $id !== '' ? getDiscordMember($pdo, $alliance, $id) : null;
         return ['discord_id' => $id !== '' ? $id : null, 'member' => $member, 'rank' => $member ? safeRank((int)$member['current_rank_code']) : 5];
     }
-    $mode = lwhubAuthMode();
+    $stage = $minRank >= 5 ? 'r5' : 'write';
+    $mode = lwhubAuthMode($stage);
     $caller = $mode === 'off'
         ? ['id' => claimedCallerId($fallbackClaim), 'verified' => false]
-        : resolveCallerId($pdo, $alliance, $fallbackClaim);
+        : resolveCallerId($pdo, $alliance, $fallbackClaim, $stage);
     $id = $caller['id'];
     $soft = !$required && $mode !== 'enforce';
 
@@ -239,7 +250,7 @@ function requireAllianceWriter(PDO $pdo, string $alliance, int $minRank = 1, boo
  */
 function requireFeatureAdmin(PDO $pdo, string $alliance, ?string $fallbackClaim = null): array {
     if (isLocalRequest()) return ['discord_id' => null, 'name' => 'Lokaler Admin', 'site_admin' => false];
-    $caller = resolveCallerId($pdo, $alliance, $fallbackClaim);
+    $caller = resolveCallerId($pdo, $alliance, $fallbackClaim, 'r5');
     if ($caller['id'] === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
     if (isSiteAdmin($pdo, $caller['id'])) {
         $member = getDiscordMember($pdo, $alliance, $caller['id']);

@@ -1857,6 +1857,17 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   </div>
 </div>
 
+<div class="modal-bg hidden" id="modal-reauth">
+  <div class="modal" style="width:min(460px, 100%)">
+    <div class="modal-title">🔑 <span data-i18n="s_reauth_title">Anmeldung abgelaufen</span></div>
+    <div class="hint" style="margin-bottom:10px" data-i18n="s_reauth_text">Deine Discord-Anmeldung ist abgelaufen, darum wurde gerade nichts gespeichert. Melde dich in einem neuen Fenster neu an – deine Eingaben hier bleiben stehen. Danach den letzten Schritt einfach wiederholen.</div>
+    <div class="hint" id="reauth-wait" hidden style="margin-bottom:10px;color:var(--gold)" data-i18n="s_reauth_wait">Warte auf die Anmeldung im neuen Fenster … danach kannst du es schließen.</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reauth')" data-i18n="s_reauth_later">Später</button>
+      <button class="btn btn-gold" onclick="lwhubReauthLogin()" data-i18n="s_reauth_btn">Neu anmelden</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg hidden" id="modal-bp-fill">
   <div class="modal" style="width:min(640px, 100%)">
     <div class="modal-title">🎲 <span data-i18n="s_bp_fill_modal_title">Automatisch aufteilen – Vorschau</span></div>
@@ -2402,6 +2413,8 @@ async function checkDiscordAuth() {
     const token = params.get('access_token');
     localStorage.setItem('discord_token', token);
     history.replaceState(null, '', window.location.pathname); // URL säubern
+    // Neu-Anmeldung im eigenen Fenster (A11): Token ist gespeichert, das Fenster wird nicht mehr gebraucht
+    if (window.name === 'lwhub-reauth') { try { window.close(); } catch (_) {} }
   }
 
   const token = localStorage.getItem('discord_token');
@@ -2501,6 +2514,41 @@ async function checkDiscordAuth() {
 
 // Anmeldung fuer den Server (Konzept v2, A9): Discord-Token zum Pruefen und die eigene Discord-ID.
 // Der Server liest die Rolle daraus selbst (Ehrenrollen und Zuschauer duerfen nichts aendern).
+// ─── Anmeldung abgelaufen (A11) ───
+// Unter LWHUB_AUTH_MODE 'enforce' antwortet der Server mit 401 (code no_token / invalid_token / no_caller).
+// Statt eines rohen Fehlers: Hinweis mit "Neu anmelden" in einem neuen Fenster. Der neue Token landet im
+// gemeinsamen localStorage, diese Seite behaelt ihre Eingaben; danach den letzten Schritt wiederholen.
+const LWHUB_REAUTH_CODES = ['no_token', 'invalid_token', 'no_caller'];
+function lwhubAuthProblem(status, bodyText) {
+  if (status !== 401) return null;
+  let data = null;
+  try { data = typeof bodyText === 'string' ? JSON.parse(bodyText) : bodyText; } catch (_) {}
+  if (!LWHUB_REAUTH_CODES.includes(data?.code)) return null;
+  lwhubShowReauth();
+  const err = new Error(tr('s_reauth_error'));
+  err.authExpired = true;
+  return err;
+}
+function lwhubShowReauth() {
+  if (!document.getElementById('modal-reauth')?.classList.contains('hidden')) return;
+  openModal('modal-reauth');
+}
+window.lwhubReauthLogin = function() {
+  const popup = window.open(DISCORD_AUTH_URL, 'lwhub-reauth', 'width=520,height=760');
+  if (!popup) { window.location.href = DISCORD_AUTH_URL; return; } // Popup blockiert: wie bisher im selben Tab
+  const note = document.getElementById('reauth-wait');
+  if (note) note.hidden = false;
+};
+// Neuer Token aus dem Anmelde-Fenster: Hinweis schliessen
+window.addEventListener('storage', (e) => {
+  if (e.key !== 'discord_token' || !e.newValue) return;
+  if (document.getElementById('modal-reauth')?.classList.contains('hidden')) return;
+  closeModal('modal-reauth');
+  const note = document.getElementById('reauth-wait');
+  if (note) note.hidden = true;
+  toast(tr('s_reauth_done'), 'ok');
+});
+
 function lwhubAuthHeaders() {
   const headers = {};
   try {
@@ -2540,6 +2588,8 @@ async function fetchJson(path, options = {}) {
       }
 
       const txt = await r.text();
+      const authErr = lwhubAuthProblem(r.status, txt);
+      if (authErr) throw authErr;
       lastError = new Error(`${r.status} ${r.statusText}${txt ? `: ${txt}` : ''}`);
 
       if ((r.status === 404 || r.status === 502 || r.status === 503) && i < API_BASE_CANDIDATES.length - 1) {
@@ -2547,6 +2597,7 @@ async function fetchJson(path, options = {}) {
       }
       throw lastError;
     } catch (err) {
+      if (err.authExpired) throw err; // Anmeldung abgelaufen: nicht die naechste API-Adresse probieren
       lastError = err;
       if (i < API_BASE_CANDIDATES.length - 1) continue;
       throw err;
@@ -7723,7 +7774,7 @@ async function adminApi(path, options = {}) {
   })();
   const res = await fetch(base + path, { ...options, headers: { ...lwhubAuthHeaders(), ...(options.headers || {}) } });
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (!res.ok) throw lwhubAuthProblem(res.status, data) || new Error(data.error || `HTTP ${res.status}`);
   return data;
 }
 

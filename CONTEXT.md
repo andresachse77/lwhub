@@ -73,6 +73,8 @@ define('INY_ALLIANCE', 'NxU1');
 define('INY_PROTECTED_R4_NAMES', 'Lion Tooth');
 // optional, Standard 'log' (off | log | enforce)
 // define('LWHUB_AUTH_MODE', 'log');
+// optional, nur R5-Endpunkte (nicht gesetzt = wie LWHUB_AUTH_MODE)
+// define('LWHUB_AUTH_MODE_R5', 'enforce');
 ```
 
 ---

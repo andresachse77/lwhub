@@ -119,7 +119,7 @@
     <div class="meta-row">
       <span class="chip"><b>Andre</b> · lwhub &amp; Web-Scanner</span>
       <span class="chip"><b>Thomas</b> · Android-App</span>
-      <span class="chip">Stand <b>20.10.2026</b></span>
+      <span class="chip">Stand <b>08.11.2026</b></span>
     </div>
   </header>
 
@@ -232,11 +232,15 @@
       </div></details>
     </div>
 
-    <div class="task" data-status="open">
+    <div class="task" data-status="part">
       <div class="task-head"><span class="icon"></span><div class="t"><span class="id">A11</span>Stufenweise auf <code>enforce</code></div><div class="tags"><span class="tag blue">Kontrolle</span></div></div>
       <div class="d">Zuerst die R5-Endpunkte, dann die schreibenden Mitglieder-, Wochen- und Zug-Endpunkte. Pro Stufe vorher eine Woche <code>log</code>. Lesende Endpunkte bleiben offen. Heute steht <code>LWHUB_AUTH_MODE</code> noch auf <code>log</code>.</div>
       <div class="d"><b><code>api_auth_log</code> geprüft (20.10.):</b> 51 Einträge, alle 16.10. 20:12 bis 18.10. 20:16 (Serverzeit), seitdem keine. <b>R5-Endpunkte:</b> nur 6 Treffer (2× <code>POST /members/…/transfer</code>, 3× <code>GET /archived-players</code>, 1× <code>DELETE /members/…</code>), alle mit Andres Discord-ID ohne Token von Andres PC – Werkzeuge, die die API direkt aufrufen (Skripte, KI-Assistenten wie Claude oder das lokale Qwen-Modell – welches genau, lässt sich nicht sagen), nicht die Webseite (<code>fetchJson</code>/<code>adminApi</code> schicken den Token immer mit). Ebenso die schreibenden <code>PUT</code>/<code>POST /members</code> vom 18.10. (z.&nbsp;B. die fünf Umbenennungen in NxU2 in derselben Sekunde). Sonst nur <code>GET /scans/access</code> ohne bzw. mit abgelaufenem Token von 5 anderen Anschlüssen (Web-Scanner ohne Anmeldung – unter <code>enforce</code> „bitte anmelden“, gewollt). Web-Scanner (739 Werte am 20.10.) und App liefen ohne Eintrag. Der Log zeigt nur Probleme, nicht ob R5-Funktionen genutzt wurden.</div>
       <div class="open-point">Vor <code>enforce</code> für R5 (frühestens 23.10., eine Woche <code>log</code>): Skripte am Hub gehen dann nicht mehr – <code>lwhub_</code>-Tokens mit Rolle <code>r5</code> nimmt <code>requireR5</code> nicht an (<code>verifyDiscordToken</code> weist sie ab). Korrekturen nur noch über die Webseite oder direkt in der DB. Andre entscheidet, ob das reicht.</div>
+      <div class="d"><b>Vorbereitet 08.11.:</b> (1) Eigener Schalter <code>LWHUB_AUTH_MODE_R5</code> nur für die R5-Endpunkte (<code>requireR5</code>, Feature-Schalter, Schreibrechte ab Rang 5); nicht gesetzt = wie <code>LWHUB_AUTH_MODE</code>. Stufe 1 = <code>define('LWHUB_AUTH_MODE_R5', 'enforce');</code>, Rest bleibt <code>log</code>. (2) Webseite fängt 401 <code>no_token</code>/<code>invalid_token</code>/<code>no_caller</code> ab: Hinweis „Anmeldung abgelaufen“, „Neu anmelden“ im neuen Fenster, Eingaben bleiben stehen (<code>fetchJson</code> und <code>adminApi</code>). (3) Lokaler Dev-Server wird nie geprüft – Skripte über <code>127.0.0.1:8080</code> laufen auch unter <code>enforce</code>.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>08.11.</time><code>api_auth_log</code> seit 20.10.: 44 Einträge. 26× <code>GET /scans/access</code> ohne Token (Web-Scanner ohne Anmeldung, gewollt), 15× <code>invalid_token</code> (abgelaufene Discord-Anmeldung, auch Schreiben: <code>PUT /zug/schedule</code> 03.11., R5-Seiten <code>/admins</code>, <code>/archived-players</code>), 1× <code>POST /scans/desert-flags</code> ohne Token (Scanner ohne Anmeldung; Code schickt den Token mit). Keine unbekannten Schreiber. Die abgelaufenen Anmeldungen waren der Grund für (2).</p>
+      </div></details>
     </div>
 
     <div class="phase">Phase 3 · Sync für die App</div>
@@ -425,7 +429,7 @@
     </div>
   </section>
 
-  <div class="footer">LWHub · Aufgaben zum Konzept v2 · Stand 20.10.2026</div>
+  <div class="footer">LWHub · Aufgaben zum Konzept v2 · Stand 08.11.2026</div>
 </div>
 
 <script>

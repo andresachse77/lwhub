@@ -440,7 +440,7 @@ function requireR5(PDO $pdo, string $discordId, ?string $alliance = null): array
     if (isLocalRequest()) {
         return ['player_id' => null, 'current_name' => 'Lokaler Admin', 'current_rank_code' => 5, 'alliance' => null];
     }
-    $discordId = resolveCallerId($pdo, $alliance ?? '', $discordId)['id'];
+    $discordId = resolveCallerId($pdo, $alliance ?? '', $discordId, 'r5')['id'];
     if ($discordId === '') jsonOut(401, ['error' => 'Discord-ID fehlt']);
 
     // Site-admins have full access regardless of rank

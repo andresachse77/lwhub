@@ -66,6 +66,7 @@ jobs:
             **/.git*/**
             **/.github/**
             **/config.php
+            **/CLAUDE.md
             **/*.log
             **/.DS_Store
             **/Thumbs.db

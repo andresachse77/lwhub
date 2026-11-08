@@ -1426,9 +1426,9 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
         <div id="rank-change-badge" style="display:none"></div>
       </div>
       <div class="me-week-switch">
-        <button class="me-kw-btn" type="button" id="week-prev" onclick="meStepWeek(-1)">‹</button>
+        <button class="me-kw-btn" type="button" id="week-prev" data-action="stepWeek" data-delta="-1">‹</button>
         <select class="me-week-select" id="week-select"></select>
-        <button class="me-kw-btn" type="button" id="week-next" onclick="meStepWeek(1)">›</button>
+        <button class="me-kw-btn" type="button" id="week-next" data-action="stepWeek" data-delta="1">›</button>
       </div>
       <div class="me-delta-display">
         <div class="me-delta-label" data-i18n="s_vergleich_zur_vorwoche">Vergleich zur Vorwoche</div>
@@ -3660,7 +3660,7 @@ function me_renderTimeline() {
     const points = calcPoints(week.flags || {});
     const prev = weeks[index + 1] || null;
     const delta = prev ? points - calcPoints(prev.flags || {}) : null;
-    return `<button class="me-timeline-row${index === meSelectedWeekIndex ? ' active' : ''}" type="button" onclick="meSelectWeek(${index})">
+    return `<button class="me-timeline-row${index === meSelectedWeekIndex ? ' active' : ''}" type="button" data-action="selectWeek" data-index="${index}">
       <div>
         <div class="me-timeline-week">${escHtml(formatWeek(week.year_week))}</div>
         <div class="me-timeline-meta">R${week.final_rank} · ${RL[week.final_rank] || 'Member'}</div>
@@ -3699,14 +3699,12 @@ function me_renderChanges() {
 }
 
 function meSelectWeek(index) { meSelectedWeekIndex = index; me_renderOverview(); }
-window.meSelectWeek = meSelectWeek;
 
 function meStepWeek(delta) {
   const next = meSelectedWeekIndex - delta;
   if (!meHistoryBundle?.weeks?.[next]) return;
   meSelectedWeekIndex = next; me_renderOverview();
 }
-window.meStepWeek = meStepWeek;
 
 // ── BERUFE (Mein Bereich) ──
 let meBerufPending = null; // { beruf, medHilfe, winwin }
@@ -3748,8 +3746,7 @@ function renderMeBerufe() {
   let html = `<div class="me-beruf-picker">`;
   for (const opt of opts) {
     const active = beruf === opt.value;
-    const val = opt.value === null ? 'null' : `'${opt.value}'`;
-    html += `<button class="me-beruf-btn${active ? ` active ${opt.cls}` : ''}" onclick="meBerufSelect(${val})">${escHtml(opt.icon)} ${escHtml(opt.label)}</button>`;
+    html += `<button class="me-beruf-btn${active ? ` active ${opt.cls}` : ''}" type="button" data-action="selectBeruf" data-beruf="${escHtml(opt.value ?? '')}">${escHtml(opt.icon)} ${escHtml(opt.label)}</button>`;
   }
   html += `</div>`;
 
@@ -3779,7 +3776,7 @@ function renderMeBerufe() {
     }
   }
 
-  html += `<button class="v-btn save" style="margin-top:14px;" onclick="saveMeBeruf()">✓ ${escHtml(tr('Speichern'))}</button>`;
+  html += `<button class="v-btn save" style="margin-top:14px;" type="button" data-action="saveBeruf">✓ ${escHtml(tr('Speichern'))}</button>`;
   content.innerHTML = html;
 }
 window.renderMeBerufe = renderMeBerufe;
@@ -3799,7 +3796,6 @@ function meBerufSelect(beruf) {
   if (beruf !== 'ingenieur') { meBerufPending.medHilfe = false; meBerufPending.winwin = null; }
   renderMeBerufe();
 }
-window.meBerufSelect = meBerufSelect;
 
 async function saveMeBeruf() {
   const targetName = meActiveMemberName || authMember?.member_name || '';
@@ -3818,7 +3814,24 @@ async function saveMeBeruf() {
     toast(tr('Beruf gespeichert!'));
   } catch(err) { toast(tr('Fehler: ') + err.message); }
 }
-window.saveMeBeruf = saveMeBeruf;
+
+// Mein Bereich: ein Listener für alle Knöpfe der Seite (statt onclick=, siehe CLAUDE.md)
+(function initMePageActions() {
+  const page = document.getElementById('page-m');
+  if (!page) return;
+  const actions = {
+    stepWeek: el => meStepWeek(Number(el.dataset.delta)),
+    selectWeek: el => meSelectWeek(Number(el.dataset.index)),
+    selectBeruf: el => meBerufSelect(el.dataset.beruf || null),
+    saveBeruf: () => saveMeBeruf(),
+  };
+  page.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el || !page.contains(el)) return;
+    const action = actions[el.dataset.action];
+    if (action) action(el, e);
+  });
+})();
 function buildNavActionsFromTabs() {
   const actions = [];
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(btn => {

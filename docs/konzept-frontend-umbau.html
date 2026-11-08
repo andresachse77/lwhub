@@ -66,6 +66,11 @@
   .test-note { font-size: 13px; color: var(--text-secondary); margin-left: 8px; }
   .footer { color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border-color); padding-top: 16px; }
 </style>
+<script>
+  // Sammelt CSP-Meldungen ab dem ersten Moment. Chrome/Edge melden Inline-Handler schon beim Einlesen des HTML.
+  window.__cspReports = [];
+  document.addEventListener('securitypolicyviolation', function (e) { window.__cspReports.push(e); });
+</script>
 </head>
 <body>
 <div class="container">
@@ -404,10 +409,10 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
   <p>Die Partials (<code>api/partials/</code>, R4- und Admin-Seiten) kommen erst nach dem Login über die API und werden hier nicht mitgezählt. Laut Quelltext sind es dort am 08.11.2026 noch 57 <code>onclick=</code> und 3 <code>onchange=</code>.</p>
 
   <h3>2. Vorführung: alter und neuer Weg</h3>
-  <p>Beide Knöpfe tun dasselbe: Sie zeigen den Namen „O'Brien“ an. Der linke ist so gebaut wie heute in der App (<code>onclick="…"</code>), der rechte so wie nach dem Umbau (<code>data-action</code> plus ein Listener). Unten steht, ob der Browser einen CSP-Verstoß meldet. Er meldet ihn nur beim <strong>ersten</strong> Klick auf den alten Knopf, danach merkt er sich den Handler.</p>
+  <p>Beide Knöpfe tun dasselbe: Sie zeigen den Namen „O'Brien“ an. Der linke ist so gebaut wie heute in der App (<code>onclick="…"</code>), der rechte so wie nach dem Umbau (<code>data-action</code> plus ein Listener). Unten steht, ob der Browser für genau diesen Knopf einen CSP-Verstoß gemeldet hat. Chrome und Edge melden ihn schon beim Laden der Seite, sobald der Knopf im HTML steht, Firefox erst beim Klick. Der Test berücksichtigt beides.</p>
   <div class="demo-row" id="ih-demo">
-    <button type="button" class="test-btn old" onclick="window.lwDemoShow('alt', 'O\'Brien')">Alter Weg (onclick)</button>
-    <button type="button" class="test-btn" data-action="show" data-name="O'Brien">Neuer Weg (data-action)</button>
+    <button type="button" id="ih-old" class="test-btn old" onclick="window.lwDemoShow('alt', 'O\'Brien')">Alter Weg (onclick)</button>
+    <button type="button" id="ih-new" class="test-btn" data-action="show" data-name="O'Brien">Neuer Weg (data-action)</button>
   </div>
   <div class="demo-out" id="ih-out">Noch nichts geklickt.</div>
   <p>Erwartung auf lwhub.de: Beim alten Knopf steht „CSP-Verstoß gemeldet“, beim neuen „keine Meldung“. Sobald wir die CSP scharf schalten, würde der alte Knopf gar nichts mehr tun.</p>
@@ -473,28 +478,28 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
   // ---- 2. Vorführung ----
   var out = document.getElementById('ih-out');
   var demo = document.getElementById('ih-demo');
-  var lastReport = -1;
   var hasCsp = null;
-
-  document.addEventListener('securitypolicyviolation', function (e) {
-    var d = e.effectiveDirective || e.violatedDirective || '';
-    if (d.indexOf('script-src-attr') === 0 || (d.indexOf('script-src') === 0 && e.blockedURI === 'inline' && demo.contains(e.target))) lastReport = performance.now();
-  });
-
   fetch(location.pathname + '?cspcheck=' + Date.now(), { cache: 'no-store' }).then(function (r) {
     hasCsp = !!(r.headers.get('content-security-policy-report-only') || r.headers.get('content-security-policy'));
   }).catch(function () { hasCsp = false; });
 
+  function reportedFor(el) {
+    return (window.__cspReports || []).some(function (e) {
+      var d = e.effectiveDirective || e.violatedDirective || '';
+      return d.indexOf('script-src-attr') === 0 && e.target === el;
+    });
+  }
+
   function show(way, name) {
-    var clickedAt = performance.now() - 50;
-    out.textContent = (way === 'alt' ? 'Alter Weg' : 'Neuer Weg') + ': Name = ' + name + '\nPrüfe CSP …';
+    var title = (way === 'alt' ? 'Alter Weg' : 'Neuer Weg') + ': Name = ' + name;
+    out.textContent = title + '\nPrüfe CSP …';
     setTimeout(function () {
+      var el = document.getElementById(way === 'alt' ? 'ih-old' : 'ih-new');
       var csp;
-      if (hasCsp === false) csp = 'Kein CSP-Header auf dieser Seite, Meldungen gibt es nur auf lwhub.de.';
-      else if (lastReport >= clickedAt) csp = 'CSP-Verstoß gemeldet (script-src-attr). Läuft nur, weil die CSP im Beobachtungsmodus ist.';
-      else if (way === 'alt') csp = 'Keine neue Meldung. Der Browser meldet nur den ersten Klick, Seite neu laden zum Wiederholen.';
+      if (reportedFor(el)) csp = 'CSP-Verstoß gemeldet (script-src-attr). Der Knopf läuft nur, weil die CSP im Beobachtungsmodus ist.';
+      else if (hasCsp === false) csp = 'Kein CSP-Header auf dieser Seite, Meldungen gibt es nur auf lwhub.de.';
       else csp = 'Keine Meldung. Dieser Knopf ist CSP-tauglich.';
-      out.textContent = (way === 'alt' ? 'Alter Weg' : 'Neuer Weg') + ': Name = ' + name + '\n' + csp;
+      out.textContent = title + '\n' + csp;
     }, 150);
   }
   window.lwDemoShow = show;

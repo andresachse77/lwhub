@@ -21,4 +21,4 @@ in `index.html` und `api/partials/`:
   umstellen.
 
 Fortschritt prüfen: `grep -oE "\son[a-z]+=[\"'\`]" index.html api/partials/*.php | wc -l`
-(Stand 08.11.2026: 231). Die Zahl darf nur sinken.
+(Stand 08.11.2026: 226). Die Zahl darf nur sinken.

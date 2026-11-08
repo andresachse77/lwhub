@@ -72,7 +72,7 @@
       <span class="badge blue">Architektur &amp; API-Konzept</span>
       <span class="badge purple">Android &bull; Web-Scanner</span>
       <span class="badge green">Additiv, nichts bricht</span>
-      <span class="badge amber">Stand: 2026-10-17 (v2.1)</span>
+      <span class="badge amber">Stand: 2026-10-17 (v2.1), Nachtrag 2026-11-08</span>
       <span class="badge red">v2 &ndash; ersetzt v1.0 und v1.1</span>
     </div>
     <h1>Integration: Thomas&rsquo; Android-App, Web-Scanner &amp; lwhub.de &ndash; v2</h1>
@@ -340,8 +340,38 @@ Authorization: Bearer lwhub_xxxxxxxxxxxxxxxx
                "archived": 0, "rank_changes": 0, "unmatched": 0, "ignored_other_alliance": 0 },
   "details": [ { "name": "Lion Tooth", "action": "updated", "player_id": "e3a89012-..." } ],
   "unmatched": [ { "name": "Gh0st", "player_id": null, "reason": "no-exact-name" } ],
-  "conflicts": [ { "name": "3Bein", "blocked": true, "reason": "transfer-needs-r5", "from_alliance": "NxU2" } ]
+  "conflicts": [ { "name": "3Bein", "blocked": true, "reason": "transfer-needs-r5", "from_alliance": "NxU2" } ],
+  "beruf_rangcheck": { "r2": "ingenieur", "r3": "kriegsherr" },   // neu 08.11., nur bei Rangcheck an
+  "beruf_mismatches": [                                             // neu 08.11., nur bei Rangcheck an
+    { "name": "Kiwi", "player_id": "6abc365b-...", "rank": 2, "beruf": "kriegsherr",
+      "expected": "ingenieur", "rank_changed": true, "old_rank": 3 },
+    { "name": "Neuling", "player_id": "91d0c2e4-...", "rank": 3, "beruf": null,
+      "expected": "kriegsherr", "rank_changed": false, "old_rank": null }
+  ]
 }</code></pre>
+    <h3>Berufe-Rangcheck: <code>beruf_mismatches</code> (neu 08.11.)</h3>
+    <p>Viele Allianzen vergeben R2 und R3 nach Beruf (z.&nbsp;B. R2 = Ingenieur, R3 = Kriegsherr). Ist im Berufeplaner der Allianz der <strong>Rangcheck</strong> an, meldet der Sync zus&auml;tzlich, wessen Beruf nicht zum Rang passt. <strong>Nur ein Hinweis:</strong> Der Upload l&auml;uft immer vollst&auml;ndig, der Beruf wird nicht automatisch umgestellt. Ist der Rangcheck aus, <strong>fehlen beide Felder</strong>. Alte App-Versionen laufen also unver&auml;ndert weiter.</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Feld</th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr><td><code>beruf_rangcheck.r2</code> / <code>.r3</code></td><td>Welchen Beruf R2 bzw. R3 in dieser Allianz bedeutet (<code>ingenieur</code> | <code>kriegsherr</code>), f&uuml;r die Kopfzeile der Liste</td></tr>
+        <tr><td><code>rank</code></td><td>Rang, der <strong>nach</strong> diesem Scan gilt (auch bei <code>dry_run</code>)</td></tr>
+        <tr><td><code>beruf</code></td><td>Wie im Planer eingeteilt: <code>kriegsherr</code> | <code>ingenieur</code> | <code>null</code> = noch nicht eingeteilt (Warteschlange)</td></tr>
+        <tr><td><code>expected</code></td><td>Beruf, den der Rang bedeutet</td></tr>
+        <tr><td><code>rank_changed</code> / <code>old_rank</code></td><td>Hat dieser Scan den Rang gerade ge&auml;ndert? Das sind meist die interessanten F&auml;lle (Beruf gewechselt, Planer noch alt). Diese stehen vorne in der Liste.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <ul>
+      <li>Gepr&uuml;ft werden nur aktive Mitglieder mit R2 oder R3, keine Ehrenmitglieder. R1, R4 und R5 sagen nichts &uuml;ber den Beruf.</li>
+      <li>Rolle <code>scanner</code> (App) bekommt die Liste auch. Weil sie keine R&auml;nge &auml;ndert, gilt dort der gespeicherte Rang, <code>rank_changed</code> ist immer <code>false</code>.</li>
+      <li>Vorschlag f&uuml;r die App (T1), wie im Web-Scanner: Block &bdquo;Beruf passt nicht zum Rang (n)&ldquo; nach dem Upload und ein Knopf &bdquo;Liste kopieren&ldquo; mit diesem Text f&uuml;r den R4-Chat:
+<pre><code>Berufe-Check NxU1 (Scan 08.11.)
+R2 = Ingenieur · R3 = Kriegsherr
+⚠ Kiwi – R2, eingeteilt als Kriegsherr (Rang neu, vorher R3)
+⏳ Neuling – R3, noch nicht eingeteilt (soll Kriegsherr)</code></pre></li>
+    </ul>
     <h3>Gr&uuml;nde in <code>unmatched</code> und <code>conflicts</code></h3>
     <div class="table-wrap">
     <table>

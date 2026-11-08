@@ -234,6 +234,7 @@
   …
 ]</code></pre>
     <p><code>rank_changed</code> zeigt, ob der Scan den Rang gerade erst geändert hat. Das sind meist die interessanten Fälle (Beruf gewechselt, Planer noch alt). Die Rolle <code>scanner</code> ändert keine Ränge. Sie bekommt die Liste trotzdem, berechnet mit dem gespeicherten Rang.</p>
+    <p><strong>Umgesetzt 08.11. (S1, G4):</strong> <code>beruf: null</code> heißt „noch nicht eingeteilt“ (Warteschlange); diese stehen hinter den falsch Eingeteilten. Dazu kommt <code>beruf_rangcheck: {"r2": …, "r3": …}</code> für die Kopfzeile. Details für die App im <a href="konzept-api-scanner-v2.html#abschnitt-5">API-Konzept v2</a>.</p>
     <h3>Anzeige im Web-Scanner (und später in der App)</h3>
     <p>Unter der Sync-Zusammenfassung ein Block „Beruf passt nicht zum Rang (n)“ mit Knopf <strong>Liste kopieren</strong>. Kopiertext für den R4-Chat:</p>
 <pre><code>Berufe-Check NxU1 (Scan 26.10.)

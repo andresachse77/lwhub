@@ -130,9 +130,8 @@
   <section class="next">
     <h2>🎯 Als Nächstes</h2>
     <ol>
-      <li><div><b>B6 Zähler:</b> „n falsch einsortiert“ im Planer-Kopf, Klick springt zur nächsten falschen Kachel.</div></li>
-      <li><div><b>S1–S3 Scanner-Rückmeldung:</b> <code>beruf_mismatches</code> in der Sync-Antwort, Liste im Web-Scanner, Doku für Thomas.</div></li>
-      <li><div><b>G4 klären:</b> Sollen R2/R3 aus der Warteschlange in der Scanner-Liste als „noch nicht eingeteilt“ erscheinen?</div></li>
+      <li><div><b>Live schalten:</b> Commits pushen, danach im Web-Scanner einmal die Mitgliederliste scannen und die Liste „Beruf passt nicht zum Rang“ ansehen.</div></li>
+      <li><div><b>T1 (Thomas):</b> App zeigt <code>beruf_mismatches</code> nach dem Upload, Format siehe <a href="konzept-api-scanner-v2.html#abschnitt-5">API-Konzept v2, Abschnitt 5</a>.</div></li>
     </ol>
   </section>
 
@@ -199,9 +198,12 @@
       </div></details>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B6</span>Zähler „n falsch einsortiert“ im Planer-Kopf</div><div class="tags"><span class="tag blue">index.html</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">B6</span>Zähler „n falsch einsortiert“ im Planer-Kopf</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">index.html</span></div></div>
       <div class="d">Klick scrollt zur nächsten falschen Kachel und lässt sie kurz aufleuchten.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>08.11.</time>Zähler hinter dem Rangcheck-Schalter: gelb „⚠ n falsch einsortiert“, grün „✓ Alle richtig einsortiert“, aus ohne Rangcheck. Klick springt der Reihe nach, klappt im Akkordeon die Karte auf und lässt die Kachel aufleuchten. Mit NxU1-Daten geprüft.</p>
+      </div></details>
     </div>
 
     <div class="phase">Phase 3 · Spieler fragen</div>
@@ -223,19 +225,28 @@
 
     <div class="phase">Phase 4 · Scanner-Rückmeldung</div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S1</span><code>beruf_mismatches</code> in der Sync-Antwort</div><div class="tags"><span class="tag blue">members.php</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S1</span><code>beruf_mismatches</code> in der Sync-Antwort</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">members.php</span></div></div>
       <div class="d">In <code>handleSyncScans</code> nach dem Rangabgleich: aktive Mitglieder der Allianz mit R2/R3 und Beruf gegen die Einstellung prüfen. Felder <code>name, player_id, rank, beruf, expected, rank_changed, old_rank</code>. Auch bei <code>dry_run</code> und für Rolle <code>scanner</code>. Prüfregel als PHP-Helfer in <code>helpers.php</code>, gleiche Logik wie B3.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>08.11.</time>Liste wird vor Commit/Rollback in der Transaktion berechnet (auch dry_run). Einstellung und alte Ränge vor der Transaktion gelesen. Zusätzlich <code>beruf_rangcheck {r2, r3}</code>. Probelauf mit NxU1 (Agathe Power als R3 gescannt) zeigt den Eintrag mit rank_changed, DB unverändert.</p>
+      </div></details>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S2</span>Web-Scanner: Liste + „Liste kopieren“</div><div class="tags"><span class="tag blue">web-scanner-onnx</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S2</span>Web-Scanner: Liste + „Liste kopieren“</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">web-scanner-onnx</span></div></div>
       <div class="d">Block unter der Sync-Zusammenfassung, nur wenn die Liste nicht leer ist. Kopiertext im Format aus dem Konzept (Allianz, Datum, Zuordnung, je Zeile ⚠ Name – Rang, eingeteilt als …).</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>08.11.</time>Abschnitt im Ergebnisfenster mit Kachel „Beruf ≠ Rang“ und „Liste kopieren“ (⚠ falsch eingeteilt, ⏳ noch nicht eingeteilt).</p>
+      </div></details>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S3</span>Doku: Feld im API- &amp; Scanner-Konzept v2 ergänzen</div><div class="tags"><span class="tag blue">docs</span></div></div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">S3</span>Doku: Feld im API- &amp; Scanner-Konzept v2 ergänzen</div><div class="tags"><span class="tag done">erledigt 08.11.</span><span class="tag blue">docs</span></div></div>
       <div class="d">Antwortbeispiel von <code>/scans/sync</code> in <a href="konzept-api-scanner-v2.html">Konzept v2</a> um <code>beruf_mismatches</code> erweitern, damit Thomas es findet.</div>
+      <details><summary>Verlauf</summary><div class="log">
+        <p><time>08.11.</time>Konzept v2, Abschnitt 5: Antwortbeispiel, Feldtabelle und Vorschlag für die App (T1).</p>
+      </div></details>
     </div>
 
     <div class="phase">Phase 5 · Praxis-Feedback NxU1 (08.11.)</div>
@@ -300,9 +311,9 @@
       <div class="d">R4 und R5 der Allianz (gilt auch für Fragetexte und feste Paare).</div>
     </div>
 
-    <div class="task" data-status="open">
-      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G4</span>R2/R3 in der Warteschlange</div></div>
-      <div class="open-point">Vorschlag: nur Tönung, kein Zittern, weil noch nichts falsch zugeordnet ist. Soll die Scanner-Liste diese Spieler als „noch nicht eingeteilt“ mit aufführen?</div>
+    <div class="task" data-status="done">
+      <div class="task-head"><span class="icon"></span><div class="t"><span class="id">G4</span>R2/R3 in der Warteschlange</div><div class="tags"><span class="tag done">entschieden 08.11.</span></div></div>
+      <div class="d">Im Planer nur Tönung, kein Zittern. In der Scanner-Liste ja, als „⏳ noch nicht eingeteilt (soll …)“ mit <code>beruf: null</code>, hinter den falsch Eingeteilten.</div>
     </div>
   </section>
 

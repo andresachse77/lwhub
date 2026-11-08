@@ -1163,10 +1163,23 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   .bp-cell-action .wt-btn { font-size: 10px; padding: 4px 7px; }
 }
 
-/* Schmales Fenster (z. B. neben dem Spiel): Platz fuer Namen statt Symbole */
+/* Berufeplaner nutzt die ganze Fensterbreite (sonst .page max 1400px): mit grossem Fenster werden die Kacheln breiter */
+#page-bp { max-width: none; }
+/* Tabelle: Platz fuer Namen statt Symbole (die Spaltenkoepfe sagen schon Kriegsherr/Ing.) */
+.bp-table .bp-ico { display: none; }
+.bp-table .bp-name-draggable { gap: 5px; }
+/* Mit Maus: ✉ und ♡ erst beim Drueberfahren, ueber dem Namen statt daneben. Festes Paar ♥ bleibt sichtbar. */
+@media (hover: hover) {
+  .bp-table td { position: relative; }
+  .bp-table .bp-ask-btn,
+  .bp-table .bp-pair-btn:not(.on) { display: none; position: absolute; top: 50%; transform: translateY(-50%); margin: 0; background: var(--card2); }
+  .bp-table .bp-ask-btn { right: 6px; }
+  .bp-table .bp-pair-btn:not(.on) { right: 30px; }
+  .bp-table td:hover .bp-ask-btn, .bp-table td:focus-within .bp-ask-btn,
+  .bp-table td:hover .bp-pair-btn, .bp-table td:focus-within .bp-pair-btn { display: inline-grid; }
+  .bp-table td:hover .bp-pair-btn.on, .bp-table td:focus-within .bp-pair-btn.on { margin-right: 24px; }
+}
 @media (max-width: 1500px) {
-  .bp-table .bp-ico { display: none; }
-  .bp-table .bp-name-draggable { gap: 5px; }
   .bp-table .bp-cell-name, .bp-table .bp-cell-slot { padding: 6px; }
 }
 
@@ -9662,7 +9675,7 @@ async function revokeApiToken(tokenId, clientName) {
     for (let i = 1; i <= maxIng; i++) {
       html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;">${escHtml(tr('s_bp_ing_prefix'))} ${i}</th>`;
     }
-    html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;">${escHtml(tr('s_aktion'))}</th></tr></thead><tbody>`;
+    html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;width:96px;">${escHtml(tr('s_aktion'))}</th></tr></thead><tbody>`;
 
     warlords.forEach((kh) => {
       const engineers = bpEngineerListFor(kh);

@@ -1353,7 +1353,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   <div class="login-box" id="login-box">
     <div class="logo">Alli<em>App</em></div>
     <p>Login für verknüpfte Allianz-Mitglieder</p>
-    <button class="discord-btn" onclick="discordLogin()">
+    <button class="discord-btn" data-action="discordLogin">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
       Login mit Discord
     </button>
@@ -1361,16 +1361,16 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   </div>
 </div>
 
-<button id="logout-btn" style="display:none" onclick="discordLogout()">Logout</button>
+<button id="logout-btn" style="display:none" data-action="discordLogout">Logout</button>
 
 <nav>
   <div class="nav-inner">
   <div class="logo"><span class="js-alliance-short">ALLY</span><em class="js-alliance-tagline">App</em></div>
   <div class="tabs" id="main-tabs">
-    <button class="tab active" id="tab-m" onclick="showPage('m')">Mein Bereich</button>
-    <button class="tab" id="tab-t" onclick="showPage('t')">Meine Teams</button>
-    <button class="tab" id="tab-p" onclick="showPage('p')">Punkte-Guide</button>
-    <button class="tab" id="tab-zv" onclick="showPage('zv')"><svg xmlns="http://www.w3.org/2000/svg" width="27" height="14" viewBox="0 0 38 20" style="vertical-align:-1px;display:inline-block;"><circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/><circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/><rect x="6.5" y="3" width="4" height="4.5" rx="0.8" fill="#B87300"/><rect x="1" y="6.5" width="22" height="9" rx="4" fill="#F0A500"/><rect x="2" y="7.2" width="19" height="3.2" rx="2" fill="rgba(255,230,90,0.38)"/><rect x="19" y="3.5" width="10" height="12" rx="1.5" fill="#D4890A"/><rect x="18" y="2.2" width="12" height="2.5" rx="1" fill="#B87300"/><rect x="21" y="5" width="5" height="4" rx="1" fill="#87CEEB" opacity="0.88"/><rect x="0" y="10.8" width="2" height="2.5" rx="0.4" fill="#9A6200"/><circle cx="8.5" cy="17" r="3.4" fill="#9A6200" stroke="#F0C040" stroke-width="1.1"/><circle cx="8.5" cy="17" r="1.3" fill="#C8820A"/><line x1="8.5" y1="13.6" x2="8.5" y2="20.4" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="15" x2="11.9" y2="19" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="19" x2="11.9" y2="15" stroke="#C8820A" stroke-width="0.7"/><circle cx="3" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="21" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="27" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><rect x="3" y="16.3" width="25" height="1.5" rx="0.5" fill="#9A6200" opacity="0.6"/></svg> Zug</button>
+    <button class="tab active" id="tab-m" data-action="showPage" data-args='["m"]'>Mein Bereich</button>
+    <button class="tab" id="tab-t" data-action="showPage" data-args='["t"]'>Meine Teams</button>
+    <button class="tab" id="tab-p" data-action="showPage" data-args='["p"]'>Punkte-Guide</button>
+    <button class="tab" id="tab-zv" data-action="showPage" data-args='["zv"]'><svg xmlns="http://www.w3.org/2000/svg" width="27" height="14" viewBox="0 0 38 20" style="vertical-align:-1px;display:inline-block;"><circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/><circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/><rect x="6.5" y="3" width="4" height="4.5" rx="0.8" fill="#B87300"/><rect x="1" y="6.5" width="22" height="9" rx="4" fill="#F0A500"/><rect x="2" y="7.2" width="19" height="3.2" rx="2" fill="rgba(255,230,90,0.38)"/><rect x="19" y="3.5" width="10" height="12" rx="1.5" fill="#D4890A"/><rect x="18" y="2.2" width="12" height="2.5" rx="1" fill="#B87300"/><rect x="21" y="5" width="5" height="4" rx="1" fill="#87CEEB" opacity="0.88"/><rect x="0" y="10.8" width="2" height="2.5" rx="0.4" fill="#9A6200"/><circle cx="8.5" cy="17" r="3.4" fill="#9A6200" stroke="#F0C040" stroke-width="1.1"/><circle cx="8.5" cy="17" r="1.3" fill="#C8820A"/><line x1="8.5" y1="13.6" x2="8.5" y2="20.4" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="15" x2="11.9" y2="19" stroke="#C8820A" stroke-width="0.7"/><line x1="5.1" y1="19" x2="11.9" y2="15" stroke="#C8820A" stroke-width="0.7"/><circle cx="3" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="21" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><circle cx="27" cy="17.5" r="1.9" fill="#9A6200" stroke="#EAB800" stroke-width="0.85"/><rect x="3" y="16.3" width="25" height="1.5" rx="0.5" fill="#9A6200" opacity="0.6"/></svg> Zug</button>
     <span id="r4-tab-btns"></span>
     <span id="admin-tab-btns"></span>
   </div>
@@ -1384,7 +1384,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <option value="es">ES</option>
       <option value="zh">ZH</option>
     </select>
-    <button class="sync-btn" id="btn-sync" onclick="syncData()" title="Daten neu laden">🔄</button>
+    <button class="sync-btn" id="btn-sync" data-action="syncData" title="Daten neu laden">🔄</button>
   </div>
   <input type="number" id="kwInput" style="display:none" min="1" max="9953" value="2616">
   </div>
@@ -1426,9 +1426,9 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
         <div id="rank-change-badge" style="display:none"></div>
       </div>
       <div class="me-week-switch">
-        <button class="me-kw-btn" type="button" id="week-prev" data-action="stepWeek" data-delta="-1">‹</button>
+        <button class="me-kw-btn" type="button" id="week-prev" data-action="meStepWeek" data-args="[-1]">‹</button>
         <select class="me-week-select" id="week-select"></select>
-        <button class="me-kw-btn" type="button" id="week-next" data-action="stepWeek" data-delta="1">›</button>
+        <button class="me-kw-btn" type="button" id="week-next" data-action="meStepWeek" data-args="[1]">›</button>
       </div>
       <div class="me-delta-display">
         <div class="me-delta-label" data-i18n="s_vergleich_zur_vorwoche">Vergleich zur Vorwoche</div>
@@ -1520,7 +1520,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <div class="me-panel-title" data-i18n="s_meine_teams">Meine Teams</div>
           <div class="me-panel-sub" data-i18n="s_teams_pflegen">T1–T4, Team-Typ und Kampfkraft pflegen. Optional Heldenkampfkraft ergänzen.</div>
         </div>
-        <button class="btn btn-gold" onclick="openTeamEditor()">✏ <span data-i18n="s_bearbeiten">Bearbeiten</span></button>
+        <button class="btn btn-gold" data-action="openTeamEditor">✏ <span data-i18n="s_bearbeiten">Bearbeiten</span></button>
       </div>
       <div id="teams-summary" class="empty">Lade …</div>
     </section>
@@ -1612,12 +1612,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   <div class="battle-loader-card">
     <div class="battle-loader-frame">
       <div class="battle-loader-stage">
-        <img class="battle-loader-main-img battle-loader-media" src="img/load.png" alt="" loading="eager"
-             onload="window.updateBattleLoaderMediaState?.()"
-             onerror="window.updateBattleLoaderMediaState?.()">
-        <img class="battle-loader-final-img battle-loader-media" src="img/load2.png" alt="" loading="eager"
-             onload="window.updateBattleLoaderMediaState?.()"
-             onerror="window.updateBattleLoaderMediaState?.()">
+        <img class="battle-loader-main-img battle-loader-media" src="img/load.png" alt="" loading="eager">
+        <img class="battle-loader-final-img battle-loader-media" src="img/load2.png" alt="" loading="eager">
       </div>
       <div class="battle-loader-fallback" aria-hidden="true"><span></span></div>
     </div>
@@ -1633,9 +1629,9 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
         <div class="panel-title" id="zug-ro-cal-title">Kalender</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <button class="wt-btn" onclick="zugRoNavWeek(-1)" style="padding:8px 14px;font-size:20px;min-width:44px;">‹</button>
-        <button class="wt-btn" onclick="zugRoNavWeek(1)" style="padding:8px 14px;font-size:20px;min-width:44px;">›</button>
-        <button class="wt-btn" onclick="zugRoNavToday()" style="padding:8px 14px;font-size:12px;">Heute</button>
+        <button class="wt-btn" data-action="zugRoNavWeek" data-args="[-1]" style="padding:8px 14px;font-size:20px;min-width:44px;">‹</button>
+        <button class="wt-btn" data-action="zugRoNavWeek" data-args="[1]" style="padding:8px 14px;font-size:20px;min-width:44px;">›</button>
+        <button class="wt-btn" data-action="zugRoNavToday" style="padding:8px 14px;font-size:12px;">Heute</button>
       </div>
     </div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;margin-bottom:12px;color:var(--soft);">
@@ -1655,12 +1651,12 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 <div class="page" id="page-a">
   <div style="max-width:1100px;margin:0 auto;padding:1.5rem 1.5rem 3rem">
     <div class="admin-nav">
-      <button class="admin-nav-tab active" onclick="adminShowTab('alliances',this)">Allianzen</button>
-      <button class="admin-nav-tab" onclick="adminShowTab('archive',this)">Archiv</button>
-      <button class="admin-nav-tab" onclick="adminShowTab('transfer',this)">Transfer</button>
-      <button class="admin-nav-tab" onclick="adminShowTab('merge',this)">Zusammenführen</button>
-      <button class="admin-nav-tab" onclick="adminShowTab('admins',this)">Admins</button>
-      <button class="admin-nav-tab" onclick="adminShowTab('tokens',this)">API-Tokens</button>
+      <button class="admin-nav-tab active" data-action="adminShowTab" data-args='["alliances",{"$":"el"}]'>Allianzen</button>
+      <button class="admin-nav-tab" data-action="adminShowTab" data-args='["archive",{"$":"el"}]'>Archiv</button>
+      <button class="admin-nav-tab" data-action="adminShowTab" data-args='["transfer",{"$":"el"}]'>Transfer</button>
+      <button class="admin-nav-tab" data-action="adminShowTab" data-args='["merge",{"$":"el"}]'>Zusammenführen</button>
+      <button class="admin-nav-tab" data-action="adminShowTab" data-args='["admins",{"$":"el"}]'>Admins</button>
+      <button class="admin-nav-tab" data-action="adminShowTab" data-args='["tokens",{"$":"el"}]'>API-Tokens</button>
     </div>
 
     <!-- Allianzen -->
@@ -1670,7 +1666,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <div class="section-title">Allianzen</div>
           <div class="section-sub">Kurznamen und Titel verwalten. Beim Umbenennen des Kürzels werden alle Spieler-Daten migriert.</div>
         </div>
-        <button class="btn btn-gold" onclick="openCreateAlliance()">+ Neue Allianz</button>
+        <button class="btn btn-gold" data-action="openCreateAlliance">+ Neue Allianz</button>
       </div>
       <div class="alliance-list" id="alliance-list"><div class="empty">Lade …</div></div>
     </div>
@@ -1684,10 +1680,10 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
         </div>
       </div>
       <div class="archive-filter">
-        <select id="archive-alliance-filter" onchange="loadArchive()">
+        <select id="archive-alliance-filter" data-on-change="loadArchive">
           <option value="">Alle Allianzen</option>
         </select>
-        <button class="btn btn-ghost" onclick="loadArchive()">↻ Aktualisieren</button>
+        <button class="btn btn-ghost" data-action="loadArchive">↻ Aktualisieren</button>
       </div>
       <div class="card" style="overflow-x:auto">
         <table class="archive-table" id="archive-table">
@@ -1710,7 +1706,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <div class="card" style="max-width:480px">
         <div class="field">
           <label>Von Allianz</label>
-          <select id="transfer-from" onchange="loadTransferPlayers()"><option value="">– wählen –</option></select>
+          <select id="transfer-from" data-on-change="loadTransferPlayers"><option value="">– wählen –</option></select>
         </div>
         <div class="field">
           <label>Spieler</label>
@@ -1721,7 +1717,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <select id="transfer-to"><option value="">Ziel-Allianz wählen …</option></select>
         </div>
         <div class="modal-footer" style="padding:0;margin-top:12px">
-          <button class="btn btn-gold" onclick="submitTransfer()">Transferieren</button>
+          <button class="btn btn-gold" data-action="submitTransfer">Transferieren</button>
         </div>
       </div>
     </div>
@@ -1737,7 +1733,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <div class="card" style="max-width:480px">
         <div class="field">
           <label>Allianz</label>
-          <select id="merge-alliance" onchange="loadMergePlayers()"><option value="">– wählen –</option></select>
+          <select id="merge-alliance" data-on-change="loadMergePlayers"><option value="">– wählen –</option></select>
         </div>
         <div class="field">
           <label>Behalten</label>
@@ -1748,7 +1744,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <select id="merge-drop"><option value="">Erst Allianz wählen</option></select>
         </div>
         <div class="modal-footer" style="padding:0;margin-top:12px">
-          <button class="btn btn-gold" onclick="submitMerge()">Zusammenführen</button>
+          <button class="btn btn-gold" data-action="submitMerge">Zusammenführen</button>
         </div>
       </div>
     </div>
@@ -1760,7 +1756,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <div class="section-title">Admin-Verwaltung</div>
           <div class="section-sub">Spieler mit Admin-Rechten ausstatten (unabhängig vom Rang). R5-Spieler haben automatisch Zugriff.</div>
         </div>
-        <button class="btn btn-gold" onclick="openGrantAdmin()">+ Admin vergeben</button>
+        <button class="btn btn-gold" data-action="openGrantAdmin">+ Admin vergeben</button>
       </div>
       <div class="card" style="overflow-x:auto">
         <table class="archive-table" id="admins-table">
@@ -1779,11 +1775,11 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
           <div class="section-title">API-Tokens</div>
           <div class="section-sub">Zugänge für die Android-App und den Web-Scanner. Nur R5 der Allianz und der Betreiber legen Tokens an und widerrufen sie.</div>
         </div>
-        <button class="btn btn-gold" onclick="openCreateApiToken()">+ Token anlegen</button>
+        <button class="btn btn-gold" data-action="openCreateApiToken">+ Token anlegen</button>
       </div>
       <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;">
         <label style="font-size:13px;color:var(--soft);">Allianz:</label>
-        <select id="api-tokens-alliance" onchange="loadApiTokens()" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:13px;">
+        <select id="api-tokens-alliance" data-on-change="loadApiTokens" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:13px;">
           <option value="">Lade …</option>
         </select>
       </div>
@@ -1823,8 +1819,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <div class="hint">Leer = unbegrenzt gültig. Abgelaufene Tokens werden abgewiesen.</div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-create-api-token')">Abbrechen</button>
-      <button class="btn btn-gold" onclick="submitCreateApiToken()">Anlegen</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-create-api-token"]'>Abbrechen</button>
+      <button class="btn btn-gold" data-action="submitCreateApiToken">Anlegen</button>
     </div>
   </div>
 </div>
@@ -1834,11 +1830,11 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div class="modal-title">Token angelegt</div>
     <div class="hint" style="color:var(--red);margin-bottom:10px">Dieser Token wird nicht wieder angezeigt. Kopiere ihn jetzt und gib ihn nur an die vorgesehene Person weiter.</div>
     <div class="field" data-i18n-skip="1">
-      <input type="text" id="api-token-plain" readonly style="font-family:monospace;font-size:12px" onfocus="this.select()">
+      <input type="text" id="api-token-plain" readonly style="font-family:monospace;font-size:12px" data-on-focus="lwSelectText" data-args-focus='[{"$":"el"}]'>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="copyApiToken(this)">Kopieren</button>
-      <button class="btn btn-gold" onclick="closeApiTokenCreated()">Schließen</button>
+      <button class="btn btn-ghost" data-action="copyApiToken" data-args='[{"$":"el"}]'>Kopieren</button>
+      <button class="btn btn-gold" data-action="closeApiTokenCreated">Schließen</button>
     </div>
   </div>
 </div>
@@ -1851,8 +1847,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <textarea id="bp-ask-text"></textarea>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="bpAskCopyAgain(this)" data-i18n="s_bp_ask_copy_again">Nochmal kopieren</button>
-      <button class="btn btn-gold" onclick="closeModal('modal-bp-ask')" data-i18n="s_bp_ask_close">Schließen</button>
+      <button class="btn btn-ghost" data-action="bpAskCopyAgain" data-args='[{"$":"el"}]' data-i18n="s_bp_ask_copy_again">Nochmal kopieren</button>
+      <button class="btn btn-gold" data-action="closeModal" data-args='["modal-bp-ask"]' data-i18n="s_bp_ask_close">Schließen</button>
     </div>
   </div>
 </div>
@@ -1863,20 +1859,20 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div class="hint" style="margin-bottom:10px" data-i18n="s_reauth_text">Deine Discord-Anmeldung ist abgelaufen, darum wurde gerade nichts gespeichert. Melde dich in einem neuen Fenster neu an – deine Eingaben hier bleiben stehen. Danach den letzten Schritt einfach wiederholen.</div>
     <div class="hint" id="reauth-wait" hidden style="margin-bottom:10px;color:var(--gold)" data-i18n="s_reauth_wait">Warte auf die Anmeldung im neuen Fenster … danach kannst du es schließen.</div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-reauth')" data-i18n="s_reauth_later">Später</button>
-      <button class="btn btn-gold" onclick="lwhubReauthLogin()" data-i18n="s_reauth_btn">Neu anmelden</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-reauth"]' data-i18n="s_reauth_later">Später</button>
+      <button class="btn btn-gold" data-action="lwhubReauthLogin" data-i18n="s_reauth_btn">Neu anmelden</button>
     </div>
   </div>
 </div>
 <div class="modal-bg hidden" id="modal-bp-fill">
   <div class="modal" style="width:min(640px, 100%)">
     <div class="modal-title">🎲 <span data-i18n="s_bp_fill_modal_title">Automatisch aufteilen – Vorschau</span></div>
-    <label class="bp-fill-opt"><input type="checkbox" id="bp-fill-move" checked onchange="bpFillReroll()"> <span data-i18n="s_bp_fill_move_opt">Eingeteilte Ingenieure auch umsetzen: jedem Kriegsherrn einen aktiven geben und die Anzahl ausgleichen (♥-Paare bleiben)</span></label>
+    <label class="bp-fill-opt"><input type="checkbox" id="bp-fill-move" checked data-on-change="bpFillReroll"> <span data-i18n="s_bp_fill_move_opt">Eingeteilte Ingenieure auch umsetzen: jedem Kriegsherrn einen aktiven geben und die Anzahl ausgleichen (♥-Paare bleiben)</span></label>
     <div id="bp-fill-body" class="bp-fill-body" data-i18n-skip="1"></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="bpFillReroll()" data-i18n="s_bp_fill_reroll">Neu würfeln</button>
-      <button class="btn btn-ghost" onclick="closeModal('modal-bp-fill')" data-i18n="s_abbrechen">Abbrechen</button>
-      <button class="btn btn-gold" id="bp-fill-apply" onclick="bpFillApply(this)" data-i18n="s_bp_fill_apply">Übernehmen</button>
+      <button class="btn btn-ghost" data-action="bpFillReroll" data-i18n="s_bp_fill_reroll">Neu würfeln</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-bp-fill"]' data-i18n="s_abbrechen">Abbrechen</button>
+      <button class="btn btn-gold" id="bp-fill-apply" data-action="bpFillApply" data-args='[{"$":"el"}]' data-i18n="s_bp_fill_apply">Übernehmen</button>
     </div>
   </div>
 </div>
@@ -1885,12 +1881,12 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div class="modal-title">✎ <span data-i18n="s_bp_tpl_title">Fragetexte für „Spieler fragen“</span></div>
     <div class="hint" style="margin-bottom:10px" data-i18n="s_bp_tpl_hint">Jeder Spieler bekommt den Text in seiner Sprache. Klick auf einen Platzhalter fügt ihn ein.</div>
     <div class="bp-view" id="bp-tpl-variant" style="margin-bottom:6px">
-      <button type="button" data-variant="r23" onclick="bpTplSwitchVariant('r23')" data-i18n="s_bp_tpl_var_r23">Für R2/R3</button>
-      <button type="button" data-variant="r145" onclick="bpTplSwitchVariant('r145')" data-i18n="s_bp_tpl_var_r145">Für R1, R4, R5</button>
+      <button type="button" data-variant="r23" data-action="bpTplSwitchVariant" data-args='["r23"]' data-i18n="s_bp_tpl_var_r23">Für R2/R3</button>
+      <button type="button" data-variant="r145" data-action="bpTplSwitchVariant" data-args='["r145"]' data-i18n="s_bp_tpl_var_r145">Für R1, R4, R5</button>
     </div>
     <div class="hint" id="bp-tpl-variant-note" style="margin-bottom:10px" data-i18n-skip="1"></div>
     <div class="field">
-      <select id="bp-tpl-lang" onchange="bpTplSwitchLang(this.value)" data-i18n-skip="1">
+      <select id="bp-tpl-lang" data-on-change="bpTplSwitchLang" data-args-change='[{"$":"value"}]' data-i18n-skip="1">
         <option value="de">Deutsch</option>
         <option value="en">English</option>
         <option value="fr">Français</option>
@@ -1902,14 +1898,14 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     </div>
     <div id="bp-tpl-chips" class="bp-tpl-chips" data-i18n-skip="1"></div>
     <div class="field" data-i18n-skip="1">
-      <textarea id="bp-tpl-text" maxlength="1000" oninput="bpTplRenderPreview()"></textarea>
+      <textarea id="bp-tpl-text" maxlength="1000" data-on-input="bpTplRenderPreview"></textarea>
     </div>
     <div class="bp-tpl-preview-label" data-i18n="s_bp_tpl_preview">Vorschau</div>
     <div id="bp-tpl-preview" class="bp-tpl-preview" data-i18n-skip="1"></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="bpTplResetLang()" data-i18n="s_bp_tpl_reset">Standard wiederherstellen</button>
-      <button class="btn btn-ghost" onclick="closeModal('modal-bp-templates')" data-i18n="s_abbrechen">Abbrechen</button>
-      <button class="btn btn-gold" onclick="bpTplSave(this)" data-i18n="s_bp_tpl_save">Speichern</button>
+      <button class="btn btn-ghost" data-action="bpTplResetLang" data-i18n="s_bp_tpl_reset">Standard wiederherstellen</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-bp-templates"]' data-i18n="s_abbrechen">Abbrechen</button>
+      <button class="btn btn-gold" data-action="bpTplSave" data-args='[{"$":"el"}]' data-i18n="s_bp_tpl_save">Speichern</button>
     </div>
   </div>
 </div>
@@ -1927,8 +1923,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <input type="text" id="grant-note" maxlength="255" placeholder="z.B. Allianz-Leitung">
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-grant-admin')">Abbrechen</button>
-      <button class="btn btn-gold" onclick="submitGrantAdmin()">Vergeben</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-grant-admin"]'>Abbrechen</button>
+      <button class="btn btn-gold" data-action="submitGrantAdmin">Vergeben</button>
     </div>
   </div>
 </div>
@@ -1953,8 +1949,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <div class="hint">Spieler können über das Login-Formular eine Beitrittsanfrage senden.</div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-create-alliance')">Abbrechen</button>
-      <button class="btn btn-gold" onclick="submitCreate()">Anlegen</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-create-alliance"]'>Abbrechen</button>
+      <button class="btn btn-gold" data-action="submitCreate">Anlegen</button>
     </div>
   </div>
 </div>
@@ -1980,8 +1976,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <div class="hint">Spieler können über das Login-Formular eine Beitrittsanfrage senden.</div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-edit-alliance')">Abbrechen</button>
-      <button class="btn btn-gold" onclick="submitEdit()">Speichern</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-edit-alliance"]'>Abbrechen</button>
+      <button class="btn btn-gold" data-action="submitEdit">Speichern</button>
     </div>
   </div>
 </div>
@@ -1993,8 +1989,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div id="alliance-features-body"><div class="empty">Lade …</div></div>
     <div class="modal-footer">
       <span class="hint" style="margin-right:auto;font-size:11px;" data-i18n="s_alliance_settings_hint">Schalter wirken sofort, Zahlen und Namen mit „Speichern“.</span>
-      <button class="btn btn-ghost" onclick="closeModal('modal-alliance-features')" data-i18n="s_schliessen">Schließen</button>
-      <button class="btn btn-gold" id="alliance-features-save" onclick="saveAllianceSettings(this)" disabled data-i18n="s_speichern">Speichern</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-alliance-features"]' data-i18n="s_schliessen">Schließen</button>
+      <button class="btn btn-gold" id="alliance-features-save" data-action="saveAllianceSettings" data-args='[{"$":"el"}]' disabled data-i18n="s_speichern">Speichern</button>
     </div>
   </div>
 </div>
@@ -2069,14 +2065,129 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       </div>
     </form>
     <div class="modal-footer">
-      <button type="button" class="btn btn-ghost" onclick="closeTeamEditor()">Abbrechen</button>
-      <button type="button" class="btn btn-gold" onclick="saveTeams(event)">Speichern</button>
+      <button type="button" class="btn btn-ghost" data-action="closeTeamEditor">Abbrechen</button>
+      <button type="button" class="btn btn-gold" data-action="saveTeams" data-args='[{"$":"event"}]'>Speichern</button>
     </div>
   </div>
 </div>
 
 <script src="i18n.js"></script>
 <script>
+// ══════════════════════════════════════════════════════
+//  AKTIONEN statt Inline-Handlern (on…=), siehe CLAUDE.md
+// ══════════════════════════════════════════════════════
+// Klick:          data-action="fn"           data-args='["a", 1]'
+// andere Events:  data-on-change="fn"         data-args-change='[…]'
+//                 (ebenso input, keydown, focus, mousedown, mouseover, mouseout,
+//                  dragstart, dragover, dragleave, drop, dragend)
+// Platzhalter in den Argumenten: {"$":"el"} = das Element, {"$":"event"} = das Event,
+//                                {"$":"value"} = el.value. Im JS: lwArgs(LW_EL, LW_EVENT, name).
+// data-stop="click mousedown" stoppt das Event an diesem Element (wie event.stopPropagation()),
+// data-prevent="click dragstart" verhindert die Standardaktion (wie event.preventDefault()).
+// Aufgerufen werden nur Funktionen aus LW_ACTIONS. Neue Funktion → hier eintragen.
+const LW_ACTIONS = new Set([
+  'acceptAccessRequestAsNew', 'adminShowTab', 'allianceRowClick', 'allowHeroDrop', 'auOpen', 'berufePlannerCopyMail',
+  'berufePlannerLoadPage', 'berufePlannerSetSort', 'bpAccAssign', 'bpAccDrop', 'bpAccToQueue', 'bpAccToggle',
+  'bpAccToggleAll', 'bpAllowDrop', 'bpAskCopyAgain', 'bpAskPlayer', 'bpDragEnd', 'bpDragStart',
+  'bpDropLeave', 'bpDropNewWarlord', 'bpDropToEngineerSlot', 'bpDropToQueue', 'bpDropToWarlord', 'bpFillApply',
+  'bpFillReroll', 'bpFillRest', 'bpJumpWrong', 'bpMakeWarlord', 'bpOpenTemplates', 'bpSaveRankCheck',
+  'bpSetView', 'bpTogglePair', 'bpTplInsertVar', 'bpTplRenderPreview', 'bpTplResetLang', 'bpTplSave',
+  'bpTplSwitchLang', 'bpTplSwitchVariant', 'bpUnsetWarlord', 'cancelEdit', 'changeYearWeek', 'clearTeamHero',
+  'closeApiTokenCreated', 'closeModal', 'closeTeamEditor', 'copyApiToken', 'discordLogin', 'discordLogout',
+  'ergebnisApply', 'ergebnisSortBy', 'fillHonorHomeAllianceList', 'loadApiTokens', 'loadArchive', 'loadErgebnis',
+  'loadMergePlayers', 'loadSeInactive', 'loadTransferPlayers', 'lwReload', 'lwSelectText', 'lwhubReauthLogin',
+  'mapAccessRequestToMember', 'meBerufSelect', 'meSelectWeek', 'meStepWeek', 'onPoolHeroDragStart', 'onTeamSlotDragStart',
+  'onTeamSlotDrop', 'openAllianceFeatures', 'openCreateAlliance', 'openCreateApiToken', 'openEditAlliance', 'openEditor',
+  'openGrantAdmin', 'openMemberMe', 'openMemberMeInApp', 'openTeamEditor', 'rejectAccessRequest', 'removeMember',
+  'restorePlayer', 'revokeAdmin', 'revokeApiToken', 'saveAllianceSettings', 'saveMeBeruf', 'saveMemberEdit',
+  'saveMemberEditOnEnter', 'saveTeams', 'saveVerwaltungBerufSub', 'selectEventView', 'setVerwaltungBeruf', 'showPage',
+  'spendeImportFromScanner', 'spendeSet', 'spezialImportFromScanner', 'spezialSaveEvent', 'spezialSet', 'spezialSetNoEvent',
+  'spezialToggleSkip', 'startEdit', 'submitAccessRequest', 'submitCreate', 'submitCreateApiToken', 'submitEdit',
+  'submitGrantAdmin', 'submitMerge', 'submitTransfer', 'syncData', 'toggleCatConfig', 'toggleDoneMode',
+  'toggleEventContrast', 'toggleEventDoneMode', 'toggleFlag', 'toggleVerwaltungFlag', 'toggleVerwaltungRow', 'vsImportFromScanner',
+  'vsSet', 'vsToggleSparwoche', 'wacheSet', 'wuesteSet', 'zugCalDragStart', 'zugCancelEditForm',
+  'zugCancelNoShow', 'zugCloseEventForm', 'zugConfirmNoShow', 'zugCopyMail', 'zugDayClick', 'zugDayHover',
+  'zugDeleteEntry', 'zugDragLeave', 'zugDragOver', 'zugDragStart', 'zugEditExisting', 'zugHandleDrop',
+  'zugMarkCompleted', 'zugNavToday', 'zugNavWeek', 'zugOpenNoShowForm', 'zugQueueDragLeave', 'zugQueueDragOver',
+  'zugQueueDrop', 'zugRoNavToday', 'zugRoNavWeek', 'zugSaveEntry', 'zugSyncQueue',
+]);
+const LW_EL = Object.freeze({ $: 'el' });
+const LW_EVENT = Object.freeze({ $: 'event' });
+const LW_VALUE = Object.freeze({ $: 'value' });
+const LW_EVENT_TYPES = ['click', 'change', 'input', 'keydown', 'focus', 'mousedown', 'mouseover', 'mouseout',
+  'dragstart', 'dragover', 'dragleave', 'drop', 'dragend'];
+const LW_NON_BUBBLING = new Set(['focus']);
+
+/** Argumente für data-args als HTML-sicherer JSON-Text (für Template-Strings). */
+function lwArgs(...args) { return escHtml(JSON.stringify(args)); }
+
+function lwParseArgs(raw) {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v : [v];
+  } catch (err) {
+    console.warn('[lwhub] data-args nicht lesbar:', raw);
+    return null;
+  }
+}
+
+function lwResolveArg(a, el, e) {
+  if (a && typeof a === 'object' && !Array.isArray(a) && typeof a.$ === 'string') {
+    if (a.$ === 'el') return el;
+    if (a.$ === 'event') return e;
+    if (a.$ === 'value') return el.value;
+  }
+  return a;
+}
+
+function lwRunAction(el, type, e) {
+  const name = el.getAttribute(type === 'click' ? 'data-action' : 'data-on-' + type);
+  if (!name) return;
+  const fn = LW_ACTIONS.has(name) ? window[name] : null;
+  if (typeof fn !== 'function') { console.warn('[lwhub] unbekannte Aktion:', name); return; }
+  const args = lwParseArgs(el.getAttribute(type === 'click' ? 'data-args' : 'data-args-' + type));
+  if (!args) return;
+  fn.apply(el, args.map((a) => lwResolveArg(a, el, e)));
+}
+
+function lwHasWord(el, attr, word) {
+  const v = el.getAttribute(attr);
+  return !!v && v.split(/\s+/).includes(word);
+}
+
+// Läuft in der Capture-Phase am document und geht vom Ziel nach oben, so wie die alten
+// Inline-Handler beim Aufsteigen (innen zuerst). data-stop beendet den Weg nach oben.
+function lwDispatch(e) {
+  const type = e.type;
+  const attr = type === 'click' ? 'data-action' : 'data-on-' + type;
+  let n = e.target;
+  if (n && n.nodeType !== 1) n = n.parentElement;
+  for (; n && n.nodeType === 1; n = n.parentElement) {
+    if (lwHasWord(n, 'data-prevent', type)) e.preventDefault();
+    if (n.hasAttribute(attr)) lwRunAction(n, type, e);
+    if (lwHasWord(n, 'data-stop', type)) {
+      // wie event.stopPropagation() an genau diesem Element: Vorfahren sehen das Event nicht mehr
+      n.addEventListener(type, (ev) => ev.stopPropagation(), { once: true });
+      break;
+    }
+    if (LW_NON_BUBBLING.has(type)) break;
+  }
+}
+LW_EVENT_TYPES.forEach((type) => document.addEventListener(type, lwDispatch, true));
+
+// kleine Helfer, die vorher direkt im HTML standen
+function lwSelectText(el) { el.select(); }
+function lwReload() { location.reload(); }
+function allianceRowClick(e, shortName) {
+  if (e.target.closest('button')) return;
+  openAllianceFeatures(shortName);
+}
+function saveMemberEditOnEnter(e, name) { if (e.key === 'Enter') saveMemberEdit(name); }
+function zugDayHover(el, on, isToday) {
+  el.style.borderColor = (on || isToday) ? 'var(--gold)' : 'rgba(255,255,255,0.06)';
+}
+
 // ══════════════════════════════════════════════════════
 //  INY RANKING – Backend API (PHP /api)
 // ══════════════════════════════════════════════════════
@@ -2341,14 +2452,14 @@ async function renderAccessDenied(user, reason = 'Kein Zugriff') {
       <span>${safeUsername}</span>
     </div>
     <div style="color:var(--red);font-size:13px;margin-bottom:1rem;">${escHtml(tr(reason))} \u2013 ${escHtml(tr('dein Discord ist aktuell noch keinem aktiven Mitglied zugeordnet.'))}</div>
-    <button class="discord-btn" style="background:var(--card2);font-size:13px;padding:8px 20px;" onclick="discordLogout()">Anderer Account</button>
+    <button class="discord-btn" style="background:var(--card2);font-size:13px;padding:8px 20px;" data-action="discordLogout">Anderer Account</button>
     <div class="login-request" id="login-request-box">
       <div class="title">Keinen Zugriff? Anfrage senden</div>
       <div class="hint">Schick uns Allianz + Spielername. Das landet direkt in der Verwaltung als Vorschlag.</div>
       <div class="row">${allianceSelectHtml}</div>
       <div class="row"><input id="req-player" placeholder="Dein Spielername" value="${escHtml(user.global_name || user.username || '')}"></div>
       <div class="row"><textarea id="req-note" placeholder="Optional: kurzer Hinweis (z. B. alter Name)"></textarea></div>
-      <button class="send" onclick="submitAccessRequest()">Anfrage senden</button>
+      <button class="send" data-action="submitAccessRequest">Anfrage senden</button>
     </div>
   `;
 }
@@ -2399,7 +2510,7 @@ function renderAuthError(message) {
     <div class="login-pending" style="gap:16px">
       <div class="logo">Alli<em>App</em></div>
       <div style="color:var(--red);font-size:14px;max-width:320px;text-align:center;line-height:1.5;">${escHtml(message)}</div>
-      <button class="discord-btn" style="font-size:13px;padding:8px 20px;" onclick="location.reload()">Neu laden</button>
+      <button class="discord-btn" style="font-size:13px;padding:8px 20px;" data-action="lwReload">Neu laden</button>
     </div>
   `;
 }
@@ -3384,7 +3495,7 @@ function openEditor(name){
         :f.t==='n'
         ?'border-color:rgba(155,109,255,0.5);background:rgba(155,109,255,0.15);color:var(--purple);'
         :'border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.12);color:#80b8ff;';
-      return `<button class="flag-btn" data-fk="${f.k}" onclick="toggleFlag('${f.k}')" style="${on?onStyle:''}">${escHtml(tr(f.l))}</button>`;
+      return `<button class="flag-btn" data-fk="${f.k}" data-action="toggleFlag" data-args="${lwArgs(f.k)}" style="${on?onStyle:''}">${escHtml(tr(f.l))}</button>`;
     }).join('');
     return `<div class="flag-cat" style="background:${cat.bg};border:1px solid ${cat.bc};">
       <div class="flag-cat-title" style="color:${cat.lc};">${escHtml(tr(cat.l))}</div>
@@ -3660,7 +3771,7 @@ function me_renderTimeline() {
     const points = calcPoints(week.flags || {});
     const prev = weeks[index + 1] || null;
     const delta = prev ? points - calcPoints(prev.flags || {}) : null;
-    return `<button class="me-timeline-row${index === meSelectedWeekIndex ? ' active' : ''}" type="button" data-action="selectWeek" data-index="${index}">
+    return `<button class="me-timeline-row${index === meSelectedWeekIndex ? ' active' : ''}" type="button" data-action="meSelectWeek" data-args="[${index}]">
       <div>
         <div class="me-timeline-week">${escHtml(formatWeek(week.year_week))}</div>
         <div class="me-timeline-meta">R${week.final_rank} · ${RL[week.final_rank] || 'Member'}</div>
@@ -3746,7 +3857,7 @@ function renderMeBerufe() {
   let html = `<div class="me-beruf-picker">`;
   for (const opt of opts) {
     const active = beruf === opt.value;
-    html += `<button class="me-beruf-btn${active ? ` active ${opt.cls}` : ''}" type="button" data-action="selectBeruf" data-beruf="${escHtml(opt.value ?? '')}">${escHtml(opt.icon)} ${escHtml(opt.label)}</button>`;
+    html += `<button class="me-beruf-btn${active ? ` active ${opt.cls}` : ''}" type="button" data-action="meBerufSelect" data-args="${lwArgs(opt.value)}">${escHtml(opt.icon)} ${escHtml(opt.label)}</button>`;
   }
   html += `</div>`;
 
@@ -3776,7 +3887,7 @@ function renderMeBerufe() {
     }
   }
 
-  html += `<button class="v-btn save" style="margin-top:14px;" type="button" data-action="saveBeruf">✓ ${escHtml(tr('Speichern'))}</button>`;
+  html += `<button class="v-btn save" style="margin-top:14px;" type="button" data-action="saveMeBeruf">✓ ${escHtml(tr('Speichern'))}</button>`;
   content.innerHTML = html;
 }
 window.renderMeBerufe = renderMeBerufe;
@@ -3815,23 +3926,6 @@ async function saveMeBeruf() {
   } catch(err) { toast(tr('Fehler: ') + err.message); }
 }
 
-// Mein Bereich: ein Listener für alle Knöpfe der Seite (statt onclick=, siehe CLAUDE.md)
-(function initMePageActions() {
-  const page = document.getElementById('page-m');
-  if (!page) return;
-  const actions = {
-    stepWeek: el => meStepWeek(Number(el.dataset.delta)),
-    selectWeek: el => meSelectWeek(Number(el.dataset.index)),
-    selectBeruf: el => meBerufSelect(el.dataset.beruf || null),
-    saveBeruf: () => saveMeBeruf(),
-  };
-  page.addEventListener('click', e => {
-    const el = e.target.closest('[data-action]');
-    if (!el || !page.contains(el)) return;
-    const action = actions[el.dataset.action];
-    if (action) action(el, e);
-  });
-})();
 function buildNavActionsFromTabs() {
   const actions = [];
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(btn => {
@@ -3841,9 +3935,9 @@ function buildNavActionsFromTabs() {
     const label = btn.textContent.trim();
     if (!label) return;
     // Parse showPage id directly so we never rely on .click() of a hidden element
-    const onclickStr = btn.getAttribute('onclick') || '';
-    const m = onclickStr.match(/showPage\(['"]([^'"]+)['"]\)/);
-    const fn = m ? () => showPage(m[1]) : () => btn.click();
+    const navArgs = btn.dataset.action === 'showPage' ? lwParseArgs(btn.dataset.args) : null;
+    const pageId = navArgs && navArgs[0];
+    const fn = pageId ? () => showPage(pageId) : () => btn.click();
     actions.push({ label, fn, btnRef: btn });
   });
   window.csNavActions = actions;
@@ -4414,9 +4508,9 @@ function renderTeamEditorDnD() {
           ? `<img src="${escHtml(shownHero.thumb)}" alt="${escHtml(shownHero.name)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`
           : `<div style="width:44px;height:44px;border-radius:8px;border:1px dashed ${isLockedMonkeySlot ? 'rgba(240,165,0,0.45)' : 'rgba(255,255,255,0.2)'};display:grid;place-items:center;color:${isLockedMonkeySlot ? 'var(--gold)' : 'var(--soft)'};font-size:11px;">${displayPos === 0 ? tr('s_affe') : tr('s_slot')}</div>`;
       const title = shownHero ? escHtml(shownHero.name) : (isLockedMonkeySlot ? tr('s_affe_slot_gesperrt') : tr('s_drop_hero'));
-      const clearBtn = shownHero ? `<button type="button" onclick="clearTeamHero(${slot},${dataPos})" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:1px solid rgba(224,85,69,0.5);background:rgba(224,85,69,0.2);color:#f4b1a8;font-size:10px;line-height:1;padding:0;">×</button>` : '';
+      const clearBtn = shownHero ? `<button type="button" data-action="clearTeamHero" data-args="${lwArgs(slot, dataPos)}" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:1px solid rgba(224,85,69,0.5);background:rgba(224,85,69,0.2);color:#f4b1a8;font-size:10px;line-height:1;padding:0;">×</button>` : '';
       const lockBadge = isLockedMonkeySlot ? '<span style="position:absolute;bottom:-8px;right:-6px;font-size:10px;color:var(--gold);">🔒</span>' : '';
-      return `<div style="position:relative;" draggable="${shownHero ? 'true' : 'false'}" ondragstart="onTeamSlotDragStart(event,${slot},${dataPos})" ondragover="allowHeroDrop(event)" ondrop="onTeamSlotDrop(event,${slot},${dataPos})" title="${title}">${content}${clearBtn}${lockBadge}</div>`;
+      return `<div style="position:relative;" draggable="${shownHero ? 'true' : 'false'}" data-on-dragstart="onTeamSlotDragStart" data-args-dragstart="${lwArgs(LW_EVENT, slot, dataPos)}" data-on-dragover="allowHeroDrop" data-args-dragover="${lwArgs(LW_EVENT)}" data-on-drop="onTeamSlotDrop" data-args-drop="${lwArgs(LW_EVENT, slot, dataPos)}" title="${title}">${content}${clearBtn}${lockBadge}</div>`;
     }).join('');
 
     const poolInfo = catalog.length
@@ -4441,7 +4535,7 @@ function renderTeamEditorDnD() {
       const used = findHeroPlacement(hero.id);
       const usedLabel = used ? `T${used.slot} · S${used.pos + 1}` : tr('s_frei');
       const usedColor = used ? 'var(--gold)' : 'var(--green)';
-      return `<div draggable="true" ondragstart="onPoolHeroDragStart(event,'${escHtml(hero.id)}')" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(255,255,255,0.02);cursor:grab;">
+      return `<div draggable="true" data-on-dragstart="onPoolHeroDragStart" data-args-dragstart="${lwArgs(LW_EVENT, hero.id)}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(255,255,255,0.02);cursor:grab;">
         <div style="display:flex;align-items:center;gap:8px;min-width:0;">
           <img src="${escHtml(hero.thumb)}" alt="${escHtml(hero.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;">
           <span style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(hero.name)}</span>
@@ -4818,7 +4912,7 @@ function renderList(){
     const dimCls=(doneMode===1 && !!e)?' done-dim':'';
     const divider=(i===splitAt)?'<div class="done-divider">✓ Bereits erfasst</div>':'';
 
-    return divider+`<div class="member-row${dimCls}${formerCls(name)}" data-name="${name.replace(/"/g,'&quot;')}" onclick="openEditor('${name.replace(/'/g,"\\'")}')">
+    return divider+`<div class="member-row${dimCls}${formerCls(name)}" data-name="${name.replace(/"/g,'&quot;')}" data-action="openEditor" data-args="${lwArgs(name)}">
       <span class="m-status">${statusIcon}</span>
       <span class="m-name">${name}${fixedBadge}${formerTag(name)}</span>
       <span class="m-rank">${rankBadge}</span>
@@ -4963,7 +5057,7 @@ function renderDashboard(){
       const escName = e.name.replace(/'/g, "\\'");
       return `<div class="warn-row">
         <div class="avatar" style="background:${col}20;color:${col};border:1px solid ${col}40;">${ini}</div>
-        <div style="flex:1"><div class="warn-name"><button class="member-jump" type="button" onclick="openMemberMe('${escName}')">${e.name}</button></div>
+        <div style="flex:1"><div class="warn-name"><button class="member-jump" type="button" data-action="openMemberMe" data-args="${lwArgs(e.name)}">${e.name}</button></div>
         <div class="tags">${wf.map(k=>`<span class="tag r">${LBL[k]||k}</span>`).join('')}</div></div>
       </div>`;
     }).join('');
@@ -4980,7 +5074,7 @@ function renderDashboard(){
       const escName = e.name.replace(/'/g, "\\'");
       return `<div class="top-row">
       <div class="top-pos ${i===0?'p1':i===1?'p2':i===2?'p3':''}">${i+1}</div>
-      <div class="top-name"><button class="member-jump" type="button" onclick="openMemberMe('${escName}')">${e.name}</button></div>
+      <div class="top-name"><button class="member-jump" type="button" data-action="openMemberMe" data-args="${lwArgs(e.name)}">${e.name}</button></div>
       <div class="rank-badge ${rbClass(br)}">${br} · ${RL[br]}</div>
     </div>`;}).join('');
 
@@ -5052,7 +5146,7 @@ function renderTable(){
     const escName = r.name.replace(/'/g, "\\'");
     return `<tr class="${r.hasEntry?'':'dim'}${formerCls(r.name)}">
       <td style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--softer);">${r.hasEntry?pos:'·'}</td>
-      <td style="font-weight:500;"><button class="member-jump" type="button" onclick="openMemberMe('${escName}')">${r.name}</button>${formerTag(r.name)}${isFixed(r.name)?` <span style="font-size:10px;color:var(--gold);">${R5.has(r.name)?'R5':'R4'}</span>`:''}</td>
+      <td style="font-weight:500;"><button class="member-jump" type="button" data-action="openMemberMe" data-args="${lwArgs(r.name)}">${r.name}</button>${formerTag(r.name)}${isFixed(r.name)?` <span style="font-size:10px;color:var(--gold);">${R5.has(r.name)?'R5':'R4'}</span>`:''}</td>
       <td>${rb}</td><td class="points-rank">${th}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;">${fh}</div></td><td>${sh}</td>
     </tr>`;
   }).join('');
@@ -5102,6 +5196,11 @@ function updateBattleLoaderMediaState() {
   loader.classList.toggle('img-missing', !anyReady);
 }
 window.updateBattleLoaderMediaState = updateBattleLoaderMediaState;
+document.querySelectorAll('#battle-loader .battle-loader-media').forEach((img) => {
+  img.addEventListener('load', updateBattleLoaderMediaState);
+  img.addEventListener('error', updateBattleLoaderMediaState);
+});
+updateBattleLoaderMediaState();
 
 function showBattleLoader() {
   const el = document.getElementById('battle-loader');
@@ -5324,8 +5423,8 @@ function renderWache() {
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
-    const btnBad = `<button class="wt-btn ${dmg?'on-bad':''}" onclick="wacheSet('${esc}','bad')" title="wenig Schaden < 2G">${dmg?'⚠ &lt;2G':'💤'}</button>`;
-    const btnGood = `<button class="wt-btn ${(teil&&!dmg)?'on-good':''}" onclick="wacheSet('${esc}','good')" title="guter Schaden">${(teil&&!dmg)?'⚔ gut':'⚔'}</button>`;
+    const btnBad = `<button class="wt-btn ${dmg?'on-bad':''}" data-action="wacheSet" data-args="${lwArgs(name, 'bad')}" title="wenig Schaden < 2G">${dmg?'⚠ &lt;2G':'💤'}</button>`;
+    const btnGood = `<button class="wt-btn ${(teil&&!dmg)?'on-good':''}" data-action="wacheSet" data-args="${lwArgs(name, 'good')}" title="guter Schaden">${(teil&&!dmg)?'⚔ gut':'⚔'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
@@ -5403,9 +5502,9 @@ function renderWueste() {
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
-    const btnAnm  = `<button class="wt-btn ${anm?'on-anm':''}" onclick="wuesteSet('${esc}','anm')" title="Anmeldung">${anm?'📋 an':'📋'}</button>`;
-    const btnTeil = `<button class="wt-btn ${teil?'on-good':''}" onclick="wuesteSet('${esc}','teil')" title="Teilnahme">${teil?'⚔ teil':'⚔'}</button>`;
-    const btnFehl = `<button class="wt-btn ${fehl?'on-bad':''}" onclick="wuesteSet('${esc}','fehl')" title="Fehlen (Strafe)">${fehl?'⚠ fehlt':'💀'}</button>`;
+    const btnAnm  = `<button class="wt-btn ${anm?'on-anm':''}" data-action="wuesteSet" data-args="${lwArgs(name, 'anm')}" title="Anmeldung">${anm?'📋 an':'📋'}</button>`;
+    const btnTeil = `<button class="wt-btn ${teil?'on-good':''}" data-action="wuesteSet" data-args="${lwArgs(name, 'teil')}" title="Teilnahme">${teil?'⚔ teil':'⚔'}</button>`;
+    const btnFehl = `<button class="wt-btn ${fehl?'on-bad':''}" data-action="wuesteSet" data-args="${lwArgs(name, 'fehl')}" title="Fehlen (Strafe)">${fehl?'⚠ fehlt':'💀'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
@@ -5483,9 +5582,9 @@ function renderSpezial() {
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
-    const btnTeil = `<button class="wt-btn ${teil?'on-anm':''}" onclick="spezialSet('${esc}','teil')" title="Teilnahme">${teil?'⚔ teil':'⚔'}</button>`;
-    const btn50  = `<button class="wt-btn ${t50?'on-good':''}" onclick="spezialSet('${esc}','t50')" title="Top 50">${t50?'🏅 T50':'🏅'}</button>`;
-    const btn20  = `<button class="wt-btn ${t20?'on-gold':''}" onclick="spezialSet('${esc}','t20')" title="Top 20">${t20?'🏆 T20':'🏆'}</button>`;
+    const btnTeil = `<button class="wt-btn ${teil?'on-anm':''}" data-action="spezialSet" data-args="${lwArgs(name, 'teil')}" title="Teilnahme">${teil?'⚔ teil':'⚔'}</button>`;
+    const btn50  = `<button class="wt-btn ${t50?'on-good':''}" data-action="spezialSet" data-args="${lwArgs(name, 't50')}" title="Top 50">${t50?'🏅 T50':'🏅'}</button>`;
+    const btn20  = `<button class="wt-btn ${t20?'on-gold':''}" data-action="spezialSet" data-args="${lwArgs(name, 't20')}" title="Top 20">${t20?'🏆 T20':'🏆'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
@@ -5891,7 +5990,7 @@ window.vsToggleSparwoche = vsToggleSparwoche;
 // Spieler mit Scan-Daten als erfasst (Platz 31+ ueber 43,2 Mio hat bewusst kein Haekchen).
 let vsScanData = { kw: null, byName: new Map(), loading: false };
 async function loadVsScanData() {
-  if (!document.querySelector('[onclick="vsImportFromScanner()"]')) return; // nur mit Scanner-Feature
+  if (!document.querySelector('[data-action="vsImportFromScanner"]')) return; // nur mit Scanner-Feature
   if (vsScanData.loading || vsScanData.kw === kw) return;
   vsScanData.loading = true;
   const forKw = kw;
@@ -5936,16 +6035,16 @@ function renderVS() {
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
-    const btnSpar  = `<button class="wt-btn ${sparOk?'on-anm':''}" onclick="vsSet('${esc}','spar')" title="${escHtml(tr('Sparwoche eingehalten (höchstens 10 Mio je VS-Tag)'))}">${sparOk ? '🐷 ' + escHtml(tr('eingehalten')) : '🐷'}</button>`;
+    const btnSpar  = `<button class="wt-btn ${sparOk?'on-anm':''}" data-action="vsSet" data-args="${lwArgs(name, 'spar')}" title="${escHtml(tr('Sparwoche eingehalten (höchstens 10 Mio je VS-Tag)'))}">${sparOk ? '🐷 ' + escHtml(tr('eingehalten')) : '🐷'}</button>`;
     const maxDay = maxDayOf(scan);
     const scanInfo = !scan ? '' : spar
       ? `📸 ${escHtml(trf('max {v} Mio/Tag', { v: fmtMio(maxDay) }))} ${maxDay > VS_SPAR_MAX_PER_DAY ? '✗' : '✓'}`
       : scan.place == null ? `📸 Σ ${escHtml(trf('{v} Mio', { v: fmtMio(scan.week_points) }))}`
       : `📸 ${escHtml(trf('{v} Mio · Platz {p}', { v: fmtMio(scan.week_points), p: scan.place }))}${scan.from_days ? ' Σ' : ''}`; // Σ: Summe der Tage, nicht in der Wochenliste
     const scanCls = spar && scan ? (maxDay > VS_SPAR_MAX_PER_DAY ? ' spar-over' : ' spar-ok') : '';
-    const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="vsSet('${esc}','unter')" title="unter 43,2 Mio Punkte (Strafe)">${unter?'⚠ &lt;43,2M':'🟥'}</button>`;
-    const btnT30   = `<button class="wt-btn ${t30?'on-anm':''}" onclick="vsSet('${esc}','t30')" title="Top 30">${t30?'🥈 T30':'🥈'}</button>`;
-    const btnT10   = `<button class="wt-btn ${t10?'on-gold':''}" onclick="vsSet('${esc}','t10')" title="Top 10">${t10?'🏆 T10':'🏆'}</button>`;
+    const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" data-action="vsSet" data-args="${lwArgs(name, 'unter')}" title="unter 43,2 Mio Punkte (Strafe)">${unter?'⚠ &lt;43,2M':'🟥'}</button>`;
+    const btnT30   = `<button class="wt-btn ${t30?'on-anm':''}" data-action="vsSet" data-args="${lwArgs(name, 't30')}" title="Top 30">${t30?'🥈 T30':'🥈'}</button>`;
+    const btnT10   = `<button class="wt-btn ${t10?'on-gold':''}" data-action="vsSet" data-args="${lwArgs(name, 't10')}" title="Top 10">${t10?'🏆 T10':'🏆'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
@@ -6102,7 +6201,7 @@ const SP_SCANNER_MIN_POINTS = 35000;
 const SP_SCANNER_TOP = 20;
 let spScanData = { kw: null, byName: new Map(), loading: false };
 async function loadSpScanData() {
-  if (!document.querySelector('[onclick="spendeImportFromScanner()"]')) return; // nur mit Scanner-Feature
+  if (!document.querySelector('[data-action="spendeImportFromScanner"]')) return; // nur mit Scanner-Feature
   if (spScanData.loading || spScanData.kw === kw) return;
   spScanData.loading = true;
   const forKw = kw;
@@ -6148,8 +6247,8 @@ function renderSpende() {
     const esc = name.replace(/'/g,"\\'");
     const dimCls = (eventDoneMode===1 && isDone(name)) ? ' done-dim' : '';
 
-    const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" onclick="spendeSet('${esc}','unter')" title="unter 35K gespendet (Strafe)">${unter?'⚠ &lt;35K':'🟥'}</button>`;
-    const btnTop20 = `<button class="wt-btn ${top20?'on-anm':''}" onclick="spendeSet('${esc}','top20')" title="Top 20 Spender (Bonus)">${top20?'🏅 T20':'🏅'}</button>`;
+    const btnUnter = `<button class="wt-btn ${unter?'on-bad':''}" data-action="spendeSet" data-args="${lwArgs(name, 'unter')}" title="unter 35K gespendet (Strafe)">${unter?'⚠ &lt;35K':'🟥'}</button>`;
+    const btnTop20 = `<button class="wt-btn ${top20?'on-anm':''}" data-action="spendeSet" data-args="${lwArgs(name, 'top20')}" title="Top 20 Spender (Bonus)">${top20?'🏅 T20':'🏅'}</button>`;
 
     const divider = i===splitAt ? '<div class="wt-done-divider">✓ Bereits erfasst</div>' : '';
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
@@ -6364,7 +6463,7 @@ function renderFeatureToggles(containerId, alliance, config) {
       const on = isConfiguredFeatureEnabled(key, config);
       return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);">
         <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(icon)} ${escHtml(tr(label))}</div><div style="font-size:11px;color:var(--soft);">${escHtml(tr(sub))}</div></div>
-        <button onclick="toggleCatConfig('${key}','${escHtml(alliance)}')" class="v-btn ${on ? 'save' : 'del'}" style="min-width:88px;">${on ? '✓ ' + escHtml(tr('Aktiv')) : '✗ ' + escHtml(tr('Inaktiv'))}</button>
+        <button data-action="toggleCatConfig" data-args="${lwArgs(key, alliance)}" class="v-btn ${on ? 'save' : 'del'}" style="min-width:88px;">${on ? '✓ ' + escHtml(tr('Aktiv')) : '✗ ' + escHtml(tr('Inaktiv'))}</button>
       </div>`;
     }).join('') +
     `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
@@ -6874,9 +6973,8 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
   for (let i = 0; i < berufDefs.length; i++) {
     const o = berufDefs[i];
     const active = currentBeruf === o.v;
-    const val = o.v === null ? 'null' : "'" + o.v + "'";
     const style = active ? 'border-color:rgba(74,158,255,0.5);background:rgba(74,158,255,0.15);color:#80b8ff;' : '';
-    berufBtns += '<button class="flag-btn" onclick="event.stopPropagation();setVerwaltungBeruf(\'' + esc + '\',' + val + ')" style="' + style + '">' + o.l + '</button>';
+    berufBtns += '<button class="flag-btn" data-stop="click" data-action="setVerwaltungBeruf" data-args="' + lwArgs(name, o.v) + '" style="' + style + '">' + o.l + '</button>';
   }
 
   let subHtml = '';
@@ -6888,7 +6986,7 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
         const n = kriegsherren[i];
         opts += '<option value="' + escHtml(n) + '"' + (n === currentWinwin ? ' selected' : '') + '>' + escHtml(n) + '</option>';
       }
-      winwinEl = '<select class="v-rank-sel" id="v-beruf-winwin" style="flex:1;min-width:120px;" onclick="event.stopPropagation()">' + opts + '</select>';
+      winwinEl = '<select class="v-rank-sel" id="v-beruf-winwin" style="flex:1;min-width:120px;" data-stop="click">' + opts + '</select>';
     } else {
       winwinEl = '<span style="font-size:12px;color:var(--soft);">' + escHtml(tr('Keine Kriegsherren vorhanden')) + '</span>';
     }
@@ -6896,7 +6994,7 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
       + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'
       + '<input type="checkbox" id="v-beruf-medhilfe"' + (currentMedHilfe ? ' checked' : '') + '> 🏥 ' + escHtml(tr('Med. Hilfe'))
       + '</label>' + winwinEl + '</div>'
-      + '<button class="v-btn save" style="margin-top:8px;" onclick="event.stopPropagation();saveVerwaltungBerufSub(\'' + esc + '\')">✓ ' + escHtml(tr('Beruf speichern')) + '</button>';
+      + '<button class="v-btn save" style="margin-top:8px;" data-stop="click" data-action="saveVerwaltungBerufSub" data-args="' + lwArgs(name) + '">✓ ' + escHtml(tr('Beruf speichern')) + '</button>';
   }
 
   return '<div class="flag-cat" style="background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.18);margin-top:10px;">'
@@ -6963,7 +7061,7 @@ function renderVerwaltung(filter=''){
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
             <div style="flex:1;min-width:150px;">
               <div class="vlabel">Name</div>
-              <input class="vinput" id="v-edit-input" value="${name.replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter')saveMemberEdit('${esc}')">
+              <input class="vinput" id="v-edit-input" value="${name.replace(/"/g,'&quot;')}" data-on-keydown="saveMemberEditOnEnter" data-args-keydown="${lwArgs(LW_EVENT, name)}">
             </div>
             <div style="flex:1;min-width:150px;">
               <div class="vlabel">Discord-ID</div>
@@ -6990,7 +7088,7 @@ function renderVerwaltung(filter=''){
           </div>
           <div style="margin-bottom:10px;">
             <div class="vlabel">${escHtml(tr('Heimat-Allianz'))} <span style="color:var(--soft);font-size:11px;font-weight:400">(${escHtml(tr('nur bei Ehrenrolle'))})</span></div>
-            <input class="vinput" id="v-edit-honor-home" list="v-alliance-list" value="${escHtml(meta.honorHome||'')}" placeholder="${escHtml(tr('z. B. IvX'))}" maxlength="50" onfocus="fillHonorHomeAllianceList()">
+            <input class="vinput" id="v-edit-honor-home" list="v-alliance-list" value="${escHtml(meta.honorHome||'')}" placeholder="${escHtml(tr('z. B. IvX'))}" maxlength="50" data-on-focus="fillHonorHomeAllianceList">
           </div>`;
       } else {
         const lastVisitStr = meta.lastVisitAt
@@ -7018,7 +7116,7 @@ function renderVerwaltung(filter=''){
             :f.t==='a'?'border-color:rgba(240,165,0,0.4);background:rgba(240,165,0,0.12);color:var(--gold);'
             :f.t==='n'?'border-color:rgba(155,109,255,0.5);background:rgba(155,109,255,0.15);color:var(--purple);'
             :'border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.12);color:#80b8ff;';
-          return `<button class="flag-btn" onclick="event.stopPropagation();toggleVerwaltungFlag('${esc}','${f.k}')" style="${on?onStyle:''}">${escHtml(tr(f.l))}</button>`;
+          return `<button class="flag-btn" data-stop="click" data-action="toggleVerwaltungFlag" data-args="${lwArgs(name, f.k)}" style="${on?onStyle:''}">${escHtml(tr(f.l))}</button>`;
         }).join('');
         return `<div class="flag-cat" style="background:${cat.bg};border:1px solid ${cat.bc};">
           <div class="flag-cat-title" style="color:${cat.lc};">${cat.l} <small style="font-weight:400;text-transform:none;letter-spacing:0;opacity:0.7;">KW ${formatYearWeek(kw)}</small></div>
@@ -7028,17 +7126,17 @@ function renderVerwaltung(filter=''){
 
       const actionBtns = isEditing
         ? `<div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="v-btn save" onclick="event.stopPropagation();saveMemberEdit('${esc}')">✓ Speichern</button>
-            <button class="v-btn cancel" onclick="event.stopPropagation();cancelEdit()">✕ Abbrechen</button>
+            <button class="v-btn save" data-stop="click" data-action="saveMemberEdit" data-args="${lwArgs(name)}">✓ Speichern</button>
+            <button class="v-btn cancel" data-stop="click" data-action="cancelEdit">✕ Abbrechen</button>
           </div>`
         : `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-            <button class="v-btn edit" onclick="event.stopPropagation();startEdit('${esc}')">✏ ${escHtml(tr('Bearbeiten'))}</button>
-            <button class="v-btn del" onclick="event.stopPropagation();removeMember('${esc}')">🗑 ${escHtml(tr('Entfernen'))}</button>
-            ${isHonor ? '' : `<button class="v-btn" onclick="event.stopPropagation();openTeamEditor('${esc}')" style="background:rgba(240,165,0,0.1);border-color:rgba(240,165,0,0.3);color:var(--gold);">⚔ ${escHtml(tr('Teams'))}</button>`}
-            ${isHonor ? '' : `<button class="v-btn" onclick="event.stopPropagation();openMemberMeInApp('${esc}')" style="background:rgba(100,160,255,0.1);border-color:rgba(100,160,255,0.3);color:#80b8ff;">👁 ${escHtml(tr('Me-Ansicht'))}</button>`}
+            <button class="v-btn edit" data-stop="click" data-action="startEdit" data-args="${lwArgs(name)}">✏ ${escHtml(tr('Bearbeiten'))}</button>
+            <button class="v-btn del" data-stop="click" data-action="removeMember" data-args="${lwArgs(name)}">🗑 ${escHtml(tr('Entfernen'))}</button>
+            ${isHonor ? '' : `<button class="v-btn" data-stop="click" data-action="openTeamEditor" data-args="${lwArgs(name)}" style="background:rgba(240,165,0,0.1);border-color:rgba(240,165,0,0.3);color:var(--gold);">⚔ ${escHtml(tr('Teams'))}</button>`}
+            ${isHonor ? '' : `<button class="v-btn" data-stop="click" data-action="openMemberMeInApp" data-args="${lwArgs(name)}" style="background:rgba(100,160,255,0.1);border-color:rgba(100,160,255,0.3);color:#80b8ff;">👁 ${escHtml(tr('Me-Ansicht'))}</button>`}
           </div>`;
 
-      detailHtml = '<div class="v-detail" onclick="event.stopPropagation()">'
+      detailHtml = '<div class="v-detail" data-stop="click">'
         + memberInfoHtml
         + (flagsHtml ? '<div class="flag-cats">' + flagsHtml + '</div>' : '')
         + (isHonor ? '' : buildVerwaltungBerufHtml(name, esc, meta))
@@ -7050,7 +7148,7 @@ function renderVerwaltung(filter=''){
       ? `<div style="margin:14px 0 8px;padding:8px 10px;border:1px solid rgba(127,184,255,0.35);background:rgba(74,158,255,0.08);border-radius:10px;font-size:12px;font-weight:700;letter-spacing:.5px;color:#9cc7ff;text-transform:uppercase;">${escHtml(tr('Ehrenrollen'))} <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--soft);">· ${escHtml(tr('sehen zu, ändern nichts, zählen nicht mit'))}</span></div>`
       : '';
 
-    return `${honorSectionHeader}<div class="v-row-wrap${isOpen?' is-open':''}" onclick="toggleVerwaltungRow('${esc}')">
+    return `${honorSectionHeader}<div class="v-row-wrap${isOpen?' is-open':''}" data-action="toggleVerwaltungRow" data-args="${lwArgs(name)}">
       <div class="v-row" style="border-bottom:none;cursor:pointer;">
         <div class="v-member">
           ${avatar}
@@ -7102,10 +7200,10 @@ function renderAccessRequests() {
         </div>
       </div>
       <div class="v-access-actions">
-        <button class="v-btn save" onclick="acceptAccessRequestAsNew('${reqId}')">${escHtml(tr('Als neues Mitglied'))}</button>
+        <button class="v-btn save" data-action="acceptAccessRequestAsNew" data-args="${lwArgs(reqIdRaw)}">${escHtml(tr('Als neues Mitglied'))}</button>
         <select class="v-map-select" id="${escHtml(selectId)}">${options}</select>
-        <button class="v-btn map" onclick="mapAccessRequestToMember('${reqId}')">${escHtml(tr('Auf Member mappen'))}</button>
-        <button class="v-btn reject" onclick="rejectAccessRequest('${reqId}')">${escHtml(tr('Ablehnen'))}</button>
+        <button class="v-btn map" data-action="mapAccessRequestToMember" data-args="${lwArgs(reqIdRaw)}">${escHtml(tr('Auf Member mappen'))}</button>
+        <button class="v-btn reject" data-action="rejectAccessRequest" data-args="${lwArgs(reqIdRaw)}">${escHtml(tr('Ablehnen'))}</button>
       </div>
     </div>`;
   }).join('');
@@ -7326,7 +7424,7 @@ async function loadSeInactive() {
       const totalPts = playerPoints[player.name]?.total ?? 0;
       html += `<tr>
         <td style="padding:4px 8px;border-bottom:1px solid var(--border);">
-          <span style="cursor:pointer;color:var(--accent);text-decoration:underline;text-underline-offset:3px;" onclick="openMemberMe('${esc.replace(/'/g, "\\'")}')">${ player.name}</span>
+          <span style="cursor:pointer;color:var(--accent);text-decoration:underline;text-underline-offset:3px;" data-action="openMemberMe" data-args="${lwArgs(player.name)}">${ player.name}</span>
         </td>
         ${(data.weeks||[]).map(w => {
           const detail = player.weeks[w] || { status: 'missing' };
@@ -7517,7 +7615,7 @@ function renderErgebnisTable() {
 
   const th = (k, label, align = 'center') => {
     const arrow = ergebnisSort.key === k ? (ergebnisSort.dir > 0 ? ' ▴' : ' ▾') : '';
-    return `<th onclick="ergebnisSortBy('${k}')" title="${escHtml(tr('Sortieren'))}" style="text-align:${align};padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;">${escHtml(label)}${arrow}</th>`;
+    return `<th data-action="ergebnisSortBy" data-args="${lwArgs(k)}" title="${escHtml(tr('Sortieren'))}" style="text-align:${align};padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;">${escHtml(label)}${arrow}</th>`;
   };
   let html = `<table class="ergebnis-table" style="width:100%;border-collapse:collapse;font-size:0.85rem;">
     <thead>
@@ -7542,7 +7640,7 @@ function renderErgebnisTable() {
       const btnColor = rec.type === 'promote' ? '#2ecb7a' : '#e05545';
       const esc = player.name.replace(/'/g, "\\'");
       actionCell = `<td style="text-align:center;">
-        <button onclick="ergebnisApply('${esc}',${rec.targetRank})"
+        <button data-action="ergebnisApply" data-args="${lwArgs(player.name, rec.targetRank)}"
           style="background:${btnColor}22;color:${btnColor};border:1px solid ${btnColor};border-radius:5px;padding:4px 10px;cursor:pointer;font-size:0.8rem;">
           ${verb} → R${rec.targetRank}
         </button>
@@ -7846,7 +7944,7 @@ function renderAllianceList() {
   if (!el) return;
   if (!_adminAlliances.length) { el.innerHTML = '<div class="empty">Keine Allianzen gefunden.</div>'; return; }
   el.innerHTML = _adminAlliances.map(a => `
-    <div class="alliance-row" style="cursor:pointer;" onclick="if (event.target.closest('button')) return; openAllianceFeatures(${escHtml(JSON.stringify(a.short_name))})">
+    <div class="alliance-row" style="cursor:pointer;" data-action="allianceRowClick" data-args="${lwArgs(LW_EVENT, a.short_name)}">
       <div class="alliance-short">${escHtml(a.short_name)}</div>
       <div class="alliance-title-text">
         ${a.title ? escHtml(a.title) : '<em style="color:var(--soft)">Kein Titel</em>'}
@@ -7857,8 +7955,8 @@ function renderAllianceList() {
           ? '<span style="font-size:11px;background:rgba(46,203,122,0.15);color:var(--green);border:1px solid rgba(46,203,122,0.3);border-radius:6px;padding:2px 8px;">Anfragen offen</span>'
           : '<span style="font-size:11px;color:var(--soft);">Anfragen geschlossen</span>'}
         <div class="alliance-actions">
-          <button class="btn btn-ghost btn-sm" onclick="openAllianceFeatures(${escHtml(JSON.stringify(a.short_name))})">Features</button>
-          <button class="btn btn-ghost btn-sm" onclick="openEditAlliance(${escHtml(JSON.stringify(a.short_name))}, ${escHtml(JSON.stringify(a.title || ''))}, ${a.accepts_requests ? 1 : 0})">Bearbeiten</button>
+          <button class="btn btn-ghost btn-sm" data-action="openAllianceFeatures" data-args="${lwArgs(a.short_name)}">Features</button>
+          <button class="btn btn-ghost btn-sm" data-action="openEditAlliance" data-args="${lwArgs(a.short_name, a.title || '', a.accepts_requests ? 1 : 0)}">Bearbeiten</button>
         </div>
       </div>
     </div>
@@ -7937,7 +8035,7 @@ async function loadArchive() {
           R${p.current_rank_code} ${escHtml(adminRankLabel(p.current_rank_code))}
         </span></td>
         <td style="color:var(--soft);font-size:12px">${p.archived_at ? p.archived_at.slice(0,16).replace('T',' ') : '-'}</td>
-        <td><button class="btn btn-green btn-sm" onclick="restorePlayer(${escHtml(JSON.stringify(p.archive_id))}, ${escHtml(JSON.stringify(p.current_name))})">Wiederherstellen</button></td>
+        <td><button class="btn btn-green btn-sm" data-action="restorePlayer" data-args="${lwArgs(p.archive_id, p.current_name)}">Wiederherstellen</button></td>
       </tr>
     `).join('');
   } catch (e) {
@@ -8102,7 +8200,7 @@ async function loadAdmins() {
         <td style="color:var(--soft);font-size:12px">${escHtml(a.granted_by === 'system' ? tr('System') : (a.granted_by || '-'))}</td>
         <td style="color:var(--soft);font-size:12px">${escHtml(a.note || '')}</td>
         <td style="color:var(--soft);font-size:12px">${a.granted_at ? a.granted_at.slice(0,10) : '-'}</td>
-        <td>${isSelf ? '' : `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" onclick="revokeAdmin(${escHtml(JSON.stringify(a.discord_user_id))}, ${escHtml(JSON.stringify(displayName))})">${escHtml(tr('Entziehen'))}</button>`}</td>
+        <td>${isSelf ? '' : `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" data-action="revokeAdmin" data-args="${lwArgs(a.discord_user_id, displayName)}">${escHtml(tr('Entziehen'))}</button>`}</td>
       </tr>`;
     }).join('');
   } catch (e) {
@@ -8196,7 +8294,7 @@ async function loadApiTokens() {
         <td style="color:var(--soft);font-size:12px">${t.last_used_at ? day(t.last_used_at) : escHtml(tr('nie'))}</td>
         <td style="color:var(--soft);font-size:12px">${t.expires_at ? day(t.expires_at) : escHtml(tr('unbegrenzt'))}</td>
         <td>${status}</td>
-        <td>${t.is_active ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" onclick="revokeApiToken(${escHtml(JSON.stringify(t.token_id))}, ${escHtml(JSON.stringify(t.client_name))})">${escHtml(tr('Widerrufen'))}</button>` : ''}</td>
+        <td>${t.is_active ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" data-action="revokeApiToken" data-args="${lwArgs(t.token_id, t.client_name)}">${escHtml(tr('Widerrufen'))}</button>` : ''}</td>
       </tr>`;
     }).join('');
   } catch (e) {
@@ -8555,7 +8653,7 @@ async function revokeApiToken(tokenId, clientName) {
       const mailAttr = mailLines.join('\n').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       html += '<th style="text-align:center;padding:3px 4px;">'
         + '<div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--soft);text-transform:uppercase;margin-bottom:3px;">KW ' + kw + '</div>'
-        + '<button data-mailtext="' + mailAttr + '" onclick="zugCopyMail(this)" style="font-size:9px;padding:2px 6px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--soft);cursor:pointer;transition:all 0.15s;" title="Mail-Text f\u00fcr KW ' + kw + ' kopieren">\u2709 Mail</button>'
+        + '<button data-mailtext="' + mailAttr + '" data-action="zugCopyMail" data-args="' + lwArgs(LW_EL) + '" style="font-size:9px;padding:2px 6px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--soft);cursor:pointer;transition:all 0.15s;" title="Mail-Text f\u00fcr KW ' + kw + ' kopieren">\u2709 Mail</button>'
         + '</th>';
     }
     html += '</tr></thead><tbody>';
@@ -8583,8 +8681,8 @@ async function revokeApiToken(tokenId, clientName) {
         } else if (allEntries.length) {
           inner += '<div style="font-size:9px;color:var(--soft-2);margin-top:3px;">' + allEntries.length + ' and. RW</div>';
         }
-        const draggable = isPlanned ? 'draggable="true" ondragstart="zugCalDragStart(event,\'' + dateStr + '\')"' : '';
-        html += '<td ' + draggable + ' onclick="zugDayClick(\'' + dateStr + '\')" ondragover="zugDragOver(event,this)" ondragleave="zugDragLeave(this,\'' + isToday + '\')" ondrop="zugHandleDrop(event,\'' + dateStr + '\',this,\'' + isToday + '\')" data-date="' + dateStr + '" style="background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:6px 5px;cursor:' + (isPlanned ? 'grab' : 'pointer') + ';transition:0.15s;vertical-align:top;" onmouseover="this.style.borderColor=\'var(--gold)\'" onmouseout="this.style.borderColor=\'' + (isToday ? 'var(--gold)' : 'rgba(255,255,255,0.06)') + '\'">'
+        const draggable = isPlanned ? 'draggable="true" data-on-dragstart="zugCalDragStart" data-args-dragstart="' + lwArgs(LW_EVENT, dateStr) + '"' : '';
+        html += '<td ' + draggable + ' data-action="zugDayClick" data-args="' + lwArgs(dateStr) + '" data-on-dragover="zugDragOver" data-args-dragover="' + lwArgs(LW_EVENT, LW_EL) + '" data-on-dragleave="zugDragLeave" data-args-dragleave="' + lwArgs(LW_EL, String(isToday)) + '" data-on-drop="zugHandleDrop" data-args-drop="' + lwArgs(LW_EVENT, dateStr, LW_EL, String(isToday)) + '" data-date="' + dateStr + '" style="background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:6px 5px;cursor:' + (isPlanned ? 'grab' : 'pointer') + ';transition:0.15s;vertical-align:top;" data-on-mouseover="zugDayHover" data-args-mouseover="' + lwArgs(LW_EL, true, isToday) + '" data-on-mouseout="zugDayHover" data-args-mouseout="' + lwArgs(LW_EL, false, isToday) + '">'
           + inner + '</td>';
       }
       html += '</tr>';
@@ -8662,7 +8760,7 @@ async function revokeApiToken(tokenId, clientName) {
       const badge  = isAssigned ? '<span style="font-size:10px;color:var(--green);white-space:nowrap;">✓ geplant</span>' :
                      isFirst    ? '<span>' + zugSvg(15) + '</span>' :
                                   '<span style="font-size:11px;color:var(--soft-2);opacity:0.5;">⠿</span>';
-      return '<div draggable="true" data-member="' + escHtml(row.member_name) + '" ondragstart="zugDragStart(event,this.dataset.member)" ondragover="zugQueueDragOver(event,this)" ondragleave="zugQueueDragLeave(this)" ondrop="zugQueueDrop(event,this)" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:' + bg + ';border:1px solid ' + border + ';cursor:grab;' + (isAssigned ? 'opacity:0.6;' : '') + '">' +
+      return '<div draggable="true" data-member="' + escHtml(row.member_name) + '" data-on-dragstart="zugDragStart" data-args-dragstart="' + lwArgs(LW_EVENT, row.member_name) + '" data-on-dragover="zugQueueDragOver" data-args-dragover="' + lwArgs(LW_EVENT, LW_EL) + '" data-on-dragleave="zugQueueDragLeave" data-args-dragleave="' + lwArgs(LW_EL) + '" data-on-drop="zugQueueDrop" data-args-drop="' + lwArgs(LW_EVENT, LW_EL) + '" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:' + bg + ';border:1px solid ' + border + ';cursor:grab;' + (isAssigned ? 'opacity:0.6;' : '') + '">' +
         '<span style="font-family:\'Rajdhani\',sans-serif;font-size:18px;color:' + numCol + ';width:22px;text-align:center;">' + rank + '</span>' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(row.member_name) + '</div>' +
@@ -9398,7 +9496,7 @@ async function revokeApiToken(tokenId, clientName) {
     bpTplLang = BP_ASK_DEFAULTS[langEl?.value] ? langEl.value : 'de';
     const chips = document.getElementById('bp-tpl-chips');
     if (chips) {
-      chips.innerHTML = BP_ASK_VARS.map(v => `<button type="button" class="bp-tpl-chip" onclick="bpTplInsertVar('${v}')">$${v}</button>`).join('');
+      chips.innerHTML = BP_ASK_VARS.map(v => `<button type="button" class="bp-tpl-chip" data-action="bpTplInsertVar" data-args="${lwArgs(v)}">$${v}</button>`).join('');
     }
     document.getElementById('bp-tpl-text').value = bpTplDraft[bpTplKey(bpTplLang, bpTplVariant)];
     bpTplRenderPreview();
@@ -9521,7 +9619,7 @@ async function revokeApiToken(tokenId, clientName) {
     const on = bpIsPinned(name);
     const canEdit = bpCanEditRankCheck();
     if (!on && !canEdit) return '';
-    return `<button class="bp-pair-btn${on ? ' on' : ''}" type="button" draggable="false" title="${escHtml(tr(on ? 's_bp_pair_on' : 's_bp_pair_off'))}"${canEdit ? '' : ' disabled'} onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();bpTogglePair('${bpEnc(name)}')">${on ? '♥' : '♡'}</button>`;
+    return `<button class="bp-pair-btn${on ? ' on' : ''}" type="button" draggable="false" title="${escHtml(tr(on ? 's_bp_pair_on' : 's_bp_pair_off'))}"${canEdit ? '' : ' disabled'} data-stop="mousedown dragstart click" data-prevent="dragstart click" data-action="bpTogglePair" data-args="${lwArgs(bpEnc(name))}">${on ? '♥' : '♡'}</button>`;
   }
   window.bpTogglePair = async function(nameEnc) {
     if (!bpCanEditRankCheck()) { toast(tr('s_bp_rc_only_r4'), 'err'); return; }
@@ -9574,13 +9672,13 @@ async function revokeApiToken(tokenId, clientName) {
     }
   }
 
-  // Muelleimer "In die Warteschlange" (SVG statt Emoji, sieht ueberall gleich aus). action = JS-Aufruf als Text.
-  function bpDelBtn(action) {
-    return `<button class="bp-acc-btn bp-acc-del" type="button" draggable="false" title="${escHtml(tr('s_bp_to_queue_btn'))}" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();${action}"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.6 6.5v4.5M9.4 6.5v4.5"/></svg></button>`;
+  // Muelleimer "In die Warteschlange" (SVG statt Emoji, sieht ueberall gleich aus). fn = Name in LW_ACTIONS, arg = kodierter Name.
+  function bpDelBtn(fn, arg) {
+    return `<button class="bp-acc-btn bp-acc-del" type="button" draggable="false" title="${escHtml(tr('s_bp_to_queue_btn'))}" data-stop="mousedown dragstart click" data-prevent="dragstart click" data-action="${fn}" data-args="${lwArgs(arg)}"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.6 6.5v4.5M9.4 6.5v4.5"/></svg></button>`;
   }
 
   function bpAskBtn(name) {
-    return `<button class="bp-ask-btn" type="button" draggable="false" title="${escHtml(tr('s_bp_ask_title'))}" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();bpAskPlayer('${bpEnc(name)}')">✉</button>`;
+    return `<button class="bp-ask-btn" type="button" draggable="false" title="${escHtml(tr('s_bp_ask_title'))}" data-stop="mousedown dragstart click" data-prevent="dragstart click" data-action="bpAskPlayer" data-args="${lwArgs(bpEnc(name))}">✉</button>`;
   }
 
   function bpCopyText(text, onDone) {
@@ -9706,11 +9804,11 @@ async function revokeApiToken(tokenId, clientName) {
       const open = bpOpenSet.has(kh);
       const full = engs.length >= maxIng;
       const khCheck = bpCheckMarkup(kh, 'kriegsherr');
-      let h = `<div class="bp-acc-card${open ? ' open' : ''}${isWrong(khCheck) ? ' wrong ' + bpPullCls(khCheck) : ''}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpAccDrop(event,'${khEnc}',this)">`
-        + `<div class="bp-acc-head" onclick="bpAccToggle('${khEnc}')">`
-        + `<span class="bp-acc-grip" draggable="true" data-member="${escHtml(kh)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()" onclick="event.stopPropagation()">⠿</span>`
+      let h = `<div class="bp-acc-card${open ? ' open' : ''}${isWrong(khCheck) ? ' wrong ' + bpPullCls(khCheck) : ''}" data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpAccDrop" data-args-drop="${lwArgs(LW_EVENT, khEnc, LW_EL)}">`
+        + `<div class="bp-acc-head" data-action="bpAccToggle" data-args="${lwArgs(khEnc)}">`
+        + `<span class="bp-acc-grip" draggable="true" data-member="${escHtml(kh)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, kh)}" data-on-dragend="bpDragEnd" data-stop="click">⠿</span>`
         + bpRankShield(kh) + `<span class="bp-acc-kh">⚔ ${escHtml(kh)}</span>` + khCheck.hint
-        + `<span class="bp-acc-cap${full ? ' full' : ''}">${engs.length}/${maxIng}</span>` + bpAskBtn(kh) + bpDelBtn(`bpUnsetWarlord('${khEnc}')`)
+        + `<span class="bp-acc-cap${full ? ' full' : ''}">${engs.length}/${maxIng}</span>` + bpAskBtn(kh) + bpDelBtn('bpUnsetWarlord', khEnc)
         + '<span class="bp-acc-chev">›</span></div>';
       if (!open) {
         if (engs.length) {
@@ -9723,13 +9821,13 @@ async function revokeApiToken(tokenId, clientName) {
       }
       h += engs.map(n => {
         const c = bpCheckMarkup(n, 'ingenieur');
-        return `<div class="bp-acc-eng${isWrong(c) ? ' wrong ' + bpPullCls(c) : ''}" draggable="true" data-member="${escHtml(n)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`
+        return `<div class="bp-acc-eng${isWrong(c) ? ' wrong ' + bpPullCls(c) : ''}" draggable="true" data-member="${escHtml(n)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, n)}" data-on-dragend="bpDragEnd">`
           // Reihenfolge ✉ ♡ 🗑: das Herz liegt zwischen Fragen und Entfernen, damit man nicht versehentlich entfernt
           + `<span class="bp-acc-grip">⠿</span>${bpRankShield(n)}<span class="bp-acc-ing">⚗ ${escHtml(n)}</span>${c.hint}${bpAskBtn(n)}${bpPairBtn(n)}`
-          + bpDelBtn(`bpAccToQueue('${bpEnc(n)}')`) + '</div>';
+          + bpDelBtn('bpAccToQueue', bpEnc(n)) + '</div>';
       }).join('');
       if (!full) {
-        h += `<div class="bp-acc-add"><select onchange="bpAccAssign(this,'${khEnc}')">`
+        h += `<div class="bp-acc-add"><select data-on-change="bpAccAssign" data-args-change="${lwArgs(LW_EL, khEnc)}">`
           + `<option value="">＋ ${escHtml(tr('s_bp_acc_add'))} (${maxIng - engs.length} ${escHtml(tr('s_bp_acc_free'))})</option>`
           + (queue.length ? `<optgroup label="${escHtml(tr('s_bp_queue_title'))}">${queue.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('')}</optgroup>` : '')
           + '</select></div>';
@@ -9795,19 +9893,19 @@ async function revokeApiToken(tokenId, clientName) {
       queueEl.innerHTML = `<div style="font-size:12px;color:var(--soft);padding:8px;">${escHtml(tr('s_bp_queue_empty'))}</div>`;
     } else {
       queueEl.innerHTML = queue.map(name =>
-        `<div class="bp-queue-item${bpCheckMarkup(name, 'queue').cls}" draggable="true" data-member="${escHtml(name)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">
+        `<div class="bp-queue-item${bpCheckMarkup(name, 'queue').cls}" draggable="true" data-member="${escHtml(name)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, name)}" data-on-dragend="bpDragEnd">
           <span class="bp-queue-handle">⠿</span>
           ${bpRankShield(name)}
           <span class="bp-queue-name">${escHtml(name)}</span>
           ${bpAskBtn(name)}
-          <button class="bp-queue-promote-btn" onclick="event.preventDefault();event.stopPropagation();bpMakeWarlord('${bpEnc(name)}')" title="${escHtml(tr('s_bp_make_warlord'))}">+</button>
+          <button class="bp-queue-promote-btn" data-stop="click" data-prevent="click" data-action="bpMakeWarlord" data-args="${lwArgs(bpEnc(name))}" title="${escHtml(tr('s_bp_make_warlord'))}">+</button>
         </div>`
       ).join('');
     }
 
     let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
-      + `<div ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropNewWarlord(event,this)" style="padding:8px;border:1px dashed rgba(224,85,69,0.35);border-radius:8px;color:#f09080;font-size:11px;">${escHtml(tr('s_bp_drop_new_warlord'))}</div>`
-      + `<div ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToQueue(event,this)" style="padding:8px;border:1px dashed rgba(255,255,255,0.2);border-radius:8px;color:var(--soft);font-size:11px;">${escHtml(tr('s_bp_drop_to_queue'))}</div>`
+      + `<div data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpDropNewWarlord" data-args-drop="${lwArgs(LW_EVENT, LW_EL)}" style="padding:8px;border:1px dashed rgba(224,85,69,0.35);border-radius:8px;color:#f09080;font-size:11px;">${escHtml(tr('s_bp_drop_new_warlord'))}</div>`
+      + `<div data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpDropToQueue" data-args-drop="${lwArgs(LW_EVENT, LW_EL)}" style="padding:8px;border:1px dashed rgba(255,255,255,0.2);border-radius:8px;color:var(--soft);font-size:11px;">${escHtml(tr('s_bp_drop_to_queue'))}</div>`
       + '</div>';
     document.querySelectorAll('#bp-view [data-bpview]').forEach(b => b.classList.toggle('on', b.dataset.bpview === bpView));
     // "Alle auf-/zuklappen" im Planer-Kopf neben dem Ansicht-Umschalter, nur in der Kartenansicht
@@ -9833,8 +9931,8 @@ async function revokeApiToken(tokenId, clientName) {
       const khEnc = bpEnc(kh);
       html += '<tr>';
       const khCheck = bpCheckMarkup(kh, 'kriegsherr', true);
-      html += `<td class="bp-cell-name${khCheck.cls}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToWarlord(event,'${khEnc}',this)">`;
-      html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(kh)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`;
+      html += `<td class="bp-cell-name${khCheck.cls}" data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpDropToWarlord" data-args-drop="${lwArgs(LW_EVENT, khEnc, LW_EL)}">`;
+      html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(kh)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, kh)}" data-on-dragend="bpDragEnd">`;
       html += bpRankShield(kh);
       html += '<span class="bp-ico" style="font-size:12px;color:#f09080;">⚔</span>';
       html += `<span class="bp-name-text kh" title="${escHtml(kh)}">${escHtml(kh)}</span>`;
@@ -9845,9 +9943,9 @@ async function revokeApiToken(tokenId, clientName) {
       for (let i = 0; i < maxIng; i++) {
         const eng = engineers[i] || null;
         const engCheck = eng ? bpCheckMarkup(eng, 'ingenieur', true) : { cls: '', hint: '' };
-        html += `<td class="bp-cell-slot${engCheck.cls}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToEngineerSlot(event,'${khEnc}',${i},this)">`;
+        html += `<td class="bp-cell-slot${engCheck.cls}" data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpDropToEngineerSlot" data-args-drop="${lwArgs(LW_EVENT, khEnc, i, LW_EL)}">`;
         if (eng) {
-          html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(eng)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`;
+          html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(eng)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, eng)}" data-on-dragend="bpDragEnd">`;
           html += bpRankShield(eng);
           html += '<span class="bp-ico" style="font-size:12px;color:#80b8ff;">⚗</span>';
           html += `<span class="bp-name-text ing" title="${escHtml(eng)}">${escHtml(eng)}</span>`;
@@ -9861,7 +9959,7 @@ async function revokeApiToken(tokenId, clientName) {
         html += '</td>';
       }
 
-      html += `<td class="bp-cell-action">${bpDelBtn(`bpUnsetWarlord('${khEnc}')`)}</td>`;
+      html += `<td class="bp-cell-action">${bpDelBtn('bpUnsetWarlord', khEnc)}</td>`;
       html += '</tr>';
     });
 

@@ -697,8 +697,10 @@ class CockpitState {
               <span class="matched-power">${this.tileValueLabel(t.card, '—')} ${stackBadge}</span>
               <span class="member-sub">${this.escapeHtml(t.card.status || '')}</span>
             </div>
-            <button class="btn-detach" title="Diese Kachel lösen" onclick="window.cockpit.detachNewPlayerTile('${item.id}', '${t.id}')">✕</button>
+            <button class="btn-detach" title="Diese Kachel lösen">✕</button>
           `;
+          // Listener im JS statt onclick= (strenge CSP, siehe CLAUDE.md)
+          chip.querySelector('.btn-detach').addEventListener('click', () => window.cockpit.detachNewPlayerTile(item.id, t.id));
           chip.prepend(this.cloneCanvas(t.canvas));
           chipsList.appendChild(chip);
         }
@@ -742,17 +744,21 @@ class CockpitState {
           </div>
           <div class="banner-actions">
             ${markedCount < unassignedCount ? `
-              <button class="btn btn-sm btn-danger" onclick="window.cockpit.archiveAllUnassigned()">
+              <button class="btn btn-sm btn-danger" data-banner-action="archiveAllUnassigned">
                 📦 Alle ${unassignedCount} archivieren
               </button>
             ` : `
-              <button class="btn btn-sm btn-secondary" onclick="window.cockpit.clearArchiveMarks()">
+              <button class="btn btn-sm btn-secondary" data-banner-action="clearArchiveMarks">
                 ↩ Markierungen aufheben (${markedCount})
               </button>
             `}
-            <button class="btn btn-sm btn-secondary" onclick="window.cockpit.dismissArchiveSuggestion()" title="Banner ausblenden">✕</button>
+            <button class="btn btn-sm btn-secondary" data-banner-action="dismissArchiveSuggestion" title="Banner ausblenden">✕</button>
           </div>
         `;
+        // Listener im JS statt onclick= (strenge CSP, siehe CLAUDE.md)
+        banner.querySelectorAll('[data-banner-action]').forEach((btn) => {
+          btn.addEventListener('click', () => window.cockpit[btn.dataset.bannerAction]());
+        });
         bannerContainer.appendChild(banner);
       }
     }
@@ -869,8 +875,10 @@ class CockpitState {
               <span class="matched-power">${tileLabel} ${stackBadge}</span>
               <span class="member-sub">${this.escapeHtml(t.card.status || '')}</span>
             </div>
-            <button class="btn-detach" title="Diese Kachel trennen / zurücklegen" onclick="window.cockpit.detachTile('${m.id}', '${t.id}')">✕</button>
+            <button class="btn-detach" title="Diese Kachel trennen / zurücklegen">✕</button>
           `;
+          // Listener im JS statt onclick= (strenge CSP, siehe CLAUDE.md)
+          chip.querySelector('.btn-detach').addEventListener('click', () => window.cockpit.detachTile(m.id, t.id));
           chip.prepend(this.cloneCanvas(t.canvas));
           chip.title = t.manual ? 'Von Hand zugeordnet'
             : t.byPower ? 'Name nicht lesbar – über die Kampfkraft zugeordnet'

@@ -288,6 +288,8 @@
     "s_sitzung_abgelaufen_bitte_erneut_einloggen": "Sesja wygasła. Proszę zalogować się ponownie.",
     "s_soll_der_rang_jetzt_auch_im_tool_aktualisiert_werden": "Czy ranga ma być teraz również zaktualizowana w narzędziu?",
     "s_speichern": "Zapisz",
+    "s_alliance_settings_saved": "Ustawienia zapisane",
+    "s_alliance_settings_hint": "Przełączniki działają od razu, liczby i nazwy po „Zapisz”.",
     "s_speichern_fehlgeschlagen": "Zapisywanie nieudane.",
     "s_spenden": "Darowizny",
     "s_spenden_event_tab_kacheln": "Wydarzenie darowizn - zakładka i kafelki",

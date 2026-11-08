@@ -288,6 +288,8 @@
     "s_sitzung_abgelaufen_bitte_erneut_einloggen": "Sessione scaduta. Effettua nuovamente l'accesso.",
     "s_soll_der_rang_jetzt_auch_im_tool_aktualisiert_werden": "Vuoi aggiornare ora il rango anche nello strumento?",
     "s_speichern": "Salva",
+    "s_alliance_settings_saved": "Impostazioni salvate",
+    "s_alliance_settings_hint": "Gli interruttori valgono subito, numeri e nomi con «Salva».",
     "s_speichern_fehlgeschlagen": "Salvataggio non riuscito.",
     "s_spenden": "Donazioni",
     "s_spenden_event_tab_kacheln": "Evento donazioni - scheda e riquadri",

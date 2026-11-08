@@ -303,6 +303,8 @@
     "s_sitzung_abgelaufen_bitte_erneut_einloggen": "Session expired. Please log in again.",
     "s_soll_der_rang_jetzt_auch_im_tool_aktualisiert_werden": "Should the rank also be updated in the tool now?",
     "s_speichern": "Save",
+    "s_alliance_settings_saved": "Settings saved",
+    "s_alliance_settings_hint": "Switches apply at once, numbers and names with \"Save\".",
     "s_speichern_fehlgeschlagen": "Saving failed.",
     "s_spenden": "Donations",
     "s_spenden_event_tab_kacheln": "Donation event - tab and tiles",

@@ -288,6 +288,8 @@
     "s_sitzung_abgelaufen_bitte_erneut_einloggen": "Session expirée. Veuillez vous reconnecter.",
     "s_soll_der_rang_jetzt_auch_im_tool_aktualisiert_werden": "Le rang doit-il aussi être mis à jour dans l'outil maintenant ?",
     "s_speichern": "Sauvegarder",
+    "s_alliance_settings_saved": "Réglages enregistrés",
+    "s_alliance_settings_hint": "Les interrupteurs agissent tout de suite, chiffres et noms avec « Enregistrer ».",
     "s_speichern_fehlgeschlagen": "Sauvegarde échouée.",
     "s_spenden": "Dons",
     "s_spenden_event_tab_kacheln": "Événement don - onglet et tuiles",

@@ -303,6 +303,8 @@
     "s_sitzung_abgelaufen_bitte_erneut_einloggen": "Sitzung abgelaufen. Bitte erneut einloggen.",
     "s_soll_der_rang_jetzt_auch_im_tool_aktualisiert_werden": "Soll der Rang jetzt auch im Tool aktualisiert werden?",
     "s_speichern": "Speichern",
+    "s_alliance_settings_saved": "Einstellungen gespeichert",
+    "s_alliance_settings_hint": "Schalter wirken sofort, Zahlen und Namen mit „Speichern“.",
     "s_speichern_fehlgeschlagen": "Speichern fehlgeschlagen.",
     "s_spenden": "Spenden",
     "s_spenden_event_tab_kacheln": "Spenden-Event – Tab & Kacheln",

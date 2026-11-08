@@ -288,6 +288,8 @@
     "s_sitzung_abgelaufen_bitte_erneut_einloggen": "Sesión expirada. Por favor inicia sesión nuevamente.",
     "s_soll_der_rang_jetzt_auch_im_tool_aktualisiert_werden": "¿Debería actualizarse el rango también en la herramienta ahora?",
     "s_speichern": "Guardar",
+    "s_alliance_settings_saved": "Ajustes guardados",
+    "s_alliance_settings_hint": "Los interruptores se aplican al instante; números y nombres con «Guardar».",
     "s_speichern_fehlgeschlagen": "Guardado fallido.",
     "s_spenden": "Donaciones",
     "s_spenden_event_tab_kacheln": "Evento de donación - pestaña y fichas",

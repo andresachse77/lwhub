@@ -1291,6 +1291,8 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 /* ── Modal ── */
 .modal-bg { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
 .modal-bg.hidden { display: none; }
+#alliance-features-save:disabled { opacity: .45; cursor: default; }
+#alliance-features-save.pulse-dirty { box-shadow: 0 0 0 2px rgba(240,165,0,.55); }
 /* Hoeher als der Bildschirm: Inhalt scrollt, die Button-Leiste bleibt unten sichtbar */
 .modal { background: var(--card); border: 1px solid var(--line2); border-radius: 14px; padding: 24px; width: min(460px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,0.4); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; }
 .modal-title { font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 18px; }
@@ -1979,7 +1981,9 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <div class="modal-sub" id="alliance-features-sub" style="margin-bottom:12px;color:var(--soft);font-size:12px;">Steuere hier, welche Bereiche diese Allianz nutzen darf.</div>
     <div id="alliance-features-body"><div class="empty">Lade …</div></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-alliance-features')">Schließen</button>
+      <span class="hint" style="margin-right:auto;font-size:11px;" data-i18n="s_alliance_settings_hint">Schalter wirken sofort, Zahlen und Namen mit „Speichern“.</span>
+      <button class="btn btn-ghost" onclick="closeModal('modal-alliance-features')" data-i18n="s_schliessen">Schließen</button>
+      <button class="btn btn-gold" id="alliance-features-save" onclick="saveAllianceSettings(this)" disabled data-i18n="s_speichern">Speichern</button>
     </div>
   </div>
 </div>
@@ -6304,7 +6308,6 @@ function renderFeatureToggles(containerId, alliance, config) {
         <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_berufe_grenze_default'))}</div>
       </div>
       <input id="${escHtml(inputId)}" type="number" min="1" max="10" value="${maxIng}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
-      <button onclick="saveBerufeMaxIngenieure('${escHtml(alliance)}','${escHtml(inputId)}')" class="v-btn save" style="min-width:88px;">Speichern</button>
     </div>` +
     `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);">
       <div style="flex:1;">
@@ -6312,7 +6315,6 @@ function renderFeatureToggles(containerId, alliance, config) {
         <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_combat_power_correction_sub'))}</div>
       </div>
       <input id="${escHtml(correctionInputId)}" type="number" min="0" max="998" value="${combatCorrection}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
-      <button onclick="saveCombatPowerCorrection('${escHtml(alliance)}','${escHtml(correctionInputId)}')" class="v-btn save" style="min-width:88px;">${escHtml(tr('s_speichern'))}</button>
     </div>` +
     `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap;">
       <div style="flex:1;min-width:180px;">
@@ -6327,7 +6329,6 @@ function renderFeatureToggles(containerId, alliance, config) {
           <input id="${escHtml(containerId)}-rank-name-${r}" type="text" maxlength="30" value="${escHtml(value)}" placeholder="${escHtml(fallback)}" style="width:96px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;"></label>`;
       }).join('') +
       `</div>
-      <button onclick="saveRankNames('${escHtml(alliance)}','${escHtml(containerId)}')" class="v-btn save" style="min-width:88px;">${escHtml(tr('s_speichern'))}</button>
     </div>` +
     `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);">
       <div style="flex:1;">
@@ -6335,31 +6336,62 @@ function renderFeatureToggles(containerId, alliance, config) {
         <div style="font-size:11px;color:var(--soft);">${escHtml(tr('Allianzen mit derselben Server-Nummer teilen sich die Spezialevent-Termine.'))}</div>
       </div>
       <input id="${escHtml(containerId)}-server" type="text" inputmode="numeric" maxlength="6" value="${escHtml(String(config?.server ?? ''))}" placeholder="—" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
-      <button onclick="saveAllianceServer('${escHtml(alliance)}','${escHtml(containerId)}')" class="v-btn save" style="min-width:88px;">${escHtml(tr('s_speichern'))}</button>
     </div>` +
     `</div>`;
+  el.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => allianceSettingsDirty(true)));
+  allianceSettingsDirty(false);
 }
 
-async function saveAllianceServer(alliance, containerId) {
-  const server = String(document.getElementById(`${containerId}-server`)?.value || '').replace(/\D/g, '').slice(0, 6);
+
+// Allianz-Einstellungen: EIN Speichern-Knopf unten im Fenster fuer alle Eingabefelder
+// (Max. Ingenieure, Kampfkraft-Korrektur, Rangnamen, Server-Nummer). Die Feature-Schalter wirken weiter sofort.
+function allianceSettingsDirty(dirty = true) {
+  const btn = document.getElementById('alliance-features-save');
+  if (!btn) return;
+  btn.disabled = !dirty;
+  btn.classList.toggle('pulse-dirty', dirty);
+}
+window.allianceSettingsDirty = allianceSettingsDirty;
+
+async function saveAllianceSettings(btn) {
+  const alliance = allianceFeatureModalAlliance;
+  const containerId = 'alliance-features-body';
+  if (!alliance) return;
+  const val = id => String(document.getElementById(`${containerId}-${id}`)?.value ?? '');
+  const config = {
+    berufe_max_ingenieure: Math.max(1, Math.min(10, Number.parseInt(val('berufe-max'), 10) || 3)),
+    combat_power_correction_value: Math.max(0, Math.min(998, Number.parseInt(val('combat-correction'), 10) || 40)),
+    server: val('server').replace(/\D/g, '').slice(0, 6),
+  };
+  for (let r = 1; r <= 5; r++) config['rank_name_' + r] = val('rank-name-' + r).trim().slice(0, 30);
+  if (btn) btn.disabled = true;
   try {
-    await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance || '')}`, {
+    await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance)}`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ discord_id: authMember?.discord_id || '', config: { server } })
+      body: JSON.stringify({ discord_id: authMember?.discord_id || '', config })
     });
     adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
     if (isCurrentAllianceTarget(alliance)) {
       flagConfig = { ...adminFlagConfigCache[alliance] };
-      seEvents.loaded = false; // Spezialevents kommen jetzt ggf. vom Server
+      seEvents.loaded = false; // Spezialevents kommen ggf. vom Server (Server-Nummer)
+      applyRankNames();
+      updateFeatureTabVisibility();
+      renderFlagsAdmin();
+      if (document.getElementById('page-bp')?.classList.contains('active')) window.berufePlannerRender?.();
+      renderMeBerufe();
+      if (document.getElementById('page-v')?.classList.contains('active')) {
+        renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+      }
     }
     renderAllianceFeaturesModal();
-    toast(tr('Server-Nummer gespeichert'), 'ok');
+    toast(tr('s_alliance_settings_saved'), 'ok');
   } catch (err) {
     toast(tr('Fehler: ') + err.message, 'err');
+    if (btn) btn.disabled = false;
   }
 }
-window.saveAllianceServer = saveAllianceServer;
+window.saveAllianceSettings = saveAllianceSettings;
 
 async function loadAllianceFeatureConfig(alliance) {
   if (!alliance) return {};
@@ -6523,88 +6555,8 @@ async function toggleCatConfig(key, allianceOverride) {
 }
 window.toggleCatConfig = toggleCatConfig;
 
-async function saveBerufeMaxIngenieure(alliance, inputId) {
-  const discordId = authMember?.discord_id || '';
-  const input = document.getElementById(inputId);
-  const nextVal = Math.max(1, Math.min(10, Number.parseInt(String(input?.value || ''), 10) || 3));
-  if (input) input.value = String(nextVal);
 
-  try {
-    await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance || '')}`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ discord_id: discordId, config: { berufe_max_ingenieure: nextVal } })
-    });
-    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
-    if (isCurrentAllianceTarget(alliance)) {
-      flagConfig = { ...adminFlagConfigCache[alliance] };
-      updateFeatureTabVisibility();
-      renderFlagsAdmin();
-      if (document.getElementById('page-bp')?.classList.contains('active')) {
-        window.berufePlannerRender?.();
-      }
-      renderMeBerufe();
-    }
-    renderAllianceFeaturesModal();
-    toast('Max. Ingenieure gespeichert', 'ok');
-  } catch (err) {
-    toast(tr('Fehler: ') + err.message, 'err');
-    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
-    renderAllianceFeaturesModal();
-  }
-}
-window.saveBerufeMaxIngenieure = saveBerufeMaxIngenieure;
 
-async function saveRankNames(alliance, containerId) {
-  const discordId = authMember?.discord_id || '';
-  const names = {};
-  for (let r = 1; r <= 5; r++) {
-    names['rank_name_' + r] = String(document.getElementById(`${containerId}-rank-name-${r}`)?.value || '').trim().slice(0, 30);
-  }
-  try {
-    await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance || '')}`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ discord_id: discordId, config: names })
-    });
-    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
-    if (isCurrentAllianceTarget(alliance)) {
-      flagConfig = { ...adminFlagConfigCache[alliance] };
-      applyRankNames();
-      if (document.getElementById('page-v')?.classList.contains('active')) {
-        renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
-      }
-    }
-    renderAllianceFeaturesModal();
-    toast(tr('s_rank_names_saved'), 'ok');
-  } catch (err) {
-    toast(tr('Fehler: ') + err.message, 'err');
-  }
-}
-window.saveRankNames = saveRankNames;
-
-async function saveCombatPowerCorrection(alliance, inputId) {
-  const discordId = authMember?.discord_id || '';
-  const input = document.getElementById(inputId);
-  const nextVal = Math.max(0, Math.min(998, Number.parseInt(String(input?.value || ''), 10) || 40));
-  if (input) input.value = String(nextVal);
-  try {
-    await adminApi(`/alliance-config?alliance=${encodeURIComponent(alliance || '')}`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ discord_id: discordId, config: { combat_power_correction_value: nextVal } })
-    });
-    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
-    if (isCurrentAllianceTarget(alliance)) flagConfig = { ...adminFlagConfigCache[alliance] };
-    renderAllianceFeaturesModal();
-    toast(tr('s_combat_correction_saved'), 'ok');
-  } catch (err) {
-    toast(tr('Fehler: ') + err.message, 'err');
-    adminFlagConfigCache[alliance] = await loadFlagConfig(alliance);
-    renderAllianceFeaturesModal();
-  }
-}
-window.saveCombatPowerCorrection = saveCombatPowerCorrection;
 
 function renderFlagsAdmin() {
   const el = document.getElementById('v-flag-config');

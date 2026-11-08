@@ -288,6 +288,8 @@
     "s_sitzung_abgelaufen_bitte_erneut_einloggen": "会话已过期。请重新登录。",
     "s_soll_der_rang_jetzt_auch_im_tool_aktualisiert_werden": "是否也要在工具中更新段位？",
     "s_speichern": "保存",
+    "s_alliance_settings_saved": "设置已保存",
+    "s_alliance_settings_hint": "开关立即生效，数字和名称需点击“保存”。",
     "s_speichern_fehlgeschlagen": "保存失败。",
     "s_spenden": "捐赠",
     "s_spenden_event_tab_kacheln": "捐赠活动 - 标签和磁贴",

@@ -38,6 +38,21 @@ const MatchingEngine = {
       .toUpperCase();
   },
 
+  // Das OCR-Modell (ch_PP-OCRv4) kennt keine kyrillischen Buchstaben und liest aehnlich aussehende lateinische:
+  // "Владимир1" → "BnaANMnpT". Diese Tabelle bildet den LWHub-Namen genauso ab, damit der Vergleich klappt.
+  CYRILLIC_LOOKALIKE: {
+    'а': 'A', 'б': 'B', 'в': 'B', 'г': 'R', 'д': 'A', 'е': 'E', 'ё': 'E', 'ж': 'X', 'з': '3', 'и': 'N', 'й': 'N',
+    'к': 'K', 'л': 'N', 'м': 'M', 'н': 'H', 'о': 'O', 'п': 'N', 'р': 'P', 'с': 'C', 'т': 'T', 'у': 'Y', 'ф': 'O',
+    'х': 'X', 'ц': 'U', 'ч': '4', 'ш': 'W', 'щ': 'W', 'ъ': 'B', 'ы': 'BI', 'ь': 'B', 'э': '3', 'ю': 'IO', 'я': 'R',
+  },
+
+  // Name so, wie die OCR ihn vermutlich liest – nur fuer Namen mit kyrillischen Buchstaben, sonst null
+  lookalikeName(str) {
+    if (!/[Ѐ-ӿ]/.test(str || '')) return null;
+    const mapped = [...str].map(ch => this.CYRILLIC_LOOKALIKE[ch.toLowerCase()] ?? ch).join('');
+    return this.cleanName(mapped);
+  },
+
   /**
    * Kampfkraft als absolute Zahl. Mitgliederliste liefert Millionen ("270.5"), die Stärke-Rangliste
    * die ganze Zahl ("270514649"). Werte über 10^12 stammen aus einem früheren Sync-Fehler, bei dem
@@ -83,7 +98,8 @@ const MatchingEngine = {
 
     let bestMember = null;
     let bestScore = 0;
-    let exact = false;
+    let secondScore = 0; // bester Wert eines ANDEREN Mitglieds (fuer die Kyrillisch-Regel unten)
+    let bestByLookalike = false;
 
     for (const m of members) {
       const mClean = this.cleanName(m.name);
@@ -102,16 +118,31 @@ const MatchingEngine = {
         }
       }
 
-      // 3. Fuzzy Treffer berechnen
-      const sim = this.similarity(cardClean, mClean);
+      // 3. Fuzzy Treffer berechnen (bei kyrillischen Namen auch gegen die OCR-typische Lesart, lookalikeName)
+      let sim = this.similarity(cardClean, mClean);
+      let byLookalike = false;
+      if (m._lookalike === undefined) m._lookalike = this.lookalikeName(m.name);
+      if (m._lookalike) {
+        const simL = this.similarity(cardClean, m._lookalike);
+        if (simL > sim) { sim = simL; byLookalike = true; }
+      }
       if (sim > bestScore) {
+        secondScore = bestScore;
         bestScore = sim;
         bestMember = m;
+        bestByLookalike = byLookalike;
+      } else if (sim > secondScore) {
+        secondScore = sim;
       }
     }
 
     // Mindestschwelle 0.75 für automatische Erkennung
     if (bestScore >= 0.75 && bestMember) {
+      return { member: bestMember, score: bestScore, exact: false };
+    }
+    // Kyrillische Namen liest die OCR oft lueckenhaft ("BnaAMp" fuer "Владимир1", 67 %): ab 65 %, wenn kein
+    // anderes Mitglied auch nur annaehernd passt (mind. 25 Punkte Abstand). Zaehlt immer als unsicher.
+    if (bestByLookalike && bestScore >= 0.65 && bestScore - secondScore >= 0.25) {
       return { member: bestMember, score: bestScore, exact: false };
     }
 

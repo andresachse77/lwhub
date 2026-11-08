@@ -2011,7 +2011,11 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
 
         // dry_run: alles ausfuehren, dann zurueckrollen – die Antwort zeigt, was passieren wuerde
         if ($dryRun) $pdo->rollBack();
-        else $pdo->commit();
+        else {
+            $pdo->commit();
+            // Wer hat gescannt (scan-uploads.php) – nach dem Commit, ein Fehler hier stoert den Upload nicht
+            logScanUpload($pdo, $targetAlliance, $caller, preg_match('/^\d+$/', $claimedId) ? $claimedId : null, $source, $scanId, $summary);
+        }
         $response = ['ok' => true, 'dry_run' => $dryRun, 'scan_id' => $scanId, 'replaced_previous_upload' => $replacedPrevious, 'summary' => $summary, 'details' => $details, 'unmatched' => $unmatched, 'conflicts' => $conflicts];
         if ($berufMismatches !== null) {
             $response['beruf_mismatches'] = $berufMismatches;

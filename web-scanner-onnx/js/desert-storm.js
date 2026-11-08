@@ -242,6 +242,14 @@
         if (kind) frames++;
         return kind;
       },
+      // Name einer unlesbaren Zeile nachtragen (z. B. gespiegelt gelesen, index.html readMirroredName).
+      // Mit derselben Punktzahl faellt die Zeile aus "Name nicht lesbar" heraus (evaluate: !points.has(p)).
+      addName(at, name, points) {
+        const b = battles.get(at);
+        if (!b || nameKey(name).length < 2) return false;
+        addPlayer(b, { name, points });
+        return true;
+      },
       clear() { battles.clear(); log.clear(); frames = 0; lastUnnamed = []; },
     };
   }

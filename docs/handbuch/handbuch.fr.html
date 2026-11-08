@@ -243,7 +243,8 @@
           <li>Ouvre Événements → Tempête du désert → <em>Journaux</em> et remonte jusqu'au lundi de la semaine. Le scanner y lit qui était participant ou remplaçant.</li>
           <li>Le cadre « 🏜 Wüstensturm » apparaît au-dessus du pool de tuiles : par équipe, qui était inscrit et n'est pas venu.</li>
           <li>S'il indique « Nicht erfasst: Platz 13 » (place 13 non lue), une ligne a été sautée en défilant. Fais simplement défiler à nouveau lentement cet endroit du mail.</li>
-          <li>Si un nom est inversé ou décoré dans le jeu, le cadre montre la ligne en image. Choisis le joueur sous « Wer ist das? » (qui est-ce ?).</li>
+          <li>Si quelqu'un écrit son nom en écriture miroir (à l'envers, p. ex. « oɔɔoᗡ lƎ »), le scanner relit la ligne en miroir. Le journal indique alors « 🪞 Spiegelschrift gelesen » (écriture miroir lue).</li>
+          <li>Si un nom reste illisible (p. ex. très décoré), le cadre montre la ligne en image. Choisis le joueur sous « Wer ist das? » (qui est-ce ?).</li>
           <li>« 📋 Ergebnis kopieren » copie le texte pour Discord ou un mail. « 🚀 Häkchen nach LWHub » pose les coches dans l'onglet Désert pour la semaine. Une confirmation montre d'abord qui reçoit « absent ».</li>
         </ol>
         <table>
@@ -510,6 +511,10 @@
         <li>Quand quelqu'un change d'alliance, l'envoi le retrouve même avec une autre orthographe (accents comme « MonGénéral », anciens noms) et emporte ses valeurs. Dans les semaines plus anciennes, il compte toujours pour l'alliance où il était alors.</li>
         <li>Tu peux télécharger les captures en local pour plus tard, ou les jeter.</li>
         <li>Les joueurs d'autres alliances présents dans une liste sont reconnus à leur tag et écartés.</li>
+        <li><strong>🚀 Boost</strong> rend le scanner environ deux fois plus rapide. Pendant le scan, il ne dessine rien, seuls les compteurs en haut avancent. Les tuiles sûres n'apparaissent pas du tout à côté des joueurs, leurs valeurs sont déjà dans le résumé. À la fin, tu ne vois que ce qui a besoin de toi : les tuiles floues à droite et les correspondances incertaines avec leur image à côté du joueur. Sans Boost, toutes les tuiles réapparaissent.</li>
+        <li><strong>« ⚠ unsicher » (incertain)</strong> veut dire : le nom n'a été lu qu'approximativement, ou il était illisible et la tuile a été attribuée grâce à une puissance unique. En général c'est juste, mais un coup d'œil vaut la peine. Passe la souris sur la tuile pour voir pourquoi. Si elle ne correspond pas, ✕ la détache.</li>
+        <li>La reconnaissance de texte ne lit pas directement les noms cyrilliques (p. ex. « Владимир1 »). Le scanner les compare grâce à des lettres latines qui leur ressemblent. Ces correspondances comptent toujours comme incertaines.</li>
+        <li>En haut, tu vois qui a envoyé les données à lwhub en dernier, p. ex. « 🕓 Zuletzt: Lion Tooth · 08.11.26, 20:02 ». Passe la souris dessus pour voir les cinq derniers envois.</li>
       </ul>
       <a class="to-top" href="#top">↑ haut de page</a>
     </section>

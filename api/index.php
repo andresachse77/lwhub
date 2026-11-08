@@ -62,6 +62,7 @@ require_once __DIR__ . '/src/archive.php';
 require_once __DIR__ . '/src/my-chars.php';
 require_once __DIR__ . '/src/teams.php';
 require_once __DIR__ . '/src/zug.php';
+require_once __DIR__ . '/src/scan-uploads.php';
 
 // ─── Route parsing ────────────────────────────────────────────────────────────
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -233,6 +234,11 @@ try {
         if ($method === 'POST' && count($segments) === 3 && $segments[2] === 'resolve') {
             handleResolveAccessRequest($pdo, $ALLIANCE, $segments[1], $body);
         }
+    }
+
+    // GET /scans/uploads – wer hat wann gescannt (scan-uploads.php)
+    if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'scans' && $segments[1] === 'uploads') {
+        handleListScanUploads($pdo, $ALLIANCE);
     }
 
     // GET /scans/my-alliances – Allianzen mit eigenen Chars (fuer die Allianz-Auswahl im Scanner)

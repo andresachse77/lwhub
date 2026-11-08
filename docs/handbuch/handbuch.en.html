@@ -243,7 +243,8 @@
           <li>Open Events → Desert Storm → <em>Logs</em> and scroll back to Monday of that week. This tells the scanner who was assigned as participant or substitute.</li>
           <li>The box “🏜 Wüstensturm” appears above the tile pool: per team, who signed up and did not show up.</li>
           <li>If it says “Nicht erfasst: Platz 13” (place 13 not captured), a row was skipped while scrolling. Just scroll slowly over that part of the mail again.</li>
-          <li>If a name is mirrored or decorated in the game, the box shows the row as a picture. Pick the player under “Wer ist das?” (who is this?).</li>
+          <li>If someone writes their name in mirror writing (backwards, e.g. “oɔɔoᗡ lƎ”), the scanner reads the row again mirrored. The log then says “🪞 Spiegelschrift gelesen” (mirror writing read).</li>
+          <li>If a name still can't be read (e.g. heavily decorated), the box shows the row as a picture. Pick the player under “Wer ist das?” (who is this?).</li>
           <li>“📋 Ergebnis kopieren” copies the text for Discord or a mail. “🚀 Häkchen nach LWHub” sets the ticks in the Desert tab for that week. A confirmation first shows who gets “absent”.</li>
         </ol>
         <table>
@@ -510,6 +511,10 @@
         <li>If someone switches alliance, the upload finds them even with a different spelling (accents like "MonGénéral", earlier names) and takes their values along. In older weeks they still count for the alliance they were in back then.</li>
         <li>You can download your captures locally for later, or discard them.</li>
         <li>Players from other alliances in a list are recognised by their alliance tag and left out.</li>
+        <li><strong>🚀 Boost</strong> makes the scanner about twice as fast. While scanning it draws nothing, only the counters at the top keep going. Tiles it is sure about don't show up next to the players at all, since their values are already in the summary. At the end you only see what needs your help: unclear tiles on the right and uncertain matches with their picture next to the player. Turn Boost off to see all tiles again.</li>
+        <li><strong>“⚠ unsicher” (uncertain)</strong> means the name was only read approximately, or it wasn't readable at all and the tile was matched by its unique power. Usually that's right, but a quick look is worth it. Hover over the tile to see why. If it doesn't fit, ✕ detaches it.</li>
+        <li>Cyrillic names (e.g. “Владимир1”) can't be read directly by the text recognition. The scanner compares them using similar-looking Latin letters. Such matches always count as uncertain.</li>
+        <li>At the top you see who last sent data to lwhub, e.g. “🕓 Zuletzt: Lion Tooth · 08.11.26, 20:02”. Hover over it to see the last five uploads.</li>
       </ul>
       <a class="to-top" href="#top">↑ back to top</a>
     </section>

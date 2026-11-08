@@ -250,7 +250,8 @@
           <li>Events → Wüstensturm → <em>Protokolle</em> öffnen und bis zum Montag der Woche zurückscrollen. Daraus liest der Scanner, wer als Teilnehmer oder Stellvertreter eingeteilt war.</li>
           <li>Über dem Kachel-Pool erscheint der Kasten „🏜 Wüstensturm“: je Team, wer angemeldet war und nicht erschienen ist.</li>
           <li>Steht dort „Nicht erfasst: Platz 13“, wurde beim Scrollen eine Zeile übersprungen. Die Mail einfach noch einmal langsam über diese Stelle scrollen.</li>
-          <li>Ist ein Name im Spiel gespiegelt oder verziert, zeigt der Kasten die Zeile als Bild. Unter „Wer ist das?“ wählst du den Spieler aus.</li>
+          <li>Schreibt jemand seinen Namen in Spiegelschrift (rückwärts, z. B. „oɔɔoᗡ lƎ“), liest der Scanner die Zeile automatisch gespiegelt nach. Im Protokoll steht dann „🪞 Spiegelschrift gelesen“.</li>
+          <li>Ist ein Name trotzdem nicht lesbar (z. B. stark verziert), zeigt der Kasten die Zeile als Bild. Unter „Wer ist das?“ wählst du den Spieler aus.</li>
           <li>„📋 Ergebnis kopieren“ gibt dir den Text für Discord oder eine Mail. „🚀 Häkchen nach LWHub“ setzt die Häkchen im Wüste-Tab für die Kampfwoche. Vorher zeigt eine Rückfrage, wer „Fehlen“ bekommt.</li>
         </ol>
         <table>
@@ -523,6 +524,10 @@
         <li>Wechselt jemand die Allianz, findet ihn der Upload auch mit anderer Schreibweise (Akzente wie „MonGénéral“, frühere Namen) und nimmt seine Werte mit. In alten Wochen zählt er weiter für die Allianz, in der er damals war.</li>
         <li>Die Aufnahmen kannst du für später lokal herunterladen oder verwerfen.</li>
         <li>Spieler anderer Allianzen in der Liste werden am Allianz-Kürzel erkannt und aussortiert.</li>
+        <li><strong>🚀 Boost</strong> macht den Scanner etwa doppelt so schnell. Während des Scans zeichnet er nichts, nur die Zähler oben laufen mit. Sicher erkannte Kacheln erscheinen gar nicht erst bei den Spielern, die Werte stehen ja schon in der Zusammenfassung. Am Ende siehst du nur, was deine Hilfe braucht: unklare Kacheln rechts und unsichere Treffer mit Bild beim Spieler. Boost aus zeigt wieder alle Kacheln.</li>
+        <li><strong>„⚠ unsicher“</strong> heißt: Der Name wurde nur ähnlich erkannt, oder er war gar nicht lesbar und die Kachel wurde über die eindeutige Kampfkraft zugeordnet. Meist passt das, ein kurzer Blick lohnt sich trotzdem. Fährst du mit der Maus über die Kachel, steht der Grund dabei. Passt sie nicht, löst ✕ sie wieder.</li>
+        <li>Kyrillische Namen (z. B. „Владимир1“) kann die Texterkennung nicht direkt lesen. Der Scanner vergleicht sie über ähnlich aussehende lateinische Buchstaben. Solche Treffer zählen immer als unsicher.</li>
+        <li>Oben steht, wer zuletzt nach lwhub übertragen hat, z. B. „🕓 Zuletzt: Lion Tooth · 08.11.26, 20:02“. Fährst du mit der Maus darüber, siehst du die letzten fünf Uploads.</li>
       </ul>
       <a class="to-top" href="#top">↑ nach oben</a>
     </section>

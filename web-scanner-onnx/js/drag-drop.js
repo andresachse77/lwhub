@@ -25,6 +25,27 @@ class CockpitState {
     this.tileIdCounter = 0;
     this.poolIdCounter = 0;
     this.newPlayerCounter = 0;
+
+    // ⚡ Boost: sicher zugeordnete Kacheln ohne Bild zeichnen (siehe isSureTile)
+    this.boost = false;
+    try { this.boost = localStorage.getItem('lwhub_scanner_boost') === '1'; } catch (_) {}
+    // Zeichnen buendeln: hoechstens einmal je Bildschirmbild statt nach jeder erkannten Zeile.
+    // ?render=sync in der Adresse schaltet das zum Vergleichen ab (altes Verhalten).
+    this.syncRender = new URLSearchParams(location.search).get('render') === 'sync';
+    this.renderPending = false;
+    this.renderStats = { requested: 0, drawn: 0, totalMs: 0, maxMs: 0, since: performance.now() };
+    this.renderTotal = { requested: 0, drawn: 0, totalMs: 0, maxMs: 0 }; // seit dem Laden der Seite
+  }
+
+  // Kachel braucht keine Sichtpruefung: von Hand zugeordnet oder Name exakt erkannt (nicht ueber Kampfkraft)
+  isSureTile(t) {
+    return t.manual === true || (t.exact === true && !t.byPower);
+  }
+
+  setBoost(on) {
+    this.boost = !!on;
+    try { localStorage.setItem('lwhub_scanner_boost', this.boost ? '1' : '0'); } catch (_) {}
+    this.render();
   }
 
   setMembers(membersList) {
@@ -254,6 +275,13 @@ class CockpitState {
           if (!duplicateTile.card.rank_code && card.rank_code) duplicateTile.card.rank_code = card.rank_code;
           this.mergeVs(duplicateTile.card, card);
           if (poolId) (duplicateTile.poolIds ||= new Set()).add(poolId);
+          // Erste Ansicht oft beim Scrollen halb gelesen (nur aehnlich): ein spaeterer exakter Treffer macht die
+          // Kachel sicher (Boost zeigt sie dann ohne Bild)
+          if (match.exact && !duplicateTile.exact) {
+            duplicateTile.exact = true;
+            duplicateTile.byPower = false;
+            duplicateTile.score = match.score;
+          }
           this.render();
           return { status: 'stacked_tile', member: match.member, tile: duplicateTile };
         } else {
@@ -520,9 +548,55 @@ class CockpitState {
 
   // Rendert die linke und rechte Senke komplett neu
   render() {
-    this.renderLeftPane();
-    this.renderRightTray();
+    this.renderStats.requested++;
+    this.renderTotal.requested++;
+    if (this.syncRender) { this.renderNow(); return; }
+    if (this.renderPending) return;
+    this.renderPending = true;
+    requestAnimationFrame(() => {
+      this.renderPending = false;
+      this.renderNow();
+    });
+  }
+
+  renderNow() {
+    const t0 = performance.now();
+    // 🚀 Boost: waehrend der Verarbeitung nur die Zaehler oben, Listen erst am Ende (window.scannerBusy, index.html)
+    const busy = this.boost && typeof window.scannerBusy === 'function' && window.scannerBusy();
+    if (!busy) {
+      this.renderLeftPane();
+      this.renderRightTray();
+    }
     this.updateStats();
+    const ms = performance.now() - t0;
+    const s = this.renderStats;
+    s.drawn++;
+    s.totalMs += ms;
+    if (ms > s.maxMs) s.maxMs = ms;
+    const T = this.renderTotal;
+    T.drawn++;
+    T.totalMs += ms;
+    if (ms > T.maxMs) T.maxMs = ms;
+    this.reportRenderStats();
+  }
+
+  // Messung fuers Protokoll: alle 10 s, wie oft und wie lange gezeichnet wurde
+  reportRenderStats(force = false) {
+    const s = this.renderStats;
+    const now = performance.now();
+    if (!force && now - s.since < 10000) return;
+    if (s.drawn && typeof window.log === 'function') {
+      const mode = this.syncRender ? 'ohne Bündeln' : 'gebündelt';
+      window.log(`🖌 Zeichnen, letzte ${Math.round((now - s.since) / 1000)} s (${mode}${this.boost ? ', ⚡ Boost' : ''}): `
+        + `${s.requested} Anfragen → ${s.drawn}× gezeichnet, Ø ${(s.totalMs / s.drawn).toFixed(1)} ms, `
+        + `max ${Math.round(s.maxMs)} ms, zusammen ${Math.round(s.totalMs)} ms`);
+      if (force) {
+        const T = this.renderTotal;
+        window.log(`🖌 GESAMT seit Laden: ${T.requested} Anfragen → ${T.drawn}× gezeichnet, `
+          + `zusammen ${(T.totalMs / 1000).toFixed(1)} s, max ${Math.round(T.maxMs)} ms`);
+      }
+    }
+    this.renderStats = { requested: 0, drawn: 0, totalMs: 0, maxMs: 0, since: now };
   }
 
   updateStats() {
@@ -767,7 +841,19 @@ class CockpitState {
         const chipsList = document.createElement('div');
         chipsList.className = 'tiles-chips-list';
 
-        for (const t of assignedData.tiles) {
+        // 🚀 Boost: sichere Kacheln (Name exakt, von Hand) nicht zeichnen – die Werte stehen links in der
+        // Zusammenfassung. Unsichere (Name nur aehnlich, per Kampfkraft) mit Bild und Hinweis zum Pruefen.
+        // Gezeichnet wird im Boost ohnehin erst nach dem Scan (renderNow).
+        const shownTiles = this.boost ? assignedData.tiles.filter(t => !this.isSureTile(t)) : assignedData.tiles;
+        if (this.boost && shownTiles.length) {
+          const hint = document.createElement('div');
+          hint.className = 'boost-unsure-hint';
+          hint.textContent = `⚠ ${shownTiles.length} unsicher – bitte prüfen`;
+          hint.title = 'Name nur ähnlich erkannt oder über die Kampfkraft zugeordnet. Passt die Kachel nicht: ✕ löst sie wieder.';
+          chipsList.appendChild(hint);
+        }
+
+        for (const t of shownTiles) {
           const chip = document.createElement('div');
           chip.className = 'matched-card-chip';
 
@@ -786,6 +872,10 @@ class CockpitState {
             <button class="btn-detach" title="Diese Kachel trennen / zurücklegen" onclick="window.cockpit.detachTile('${m.id}', '${t.id}')">✕</button>
           `;
           chip.prepend(this.cloneCanvas(t.canvas));
+          chip.title = t.manual ? 'Von Hand zugeordnet'
+            : t.byPower ? 'Name nicht lesbar – über die Kampfkraft zugeordnet'
+            : t.exact ? 'Name exakt erkannt'
+            : `Name nur ähnlich erkannt (${Math.round((t.score || 0) * 100)} %) – bitte prüfen`;
           chipsList.appendChild(chip);
         }
 

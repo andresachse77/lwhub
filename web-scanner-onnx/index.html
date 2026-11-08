@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LWHub Scanner-Cockpit (Browser-OCR)</title>
-<link rel="stylesheet" href="css/cockpit.css?v=20261017h">
+<link rel="stylesheet" href="css/cockpit.css?v=20261108d">
 <style>
   .ocr-engine-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .ocr-engine-row select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 12px; }
@@ -73,6 +73,7 @@
       </select>
       <button id="btnReloadMembers" class="btn btn-secondary" title="Mitgliederliste von LWHub neu laden">🔄 Neu laden</button>
       <button id="btnRematch" class="btn btn-secondary" title="Alle gescannten Kacheln neu gegen aktuelle Allianz abgleichen">⚡ Rematch</button>
+      <button id="btnBoost" class="btn btn-secondary" aria-pressed="false" title="Boost: während der Verarbeitung wird nichts gezeichnet, bei den Spielern keine Kacheln. Am Ende erscheinen nur die unklaren Kacheln zum Zuordnen und unsichere Treffer zum Prüfen.">🚀 Boost</button>
       <a id="linkTrend" class="btn btn-secondary" href="trend.html" title="Kampfkraft-Verlauf der Mitglieder: wer wächst, wer opfert am Samstag, wer stagniert">📈 Trend</a>
       <a id="linkEvent" class="btn btn-secondary" href="event.html" title="Event-Auswertung: Kills und Kampfkraft vor und nach einem Event (z. B. Kriegszonen-Duell)">🎯 Event</a>
     </div>
@@ -82,6 +83,7 @@
       <div id="statPoolCount" class="badge-stat">0 Kacheln im Pool</div>
       <div id="statErfasst" class="badge-stat warning">0 / 0 Erfasst</div>
       <div id="statLists" class="status-lists" title="Mitglieder mit Wert je gescannter Liste – unter voll: Liste noch einmal durchscrollen"></div>
+      <div id="lastUploadBadge" class="badge-stat" hidden></div>
       <div id="userBadge" class="badge-stat" hidden></div>
       <button id="btnSyncToLwHub" class="btn btn-success" disabled>🚀 Nach LWHub &uuml;bertragen</button>
     </div>
@@ -270,12 +272,12 @@
 </dialog>
 
 <!-- MODULE LADEN (Matching & Drag-and-Drop teilt sich diese Seite mit dem Server-Cockpit) -->
-<script src="js/matching.js?v=20261108a"></script>
-<script src="js/drag-drop.js?v=20261017f"></script>
+<script src="js/matching.js?v=20261108i"></script>
+<script src="js/drag-drop.js?v=20261108i"></script>
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
-<script src="js/desert-storm.js?v=20261107i"></script>
+<script src="js/desert-storm.js?v=20261108i"></script>
 
 <!-- APP BOOTSTRAP -->
 <script>
@@ -395,8 +397,37 @@ async function checkScannerAccess() {
   document.getElementById('linkEvent').href = `event.html?alliance=${encodeURIComponent(alliance)}`;
   if (!accessOk) return false;
   log(`Zugang für ${alliance} bestätigt (${document.getElementById('userBadge').textContent.replace('🛡️ ', '')}).`);
+  loadLastUploads();
   await loadMembers();
   return true;
+}
+
+// Wer hat zuletzt gescannt (GET /scans/uploads, api/src/scan-uploads.php). Nur Anzeige, Fehler bleiben still.
+async function loadLastUploads() {
+  const badge = document.getElementById('lastUploadBadge');
+  const alliance = document.getElementById('allianceSelect').value;
+  try {
+    const resp = await fetch(`${activeApiUrl}/scans/uploads?alliance=${encodeURIComponent(alliance)}&limit=5`, {
+      headers: LwhubAccess.authHeaders(), signal: AbortSignal.timeout(10000),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    const fmt = (u) => {
+      const when = new Date(String(u.created_at).replace(' ', 'T')).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+      return `${u.scanner || 'unbekannt'} · ${when} · ${u.entries} Einträge`;
+    };
+    const list = data.uploads || [];
+    if (!list.length) {
+      badge.textContent = '🕓 Noch kein Upload protokolliert';
+      badge.title = 'Uploads werden seit dem 08.11.2026 mit Namen protokolliert.';
+    } else {
+      badge.textContent = `🕓 Zuletzt: ${fmt(list[0])}`;
+      badge.title = `Letzte Uploads nach LWHub (${alliance}):\n` + list.map(fmt).join('\n');
+    }
+    badge.hidden = false;
+  } catch {
+    badge.hidden = true;
+  }
 }
 document.getElementById('accessGateRetry').addEventListener('click', checkScannerAccess);
 
@@ -468,10 +499,27 @@ document.getElementById('btnRematch').addEventListener('click', () => {
   log(`Manueller Neu-Abgleich aller Kacheln (${window.cockpit.scannedCardsPool.length}) durchgeführt.`);
 });
 
+// 🚀 Boost: waehrend der Verarbeitung nichts zeichnen, keine Kacheln bei Spielern (drag-drop.js). Einstellung bleibt im Browser.
+const btnBoost = document.getElementById('btnBoost');
+function showBoostState() {
+  btnBoost.setAttribute('aria-pressed', window.cockpit.boost ? 'true' : 'false');
+  btnBoost.textContent = window.cockpit.boost ? '🚀 Boost an' : '🚀 Boost';
+}
+btnBoost.addEventListener('click', () => {
+  window.cockpit.setBoost(!window.cockpit.boost);
+  showBoostState();
+  log(window.cockpit.boost
+    ? '🚀 Boost an: Listen erst am Ende, keine Kacheln bei den Spielern. Unklare Kacheln erscheinen am Ende rechts, unsichere Treffer am Ende mit Bild beim Spieler (⚠ bitte prüfen).'
+    : '🚀 Boost aus: alle Kacheln wieder mit Bild, Listen laufen live mit.');
+});
+showBoostState();
+if (window.cockpit.syncRender) log('🖌 Zeichnen ohne Bündeln (?render=sync) – nur zum Vergleichen.');
+
 document.getElementById('btnResetPool').addEventListener('click', () => {
   if (confirm('Möchtest du wirklich alle bisher erfassten Scan-Kacheln aus dem Session-Pool verwerfen?')) {
     window.cockpit.resetAllScans();
     desertStorm.clear();
+    desertMirrorTried.clear();
     desertPresent.clear();
     desertCrops.clear();
     renderDesert();
@@ -764,6 +812,39 @@ async function uploadDesertFlags(alliance) {
   return { changed, unchanged, skipped };
 }
 
+// Spiegelschrift: manche schreiben ihren Namen rueckwaerts mit gespiegelten Buchstaben ("[NxU1]oɔɔoᗡ lƎ").
+// Normal liest die OCR davon nichts; waagerecht gespiegelt kommt "E|Docco[ruxH]" heraus (getestet 08.11.2026,
+// 83–90 % Sicherheit). Daher: Zeile ohne Namen einmal gespiegelt nachlesen. "[ruxH]" ist das gespiegelte Kuerzel.
+const desertMirrorTried = new Set();
+async function readMirroredName(img, u, width) {
+  const key = `${u.at}|${u.points}`;
+  if (desertMirrorTried.has(key)) return;
+  desertMirrorTried.add(key);
+  const crop = cropCanvas(img, { left: Math.round(width * 0.38), right: Math.round(width * 0.95), top: u.box.top, bottom: u.box.bottom }, 0);
+  const mirrored = document.createElement('canvas');
+  mirrored.width = crop.width; mirrored.height = crop.height;
+  const g = mirrored.getContext('2d');
+  g.translate(mirrored.width, 0); g.scale(-1, 1);
+  g.drawImage(crop, 0, 0);
+  try {
+    const r = await ocr.process(mirrored);
+    const best = (r.raw_lines || [])
+      .filter((l) => l.score >= 0.7 && (l.text.match(/[A-Za-z]/g) || []).length >= 3)
+      .sort((a, b) => b.text.length - a.text.length)[0];
+    if (!best) return;
+    const name = best.text
+      .replace(/\s*[[(][^\])]*[\])]?\s*$/, '') // gespiegeltes Kuerzel steht jetzt hinten: "Docco[ruxH]"
+      .replace(/\|/g, 'l')                    // "E|Docco" → "ElDocco"
+      .trim();
+    if (desertStorm.addName(u.at, name, u.points)) {
+      log(`🪞 Spiegelschrift gelesen: „${name}“ (${u.points.toLocaleString('de-DE')} Punkte).`);
+      scheduleDesertRender();
+    }
+  } catch (err) {
+    log(`⚠️ Spiegelschrift nicht lesbar (${u.points.toLocaleString('de-DE')} Punkte): ${err.message}`);
+  }
+}
+
 function processOcrResult(img, result) {
   if (result.mode === 'unknown' && DesertStorm.detect(result.raw_lines || [], result.height)) {
     desertStorm.feed(result.raw_lines, result.width, result.height);
@@ -773,6 +854,7 @@ function processOcrResult(img, result) {
       if (img && !desertCrops.has(key)) {
         desertCrops.set(key, cropCanvas(img, { left: Math.round(result.width * 0.08), right: Math.round(result.width * 0.92), top: u.box.top, bottom: u.box.bottom }, 0));
       }
+      if (img) readMirroredName(img, u, result.width);
     }
     scheduleDesertRender();
     return;
@@ -886,6 +968,12 @@ function updateActiveJobs() {
 }
 
 function ocrTracked(source, label) {
+  // 🚀 Boost: keine Vorschaubilder der laufenden Erkennung (wechseln bei 7 parallel staendig und flackern).
+  // Fortschritt zeigen Restzahl und Balken oben.
+  if (window.cockpit.boost) {
+    ocrActiveBox.hidden = activeJobs.size === 0;
+    return ocr.process(source);
+  }
   const el = document.createElement('div');
   el.className = 'ocr-job';
   const thumb = document.createElement('canvas');
@@ -982,6 +1070,8 @@ async function processFiles(fileList) {
     });
     if (stopProcessingRequested) log('Verarbeitung durch Stop-Button abgebrochen.');
     reportRankGaps();
+    // Messung zum Schluss gleich ausgeben, nicht erst nach den naechsten 10 s
+    setTimeout(() => window.cockpit.reportRenderStats(true), 200);
   } finally {
     clearInterval(processingCountdownTimer);
     processingCountdownTimer = null;
@@ -989,6 +1079,7 @@ async function processFiles(fileList) {
     fileButtons.forEach(b => { b.disabled = !ocr.ready; });
     if (stopProcessingRequested) document.getElementById('processingProgressText').textContent = 'Verarbeitung gestoppt.';
     updateProcessingStopButton();
+    window.cockpit.render(); // 🚀 Boost: jetzt erst die Listen zeichnen
   }
 }
 
@@ -1164,11 +1255,14 @@ async function processVideos(files) {
     onProgress();
     if (stopProcessingRequested) log('Verarbeitung durch Stop-Button abgebrochen.');
     reportRankGaps();
+    // Messung zum Schluss gleich ausgeben, nicht erst nach den naechsten 10 s
+    setTimeout(() => window.cockpit.reportRenderStats(true), 200);
   } finally {
     filesRunActive = false;
     fileButtons.forEach(b => { b.disabled = !ocr.ready; });
     if (stopProcessingRequested) document.getElementById('processingProgressText').textContent = 'Verarbeitung gestoppt.';
     updateProcessingStopButton();
+    window.cockpit.render(); // 🚀 Boost: jetzt erst die Listen zeichnen
   }
 }
 
@@ -1204,6 +1298,8 @@ let captureStream = null;
 let captureTimer = null;
 let prevSignature = null;
 let liveQueue = [];
+// Laeuft gerade eine Verarbeitung? Im 🚀 Boost zeichnet das Cockpit dann nur die Zaehler (drag-drop.js, renderNow)
+window.scannerBusy = () => filesRunActive || captureStream !== null || liveQueue.length > 0 || liveRunner.running > 0;
 let liveFrameCount = 0;
 
 function frameSignature(canvas) {
@@ -1318,6 +1414,8 @@ function drainLiveQueue() {
   if (liveRunner.running === 0 && liveQueue.length === 0 && !captureStream) {
     window.cockpit.render();
     reportRankGaps();
+    // Messung zum Schluss eines Scans gleich ausgeben, nicht erst nach den naechsten 10 s
+    setTimeout(() => window.cockpit.reportRenderStats(true), 200);
   }
 }
 liveRunner.onIdle = drainLiveQueue;
@@ -1444,6 +1542,7 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
     if (hasMembers) {
       const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, LwhubAccess.discordToken());
       showSyncResult(res, alliance);
+      loadLastUploads();
       await loadMembers();
     }
     if (hasDesert) {

@@ -525,7 +525,7 @@
     "s_bp_fill_modal_title": "Répartir automatiquement – aperçu",
     "s_bp_fill_hint": "D'abord, les nouveaux seigneurs de guerre sont définis selon le rang. Ensuite, chaque seigneur de guerre reçoit si possible un ingénieur actif (★ = tiers supérieur, à partir de {n} points sur les {w} dernières semaines). Le reste est réparti équitablement. Les couples ♥ et les R4/R5 ne sont jamais déplacés.",
     "s_bp_fill_moves": "Déplacer",
-    "s_bp_fill_move_opt": "Déplacer aussi des ingénieurs actifs pour que chaque seigneur de guerre en ait un (les couples ♥ restent)",
+    "s_bp_fill_move_opt": "Déplacer aussi les ingénieurs déjà affectés : donner à chaque seigneur de guerre un actif et équilibrer le nombre (les paires ♥ restent)",
     "s_bp_pair_on": "Paire fixe : reste ensemble lors de la répartition. Clic pour détacher.",
     "s_bp_pair_off": "Fixer en paire fixe : « Répartir automatiquement » ne déplacera jamais cet ingénieur",
     "s_bp_fill_new_kh": "Nouveaux seigneurs de guerre",

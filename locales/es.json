@@ -525,7 +525,7 @@
     "s_bp_fill_modal_title": "Repartir automáticamente – vista previa",
     "s_bp_fill_hint": "Primero se asignan nuevos señores de la guerra según el rango. Luego cada señor de la guerra recibe, si es posible, un ingeniero activo (★ = tercio superior, desde {n} puntos en las últimas {w} semanas). El resto se reparte de forma equilibrada. Las parejas ♥ y los R4/R5 nunca se mueven.",
     "s_bp_fill_moves": "Mover",
-    "s_bp_fill_move_opt": "Mover también ingenieros activos para que cada señor de la guerra tenga uno (las parejas ♥ se quedan)",
+    "s_bp_fill_move_opt": "Mover también ingenieros ya asignados: dar a cada señor de la guerra uno activo e igualar el número (las parejas ♥ se quedan)",
     "s_bp_pair_on": "Pareja fija: se queda junta al repartir. Clic para soltar.",
     "s_bp_pair_off": "Fijar como pareja fija: «Repartir automáticamente» nunca moverá a este ingeniero",
     "s_bp_fill_new_kh": "Nuevos señores de la guerra",

@@ -540,7 +540,7 @@
     "s_bp_fill_modal_title": "Automatisch aufteilen – Vorschau",
     "s_bp_fill_hint": "Erst werden neue Kriegsherren aus dem Rang gesetzt. Dann bekommt jeder Kriegsherr möglichst einen aktiven Ingenieur (★ = oberes Drittel, ab {n} Punkten in den letzten {w} Wochen). Der Rest wird gleichmäßig verteilt. ♥-Paare und R4/R5 werden nie umgesetzt.",
     "s_bp_fill_moves": "Umsetzen",
-    "s_bp_fill_move_opt": "Aktive Ingenieure auch umsetzen, damit jeder Kriegsherr einen hat (♥-Paare bleiben)",
+    "s_bp_fill_move_opt": "Eingeteilte Ingenieure auch umsetzen: jedem Kriegsherrn einen aktiven geben und die Anzahl ausgleichen (♥-Paare bleiben)",
     "s_bp_pair_on": "Festes Paar: bleibt beim Verteilen zusammen. Klick löst das Paar.",
     "s_bp_pair_off": "Als festes Paar fixieren: „Automatisch aufteilen“ setzt diesen Ingenieur dann nie um",
     "s_bp_fill_new_kh": "Neue Kriegsherren",

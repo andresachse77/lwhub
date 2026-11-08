@@ -525,7 +525,7 @@
     "s_bp_fill_modal_title": "Rozdziel automatycznie – podgląd",
     "s_bp_fill_hint": "Najpierw ustawiani są nowi warlordzi według rangi. Potem każdy warlord dostaje w miarę możliwości aktywnego inżyniera (★ = górna jedna trzecia, od {n} punktów w ostatnich {w} tygodniach). Reszta jest rozdzielana równo. Pary ♥ i R4/R5 nigdy nie są przenoszone.",
     "s_bp_fill_moves": "Przenieś",
-    "s_bp_fill_move_opt": "Przenoś też aktywnych inżynierów, aby każdy warlord miał jednego (pary ♥ zostają)",
+    "s_bp_fill_move_opt": "Przenoś też przydzielonych inżynierów: każdy warlord dostaje aktywnego, a liczby się wyrównują (pary ♥ zostają)",
     "s_bp_pair_on": "Stała para: zostaje razem przy rozdzielaniu. Kliknij, aby odpiąć.",
     "s_bp_pair_off": "Przypnij jako stałą parę: „Rozdziel automatycznie” nigdy nie przeniesie tego inżyniera",
     "s_bp_fill_new_kh": "Nowi warlordzi",

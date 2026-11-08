@@ -525,7 +525,7 @@
     "s_bp_fill_modal_title": "Distribuisci automaticamente – anteprima",
     "s_bp_fill_hint": "Prima vengono impostati i nuovi signori della guerra in base al rango. Poi ogni signore della guerra riceve, se possibile, un ingegnere attivo (★ = terzo superiore, da {n} punti nelle ultime {w} settimane). Il resto viene distribuito in modo equilibrato. Le coppie ♥ e gli R4/R5 non vengono mai spostati.",
     "s_bp_fill_moves": "Spostare",
-    "s_bp_fill_move_opt": "Sposta anche ingegneri attivi perché ogni signore della guerra ne abbia uno (le coppie ♥ restano)",
+    "s_bp_fill_move_opt": "Sposta anche gli ingegneri già assegnati: dai a ogni signore della guerra uno attivo e pareggia il numero (le coppie ♥ restano)",
     "s_bp_pair_on": "Coppia fissa: resta insieme nella distribuzione. Clic per sciogliere.",
     "s_bp_pair_off": "Fissa come coppia fissa: «Distribuisci automaticamente» non sposterà mai questo ingegnere",
     "s_bp_fill_new_kh": "Nuovi signori della guerra",

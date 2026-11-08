@@ -1834,7 +1834,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 <div class="modal-bg hidden" id="modal-bp-fill">
   <div class="modal" style="width:min(640px, 100%)">
     <div class="modal-title">🎲 <span data-i18n="s_bp_fill_modal_title">Automatisch aufteilen – Vorschau</span></div>
-    <label class="bp-fill-opt"><input type="checkbox" id="bp-fill-move" checked onchange="bpFillReroll()"> <span data-i18n="s_bp_fill_move_opt">Aktive Ingenieure auch umsetzen, damit jeder Kriegsherr einen hat (♥-Paare bleiben)</span></label>
+    <label class="bp-fill-opt"><input type="checkbox" id="bp-fill-move" checked onchange="bpFillReroll()"> <span data-i18n="s_bp_fill_move_opt">Eingeteilte Ingenieure auch umsetzen: jedem Kriegsherrn einen aktiven geben und die Anzahl ausgleichen (♥-Paare bleiben)</span></label>
     <div id="bp-fill-body" class="bp-fill-body" data-i18n-skip="1"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="bpFillReroll()" data-i18n="s_bp_fill_reroll">Neu würfeln</button>
@@ -9901,6 +9901,7 @@ async function revokeApiToken(tokenId, clientName) {
   //  3. Der Rest geht gleichmaessig und zufaellig auf die freien Plaetze.
   //  4. Optional (Haekchen, Standard an): Kriegsherren mit 2+ Aktiven geben einen an Kriegsherren ohne
   //     Aktiven ab; ist der Empfaenger voll, geht dafuer sein schwaechster Ingenieur zurueck (Tausch).
+  //  5. Optional (gleiches Haekchen): Anzahl ausgleichen, kein Kriegsherr hat 2+ Ingenieure mehr als ein anderer.
   //  ♥-Paare und R4/R5 werden nie angefasst.
   let bpFillScores = null; // { scores: {name: pts}, threshold, weeks }
   let bpFillCurrent = null;
@@ -9990,6 +9991,26 @@ async function revokeApiToken(tokenId, clientName) {
         if (!b) return; // voll und nur ♥-Paare: nichts zu machen
         pull(a, d); pull(b, w); put(a, w); put(b, d);
       });
+      // Schritt 5: Anzahl ausgleichen. Solange einer 2+ Ingenieure mehr hat als ein anderer, gibt er einen ab:
+      // bevorzugt einen nicht aktiven (den schwaechsten), einen Aktiven nur, wenn ihm dann noch einer bleibt.
+      const exhausted = new Set();
+      for (let guard = 0; guard < 200; guard++) {
+        const count = kh => slots.get(kh).length;
+        const donors = warlords.filter(kh => !exhausted.has(kh));
+        if (!donors.length) break;
+        const hi = Math.max(...donors.map(count));
+        const lo = Math.min(...warlords.map(count));
+        if (hi - lo < 2) break;
+        const d = bpShuffle(donors.filter(kh => count(kh) === hi))[0];
+        const r = bpShuffle(warlords.filter(kh => count(kh) === lo))[0];
+        const keepsActive = slots.get(d).filter(isActive).length >= 2;
+        const pick = slots.get(d)
+          .filter(n => movable(n) && (!isActive(n) || keepsActive))
+          .sort((x, y) => (isActive(x) - isActive(y)) || (pts(x) - pts(y)))[0];
+        if (!pick) { exhausted.add(d); continue; } // nur ♥-Paare/R4/R5: dieser Spender faellt aus
+        pull(pick, d);
+        put(pick, r);
+      }
     }
     // Ergebnis: Unterschiede zum Ausgangszustand
     const engs = [];

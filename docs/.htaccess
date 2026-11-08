@@ -1,0 +1,26 @@
+# Testlauf fuer docs/konzept-frontend-umbau.html, Schritt 1: gilt NUR fuer den Ordner docs/.
+# Die normale Seite (Hauptordner) bleibt unveraendert. Klappt der Test (Knopf "Jetzt pruefen" auf der
+# Konzeptseite), wandern diese Zeilen in die .htaccess im Hauptordner.
+# Alles in <IfModule>: Fehlt ein Modul beim Hoster, laeuft alles unveraendert weiter.
+
+# ── Komprimierung ──
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# ── Cache: immer beim Server nachfragen (ETag -> 304, wenn unveraendert) ──
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css|json)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
+# ── Sicherheits-Header (ohne HSTS: das gilt immer fuer die ganze Domain) ──
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  # Nur Beobachtungsmodus: blockiert nichts, meldet Verstoesse in der Browser-Konsole
+  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; connect-src 'self' https://discord.com https://unavatar.io https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+</IfModule>

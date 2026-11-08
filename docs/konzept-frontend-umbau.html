@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LWHub &bull; Umbau der Startseite – Konzept</title>
+<style>
+  :root {
+    --bg-primary: #0e1117; --bg-secondary: #161b22; --bg-tertiary: #21262d; --bg-card: #1c2128;
+    --border-color: #30363d; --accent: #58a6ff; --success: #3fb950; --warning: #d29922; --danger: #f85149;
+    --purple: #bc8cff; --text-primary: #f0f6fc; --text-secondary: #8b949e; --text-muted: #6e7681;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); line-height: 1.6; padding: 32px 16px; display: flex; justify-content: center; }
+  .container { max-width: 980px; width: 100%; min-width: 0; }
+  .header { border-bottom: 1px solid var(--border-color); padding-bottom: 24px; margin-bottom: 36px; display: flex; flex-direction: column; gap: 12px; }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; padding: 3px 9px; border-radius: 20px; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+  .badge.blue { background: rgba(88,166,255,.15); color: var(--accent); border-color: rgba(88,166,255,.3); }
+  .badge.green { background: rgba(63,185,80,.15); color: var(--success); border-color: rgba(63,185,80,.3); }
+  .badge.amber { background: rgba(210,153,34,.15); color: var(--warning); border-color: rgba(210,153,34,.3); }
+  h1 { font-size: 28px; font-weight: 700; color: #fff; line-height: 1.25; }
+  .subtitle { color: var(--text-secondary); font-size: 15px; }
+  section { margin-bottom: 44px; }
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+  h3 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; }
+  p { color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; }
+  ul, ol { margin: 0 0 16px 24px; color: var(--text-secondary); font-size: 14px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text-primary); }
+  code { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-tertiary); padding: 1px 6px; border-radius: 4px; color: var(--text-primary); word-break: break-word; }
+  pre { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px 16px; overflow-x: auto; color: var(--text-primary); margin-bottom: 16px; line-height: 1.5; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px; }
+  .stat .num { font-size: 24px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+  .stat .lbl { font-size: 12px; color: var(--text-secondary); }
+  .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+  .card.rec { border-color: rgba(63,185,80,.55); box-shadow: 0 0 0 1px rgba(63,185,80,.2) inset; }
+  .card h3:first-child { margin-top: 0; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .card-head h3 { margin: 0; font-size: 18px; }
+  .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .pc h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .pc .pro h4 { color: var(--success); }
+  .pc .con h4 { color: var(--danger); }
+  @media (max-width: 640px) { .pc { grid-template-columns: 1fr; } }
+  .table-wrap { overflow-x: auto; margin-bottom: 16px; border: 1px solid var(--border-color); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 560px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border-color); vertical-align: top; color: var(--text-secondary); }
+  th { background: var(--bg-secondary); color: var(--text-primary); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td.good { color: var(--success); } td.mid { color: var(--warning); } td.bad { color: var(--danger); }
+  .note { background: rgba(88,166,255,.08); border: 1px solid rgba(88,166,255,.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; }
+  .note p:last-child { margin-bottom: 0; }
+  .warn { background: rgba(210,153,34,.08); border-color: rgba(210,153,34,.35); }
+  .test-btn { font: inherit; font-size: 14px; font-weight: 600; color: #fff; background: #238636; border: 1px solid rgba(240,246,252,.1); border-radius: 6px; padding: 7px 16px; cursor: pointer; }
+  .test-btn:hover { background: #2ea043; }
+  .test-btn:disabled { opacity: .6; cursor: wait; }
+  .test-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .test-note { font-size: 13px; color: var(--text-secondary); margin-left: 8px; }
+  .footer { color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border-color); padding-top: 16px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div class="badge-row">
+    <span class="badge blue">Konzept</span>
+    <span class="badge amber">Entwurf</span>
+    <span class="badge">Stand 08.11.2026</span>
+  </div>
+  <h1>Umbau der Startseite: kleinere Seiten, teilbare Links, schneller</h1>
+  <p class="subtitle">Drei Wege ohne Node/npm, wie wir <code>index.html</code> aufteilen können, dazu eine Empfehlung. Alle drei nutzen dasselbe englische Link-Schema zum Teilen.</p>
+</div>
+
+<!-- ───────────────────────────────── -->
+<section>
+  <h2>1. Wo wir stehen</h2>
+  <div class="stats">
+    <div class="stat"><div class="num">10.272</div><div class="lbl">Zeilen in index.html</div></div>
+    <div class="stat"><div class="num">≈ 496 KB</div><div class="lbl">Dateigröße (ungepackt)</div></div>
+    <div class="stat"><div class="num">≈ 384 KB</div><div class="lbl">davon JavaScript, alles in einem &lt;script&gt;</div></div>
+    <div class="stat"><div class="num">≈ 72 KB</div><div class="lbl">davon CSS</div></div>
+    <div class="stat"><div class="num">≈ 330</div><div class="lbl">Funktionen, fast alle global</div></div>
+    <div class="stat"><div class="num">162</div><div class="lbl"><code>onclick=</code> direkt im HTML (113 + 49 in den Partials)</div></div>
+  </div>
+  <p>Grob, wo das JavaScript liegt (Zeilen in <code>index.html</code>):</p>
+  <div class="table-wrap"><table>
+    <tr><th>Bereich</th><th>Zeilen</th><th>Wer braucht ihn?</th></tr>
+    <tr><td>Konfiguration, Discord-Login, Punkte-Formeln</td><td>2084–2965 (≈ 880)</td><td>alle</td></tr>
+    <tr><td>State, Mein Bereich, Berufe (eigene)</td><td>2965–3930 (≈ 970)</td><td>alle</td></tr>
+    <tr><td>Navigation, Rendern, Mitgliederliste, Dashboard</td><td>3930–5004 (≈ 1070)</td><td>alle / R4</td></tr>
+    <tr><td>Ranking-Tabelle, Sparwoche</td><td>5004–6274 (≈ 1270)</td><td>R4</td></tr>
+    <tr><td>Feature-Schalter, Verwaltung, SE-Inaktiv</td><td>6274–7573 (≈ 1300)</td><td>R4</td></tr>
+    <tr><td>Sync, Presence, Start</td><td>7573–7800 (≈ 230)</td><td>alle</td></tr>
+    <tr><td>Admin (Allianzen, Archiv, Transfer, Admins, API-Tokens)</td><td>7799–8255 (≈ 460)</td><td>R5 / Admin</td></tr>
+    <tr><td>Zug (Planer + Ansicht)</td><td>8255–9188 (≈ 930)</td><td>R4 planen, alle ansehen</td></tr>
+    <tr><td>Berufeplaner</td><td>9188–10266 (≈ 1080)</td><td>R4</td></tr>
+  </table></div>
+
+  <h3>Ist es so schon gut genug?</h3>
+  <p>Für den Anfang war es genau richtig: eine Datei, kein Build, per FTP hochladen, fertig. Bei der jetzigen Größe kostet es uns aber an drei Stellen:</p>
+  <ul>
+    <li><strong>Teilen:</strong> Es gibt keine Links auf Unterseiten. Welche Seite man sieht, steht nur in <code>localStorage</code> (<code>lwhub_last_page</code>). Wer einen Link schickt, landet beim anderen immer auf dessen letzter Seite.</li>
+    <li><strong>Wartung:</strong> Alles liegt im selben globalen Bereich. Eine Funktion umzubenennen bedeutet, 10.000 Zeilen plus die PHP-Partials zu durchsuchen. Merge-Konflikte treffen fast immer dieselbe Datei.</li>
+    <li><strong>Performance:</strong> Ein normales Mitglied (R1–R3) lädt und parst grob <strong>55–60 % JavaScript, das es nie benutzt</strong> (Ranking, Verwaltung, Admin, Planer). Weil alles in der HTML-Datei steckt, muss der Browser nach <em>jeder</em> kleinen Änderung die kompletten ~500 KB neu laden, denn nichts davon kann getrennt im Cache bleiben.</li>
+  </ul>
+  <p>Ganz neu schreiben müssen wir also nichts. Aufteilen lohnt sich aber auf jeden Fall.</p>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section>
+  <h2>2. Für alle Konzepte gleich: Links zum Teilen</h2>
+  <p>Egal welchen Weg wir nehmen: jede Seite und jede sinnvolle Ansicht bekommt eine eigene Adresse. Vorschlag:</p>
+<p>Adressen, Dateien und Funktionen bekommen <strong>englische Namen</strong>. Dann versteht jeder in der Allianz einen Link, egal welche Sprache er im LWHub eingestellt hat. Die Texte auf den Seiten bleiben wie heute übersetzt.</p>
+<p>Die Namen sind bewusst kurz, damit ein Link auch im Discord-Chat oder auf dem Handy gut lesbar bleibt.</p>
+<pre>lwhub.de/                       → Startseite (wie heute: letzte Seite)
+lwhub.de/me                     → Mein Bereich        (heute m)
+lwhub.de/teams                  → Meine Teams         (t)
+lwhub.de/points                 → Punkte-Guide        (p)
+lwhub.de/train                  → Zug, aktuelle Woche (zv)
+lwhub.de/train/2026-11-12       → Zug, bestimmter Tag
+lwhub.de/train/plan             → Zug-Planer R4       (z)
+lwhub.de/events                 → Events              (w)
+lwhub.de/jobs                   → Berufeplaner        (bp)
+lwhub.de/stats?w=46             → Auswertungen, KW 46 (r)
+lwhub.de/dash                   → Dashboard           (d)
+lwhub.de/members                → Verwaltung          (v)
+lwhub.de/members/lion%20tooth   → Detail eines Mitglieds
+lwhub.de/scan                   → Scanner             (sc)
+lwhub.de/admin                  → Admin               (a)
+…?a=776-XYZ                     → optional: Allianz festlegen (Char-Switcher)</pre>
+  <p><strong>Mitglieder im Link:</strong> Der Spielername steht kleingeschrieben im Link, die Suche ignoriert Groß/Klein (<code>/members/Lion%20Tooth</code> funktioniert also auch). Die interne <code>player_id</code> wäre zwar eindeutig, ist aber 36 Zeichen lang und für niemanden lesbar. Benennt sich jemand um, findet die App den alten Namen über <code>player_name_history</code> und leitet auf den neuen weiter.</p>
+  <p>Alte Links mit <code>#…</code> oder den Kurz-IDs (<code>m</code>, <code>zv</code> …) leiten wir einfach auf die neue Adresse um, damit nichts kaputtgeht.</p>
+  <p>Dazu kommt ein kleiner <strong>„Link teilen“-Knopf</strong> im Seitenkopf. Auf dem Handy öffnet er das normale Teilen-Menü (<code>navigator.share</code>), am PC kopiert er den Link in die Zwischenablage.</p>
+
+  <h3>Was dabei beachtet werden muss</h3>
+  <ul>
+    <li><strong>Discord-Login:</strong> Discord schickt das Token heute im Hash zurück (<code>#access_token=…</code>, siehe <code>checkDiscordAuth()</code>). Vor dem Weiterleiten zu Discord merken wir uns das Ziel in <code>sessionStorage</code> (<code>lwhub_return_to</code>) und springen nach dem Login dorthin zurück. Sonst landet jeder geteilte Link nach dem Anmelden auf der Startseite.</li>
+    <li><strong>Rechte:</strong> Öffnet jemand ohne R4 einen R4-Link, bekommt er einen freundlichen Hinweis („Diese Seite ist nur für R4/R5“) und dann die Startseite. Die Logik dafür gibt es schon (<code>safeId</code> in <code>showPage()</code>), sie braucht nur einen sichtbaren Hinweis.</li>
+    <li><strong>Allianz:</strong> Wenn der Link eine andere Allianz meint als den aktiven Charakter des Empfängers, fragen wir kurz nach („Zu Charakter X wechseln?“), statt still die falschen Daten zu zeigen.</li>
+    <li><strong>Vorschau in Discord:</strong> Links werden fast immer in Discord geteilt. Discord sieht nur den Pfad, nicht den Hash. Mit echten Pfaden (<code>/zug</code> statt <code>#zug</code>) kann PHP pro Seite einen passenden Titel als <code>og:title</code> mitgeben, z. B. „LWHub · Zugplan“. Mit Hash-Links sieht jede Vorschau gleich aus.</li>
+    <li><strong>Altlast:</strong> <code>applyHashRouteIfNeeded()</code> und <code>goToView()</code> leiten noch auf <code>me.html</code>, <code>me2.html</code>, <code>me3.html</code> und <code>punkte.html</code> weiter. Diese Dateien gibt es nicht mehr, der Code kann weg, sobald das neue Routing steht.</li>
+  </ul>
+  <div class="note"><p><strong>Technik dahinter:</strong> Eine <code>.htaccess</code>-Zeile <code>FallbackResource /index.php</code> (oder eine RewriteRule, die <code>/api</code>, <code>/docs</code>, <code>/web-scanner-onnx</code> und echte Dateien ausnimmt) schickt jeden Pfad an die App. In der App liest ein kleiner Router <code>location.pathname</code> und nutzt <code>history.pushState</code> und <code>popstate</code>, damit Zurück und Vor im Browser funktionieren. Lokal macht <code>scripte/router.php</code> dasselbe.</p></div>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section>
+  <h2>3. Die drei Konzepte</h2>
+
+  <!-- A -->
+  <div class="card rec">
+    <div class="card-head"><h3>A · Eine App, aber in viele kleine Dateien aufgeteilt</h3><span class="badge green">Empfehlung</span></div>
+    <p>Für die Nutzer bleibt alles, wie es ist: eine Seite, die beim Klicken zwischen Bereichen wechselt, ohne neu zu laden. Im Code wird aber jeder Bereich zu einer eigenen kurzen Datei. Kein Build-Werkzeug, kein Node, kein npm: der Browser lädt native ES-Module direkt.</p>
+<pre>index.php                ← kleine Hülle: Kopf, Tabs, &lt;main&gt;, og:title je Pfad
+assets/css/
+  base.css               ← Farben, Layout, Buttons (für alle)
+  train.css  stats.css  members.css  …
+assets/js/
+  app.js                 ← Start, Router, lädt Seiten bei Bedarf
+  core/  api.js  auth.js  state.js  i18n.js  share.js  ui.js
+  pages/
+    me.js  teams.js  points.js
+    train.js  train-plan.js  events.js
+    stats.js  dash.js  members.js  se-inactive.js
+    jobs.js  admin.js  scan.js
+api/partials/            ← HTML je Seite, wie heute für R4/Admin</pre>
+    <p>Jede Seitendatei exportiert dasselbe kleine Muster:</p>
+<pre>// pages/train.js
+export const route = '/train/:date?';
+export const needs = { feature: 'zug' };
+export async function show(root, params) { … }   // build the page
+export function hide() { … }                      // clean up timers, listeners</pre>
+    <p>Neue Funktionen und Variablen bekommen englische Namen (<code>loadTrainSchedule</code> statt <code>ladeZugplan</code>). Bestehende benennen wir nur um, wenn wir die Stelle ohnehin anfassen.</p>
+    <p>Der Router lädt eine Seite erst beim ersten Öffnen (<code>await import('./pages/train.js')</code>). Ein R1 lädt Verwaltung, Admin und Berufeplaner also nie. Beim Scanner (<code>sc</code>) machen wir das heute schon von Hand so, das Muster gilt dann für alle Seiten.</p>
+    <div class="pc">
+      <div class="pro"><h4>Vorteile</h4><ul>
+        <li>Kein neues Werkzeug, Deploy per FTP bleibt gleich</li>
+        <li>Schrittweise machbar: eine Seite nach der anderen herauslösen, dazwischen läuft immer alles</li>
+        <li>Dateien mit 200–900 Zeilen statt 10.000</li>
+        <li>CSS/JS getrennt im Browser-Cache; eine Änderung am Zug lädt nur <code>train.js</code> neu</li>
+        <li>Lazy Loading spart R1–R3 grob die Hälfte des JavaScripts</li>
+      </ul></div>
+      <div class="con"><h4>Nachteile</h4><ul>
+        <li>Viele kleine Dateien = mehr Anfragen (bei HTTP/2 kaum spürbar)</li>
+        <li>Kein Minifizieren ohne Build, dafür sorgt gzip/brotli am Server</li>
+        <li>Die 162 <code>onclick=</code> brauchen eine Übergangslösung (siehe unten)</li>
+        <li>Cache-Versionen müssen wir selbst anhängen (<code>?v=SHA</code>)</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="card">
+    <div class="card-head"><h3>B · Echte Einzelseiten (eine HTML/PHP-Datei pro Bereich)</h3><span class="badge">möglich</span></div>
+    <p>Jeder Bereich wird eine eigene Seite: <code>/train/index.php</code>, <code>/stats/index.php</code> usw. Kopf und Tabs kommen per PHP-<code>include</code> aus einer gemeinsamen Datei, dazu gemeinsame <code>core.js</code> und <code>base.css</code>. Ein Klick auf einen Tab ist ein normaler Link und lädt die Seite neu.</p>
+    <div class="pc">
+      <div class="pro"><h4>Vorteile</h4><ul>
+        <li>Am einfachsten zu verstehen: eine Datei = eine Seite</li>
+        <li>Teilen geht von allein, jede Seite hat ihre echte Adresse</li>
+        <li>Jede Seite lädt nur, was sie braucht</li>
+        <li>Fehler auf einer Seite legen die anderen nicht lahm</li>
+      </ul></div>
+      <div class="con"><h4>Nachteile</h4><ul>
+        <li>Jeder Tab-Wechsel lädt komplett neu: Login prüfen, Mitglieder und Feature-Schalter erneut holen, Ladeanimation. Auf dem Handy merkt man das deutlich.</li>
+        <li>Gemeinsamer Zustand (Mitgliederliste, KW, aktiver Charakter, Chat/Presence) muss jedes Mal neu entstehen oder zwischengespeichert werden</li>
+        <li>Der Login liegt im Browser (<code>localStorage</code>), nicht in einer Server-Session. PHP kann R4-Seiten also nicht direkt beim Aufruf schützen, ohne den Login auf Cookies umzubauen.</li>
+        <li>Das ist der größte Umbau der drei, weil die App heute stark auf „alles ist schon geladen“ aufbaut</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div class="card">
+    <div class="card-head"><h3>C · Aufteilen nach Rolle (der schnellste Weg)</h3><span class="badge">später, bei mehr Mitgliedern</span></div>
+    <p>Statt sofort in 15 Dateien zerlegen wir die große Datei erst einmal in <strong>drei Teile</strong>, je nachdem, wer sie braucht:</p>
+<pre>assets/js/app-core.js    ← alle: Login, Mein Bereich, Teams, Punkte-Guide, Zug-Ansicht, Chat
+assets/js/app-r4.js      ← R4/R5: Events, Zug-Planer, Berufeplaner, Auswertungen, Verwaltung, Scanner
+assets/js/app-admin.js   ← Admin: Allianzen, Archiv, Transfer, Admins, API-Tokens
+assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
+    <p><code>app-r4.js</code> wird erst geladen, wenn <code>/tab-html?section=r4</code> die R4-Reiter liefert. Genau an dieser Stelle prüft die App heute schon, ob jemand R4 ist, wir hängen dort nur ein <code>&lt;script&gt;</code> an. Für Admin gilt dasselbe.</p>
+    <div class="pc">
+      <div class="pro"><h4>Vorteile</h4><ul>
+        <li>Kleinster Umbau: Code wird verschoben, nicht umgeschrieben</li>
+        <li>Sofort grob die Hälfte weniger JavaScript für R1–R3</li>
+        <li>Nach einem Update wird nur der geänderte Teil neu geladen</li>
+        <li>Keine Werkzeuge, FTP-Deploy bleibt gleich</li>
+        <li>Ist ohnehin der erste Schritt von A, nichts davon ist verschenkt</li>
+      </ul></div>
+      <div class="con"><h4>Nachteile</h4><ul>
+        <li><code>app-r4.js</code> hat immer noch ~5.000 Zeilen, die Lesbarkeit wird nur etwas besser</li>
+        <li>Funktionen bleiben global, bis A sie in Module packt</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><strong>Gibt es einen Weg ganz ohne Nachteile?</strong> Leider nein. Jeder Umbau kostet Arbeit, und bei jedem Verschieben kann etwas haken. Am nächsten dran ist: <strong>zuerst gzip, Cache- und Sicherheits-Header</strong> (fast kein Risiko, großer Gewinn für alle), <strong>dann Schritt für Schritt A</strong>. Die App läuft dabei nach jedem Schritt weiter.</p>
+    <p>Ein Build-Werkzeug mit Node/npm (z. B. Vite) haben wir bewusst gestrichen: zusätzliche Abhängigkeiten, die regelmäßig Sicherheitsupdates brauchen. Was es bringen würde (Minifizieren, Caching), holen wir zum großen Teil über gzip und Cache-Header am Server.</p>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section>
+  <h2>4. Vergleich</h2>
+  <div class="table-wrap"><table>
+    <tr><th></th><th>A · Module, eine App</th><th>B · Einzelseiten</th><th>C · Nach Rolle</th></tr>
+    <tr><td><strong>Links teilen</strong></td><td class="good">gut (Router + Pfade)</td><td class="good">sehr gut, von allein</td><td class="good">gut (Router + Pfade)</td></tr>
+    <tr><td><strong>Lesbarkeit / Wartung</strong></td><td class="good">gut</td><td class="good">gut, aber Kopf/Init doppelt</td><td class="mid">etwas besser</td></tr>
+    <tr><td><strong>Erster Aufruf (R1–R3)</strong></td><td class="good">deutlich schneller</td><td class="good">schnell</td><td class="good">deutlich schneller</td></tr>
+    <tr><td><strong>Erster Aufruf (R4/R5)</strong></td><td class="good">schneller, jede Seite erst beim Öffnen</td><td class="good">schnell</td><td class="bad">kaum Unterschied</td></tr>
+    <tr><td><strong>Seitenwechsel</strong></td><td class="good">sofort</td><td class="bad">jedes Mal neu laden</td><td class="good">sofort</td></tr>
+    <tr><td><strong>Nach einem Update</strong></td><td class="good">nur geänderte Dateien</td><td class="good">nur geänderte Dateien</td><td class="mid">nur der geänderte Teil</td></tr>
+    <tr><td><strong>Neue Werkzeuge</strong></td><td class="good">keine</td><td class="good">keine</td><td class="good">keine</td></tr>
+    <tr><td><strong>Aufwand</strong></td><td class="mid">mittel, in kleinen Schritten</td><td class="bad">hoch</td><td class="good">klein</td></tr>
+    <tr><td><strong>Risiko unterwegs</strong></td><td class="good">gering, App läuft nach jedem Schritt</td><td class="mid">mittel</td><td class="good">gering</td></tr>
+  </table></div>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section>
+  <h2>5. Empfehlung</h2>
+  <p><strong>Zuerst die Server-Einstellungen, dann Schritt für Schritt Konzept A.</strong> Der LWHub wird heute vor allem von R4 und R5 genutzt, und die brauchen den R4-Teil sowieso. Konzept C würde ihnen kaum etwas sparen und lohnt sich erst, wenn mehr normale Mitglieder den LWHub nutzen. A hilft dagegen auch R4: Wer den Zugplan öffnet, lädt Verwaltung, Berufeplaner und Admin erst, wenn er sie anklickt.</p>
+  <p> Die „kurzen knackigen Einzelseiten“ bekommen wir so trotzdem: jede Seite ist eine eigene kleine Datei mit eigener Adresse. Nur der Browser lädt beim Wechseln nicht komplett neu. Das passt zu einer App, in der Login, Mitgliederliste, Chat und aktiver Charakter überall gebraucht werden.</p>
+
+  <h3>Reihenfolge</h3>
+  <ol>
+    <li><strong>Server-Einstellungen:</strong> gzip, Cache-Header und Sicherheits-Header in der <code>.htaccess</code> (siehe „Schnelle Gewinne“). Kein Code-Umbau, der größte Gewinn für R4.</li>
+    <li><strong>Router und Links</strong>, noch in der großen Datei. <code>showPage()</code> bekommt Pfade, dazu Zurück/Vor, <code>.htaccess</code>-Fallback, Rücksprung nach dem Discord-Login und der „Link teilen“-Knopf. Das bringt Nutzern sofort etwas.</li>
+    <li><strong>CSS auslagern</strong> nach <code>assets/css/base.css</code> und Seiten-CSS, mit <code>?v=</code>-Version im Link.</li>
+    <li><strong>Kern auslagern:</strong> <code>api.js</code> (<code>fetchJson</code>, <code>API_BASE_CANDIDATES</code>), <code>auth.js</code>, <code>state.js</code>, <code>i18n.js</code>.</li>
+    <li><strong>Seiten einzeln herauslösen</strong>, die großen und abgeschlossenen zuerst: Berufeplaner und Zug (beide schon eigene IIFEs), dann Admin, Verwaltung, Auswertungen. Zum Schluss Mein Bereich und Teams.</li>
+    <li><strong>Lazy Loading einschalten</strong>, sobald eine Seite ihr eigenes Modul hat.</li>
+    <li><strong><code>onclick=</code> abbauen:</strong> Übergangsweise hängt jedes Seitenmodul seine benötigten Funktionen an ein Objekt (<code>window.lw.zug = { … }</code>). Nach und nach ersetzen wir das durch <code>data-action="…"</code> und einen Klick-Listener pro Seite. Nebenbei verschwinden so auch Fehler wie der „O'Brien“-Fall im Berufeplaner (<code>bpEnc</code>).</li>
+    <li><strong>Aufräumen:</strong> <code>goToView()</code> / <code>applyHashRouteIfNeeded()</code> mit den alten <code>me*.html</code>-Zielen entfernen.</li>
+  </ol>
+
+  <h3>Schnelle Gewinne, die sofort gehen</h3>
+  <ul>
+    <li>gzip in der <code>.htaccess</code> einschalten (<code>mod_deflate</code>). Gemessen: Der Server liefert heute <strong>unkomprimiert</strong> aus, mit gzip werden aus 496 KB nur noch 117 KB.</li>
+    <li>Sicherheits-Header setzen: <code>Strict-Transport-Security</code>, <code>X-Content-Type-Options: nosniff</code>, <code>Referrer-Policy</code>, dazu eine CSP zuerst im Modus <code>Content-Security-Policy-Report-Only</code>. So sehen wir, was sie blockieren würde, ohne dass etwas kaputtgeht.</li>
+    <li>Cache-Header: <code>index.php</code> kurz cachen, versionierte Dateien unter <code>assets/</code> lange (<code>Cache-Control: max-age=31536000, immutable</code>). Das funktioniert, weil <code>deploy-refresh.js</code> neue Versionen ohnehin erkennt.</li>
+  </ul>
+
+  <div class="note warn"><p><strong>Was A bewusst nicht ändert:</strong> PHP-API, Datenbank, Discord-Login (außer dem Rücksprung), Scanner (<code>web-scanner-onnx/</code>) und das Aussehen. Für die Nutzer sieht alles gleich aus, es kommen nur die Adressen und der Teilen-Knopf dazu.</p></div>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section id="gzip-test">
+  <h2>Live-Test: Komprimierung und Header</h2>
+  <p>Die neuen Server-Einstellungen gelten testweise <strong>nur für den Ordner <code>docs/</code></strong> (eigene <code>docs/.htaccess</code>). Die normale Seite bleibt unverändert. Der Knopf lädt diese Konzeptseite und zum Vergleich die normale Startseite frisch vom Server und zeigt, was wirklich ankommt.</p>
+  <p><button type="button" id="gz-run" class="test-btn">Jetzt prüfen</button> <span id="gz-note" class="test-note"></span></p>
+  <div class="table-wrap"><table id="gz-table">
+    <tr><th>Datei</th><th>Komprimiert</th><th>Übertragen</th><th>Entpackt</th><th>Cache-Control</th><th>nosniff</th><th>CSP (Beobachtung)</th><th>X-Frame-Options</th></tr>
+    <tr><td colspan="8">Noch nicht geprüft.</td></tr>
+  </table></div>
+  <p>Erwartung: Die Konzeptseite ist komprimiert und hat alle Header. Die Startseite zeigt noch überall „nein“. Erst dann wandern die Zeilen in die <code>.htaccess</code> im Hauptordner. Hinweis: Der Vergleich lädt die Startseite einmal komplett (~500 KB).</p>
+</section>
+<script>
+(function () {
+  var btn = document.getElementById('gz-run');
+  var table = document.getElementById('gz-table');
+  var note = document.getElementById('gz-note');
+  var targets = [
+    { label: 'Diese Konzeptseite (docs/, mit Test-Einstellungen)', url: location.pathname },
+    { label: 'Normale Startseite (soll unverändert sein)', url: '../' }
+  ];
+
+  function kb(n) { return n ? (n / 1024).toFixed(1).replace('.', ',') + ' KB' : '–'; }
+  function cell(text, cls) {
+    var td = document.createElement('td');
+    td.textContent = text;
+    if (cls) td.className = cls;
+    return td;
+  }
+  function yesNo(ok, text) { return cell(ok ? (text || 'ja') : 'nein', ok ? 'good' : 'bad'); }
+
+  async function probe(path) {
+    var u = new URL(path, location.href);
+    u.searchParams.set('gzcheck', String(Date.now()));
+    var res = await fetch(u.href, { cache: 'no-store' });
+    await res.arrayBuffer();
+    await new Promise(function (r) { setTimeout(r, 100); });
+    var entries = performance.getEntriesByName(u.href);
+    var e = entries[entries.length - 1] || {};
+    var h = function (n) { return res.headers.get(n) || ''; };
+    var encoded = e.encodedBodySize || 0;
+    var decoded = e.decodedBodySize || 0;
+    return {
+      status: res.status,
+      encoding: h('content-encoding'),
+      compressed: !!h('content-encoding') || (encoded > 0 && decoded > 0 && encoded < decoded * 0.9),
+      encoded: encoded,
+      decoded: decoded,
+      cacheControl: h('cache-control'),
+      nosniff: h('x-content-type-options').toLowerCase() === 'nosniff',
+      csp: !!h('content-security-policy-report-only'),
+      xfo: h('x-frame-options')
+    };
+  }
+
+  btn.addEventListener('click', async function () {
+    btn.disabled = true;
+    note.textContent = 'Prüfe …';
+    while (table.rows.length > 1) table.deleteRow(1);
+    if (location.protocol === 'file:' || /^(127\.0\.0\.1|localhost)$/.test(location.hostname)) {
+      note.textContent = 'Hinweis: Aussagekräftig nur auf lwhub.de. Der lokale PHP-Server liest keine .htaccess.';
+    }
+    for (var i = 0; i < targets.length; i++) {
+      var t = targets[i];
+      var tr = table.insertRow();
+      tr.appendChild(cell(t.label));
+      try {
+        var r = await probe(t.url);
+        tr.appendChild(yesNo(r.compressed, r.encoding || 'ja'));
+        tr.appendChild(cell(kb(r.encoded)));
+        tr.appendChild(cell(kb(r.decoded)));
+        tr.appendChild(cell(r.cacheControl || '–', r.cacheControl ? 'good' : 'bad'));
+        tr.appendChild(yesNo(r.nosniff));
+        tr.appendChild(yesNo(r.csp));
+        tr.appendChild(cell(r.xfo || '–', r.xfo ? 'good' : 'bad'));
+      } catch (err) {
+        var td = cell('Fehler: ' + (err && err.message ? err.message : err), 'bad');
+        td.colSpan = 7;
+        tr.appendChild(td);
+      }
+    }
+    if (!note.textContent || note.textContent === 'Prüfe …') note.textContent = 'Geprüft um ' + new Date().toLocaleTimeString('de-DE') + '.';
+    btn.disabled = false;
+  });
+})();
+</script>
+
+<!-- ───────────────────────────────── -->
+<section>
+  <h2>6. Messungen und Quellen</h2>
+  <p>Einen fertigen Benchmark „Konzept A gegen B gegen C“ gibt es nicht, dafür ist jede App zu verschieden. Wir haben deshalb unsere eigene Seite gemessen und die Zahlen mit allgemeinen Studien abgeglichen.</p>
+
+  <h3>Eigene Messung (lwhub.de, 08.11.2026)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Was</th><th>heute</th><th>möglich</th></tr>
+    <tr><td>Übertragung <code>index.html</code></td><td class="bad">496 KB, <strong>unkomprimiert</strong></td><td class="good">117 KB mit gzip (−76 %)</td></tr>
+    <tr><td>JavaScript für R1–R3 (gzip)</td><td class="mid">94 KB (alles)</td><td class="good">≈ 35–45 KB mit Konzept C (Schätzung aus den Zeilenbereichen)</td></tr>
+    <tr><td><code>Cache-Control</code>-Header</td><td class="bad">fehlt</td><td class="good">kurz für die Hülle, 1 Jahr für versionierte Dateien</td></tr>
+    <tr><td>Sicherheits-Header (CSP, HSTS, <code>X-Content-Type-Options</code>)</td><td class="bad">fehlen alle</td><td class="good">per <code>.htaccess</code> setzbar</td></tr>
+    <tr><td><code>onclick=</code> im HTML</td><td class="bad">162</td><td class="good">0 (Voraussetzung für eine strenge CSP)</td></tr>
+  </table></div>
+  <p>Gemessen mit <code>curl</code> (Antwort-Header) und <code>gzip -9</code> auf die Datei. Ob der Server HTTP/2 kann, ließ sich mit dem lokalen curl nicht prüfen.</p>
+
+  <h3>Performance</h3>
+  <ul>
+    <li><a href="https://v8.dev/blog/cost-of-javascript-2019">V8: The cost of JavaScript in 2019</a>: Download und Ausführung sind die Hauptkosten, besonders auf Handys. Empfehlung: Pakete über ca. 50–100 KB aufteilen.</li>
+    <li><a href="https://web.dev/articles/reduce-javascript-payloads-with-code-splitting">web.dev: Code-Splitting</a> und <a href="https://web.dev/articles/apply-instant-loading-with-prpl">PRPL-Muster</a>: beim Start nur das laden, was die erste Seite braucht. Das verbessert die Reaktionszeit (INP).</li>
+    <li><a href="https://almanac.httparchive.org/en/2024/javascript">HTTP Archive Web Almanac 2024, JavaScript</a>: Im Median bleiben auf Mobilseiten etwa 47 % des JavaScripts ungenutzt. Bei uns sind es für R1–R3 grob 55–60 %.</li>
+    <li><a href="https://web.dev/articles/http-cache">web.dev: HTTP-Cache</a>: versionierte Dateien ein Jahr cachen, die Hülle jedes Mal prüfen.</li>
+    <li><a href="https://web.dev/articles/vitals-spa-faq">web.dev: SPA und Core Web Vitals</a>: Eine SPA ist nicht grundsätzlich langsamer als Einzelseiten. Gut gebaute Einzelseiten schneiden beim ersten Aufruf oft besser ab, Wechsel innerhalb einer SPA sind schneller. Das spricht für A/C mit kleinem Start-Paket.</li>
+  </ul>
+
+  <h3>Sicherheit</h3>
+  <ul>
+    <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html">OWASP: CSP Cheat Sheet</a> und <a href="https://csp.withgoogle.com/docs/faq.html">Google CSP-FAQ</a>: Eine Content-Security-Policy ist der wichtigste Schutz gegen eingeschleustes JavaScript (XSS). Inline-<code>onclick</code> verhindert eine strenge CSP, weil man dafür <code>'unsafe-inline'</code> erlauben müsste. Das Umstellen auf <code>data-action</code> in Konzept A ist also auch ein Sicherheitsgewinn.</li>
+    <li><a href="https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/12-Testing_Browser_Storage">OWASP WSTG: Browser Storage</a>: Tokens in <code>localStorage</code> kann jedes eingeschleuste Skript lesen. Das betrifft unser <code>discord_token</code>. Eine strenge CSP senkt das Risiko deutlich. Ganz weg wäre es nur mit einem HttpOnly-Cookie (eigenes Thema, nicht Teil dieses Umbaus).</li>
+    <li><a href="https://www.sonatype.com/state-of-the-software-supply-chain/2026/open-source-malware">Sonatype 2026: Open Source Malware</a> und <a href="https://www.kaspersky.com/blog/supply-chain-attacks-in-2025/55522/">Kaspersky: Supply-Chain-Angriffe 2025</a>: über 450.000 neue Schadpakete im Jahr 2025, dazu Angriffe auf sehr verbreitete npm-Pakete (chalk/debug, Shai-Hulud-Wurm). Das bestätigt die Entscheidung gegen Node/npm.</li>
+  </ul>
+
+  <h3>Technik-Referenzen</h3>
+  <ul>
+    <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules">MDN: JavaScript-Module</a>: <code>import</code>/<code>export</code> und dynamisches <code>import()</code> ohne Build</li>
+    <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/History_API">MDN: History API</a>: <code>pushState</code>/<code>popstate</code> für echte Adressen</li>
+    <li><a href="https://httpd.apache.org/docs/2.4/mod/mod_dir.html#fallbackresource">Apache: FallbackResource</a>: alle App-Pfade auf eine Datei leiten</li>
+    <li><a href="https://ogp.me/">Open Graph</a>: Titel pro Seite für Discord-Vorschauen</li>
+  </ul>
+</section>
+
+<div class="footer">LWHub · Konzept Umbau Startseite · Fragen an Lion Tooth (Server 776)</div>
+</div>
+</body>
+</html>

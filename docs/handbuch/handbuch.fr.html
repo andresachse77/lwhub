@@ -64,7 +64,7 @@
       <div class="badge-row">
         <span class="badge blue">Manuel</span>
         <span class="badge purple">Last War &bull; Hub d'alliance</span>
-        <span class="badge amber">Version : 7 novembre 2026</span>
+        <span class="badge amber">Version : 8 novembre 2026</span>
       </div>
       <h1>lwhub – Manuel</h1>
       <p class="subtitle">lwhub est un hub web pour les alliances de Last War. Chaque semaine, les R4/R5 y notent qui a participé à la Garde, à la Tempête du désert, à l'événement spécial, au VS et aux dons. Ça donne des points que chaque membre peut consulter lui-même. En plus : un planificateur de professions, un planning du train et un scanner de captures d'écran qui lit directement dans le navigateur. Ce manuel présente chaque fonction : à quoi elle sert, qui la voit et comment l'utiliser.</p>
@@ -334,12 +334,14 @@
       <ol>
         <li>À gauche, la file d'attente : les membres sans affectation.</li>
         <li>Touche une carte pour l'ouvrir : les Ingénieurs apparaissent alors en lignes entières, avec ✉ pour demander et ↩ pour renvoyer dans la file. « ＋ Ajouter un ingénieur » permet de choisir quelqu'un dans la file.</li>
+        <li>« ▾ Tout déplier » ouvre toutes les cartes d'un coup, « ▴ Tout replier » les referme.</li>
         <li>Ou par glisser-déposer : déposer un membre sur une carte en fait un Ingénieur de ce Seigneur. En haut se trouvent les zones « nouveau Seigneur de guerre » et « retour dans la file ».</li>
         <li>Trie par nom ou par nombre d'Ingénieurs.</li>
         <li>« ✉ Mail d'alliance » copie la répartition sous forme de texte, prête à coller dans un mail du jeu.</li>
       </ol>
+      <div class="note">Tu utilises le hub dans une fenêtre étroite à côté du jeu ? La vue en cartes est alors la plus pratique. Dans le tableau, les noms longs passent sur deux lignes et le nom complet s'affiche dans l'infobulle.</div>
       <h3>Blasons de rang et contrôle des rangs</h3>
-      <p>Chaque tuile affiche le rang sous forme de chiffre dans un blason à la couleur du rang. Beaucoup d'alliances attribuent R2 et R3 selon la profession, parce que le jeu ne montre pas la profession dans la liste des membres. C'est là qu'intervient le <strong>contrôle des rangs R2/R3</strong> : active-le et choisis si R2 correspond à Ingénieur ou à Seigneur de guerre. Les tuiles prennent la teinte de la profession attendue. Une personne mal placée reçoit un cadre jaune, tremble et penche vers la bonne colonne.</p>
+      <p>Chaque tuile affiche le rang sous forme de chiffre dans un blason à la couleur du rang. Beaucoup d'alliances attribuent R2 et R3 selon la profession, parce que le jeu ne montre pas la profession dans la liste des membres. C'est là qu'intervient le <strong>contrôle des rangs R2/R3</strong> : active-le et choisis si R2 correspond à Ingénieur ou à Seigneur de guerre. Les tuiles prennent la teinte de la profession attendue. Une personne mal placée reçoit un cadre jaune et une indication comme « → Ing. ? ». Dans la vue en cartes, le nom tremble aussi un peu ; dans le tableau, une petite flèche montre la direction.</p>
       <div class="demo">
         <div class="demo-cap">Exemple · contrôle actif, R2 = Ingénieur, R3 = Seigneur de guerre</div>
         <div class="demo-grid">
@@ -362,9 +364,37 @@
           <span class="rs" title="R5"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#9b6dff" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>5</b></span>
         </div>
       </div>
+      <h3>🎲 Répartir automatiquement &amp; paires fixes</h3>
+      <p>Beaucoup de joueurs dans la file ? « 🎲 Répartir automatiquement » fait le tri pour toi. Rien n'est enregistré tant que tu ne cliques pas sur « Appliquer » dans l'aperçu.</p>
+      <ol>
+        <li><strong>Nouveaux Seigneurs de guerre :</strong> toute personne dont le rang signifie Seigneur de guerre (contrôle actif) le devient.</li>
+        <li><strong>Un Ingénieur actif pour chacun :</strong> actif veut dire ★, le tiers supérieur selon les points des 4 dernières semaines. Chaque Seigneur de guerre en reçoit un si possible.</li>
+        <li><strong>Le reste équitablement :</strong> tous les autres vont au hasard sur les places libres, toujours chez le Seigneur qui en a le plus.</li>
+        <li><strong>Déplacer (case à cocher) :</strong> si un Seigneur a deux Ingénieurs actifs et un autre aucun, il en cède un. Ce n'est qu'une proposition dans l'aperçu ; « Nouveau tirage » montre une autre répartition.</li>
+      </ol>
+      <div class="demo">
+        <div class="demo-cap">Exemple · aperçu « Répartir automatiquement »</div>
+        <div class="fill-demo">
+          <div class="fd-h">⚔ Nouveaux seigneurs de guerre</div>
+          <div class="fd-row"><b>Falke</b></div>
+          <div class="fd-h">⚗ Ingénieurs</div>
+          <div class="fd-row"><span class="kh">Falke</span> ← <b>Nova</b> <span class="p on">★ 640 pts</span> · <b>Kiwi</b> <span class="p">120 pts</span></div>
+          <div class="fd-row"><span class="kh">Rex</span> ← <b>Juno</b> <span class="p">210 pts</span></div>
+          <div class="fd-h">⇄ Déplacer</div>
+          <div class="fd-row"><b>Bolt</b> <span class="p on">★ 590 pts</span> <span class="p">Sturmfalke →</span> <span class="kh">Rex</span></div>
+          <div class="fd-h warn">⚠ Encore sans ingénieur actif</div>
+          <div class="fd-row p">– tout le monde en a un –</div>
+        </div>
+        <div class="demo-cap" style="margin-top:14px">Paire fixe · clic sur ♡ à côté de l'Ingénieur</div>
+        <div class="bp-tile exp-ing" style="max-width:320px"><span style="color:var(--ing)">⚗</span><span class="nm">Luna</span><span class="pair" title="Paire fixe">♥</span></div>
+      </div>
+      <p><strong>Paires fixes ♥ :</strong> certains Seigneurs et Ingénieurs forment une équipe rodée. Un clic sur le petit ♡ à côté de l'Ingénieur en fait une paire fixe (♥). « Répartir automatiquement » garde alors toujours les deux ensemble. Un second clic détache la paire. Les R4 et R5 peuvent définir les paires.</p>
       <h3>Astuces &amp; limites</h3>
       <ul>
-        <li>Le contrôle ne déplace jamais personne tout seul. Les déplacements restent manuels.</li>
+        <li>Le contrôle ne déplace jamais personne tout seul. « Répartir automatiquement » ne fait que proposer ; tu décides avec « Appliquer ».</li>
+        <li>Une personne déplacée doit changer de Seigneur de guerre dans le jeu. Préviens-la rapidement, par exemple avec ✉.</li>
+        <li>La répartition automatique ne touche jamais aux R4 et R5 ; affecte-les toi-même.</li>
+        <li>Quelqu'un tremble alors qu'il est bien placé ? Souvent, le rang dans le hub n'est simplement plus à jour. Scanne d'abord la liste des membres, puis demande.</li>
         <li>Pour R1, R4, R5 et les membres honoraires, le rang ne dit rien de la profession. Ces tuiles restent neutres.</li>
         <li>Les membres peuvent indiquer leur profession eux-mêmes dans Mon espace.</li>
       </ul>

@@ -64,7 +64,7 @@
       <div class="badge-row">
         <span class="badge blue">Handbuch</span>
         <span class="badge purple">Last War &bull; Allianz-Hub</span>
-        <span class="badge amber">Stand: 7. November 2026</span>
+        <span class="badge amber">Stand: 8. November 2026</span>
       </div>
       <h1>lwhub – Handbuch</h1>
       <p class="subtitle">lwhub ist ein Web-Hub für Allianzen in Last War. R4/R5 erfassen damit Woche für Woche, wer bei Wache, Wüstensturm, Spezialevent, VS und Spenden dabei war. Daraus entstehen Punkte, die jedes Mitglied selbst nachlesen kann. Dazu kommen Berufeplaner, Zugplaner und ein Screenshot-Scanner, der im Browser liest. Dieses Handbuch beschreibt jede Funktion: wofür sie da ist, wer sie sieht und wie man sie benutzt.</p>
@@ -344,12 +344,14 @@
       <ol>
         <li>Links steht die Warteschlange: Mitglieder ohne Zuordnung.</li>
         <li>Auf eine Karte tippen klappt sie auf: Die Ingenieure stehen dann als ganze Zeilen da, mit ✉ zum Fragen und ↩ zurück in die Warteschlange. Über „＋ Ingenieur hinzufügen“ wählst du jemanden aus der Warteschlange.</li>
+        <li>„▾ Alle aufklappen“ öffnet alle Karten auf einmal, „▴ Alle zuklappen“ schließt sie wieder.</li>
         <li>Oder per Drag-and-drop: Mitglied auf eine Karte ziehen macht es dort zum Ingenieur. Oben gibt es die Felder „neuer Kriegsherr“ und „zurück in die Warteschlange“.</li>
         <li>Sortieren nach Name oder nach Anzahl der Ingenieure.</li>
         <li>„✉ Allianzmail“ kopiert die fertige Aufteilung als Text, zum Einfügen in die Spielmail.</li>
       </ol>
+      <div class="note">Spielst du mit dem Hub in einem schmalen Fenster neben dem Spiel? Dann ist die Kartenansicht am bequemsten. In der Tabelle brechen lange Namen auf zwei Zeilen um, der ganze Name steht im Tooltip.</div>
       <h3>Rangwappen und Rangcheck</h3>
-      <p>Jede Kachel zeigt den Rang als Ziffer in einem Wappen in Rangfarbe. Viele Allianzen vergeben R2 und R3 nach Beruf, weil das Spiel den Beruf nicht in der Mitgliederliste zeigt. Dann hilft der <strong>Rangcheck R2/R3</strong>: Einschalten und wählen, ob R2 für Ingenieur oder für Kriegsherr steht. Kacheln werden nach dem erwarteten Beruf getönt. Wer falsch einsortiert ist, bekommt einen gelben Rahmen, zittert und lehnt sich zur richtigen Seite.</p>
+      <p>Jede Kachel zeigt den Rang als Ziffer in einem Wappen in Rangfarbe. Viele Allianzen vergeben R2 und R3 nach Beruf, weil das Spiel den Beruf nicht in der Mitgliederliste zeigt. Dann hilft der <strong>Rangcheck R2/R3</strong>: Einschalten und wählen, ob R2 für Ingenieur oder für Kriegsherr steht. Kacheln werden nach dem erwarteten Beruf getönt. Wer falsch einsortiert ist, bekommt einen gelben Rahmen und einen Hinweis wie „→ Ing.?“. In der Kartenansicht zittert der Name dazu leicht, in der Tabelle zeigt ein kleiner Pfeil die Richtung.</p>
       <div class="demo">
         <div class="demo-cap">Beispiel · Rangcheck an, R2 = Ingenieur, R3 = Kriegsherr</div>
         <div class="demo-grid">
@@ -372,9 +374,37 @@
           <span class="rs" title="R5"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#9b6dff" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>5</b></span>
         </div>
       </div>
+      <h3>🎲 Automatisch aufteilen &amp; feste Paare</h3>
+      <p>Viele Spieler in der Warteschlange? „🎲 Automatisch aufteilen“ nimmt dir das Einsortieren ab. Gespeichert wird erst, wenn du in der Vorschau auf „Übernehmen“ klickst.</p>
+      <ol>
+        <li><strong>Neue Kriegsherren:</strong> Wer vom Rang her Kriegsherr ist (Rangcheck an), wird Kriegsherr.</li>
+        <li><strong>Ein aktiver Ingenieur für jeden:</strong> Aktiv heißt ★, also im oberen Drittel nach Punkten der letzten 4 Wochen. Jeder Kriegsherr bekommt möglichst einen davon.</li>
+        <li><strong>Der Rest gleichmäßig:</strong> Alle anderen gehen zufällig auf die freien Plätze, immer zu dem Kriegsherrn mit den meisten freien Plätzen.</li>
+        <li><strong>Umsetzen (Häkchen):</strong> Hat ein Kriegsherr zwei Aktive und ein anderer keinen, gibt er einen ab. Das ist nur ein Vorschlag in der Vorschau, „Neu würfeln“ zeigt eine andere Aufteilung.</li>
+      </ol>
+      <div class="demo">
+        <div class="demo-cap">Beispiel · Vorschau „Automatisch aufteilen“</div>
+        <div class="fill-demo">
+          <div class="fd-h">⚔ Neue Kriegsherren</div>
+          <div class="fd-row"><b>Falke</b></div>
+          <div class="fd-h">⚗ Ingenieure</div>
+          <div class="fd-row"><span class="kh">Falke</span> ← <b>Nova</b> <span class="p on">★ 640 Pkt</span> · <b>Kiwi</b> <span class="p">120 Pkt</span></div>
+          <div class="fd-row"><span class="kh">Rex</span> ← <b>Juno</b> <span class="p">210 Pkt</span></div>
+          <div class="fd-h">⇄ Umsetzen</div>
+          <div class="fd-row"><b>Bolt</b> <span class="p on">★ 590 Pkt</span> <span class="p">Sturmfalke →</span> <span class="kh">Rex</span></div>
+          <div class="fd-h warn">⚠ Noch ohne aktiven Ingenieur</div>
+          <div class="fd-row p">– alle haben einen –</div>
+        </div>
+        <div class="demo-cap" style="margin-top:14px">Festes Paar · Klick auf ♡ beim Ingenieur</div>
+        <div class="bp-tile exp-ing" style="max-width:320px"><span style="color:var(--ing)">⚗</span><span class="nm">Luna</span><span class="pair" title="Festes Paar">♥</span></div>
+      </div>
+      <p><strong>Feste Paare ♥:</strong> Manche Kriegsherren und Ingenieure spielen eingespielt zusammen. Ein Klick auf das kleine ♡ beim Ingenieur macht daraus ein festes Paar (♥). „Automatisch aufteilen“ lässt die beiden dann immer zusammen. Ein zweiter Klick löst das Paar. Setzen dürfen das R4 und R5.</p>
       <h3>Tipps &amp; Grenzen</h3>
       <ul>
-        <li>Der Rangcheck verschiebt nichts von selbst. Verschoben wird weiter per Hand.</li>
+        <li>Der Rangcheck verschiebt nichts von selbst. „Automatisch aufteilen“ schlägt nur vor, du entscheidest mit „Übernehmen“.</li>
+        <li>Wer umgesetzt wird, muss im Spiel den Kriegsherrn wechseln. Sag ihm kurz Bescheid, z. B. mit ✉.</li>
+        <li>R4 und R5 verteilt die Automatik nie, die ordnest du selbst zu.</li>
+        <li>Zittert jemand, obwohl er richtig steht? Oft ist der Rang im Hub nur alt. Erst die Mitgliederliste scannen, dann nachfragen.</li>
         <li>Bei R1, R4, R5 und Ehrenmitgliedern sagt der Rang nichts über den Beruf. Diese Kacheln bleiben neutral.</li>
         <li>Mitglieder können ihren Beruf in Mein Bereich selbst eintragen.</li>
       </ul>

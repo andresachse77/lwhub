@@ -64,7 +64,7 @@
       <div class="badge-row">
         <span class="badge blue">Manual</span>
         <span class="badge purple">Last War &bull; Alliance hub</span>
-        <span class="badge amber">As of 7 November 2026</span>
+        <span class="badge amber">As of 8 November 2026</span>
       </div>
       <h1>lwhub – Manual</h1>
       <p class="subtitle">lwhub is a web hub for Last War alliances. Every week, R4/R5 record who showed up for Guard, Desert Storm, the special event, VS and donations. That turns into points every member can check for themselves. On top of that you get a profession planner, a train planner and a screenshot scanner that reads right in your browser. This manual covers each feature: what it's for, who can see it and how to use it.</p>
@@ -334,12 +334,14 @@
       <ol>
         <li>On the left is the queue: members without an assignment.</li>
         <li>Tap a card to open it: the Engineers then appear as full rows, with ✉ to ask and ↩ back to the queue. "＋ Add engineer" lets you pick someone from the queue.</li>
+        <li>"▾ Expand all" opens every card at once, "▴ Collapse all" closes them again.</li>
         <li>Or drag and drop: dropping a member on a card makes them an Engineer there. At the top are the "new Warlord" and "back to queue" drop zones.</li>
         <li>Sort by name or by number of Engineers.</li>
         <li>"✉ Alliance mail" copies the finished line-up as text, ready to paste into an in-game mail.</li>
       </ol>
+      <div class="note">Using the hub in a narrow window next to the game? The card view is the most comfortable then. In the table, long names wrap onto two lines and the full name shows in the tooltip.</div>
       <h3>Rank shields and rank check</h3>
-      <p>Each tile shows the rank as a number in a shield in the rank's colour. Many alliances assign R2 and R3 by profession, because the game doesn't show professions in the member list. That's where the <strong>R2/R3 rank check</strong> comes in: switch it on and choose whether R2 means Engineer or Warlord. Tiles are tinted by the expected profession. Anyone in the wrong spot gets a yellow border, wiggles and leans towards the right column.</p>
+      <p>Each tile shows the rank as a number in a shield in the rank's colour. Many alliances assign R2 and R3 by profession, because the game doesn't show professions in the member list. That's where the <strong>R2/R3 rank check</strong> comes in: switch it on and choose whether R2 means Engineer or Warlord. Tiles are tinted by the expected profession. Anyone in the wrong spot gets a yellow border and a hint like "→ Eng.?". In the card view the name also wiggles a little; in the table a small arrow shows the direction.</p>
       <div class="demo">
         <div class="demo-cap">Example · rank check on, R2 = Engineer, R3 = Warlord</div>
         <div class="demo-grid">
@@ -362,9 +364,37 @@
           <span class="rs" title="R5"><svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 1 L18.5 4 V11 C18.5 16.5 14.8 20.6 10 23 C5.2 20.6 1.5 16.5 1.5 11 V4 Z" fill="#9b6dff" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/></svg><b>5</b></span>
         </div>
       </div>
+      <h3>🎲 Auto-assign &amp; fixed pairs</h3>
+      <p>Lots of players waiting in the queue? "🎲 Auto-assign" does the sorting for you. Nothing is saved until you click "Apply" in the preview.</p>
+      <ol>
+        <li><strong>New Warlords:</strong> anyone whose rank means Warlord (rank check on) becomes a Warlord.</li>
+        <li><strong>One active Engineer each:</strong> active means ★, the top third by points over the last 4 weeks. Every Warlord gets one of them where possible.</li>
+        <li><strong>The rest evenly:</strong> everyone else goes randomly to the free slots, always to the Warlord with the most free slots.</li>
+        <li><strong>Move (checkbox):</strong> if one Warlord has two active Engineers and another has none, one is handed over. It's only a suggestion in the preview; "Reroll" shows a different split.</li>
+      </ol>
+      <div class="demo">
+        <div class="demo-cap">Example · "Auto-assign" preview</div>
+        <div class="fill-demo">
+          <div class="fd-h">⚔ New warlords</div>
+          <div class="fd-row"><b>Falke</b></div>
+          <div class="fd-h">⚗ Engineers</div>
+          <div class="fd-row"><span class="kh">Falke</span> ← <b>Nova</b> <span class="p on">★ 640 pts</span> · <b>Kiwi</b> <span class="p">120 pts</span></div>
+          <div class="fd-row"><span class="kh">Rex</span> ← <b>Juno</b> <span class="p">210 pts</span></div>
+          <div class="fd-h">⇄ Move</div>
+          <div class="fd-row"><b>Bolt</b> <span class="p on">★ 590 pts</span> <span class="p">Sturmfalke →</span> <span class="kh">Rex</span></div>
+          <div class="fd-h warn">⚠ Still without an active engineer</div>
+          <div class="fd-row p">– everyone has one –</div>
+        </div>
+        <div class="demo-cap" style="margin-top:14px">Fixed pair · click ♡ next to the Engineer</div>
+        <div class="bp-tile exp-ing" style="max-width:320px"><span style="color:var(--ing)">⚗</span><span class="nm">Luna</span><span class="pair" title="Fixed pair">♥</span></div>
+      </div>
+      <p><strong>Fixed pairs ♥:</strong> some Warlords and Engineers are a well-practised team. Click the small ♡ next to the Engineer to make them a fixed pair (♥). "Auto-assign" then always keeps the two together. Click again to unpin. R4 and R5 can set pairs.</p>
       <h3>Tips &amp; limits</h3>
       <ul>
-        <li>The rank check never moves anyone by itself. Moving stays manual.</li>
+        <li>The rank check never moves anyone by itself. "Auto-assign" only suggests; you decide with "Apply".</li>
+        <li>Anyone who is moved has to switch Warlord in the game. Give them a quick heads-up, e.g. with ✉.</li>
+        <li>The automatic distribution never touches R4 and R5; assign them yourself.</li>
+        <li>Someone wiggles although they're in the right place? Often the rank in the hub is just out of date. Scan the member list first, then ask.</li>
         <li>For R1, R4, R5 and honorary members the rank says nothing about the profession. Those tiles stay neutral.</li>
         <li>Members can set their own profession in My Area.</li>
       </ul>

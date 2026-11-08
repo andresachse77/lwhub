@@ -171,6 +171,15 @@ section h3:first-of-type { margin-top: 8px; }
 @keyframes pullRight { 0%, 55%, 100% { transform: translateX(0); } 60% { transform: translateX(3px) rotate(.6deg); } 70% { transform: translateX(4px) rotate(.8deg); } 82% { transform: translateX(6px); } 92% { transform: translateX(2px); } }
 @keyframes pullLeft { 0%, 55%, 100% { transform: translateX(0); } 60% { transform: translateX(-3px) rotate(-.6deg); } 70% { transform: translateX(-4px) rotate(-.8deg); } 82% { transform: translateX(-6px); } 92% { transform: translateX(-2px); } }
 @media (prefers-reduced-motion: reduce) { .bp-tile.wrong { animation: none !important; } }
+/* Automatisch aufteilen: Vorschau-Beispiel und festes Paar */
+.fill-demo { display: grid; gap: 4px; font-size: 13.5px; }
+.fill-demo .fd-h { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-top: 8px; }
+.fill-demo .fd-h:first-child { margin-top: 0; }
+.fill-demo .fd-h.warn { color: var(--warning); }
+.fill-demo .kh { color: #f3c2b8; font-weight: 700; }
+.fill-demo .p { font-size: 11.5px; color: var(--text-muted); }
+.fill-demo .p.on { color: var(--success); font-weight: 600; }
+.bp-tile .pair { flex: none; margin-left: auto; width: 20px; height: 20px; display: inline-grid; place-items: center; border-radius: 5px; font-size: 12px; color: #ff4d79; border: 1px solid rgba(255,77,121,.45); background: rgba(255,77,121,.12); }
 .rank-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 10px; border-radius: 8px; background: var(--bg-primary); font-size: 12px; color: var(--text-muted); }
 
 /* Mein Bereich */

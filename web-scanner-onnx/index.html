@@ -269,7 +269,7 @@
 </dialog>
 
 <!-- MODULE LADEN (Matching & Drag-and-Drop teilt sich diese Seite mit dem Server-Cockpit) -->
-<script src="js/matching.js?v=20261017j"></script>
+<script src="js/matching.js?v=20261108a"></script>
 <script src="js/drag-drop.js?v=20261017f"></script>
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261017h"></script>
@@ -1496,10 +1496,53 @@ function syncResultSection(title, items, warning) {
   return box;
 }
 
+// Berufe-Rangcheck (S2): Liste "Beruf passt nicht zum Rang" + Kopiertext fuer den R4-Chat
+const BERUF_WORD = { ingenieur: 'Ingenieur', kriegsherr: 'Kriegsherr' };
+function berufLine(m) {
+  const placed = m.beruf ? `eingeteilt als ${BERUF_WORD[m.beruf] || m.beruf}` : `noch nicht eingeteilt (soll ${BERUF_WORD[m.expected] || m.expected})`;
+  const changed = m.rank_changed && m.old_rank ? ` (Rang neu, vorher R${m.old_rank})` : '';
+  return `R${m.rank}, ${placed}${changed}`;
+}
+function berufCopyText(list, rc, alliance) {
+  const day = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  const lines = [`Berufe-Check ${alliance} (Scan ${day})`];
+  if (rc) lines.push(`R2 = ${BERUF_WORD[rc.r2]} · R3 = ${BERUF_WORD[rc.r3]}`);
+  for (const m of list) lines.push(`${m.beruf ? '⚠' : '⏳'} ${m.name} – ${berufLine(m)}`);
+  return lines.join('\n');
+}
+function berufSection(list, rc, alliance) {
+  const box = syncResultSection('Beruf passt nicht zum Rang', list.map((m) => ({ name: m.name, text: berufLine(m) })), true);
+  box.open = true;
+  // Statt "Namen kopieren": die ganze Liste im Chat-Format
+  const actions = box.querySelector('.sync-section-actions');
+  if (actions) {
+    actions.replaceChildren();
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-sm btn-secondary';
+    btn.textContent = '📋 Liste kopieren';
+    btn.addEventListener('click', async () => {
+      const text = berufCopyText(list, rc, alliance);
+      const label = btn.textContent;
+      try { await navigator.clipboard.writeText(text); btn.textContent = '✅ Kopiert'; }
+      catch { prompt('Liste zum Kopieren:', text); }
+      setTimeout(() => { btn.textContent = label; }, 1500);
+    });
+    actions.appendChild(btn);
+  }
+  const hint = document.createElement('p');
+  hint.className = 'sync-dialog-note';
+  hint.style.padding = '0 10px 8px';
+  hint.textContent = 'Nur ein Hinweis: Der Upload ist vollständig. Den Beruf stellst du im Berufeplaner von LWHub um.';
+  box.append(hint);
+  return box;
+}
+
 function showSyncResult(res, alliance) {
   const sum = res.summary || {};
   const unmatched = res.unmatched || [];
   const conflicts = res.conflicts || [];
+  const berufList = res.beruf_mismatches || [];
   document.getElementById('syncResultTitle').textContent = res.dry_run
     ? `🧪 Probelauf ${alliance} – nichts gespeichert`
     : `✅ Nach LWHub (${alliance}) übertragen`;
@@ -1518,6 +1561,7 @@ function showSyncResult(res, alliance) {
     ['Fremde Allianz', sum.ignored_other_alliance, false, true],
     ['Nicht zugeordnet', unmatched.length, false, true],
     ['Konflikte', conflicts.length, false, true],
+    ['Beruf ≠ Rang', berufList.length, false, true],
   ];
   const statBox = document.getElementById('syncResultStats');
   statBox.replaceChildren();
@@ -1550,6 +1594,7 @@ function showSyncResult(res, alliance) {
   if (conflicts.length) {
     lists.appendChild(syncResultSection('Konflikte', conflicts.map((c) => ({ name: c.name, text: conflictText(c) })), true));
   }
+  if (berufList.length) lists.appendChild(berufSection(berufList, res.beruf_rangcheck, alliance));
   lists.hidden = !lists.childElementCount;
 
   const dialog = document.getElementById('syncResultDialog');

@@ -281,7 +281,10 @@ const MatchingEngine = {
       summary: resData.summary || {},
       details: resData.details || [],
       unmatched: resData.unmatched || [],
-      conflicts: resData.conflicts || []
+      conflicts: resData.conflicts || [],
+      // Berufe-Rangcheck (nur wenn in LWHub eingeschaltet): Spieler, deren Beruf nicht zum Rang passt
+      beruf_mismatches: resData.beruf_mismatches || [],
+      beruf_rangcheck: resData.beruf_rangcheck || null
     };
   }
 };

@@ -962,6 +962,10 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 .bp-pair-mini { color: #ff4d79; }
 .bp-fill-opt { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; margin-bottom: 8px; cursor: pointer; }
 .bp-fill-opt input { margin-top: 3px; }
+/* Beschaeftigt-Zustand (Automatisch aufteilen / Uebernehmen): halb gedrueckt, Spinner statt Klick */
+.bp-busy { position: relative; opacity: .7; transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0,0,0,.35); cursor: progress !important; }
+.bp-busy::after { content: ""; display: inline-block; width: 11px; height: 11px; margin-left: 7px; vertical-align: -1px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .bp-busy::after { animation-duration: 2s; } }
 .bp-fill-body { max-height: min(62vh, 640px); overflow-y: auto; font-size: 13px; }
 .bp-fill-h { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); margin: 12px 0 6px; }
 .bp-fill-h.warn { color: #d29922; }
@@ -10076,15 +10080,25 @@ async function revokeApiToken(tokenId, clientName) {
     if (applyBtn) applyBtn.disabled = nothing;
   }
 
+  // Knopf sichtbar "beschaeftigt": deaktiviert, halb gedrueckt, mit Spinner
+  function bpBusy(btn, on) {
+    if (!btn) return;
+    btn.disabled = on;
+    btn.classList.toggle('bp-busy', on);
+    btn.setAttribute('aria-busy', on ? 'true' : 'false');
+  }
+
   window.bpFillRest = async function(btn) {
-    if (btn) btn.disabled = true;
+    if (btn?.classList.contains('bp-busy')) return;
+    bpBusy(btn, true);
     try {
-      bpFillScores = await bpLoadFillScores();
+      // Punkte der letzten 4 Wochen laden dauert einen Moment: Blende zeigen, damit man sieht, dass gerechnet wird
+      bpFillScores = await runWithBattleLoader(() => bpLoadFillScores(), 600, 150);
     } catch (err) {
       toast(tr('Fehler: ') + err.message, 'err');
       return;
     } finally {
-      if (btn) btn.disabled = false;
+      bpBusy(btn, false);
     }
     bpRenderFillPreview();
     openModal('modal-bp-fill');
@@ -10093,23 +10107,29 @@ async function revokeApiToken(tokenId, clientName) {
 
   window.bpFillApply = async function(btn) {
     const plan = bpFillCurrent;
-    if (!plan) return;
-    if (btn) btn.disabled = true;
+    if (!plan || btn?.classList.contains('bp-busy')) return;
+    const modalBtns = [...document.querySelectorAll('#modal-bp-fill .modal-footer button')];
+    modalBtns.forEach(b => { b.disabled = true; });
+    bpBusy(btn, true);
     const med = n => !!(memberMeta[n] || {}).berufMedHilfe;
     try {
-      // 1. neue Kriegsherren, 2. Umgesetzte kurz loesen (der Server prueft die Hoechstzahl, sonst
-      // blockiert ein Tausch zwischen zwei vollen Kriegsherren), 3. alle Ingenieure zuordnen
-      for (const n of plan.newKh) await bpSaveBeruf(n, 'kriegsherr', 0, null);
-      for (const e of plan.moves) await bpSaveBeruf(e.name, 'ingenieur', med(e.name), null);
-      for (const e of [...plan.moves, ...plan.engs]) await bpSaveBeruf(e.name, 'ingenieur', med(e.name), e.kh);
+      await runWithBattleLoader(async () => {
+        // 1. neue Kriegsherren, 2. Umgesetzte kurz loesen (der Server prueft die Hoechstzahl, sonst
+        // blockiert ein Tausch zwischen zwei vollen Kriegsherren), 3. alle Ingenieure zuordnen
+        for (const n of plan.newKh) await bpSaveBeruf(n, 'kriegsherr', 0, null);
+        for (const e of plan.moves) await bpSaveBeruf(e.name, 'ingenieur', med(e.name), null);
+        for (const e of [...plan.moves, ...plan.engs]) await bpSaveBeruf(e.name, 'ingenieur', med(e.name), e.kh);
+        await loadMembers();
+      }, 900, 0);
       closeModal('modal-bp-fill');
       toast(trf('s_bp_fill_done', { n: plan.newKh.length + plan.engs.length + plan.moves.length, rest: plan.stay.length }), 'ok');
     } catch (err) {
       toast(tr('Fehler: ') + err.message, 'err');
+      await loadMembers(); // Teilstand anzeigen, falls mittendrin etwas schiefging
     } finally {
-      if (btn) btn.disabled = false;
+      bpBusy(btn, false);
+      modalBtns.forEach(b => { b.disabled = false; });
       bpFillCurrent = null;
-      await loadMembers();
       window.berufePlannerRender();
     }
   };

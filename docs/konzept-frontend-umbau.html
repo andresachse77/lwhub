@@ -91,7 +91,7 @@
     <div class="stat"><div class="num">≈ 384 KB</div><div class="lbl">davon JavaScript, alles in einem &lt;script&gt;</div></div>
     <div class="stat"><div class="num">≈ 72 KB</div><div class="lbl">davon CSS</div></div>
     <div class="stat"><div class="num">≈ 330</div><div class="lbl">Funktionen, fast alle global</div></div>
-    <div class="stat"><div class="num">232</div><div class="lbl">Inline-Handler (<code>on…=</code>) im HTML, davon 168 <code>onclick=</code> (172 in <code>index.html</code> + 60 in den Partials)</div></div>
+    <div class="stat"><div class="num">231</div><div class="lbl">Inline-Handler (<code>on…=</code>) im HTML, davon 168 <code>onclick=</code> (171 in <code>index.html</code> + 60 in den Partials)</div></div>
   </div>
   <p>Grob, wo das JavaScript liegt (Zeilen in <code>index.html</code>):</p>
   <div class="table-wrap"><table>
@@ -194,7 +194,7 @@ export function hide() { … }                      // clean up timers, listener
       <div class="con"><h4>Nachteile</h4><ul>
         <li>Viele kleine Dateien = mehr Anfragen (bei HTTP/2 kaum spürbar)</li>
         <li>Kein Minifizieren ohne Build, dafür sorgt gzip/brotli am Server</li>
-        <li>Die 232 Inline-Handler (<code>onclick=</code>, <code>ondrag…=</code>, <code>onchange=</code> …) brauchen eine Übergangslösung (siehe unten)</li>
+        <li>Die 231 Inline-Handler (<code>onclick=</code>, <code>ondrag…=</code>, <code>onchange=</code> …) brauchen eine Übergangslösung (siehe unten)</li>
         <li>Cache-Versionen müssen wir selbst anhängen (<code>?v=SHA</code>)</li>
       </ul></div>
     </div>
@@ -399,7 +399,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
   <p><button type="button" id="ih-run" class="test-btn">Startseite zählen</button> <span id="ih-note" class="test-note"></span></p>
   <div class="table-wrap"><table id="ih-table">
     <tr><th>Art</th><th>Anzahl</th><th>Ersatz</th></tr>
-    <tr><td colspan="3">Noch nicht gezählt. Stand 08.11.2026 laut Quelltext: 172 in <code>index.html</code>, dazu 60 in den Partials.</td></tr>
+    <tr><td colspan="3">Noch nicht gezählt. Stand 08.11.2026 laut Quelltext: 171 in <code>index.html</code>, dazu 60 in den Partials.</td></tr>
   </table></div>
   <p>Die Partials (<code>api/partials/</code>, R4- und Admin-Seiten) kommen erst nach dem Login über die API und werden hier nicht mitgezählt. Laut Quelltext sind es dort am 08.11.2026 noch 57 <code>onclick=</code> und 3 <code>onchange=</code>.</p>
 
@@ -520,7 +520,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
     <tr><td>JavaScript für R1–R3 (gzip)</td><td class="mid">94 KB (alles)</td><td class="good">≈ 35–45 KB mit Konzept C (Schätzung aus den Zeilenbereichen)</td></tr>
     <tr><td><code>Cache-Control</code>-Header</td><td class="bad">fehlt</td><td class="good">kurz für die Hülle, 1 Jahr für versionierte Dateien</td></tr>
     <tr><td>Sicherheits-Header (CSP, HSTS, <code>X-Content-Type-Options</code>)</td><td class="bad">fehlen alle</td><td class="good">per <code>.htaccess</code> setzbar</td></tr>
-    <tr><td>Inline-Handler (<code>on…=</code>) im HTML</td><td class="bad">232 (davon 168 <code>onclick=</code>)</td><td class="good">0 (Voraussetzung für eine strenge CSP mit <code>script-src-attr 'none'</code>)</td></tr>
+    <tr><td>Inline-Handler (<code>on…=</code>) im HTML</td><td class="bad">231 (davon 168 <code>onclick=</code>)</td><td class="good">0 (Voraussetzung für eine strenge CSP mit <code>script-src-attr 'none'</code>)</td></tr>
   </table></div>
   <p>Gemessen mit <code>curl</code> (Antwort-Header) und <code>gzip -9</code> auf die Datei. Ob der Server HTTP/2 kann, ließ sich mit dem lokalen curl nicht prüfen.</p>
 

@@ -9425,21 +9425,46 @@ async function revokeApiToken(tokenId, clientName) {
     const next = {};
     members.forEach(n => { if (bpIsPinned(n)) next[memberMeta[n].id] = memberMeta[memberMeta[n].berufWinwin].id; });
     if (next[m.id] === khId) delete next[m.id]; else next[m.id] = khId;
-    const value = JSON.stringify(next);
-    const alliance = getEffectiveAllianceForApi();
     try {
-      await adminApi(`/alliance-config?alliance=${bpEnc(alliance)}`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ discord_id: authMember?.discord_id || '', config: { berufe_paare: value } })
-      });
-      flagConfig = { ...flagConfig, berufe_paare: value };
-      if (alliance && adminFlagConfigCache[alliance]) adminFlagConfigCache[alliance] = { ...adminFlagConfigCache[alliance], berufe_paare: value };
+      await bpSavePairs(next);
     } catch (err) {
       toast(tr('Fehler: ') + err.message, 'err');
     }
     window.berufePlannerRender();
   };
+
+  async function bpSavePairs(next) {
+    const value = JSON.stringify(next);
+    const alliance = getEffectiveAllianceForApi();
+    await adminApi(`/alliance-config?alliance=${bpEnc(alliance)}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ discord_id: authMember?.discord_id || '', config: { berufe_paare: value } })
+    });
+    flagConfig = { ...flagConfig, berufe_paare: value };
+    if (alliance && adminFlagConfigCache[alliance]) adminFlagConfigCache[alliance] = { ...adminFlagConfigCache[alliance], berufe_paare: value };
+  }
+
+  // Ein festes Paar loest sich auf, sobald es nicht mehr so im Planer steht: Ingenieur woanders hin oder in die
+  // Warteschlange, oder sein Kriegsherr ist keiner mehr. Sonst "wacht" das Herz beim Zurueckbauen wieder auf.
+  async function bpDropStalePairs(name, beruf, winwin) {
+    const pairs = bpPairs();
+    const id = memberMeta[name]?.id;
+    if (!id || !Object.keys(pairs).length) return;
+    const khId = winwin ? memberMeta[winwin]?.id : null;
+    const next = { ...pairs };
+    let changed = false;
+    if (next[id] && !(beruf === 'ingenieur' && khId && next[id] === khId)) { delete next[id]; changed = true; }
+    if (beruf !== 'kriegsherr') {
+      Object.keys(next).forEach(k => { if (next[k] === id) { delete next[k]; changed = true; } });
+    }
+    if (!changed || !bpCanEditRankCheck()) return;
+    try {
+      await bpSavePairs(next);
+    } catch (err) {
+      console.warn('berufe_paare aufraeumen fehlgeschlagen', err);
+    }
+  }
 
   // Muelleimer "In die Warteschlange" (SVG statt Emoji, sieht ueberall gleich aus). action = JS-Aufruf als Text.
   function bpDelBtn(action) {
@@ -9530,6 +9555,7 @@ async function revokeApiToken(tokenId, clientName) {
 
   async function bpSaveBeruf(name, beruf, medHilfe, winwin) {
     await apiPost({ action: 'save_beruf', name, beruf, med_hilfe: medHilfe ? 1 : 0, winwin: winwin || null });
+    await bpDropStalePairs(name, beruf, winwin);
   }
 
   // Ansicht: Akkordeon (Standard, Mockup C aus docs/konzept-berufe-mobil.html) oder die bisherige Tabelle.

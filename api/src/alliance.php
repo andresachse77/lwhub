@@ -103,7 +103,7 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
                 jsonOut(400, ['error' => 'berufe_frage_vorlagen muss ein JSON-Objekt sein']);
             }
             foreach ($tpl as $lang => $text) {
-                if (!in_array($lang, ['de', 'en', 'es', 'fr', 'it', 'pl', 'zh'], true) || !is_string($text) || mb_strlen($text) > 1000) {
+                if (!preg_match('/^(de|en|es|fr|it|pl|zh)(_r145)?$/', (string)$lang) || !is_string($text) || mb_strlen($text) > 1000) {
                     jsonOut(400, ['error' => 'berufe_frage_vorlagen: unbekannte Sprache oder Text zu lang (max. 1000 Zeichen)']);
                 }
             }

@@ -984,8 +984,6 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 .bp-fill-pts { font-size: 11px; color: var(--soft); }
 .bp-fill-pts.on { color: var(--green); font-weight: 600; }
 .bp-fill-warn { color: #d29922; font-size: 12px; overflow-wrap: anywhere; }
-.bp-acc-tools { display: flex; justify-content: flex-end; margin-bottom: 8px; }
-.bp-acc-tools .wt-btn { font-size: 12px; padding: 5px 12px; }
 /* Zittern nur dort, wo der ganze Name sichtbar ist (Akkordeon). Die Tabelle kuerzt Namen, dort nur Rahmen + Pfeil. */
 .bp-acc-card.wrong.bp-pull-right .bp-acc-kh, .bp-acc-eng.wrong.bp-pull-right .bp-acc-ing, .bp-acc-mini .wrong.bp-pull-right { animation: bpPullRight 2.4s ease-in-out infinite; }
 .bp-acc-card.wrong.bp-pull-left .bp-acc-kh, .bp-acc-eng.wrong.bp-pull-left .bp-acc-ing, .bp-acc-mini .wrong.bp-pull-left { animation: bpPullLeft 2.4s ease-in-out infinite; }
@@ -1873,6 +1871,11 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   <div class="modal" style="width:min(560px, 100%)">
     <div class="modal-title">✎ <span data-i18n="s_bp_tpl_title">Fragetexte für „Spieler fragen“</span></div>
     <div class="hint" style="margin-bottom:10px" data-i18n="s_bp_tpl_hint">Jeder Spieler bekommt den Text in seiner Sprache. Klick auf einen Platzhalter fügt ihn ein.</div>
+    <div class="bp-view" id="bp-tpl-variant" style="margin-bottom:6px">
+      <button type="button" data-variant="r23" onclick="bpTplSwitchVariant('r23')" data-i18n="s_bp_tpl_var_r23">Für R2/R3</button>
+      <button type="button" data-variant="r145" onclick="bpTplSwitchVariant('r145')" data-i18n="s_bp_tpl_var_r145">Für R1, R4, R5</button>
+    </div>
+    <div class="hint" id="bp-tpl-variant-note" style="margin-bottom:10px" data-i18n-skip="1"></div>
     <div class="field">
       <select id="bp-tpl-lang" onchange="bpTplSwitchLang(this.value)" data-i18n-skip="1">
         <option value="de">Deutsch</option>
@@ -9262,13 +9265,13 @@ async function revokeApiToken(tokenId, clientName) {
   // Spieler fragen (B7): Standardvorlage je Sprache, Text in der Sprache des Spielers. Eigene Vorlagen
   // (B8) kommen spaeter als alliance_config berufe_frage_vorlagen = {"de": "...", ...} und gehen vor.
   const BP_ASK_DEFAULTS = {
-    de: { ing: 'Ingenieur', kh: 'Kriegsherr', none: 'noch keiner', text: 'Hallo $Spieler, kannst du mir bitte deinen aktuellen Beruf bestätigen? Bei uns gilt: R2 = $R2Beruf, R3 = $R3Beruf. Danke! – $Absender' },
-    en: { ing: 'Engineer', kh: 'Warlord', none: 'none yet', text: 'Hi $Spieler, could you please confirm your current profession? Our rule: R2 = $R2Beruf, R3 = $R3Beruf. Thanks! – $Absender' },
-    fr: { ing: 'Ingénieur', kh: 'Seigneur de guerre', none: 'aucun pour l\'instant', text: 'Salut $Spieler, peux-tu me confirmer ton métier actuel ? Chez nous : R2 = $R2Beruf, R3 = $R3Beruf. Merci ! – $Absender' },
-    es: { ing: 'Ingeniero', kh: 'Señor de la guerra', none: 'ninguno todavía', text: 'Hola $Spieler, ¿puedes confirmarme tu profesión actual? Nuestra regla: R2 = $R2Beruf, R3 = $R3Beruf. ¡Gracias! – $Absender' },
-    it: { ing: 'Ingegnere', kh: 'Signore della guerra', none: 'ancora nessuna', text: 'Ciao $Spieler, puoi confermarmi la tua professione attuale? Da noi vale: R2 = $R2Beruf, R3 = $R3Beruf. Grazie! – $Absender' },
-    pl: { ing: 'Inżynier', kh: 'Warlord', none: 'jeszcze brak', text: 'Cześć $Spieler, czy możesz potwierdzić swój obecny zawód? U nas: R2 = $R2Beruf, R3 = $R3Beruf. Dzięki! – $Absender' },
-    zh: { ing: '工程师', kh: '战争领主', none: '暂无', text: '你好 $Spieler，请确认一下你当前的职业。我们的规定：R2 = $R2Beruf，R3 = $R3Beruf。谢谢！– $Absender' },
+    de: { ing: 'Ingenieur', kh: 'Kriegsherr', none: 'noch keiner', text: 'Hallo $Spieler, kannst du mir bitte deinen aktuellen Beruf bestätigen? Bei uns gilt: R2 = $R2Beruf, R3 = $R3Beruf. Danke! – $Absender', r145: 'Hallo $Spieler, kurze Frage für unseren Berufeplaner: Bist du gerade Kriegsherr oder Ingenieur? Bei mir steht: $BerufIst. Danke! – $Absender' },
+    en: { ing: 'Engineer', kh: 'Warlord', none: 'none yet', text: 'Hi $Spieler, could you please confirm your current profession? Our rule: R2 = $R2Beruf, R3 = $R3Beruf. Thanks! – $Absender', r145: 'Hi $Spieler, quick question for our profession planner: are you currently a Warlord or an Engineer? I have you down as: $BerufIst. Thanks! – $Absender' },
+    fr: { ing: 'Ingénieur', kh: 'Seigneur de guerre', none: 'aucun pour l\'instant', text: 'Salut $Spieler, peux-tu me confirmer ton métier actuel ? Chez nous : R2 = $R2Beruf, R3 = $R3Beruf. Merci ! – $Absender', r145: 'Salut $Spieler, petite question pour notre planning des métiers : es-tu Seigneur de guerre ou Ingénieur en ce moment ? Chez moi tu es noté : $BerufIst. Merci ! – $Absender' },
+    es: { ing: 'Ingeniero', kh: 'Señor de la guerra', none: 'ninguno todavía', text: 'Hola $Spieler, ¿puedes confirmarme tu profesión actual? Nuestra regla: R2 = $R2Beruf, R3 = $R3Beruf. ¡Gracias! – $Absender', r145: 'Hola $Spieler, una pregunta rápida para nuestro planificador de profesiones: ¿ahora eres Señor de la guerra o Ingeniero? Yo te tengo como: $BerufIst. ¡Gracias! – $Absender' },
+    it: { ing: 'Ingegnere', kh: 'Signore della guerra', none: 'ancora nessuna', text: 'Ciao $Spieler, puoi confermarmi la tua professione attuale? Da noi vale: R2 = $R2Beruf, R3 = $R3Beruf. Grazie! – $Absender', r145: 'Ciao $Spieler, domanda veloce per il nostro planner delle professioni: al momento sei Signore della guerra o Ingegnere? Io ti ho segnato come: $BerufIst. Grazie! – $Absender' },
+    pl: { ing: 'Inżynier', kh: 'Warlord', none: 'jeszcze brak', text: 'Cześć $Spieler, czy możesz potwierdzić swój obecny zawód? U nas: R2 = $R2Beruf, R3 = $R3Beruf. Dzięki! – $Absender', r145: 'Cześć $Spieler, szybkie pytanie do naszego planu zawodów: jesteś teraz Warlordem czy Inżynierem? U mnie jesteś zapisany jako: $BerufIst. Dzięki! – $Absender' },
+    zh: { ing: '工程师', kh: '战争领主', none: '暂无', text: '你好 $Spieler，请确认一下你当前的职业。我们的规定：R2 = $R2Beruf，R3 = $R3Beruf。谢谢！– $Absender', r145: '你好 $Spieler，问一下职业安排：你现在是战争领主还是工程师？我这边记录的是：$BerufIst。谢谢！– $Absender' },
   };
 
   const BP_ASK_VARS = ['Spieler', 'Rang', 'R2Beruf', 'R3Beruf', 'BerufIst', 'BerufSoll', 'Allianz', 'Absender'];
@@ -9279,10 +9282,20 @@ async function revokeApiToken(tokenId, clientName) {
     return (custom && typeof custom === 'object' && !Array.isArray(custom)) ? custom : {};
   }
 
-  function bpAskTemplate(lang) {
+  // Zwei Texte je Sprache: 'r23' erklaert die Regel R2/R3 = Beruf; 'r145' fragt direkt (R1/R4/R5 sagen
+  // nichts ueber den Beruf, ebenso wenn der Rangcheck aus ist). Eigene Texte: "<lang>" bzw. "<lang>_r145".
+  const bpTplKey = (lang, variant) => variant === 'r145' ? `${lang}_r145` : lang;
+  const bpTplDefault = (lang, variant) => { const b = BP_ASK_DEFAULTS[lang] || BP_ASK_DEFAULTS.de; return variant === 'r145' ? b.r145 : b.text; };
+  function bpAskVariant(name) {
+    const rank = Number(PREV[name]);
+    return isBerufRankCheckOn() && (rank === 2 || rank === 3) ? 'r23' : 'r145';
+  }
+
+  function bpAskTemplate(lang, variant = 'r23') {
     const custom = bpCustomAskTemplates();
     const base = BP_ASK_DEFAULTS[lang] || BP_ASK_DEFAULTS.de;
-    const text = (typeof custom[lang] === 'string' && custom[lang].trim()) ? custom[lang] : base.text;
+    const own = custom[bpTplKey(lang, variant)];
+    const text = (typeof own === 'string' && own.trim()) ? own : bpTplDefault(lang, variant);
     return { ...base, text };
   }
 
@@ -9291,9 +9304,9 @@ async function revokeApiToken(tokenId, clientName) {
     return BP_ASK_DEFAULTS[lang] ? lang : 'de';
   }
 
-  function bpBuildAskText(name, lang = bpAskLang(name), text = null) {
+  function bpBuildAskText(name, lang = bpAskLang(name), text = null, variant = bpAskVariant(name)) {
     const meta = memberMeta[name] || {};
-    const tpl = bpAskTemplate(lang);
+    const tpl = bpAskTemplate(lang, variant);
     if (text !== null) tpl.text = text;
     const word = b => b === 'kriegsherr' ? tpl.kh : b === 'ingenieur' ? tpl.ing : '';
     const rank = Number(PREV[name]);
@@ -9318,33 +9331,51 @@ async function revokeApiToken(tokenId, clientName) {
   // Vorlagen-Editor (B8): Entwurf je Sprache, gespeichert werden nur Texte, die vom Standard abweichen
   let bpTplDraft = {};
   let bpTplLang = 'de';
+  let bpTplVariant = 'r23';
 
   function bpTplSample() {
-    return members.find(n => [2, 3].includes(Number(PREV[n]))) || members[0] || 'Kiwi';
+    const ranks = bpTplVariant === 'r145' ? [1, 4, 5] : [2, 3];
+    return members.find(n => ranks.includes(Number(PREV[n]))) || members[0] || 'Kiwi';
   }
 
   function bpTplRenderPreview() {
     const ta = document.getElementById('bp-tpl-text');
     const pv = document.getElementById('bp-tpl-preview');
     if (!ta || !pv) return;
-    bpTplDraft[bpTplLang] = ta.value;
-    pv.textContent = bpBuildAskText(bpTplSample(), bpTplLang, ta.value);
+    bpTplDraft[bpTplKey(bpTplLang, bpTplVariant)] = ta.value;
+    pv.textContent = bpBuildAskText(bpTplSample(), bpTplLang, ta.value, bpTplVariant);
+    document.querySelectorAll('#bp-tpl-variant [data-variant]').forEach(b => b.classList.toggle('on', b.dataset.variant === bpTplVariant));
+    const note = document.getElementById('bp-tpl-variant-note');
+    if (note) note.textContent = tr(bpTplVariant === 'r145' ? 's_bp_tpl_var_note_r145' : 's_bp_tpl_var_note_r23');
   }
+
+  window.bpTplRenderPreview = bpTplRenderPreview; // oninput im Textfeld des Editors
+
+  window.bpTplSwitchVariant = function(variant) {
+    const ta = document.getElementById('bp-tpl-text');
+    if (!ta) return;
+    bpTplDraft[bpTplKey(bpTplLang, bpTplVariant)] = ta.value;
+    bpTplVariant = variant === 'r145' ? 'r145' : 'r23';
+    ta.value = bpTplDraft[bpTplKey(bpTplLang, bpTplVariant)];
+    bpTplRenderPreview();
+  };
 
   window.bpOpenTemplates = function() {
     if (!bpCanEditRankCheck()) { toast(tr('s_bp_rc_only_r4'), 'err'); return; }
     const custom = bpCustomAskTemplates();
     bpTplDraft = {};
-    Object.keys(BP_ASK_DEFAULTS).forEach(l => {
-      bpTplDraft[l] = (typeof custom[l] === 'string' && custom[l].trim()) ? custom[l] : BP_ASK_DEFAULTS[l].text;
-    });
+    Object.keys(BP_ASK_DEFAULTS).forEach(l => ['r23', 'r145'].forEach(v => {
+      const k = bpTplKey(l, v);
+      bpTplDraft[k] = (typeof custom[k] === 'string' && custom[k].trim()) ? custom[k] : bpTplDefault(l, v);
+    }));
+    bpTplVariant = 'r23';
     const langEl = document.getElementById('bp-tpl-lang');
     bpTplLang = BP_ASK_DEFAULTS[langEl?.value] ? langEl.value : 'de';
     const chips = document.getElementById('bp-tpl-chips');
     if (chips) {
       chips.innerHTML = BP_ASK_VARS.map(v => `<button type="button" class="bp-tpl-chip" onclick="bpTplInsertVar('${v}')">$${v}</button>`).join('');
     }
-    document.getElementById('bp-tpl-text').value = bpTplDraft[bpTplLang];
+    document.getElementById('bp-tpl-text').value = bpTplDraft[bpTplKey(bpTplLang, bpTplVariant)];
     bpTplRenderPreview();
     openModal('modal-bp-templates');
   };
@@ -9352,9 +9383,9 @@ async function revokeApiToken(tokenId, clientName) {
   window.bpTplSwitchLang = function(lang) {
     const ta = document.getElementById('bp-tpl-text');
     if (!ta || !BP_ASK_DEFAULTS[lang]) return;
-    bpTplDraft[bpTplLang] = ta.value;
+    bpTplDraft[bpTplKey(bpTplLang, bpTplVariant)] = ta.value;
     bpTplLang = lang;
-    ta.value = bpTplDraft[lang];
+    ta.value = bpTplDraft[bpTplKey(lang, bpTplVariant)];
     bpTplRenderPreview();
   };
 
@@ -9372,17 +9403,18 @@ async function revokeApiToken(tokenId, clientName) {
   window.bpTplResetLang = function() {
     const ta = document.getElementById('bp-tpl-text');
     if (!ta) return;
-    ta.value = BP_ASK_DEFAULTS[bpTplLang].text;
+    ta.value = bpTplDefault(bpTplLang, bpTplVariant);
     bpTplRenderPreview();
   };
 
   window.bpTplSave = async function(btn) {
     bpTplRenderPreview();
     const out = {};
-    Object.keys(BP_ASK_DEFAULTS).forEach(l => {
-      const t = String(bpTplDraft[l] || '').trim();
-      if (t && t !== BP_ASK_DEFAULTS[l].text) out[l] = t;
-    });
+    Object.keys(BP_ASK_DEFAULTS).forEach(l => ['r23', 'r145'].forEach(v => {
+      const k = bpTplKey(l, v);
+      const t = String(bpTplDraft[k] || '').trim();
+      if (t && t !== bpTplDefault(l, v)) out[k] = t;
+    }));
     const value = Object.keys(out).length ? JSON.stringify(out) : '';
     const alliance = getEffectiveAllianceForApi();
     if (btn) btn.disabled = true;
@@ -9643,9 +9675,7 @@ async function revokeApiToken(tokenId, clientName) {
     if (!warlords.length) return `<div class="bp-acc-empty">${escHtml(tr('s_bp_no_warlords'))}</div>`;
     const queue = bpQueueList();
     const isWrong = c => c.cls.includes('bp-wrong');
-    const allOpen = warlords.every(kh => bpOpenSet.has(kh));
-    const toolbar = `<div class="bp-acc-tools"><button class="wt-btn" type="button" onclick="bpAccToggleAll()">${allOpen ? '▴' : '▾'} ${escHtml(tr(allOpen ? 's_bp_acc_collapse_all' : 's_bp_acc_expand_all'))}</button></div>`;
-    return toolbar + '<div class="bp-acc">' + warlords.map(kh => {
+    return '<div class="bp-acc">' + warlords.map(kh => {
       const engs = bpEngineerListFor(kh);
       const khEnc = bpEnc(kh);
       const open = bpOpenSet.has(kh);
@@ -9755,6 +9785,13 @@ async function revokeApiToken(tokenId, clientName) {
       + `<div ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToQueue(event,this)" style="padding:8px;border:1px dashed rgba(255,255,255,0.2);border-radius:8px;color:var(--soft);font-size:11px;">${escHtml(tr('s_bp_drop_to_queue'))}</div>`
       + '</div>';
     document.querySelectorAll('#bp-view [data-bpview]').forEach(b => b.classList.toggle('on', b.dataset.bpview === bpView));
+    // "Alle auf-/zuklappen" im Planer-Kopf neben dem Ansicht-Umschalter, nur in der Kartenansicht
+    const accAll = document.getElementById('bp-acc-all');
+    if (accAll) {
+      const allOpen = warlords.length > 0 && warlords.every(kh => bpOpenSet.has(kh));
+      accAll.hidden = bpView !== 'acc' || !warlords.length;
+      accAll.textContent = `${allOpen ? '▴' : '▾'} ${tr(allOpen ? 's_bp_acc_collapse_all' : 's_bp_acc_expand_all')}`;
+    }
     if (bpView === 'acc') {
       gridEl.innerHTML = html + bpAccordionHtml(warlords, maxIng);
       return;

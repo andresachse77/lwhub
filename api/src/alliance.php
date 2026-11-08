@@ -50,7 +50,7 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
         ? array_map(static fn($k) => trim((string)$k), array_keys($body['config']))
         : [trim((string)($body['key'] ?? ''))];
     // Rangcheck im Berufeplaner duerfen auch R4 schalten, alles andere nur R5 oder Betreiber
-    $berufeKeys = ['berufe_rangcheck', 'berufe_rangcheck_r2', 'berufe_frage_vorlagen'];
+    $berufeKeys = ['berufe_rangcheck', 'berufe_rangcheck_r2', 'berufe_frage_vorlagen', 'berufe_paare'];
     if ($keys && !array_diff($keys, $berufeKeys)) {
         $admin = requireBerufeConfigWriter($pdo, $alliance, $claim);
     } else {
@@ -83,6 +83,18 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
         }
         if ($key === 'berufe_rangcheck' && !in_array($value, ['true', 'false'], true)) {
             jsonOut(400, ['error' => 'berufe_rangcheck muss true oder false sein']);
+        }
+        // Feste Paare im Berufeplaner: leer oder JSON {"<Ingenieur-ID>": "<Kriegsherr-ID>", ...}; "Automatisch aufteilen" fasst sie nicht an
+        if ($key === 'berufe_paare' && $value !== '' && $value !== '{}') {
+            $pairs = json_decode($value, true);
+            if (!is_array($pairs) || array_is_list($pairs) || count($pairs) > 500) {
+                jsonOut(400, ['error' => 'berufe_paare muss ein JSON-Objekt sein (max. 500 Paare)']);
+            }
+            foreach ($pairs as $ing => $kh) {
+                if (!is_string($kh) || strlen((string)$ing) > 64 || strlen($kh) > 64 || $kh === '') {
+                    jsonOut(400, ['error' => 'berufe_paare: ungueltiges Paar']);
+                }
+            }
         }
         // "Spieler fragen"-Vorlagen: leer (= Standardtexte) oder JSON {"de": "...", ...} mit bekannten Sprachen
         if ($key === 'berufe_frage_vorlagen' && $value !== '') {

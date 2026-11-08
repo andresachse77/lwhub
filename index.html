@@ -952,7 +952,33 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 .bp-acc-chev { flex: none; width: 18px; text-align: center; color: var(--soft); transition: transform .15s; }
 .bp-acc-card.open .bp-acc-chev { transform: rotate(90deg); }
 .bp-acc-mini { padding: 5px 12px 8px 34px; font-size: 12px; color: var(--soft); overflow-wrap: anywhere; line-height: 1.4; }
-.bp-acc-mini .wrong { color: #d29922; }
+.bp-acc-mini .wrong { color: #d29922; display: inline-block; }
+.bp-pair-btn { flex: none; width: 20px; height: 20px; padding: 0; display: inline-grid; place-items: center; border: 1px solid rgba(255,255,255,0.10); border-radius: 5px; background: transparent; color: var(--soft-2); font-size: 12px; line-height: 1; cursor: pointer; }
+.bp-pair-btn:hover:not(:disabled) { color: #ff6b8b; border-color: rgba(255,107,139,.5); }
+.bp-pair-btn.on { color: #ff4d79; border-color: rgba(255,77,121,.45); background: rgba(255,77,121,.12); }
+.bp-pair-btn:disabled { cursor: default; }
+.bp-acc-eng .bp-pair-btn, .bp-name-draggable .bp-pair-btn { margin-left: auto; }
+.bp-acc-eng .bp-pair-btn + .bp-ask-btn, .bp-name-draggable .bp-pair-btn + .bp-ask-btn { margin-left: 0; }
+.bp-pair-mini { color: #ff4d79; }
+.bp-fill-opt { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; margin-bottom: 8px; cursor: pointer; }
+.bp-fill-opt input { margin-top: 3px; }
+.bp-fill-body { max-height: min(62vh, 640px); overflow-y: auto; font-size: 13px; }
+.bp-fill-h { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); margin: 12px 0 6px; }
+.bp-fill-h.warn { color: #d29922; }
+.bp-fill-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.bp-fill-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; line-height: 1.5; }
+.bp-fill-list .bp-shield { width: 17px; height: 20px; }
+.bp-fill-list .bp-shield b { font-size: 12px; }
+.bp-fill-kh { color: #f3c2b8; font-weight: 700; }
+.bp-fill-pts { font-size: 11px; color: var(--soft); }
+.bp-fill-pts.on { color: var(--green); font-weight: 600; }
+.bp-fill-warn { color: #d29922; font-size: 12px; overflow-wrap: anywhere; }
+.bp-acc-tools { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.bp-acc-tools .wt-btn { font-size: 12px; padding: 5px 12px; }
+/* Zittern nur dort, wo der ganze Name sichtbar ist (Akkordeon). Die Tabelle kuerzt Namen, dort nur Rahmen + Pfeil. */
+.bp-acc-card.wrong.bp-pull-right .bp-acc-kh, .bp-acc-eng.wrong.bp-pull-right .bp-acc-ing, .bp-acc-mini .wrong.bp-pull-right { animation: bpPullRight 2.4s ease-in-out infinite; }
+.bp-acc-card.wrong.bp-pull-left .bp-acc-kh, .bp-acc-eng.wrong.bp-pull-left .bp-acc-ing, .bp-acc-mini .wrong.bp-pull-left { animation: bpPullLeft 2.4s ease-in-out infinite; }
+.bp-dragging .bp-acc-kh, .bp-dragging .bp-acc-ing, .bp-dragging .bp-acc-mini .wrong { animation: none !important; }
 .bp-acc-eng { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px 4px 6px; border-top: 1px solid var(--line); background: rgba(74,158,255,.05); cursor: grab; }
 .bp-acc-eng.wrong { box-shadow: inset 4px 0 0 #d29922; }
 .bp-acc-ing { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; line-height: 1.25; }
@@ -1037,12 +1063,16 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   gap: 8px;
   cursor: grab;
 }
+/* Namen in der Tabelle auf bis zu 2 Zeilen umbrechen statt nach 3 Buchstaben abzuschneiden (schmales Fenster neben dem Spiel) */
 .bp-name-text {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.2;
 }
 .bp-name-text.kh { font-size: 13px; font-weight: 700; }
 .bp-name-text.ing { font-size: 13px; font-weight: 600; }
@@ -1083,9 +1113,6 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 .bp-cell-slot.bp-exp-ing { background: rgba(74,158,255,0.12); border-color: rgba(74,158,255,0.3); }
 .bp-wrong.bp-cell-name,
 .bp-wrong.bp-cell-slot { border-color: #d29922; box-shadow: 0 0 0 1px rgba(210,153,34,0.35); }
-.bp-wrong.bp-pull-left .bp-name-draggable { animation: bpPullLeft 2.4s ease-in-out infinite; }
-.bp-wrong.bp-pull-right .bp-name-draggable { animation: bpPullRight 2.4s ease-in-out infinite; }
-.bp-dragging .bp-wrong .bp-name-draggable { animation: none; }
 .bp-hint { flex: none; font-size: 11px; font-weight: 600; color: #d29922; white-space: nowrap; }
 .bp-ask-btn {
   flex: none; margin-left: auto; width: 20px; height: 20px; padding: 0;
@@ -1121,7 +1148,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   82% { transform: translateX(-6px); } 92% { transform: translateX(-2px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bp-wrong .bp-name-draggable { animation: none !important; }
+  .bp-acc-kh, .bp-acc-ing, .bp-acc-mini .wrong { animation: none !important; }
 }
 
 @media (max-width: 520px) {
@@ -1134,6 +1161,13 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   .bp-cell-name,
   .bp-cell-slot { padding: 6px; }
   .bp-cell-action .wt-btn { font-size: 10px; padding: 4px 7px; }
+}
+
+/* Schmales Fenster (z. B. neben dem Spiel): Platz fuer Namen statt Symbole */
+@media (max-width: 1500px) {
+  .bp-table .bp-ico { display: none; }
+  .bp-table .bp-name-draggable { gap: 5px; }
+  .bp-table .bp-cell-name, .bp-table .bp-cell-slot { padding: 6px; }
 }
 
 @media (max-width: 980px) {
@@ -1797,6 +1831,18 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   </div>
 </div>
 
+<div class="modal-bg hidden" id="modal-bp-fill">
+  <div class="modal" style="width:min(640px, 100%)">
+    <div class="modal-title">🎲 <span data-i18n="s_bp_fill_modal_title">Automatisch aufteilen – Vorschau</span></div>
+    <label class="bp-fill-opt"><input type="checkbox" id="bp-fill-move" checked onchange="bpFillReroll()"> <span data-i18n="s_bp_fill_move_opt">Aktive Ingenieure auch umsetzen, damit jeder Kriegsherr einen hat (♥-Paare bleiben)</span></label>
+    <div id="bp-fill-body" class="bp-fill-body" data-i18n-skip="1"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="bpFillReroll()" data-i18n="s_bp_fill_reroll">Neu würfeln</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-bp-fill')" data-i18n="s_abbrechen">Abbrechen</button>
+      <button class="btn btn-gold" id="bp-fill-apply" onclick="bpFillApply(this)" data-i18n="s_bp_fill_apply">Übernehmen</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg hidden" id="modal-bp-templates">
   <div class="modal" style="width:min(560px, 100%)">
     <div class="modal-title">✎ <span data-i18n="s_bp_tpl_title">Fragetexte für „Spieler fragen“</span></div>
@@ -9169,7 +9215,8 @@ async function revokeApiToken(tokenId, clientName) {
   }
 
   // Zusatzklassen und Hinweis fuer eine Kachel. Kriegsherr-Spalte links, Ingenieur-Slots rechts.
-  function bpCheckMarkup(name, placement) {
+  // compact (Tabelle): nur der Pfeil als Hinweis, damit der gekuerzte Name nicht ganz verschwindet
+  function bpCheckMarkup(name, placement, compact) {
     const status = bpBerufStatus(name, placement);
     if (!status) return { cls: '', hint: '' };
     const expected = bpExpectedBeruf(Number(PREV[name]));
@@ -9179,7 +9226,9 @@ async function revokeApiToken(tokenId, clientName) {
       const toIng = expected === 'ingenieur';
       cls += toIng ? ' bp-wrong bp-pull-right' : ' bp-wrong bp-pull-left';
       const label = tr(toIng ? 's_bp_hint_to_ing' : 's_bp_hint_to_kh');
-      hint = `<span class="bp-hint" title="${escHtml(tr('s_bp_hint_title'))}">${escHtml(label)}</span>`;
+      hint = compact
+        ? `<span class="bp-hint" title="${escHtml(label + ' ' + tr('s_bp_hint_title'))}">${toIng ? '→' : '←'}</span>`
+        : `<span class="bp-hint" title="${escHtml(tr('s_bp_hint_title'))}">${escHtml(label)}</span>`;
     }
     return { cls, hint };
   }
@@ -9328,6 +9377,51 @@ async function revokeApiToken(tokenId, clientName) {
     }
   };
 
+  // Feste Paare (♥): Ingenieur bleibt bei seinem Kriegsherrn, "Automatisch aufteilen" setzt ihn nie um.
+  // alliance_config berufe_paare = {"<Ingenieur-ID>": "<Kriegsherr-ID>"}; IDs ueberstehen Umbenennungen.
+  function bpPairs() {
+    let v = flagConfig?.berufe_paare;
+    if (typeof v === 'string') { try { v = JSON.parse(v || '{}'); } catch (e) { v = null; } }
+    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+  }
+  function bpIsPinned(name) {
+    const m = memberMeta[name];
+    if (!m || m.beruf !== 'ingenieur' || !m.berufWinwin || !m.id) return false;
+    const khId = memberMeta[m.berufWinwin]?.id;
+    return !!khId && bpPairs()[m.id] === khId;
+  }
+  function bpPairBtn(name) {
+    const on = bpIsPinned(name);
+    const canEdit = bpCanEditRankCheck();
+    if (!on && !canEdit) return '';
+    return `<button class="bp-pair-btn${on ? ' on' : ''}" type="button" draggable="false" title="${escHtml(tr(on ? 's_bp_pair_on' : 's_bp_pair_off'))}"${canEdit ? '' : ' disabled'} onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();bpTogglePair('${bpEnc(name)}')">${on ? '♥' : '♡'}</button>`;
+  }
+  window.bpTogglePair = async function(nameEnc) {
+    if (!bpCanEditRankCheck()) { toast(tr('s_bp_rc_only_r4'), 'err'); return; }
+    const name = decodeURIComponent(nameEnc);
+    const m = memberMeta[name];
+    const khId = memberMeta[m?.berufWinwin]?.id;
+    if (!m?.id || !khId) return;
+    // Nur Paare behalten, die noch so im Planer stehen (veraltete raeumen sich dabei auf)
+    const next = {};
+    members.forEach(n => { if (bpIsPinned(n)) next[memberMeta[n].id] = memberMeta[memberMeta[n].berufWinwin].id; });
+    if (next[m.id] === khId) delete next[m.id]; else next[m.id] = khId;
+    const value = JSON.stringify(next);
+    const alliance = getEffectiveAllianceForApi();
+    try {
+      await adminApi(`/alliance-config?alliance=${bpEnc(alliance)}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ discord_id: authMember?.discord_id || '', config: { berufe_paare: value } })
+      });
+      flagConfig = { ...flagConfig, berufe_paare: value };
+      if (alliance && adminFlagConfigCache[alliance]) adminFlagConfigCache[alliance] = { ...adminFlagConfigCache[alliance], berufe_paare: value };
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    }
+    window.berufePlannerRender();
+  };
+
   function bpAskBtn(name) {
     return `<button class="bp-ask-btn" type="button" draggable="false" title="${escHtml(tr('s_bp_ask_title'))}" onmousedown="event.stopPropagation()" ondragstart="event.preventDefault();event.stopPropagation()" onclick="event.preventDefault();event.stopPropagation();bpAskPlayer('${bpEnc(name)}')">✉</button>`;
   }
@@ -9383,6 +9477,8 @@ async function revokeApiToken(tokenId, clientName) {
     box.title = canEdit ? '' : tr('s_bp_rc_only_r4');
     const tplBtn = document.getElementById('bp-tpl-btn');
     if (tplBtn) tplBtn.style.display = canEdit ? '' : 'none';
+    const fillBtn = document.getElementById('bp-fill-btn');
+    if (fillBtn) fillBtn.title = tr('s_bp_fill_title');
   }
 
   window.bpSaveRankCheck = async function() {
@@ -9415,7 +9511,8 @@ async function revokeApiToken(tokenId, clientName) {
   // Ansicht: Akkordeon (Standard, Mockup C aus docs/konzept-berufe-mobil.html) oder die bisherige Tabelle.
   // In der Tabelle wurden lange Namen abgeschnitten, auch auf grossen Bildschirmen.
   let bpView = (() => { try { return localStorage.getItem('lwhub_bp_view') || 'acc'; } catch (_) { return 'acc'; } })();
-  let bpOpenKh = null; // aufgeklappter Kriegsherr, immer nur einer
+  // Aufgeklappte Kriegsherren. Ein Klick klappt nur diesen einen auf, "Alle aufklappen" alle.
+  const bpOpenSet = new Set();
   window.bpSetView = function(view) {
     bpView = view === 'table' ? 'table' : 'acc';
     try { localStorage.setItem('lwhub_bp_view', bpView); } catch (_) {}
@@ -9423,21 +9520,37 @@ async function revokeApiToken(tokenId, clientName) {
   };
   window.bpAccToggle = function(khEnc) {
     const kh = decodeURIComponent(khEnc);
-    bpOpenKh = bpOpenKh === kh ? null : kh;
+    if (bpOpenSet.has(kh)) bpOpenSet.delete(kh);
+    else {
+      if (bpOpenSet.size <= 1) bpOpenSet.clear(); // einzeln: wie bisher immer nur einer offen
+      bpOpenSet.add(kh);
+    }
     window.berufePlannerRender();
   };
+  window.bpAccToggleAll = function() {
+    const warlords = bpWarlordList();
+    const allOpen = warlords.length > 0 && warlords.every(kh => bpOpenSet.has(kh));
+    bpOpenSet.clear();
+    if (!allOpen) warlords.forEach(kh => bpOpenSet.add(kh));
+    window.berufePlannerRender();
+  };
+
+  // Pfeilrichtung des Zitterns wie beim Hinweis (→ Ing. / ← KH)
+  const bpPullCls = c => (c.cls.match(/bp-pull-(left|right)/) || [''])[0];
 
   function bpAccordionHtml(warlords, maxIng) {
     if (!warlords.length) return `<div class="bp-acc-empty">${escHtml(tr('s_bp_no_warlords'))}</div>`;
     const queue = bpQueueList();
     const isWrong = c => c.cls.includes('bp-wrong');
-    return '<div class="bp-acc">' + warlords.map(kh => {
+    const allOpen = warlords.every(kh => bpOpenSet.has(kh));
+    const toolbar = `<div class="bp-acc-tools"><button class="wt-btn" type="button" onclick="bpAccToggleAll()">${allOpen ? '▴' : '▾'} ${escHtml(tr(allOpen ? 's_bp_acc_collapse_all' : 's_bp_acc_expand_all'))}</button></div>`;
+    return toolbar + '<div class="bp-acc">' + warlords.map(kh => {
       const engs = bpEngineerListFor(kh);
       const khEnc = bpEnc(kh);
-      const open = bpOpenKh === kh;
+      const open = bpOpenSet.has(kh);
       const full = engs.length >= maxIng;
       const khCheck = bpCheckMarkup(kh, 'kriegsherr');
-      let h = `<div class="bp-acc-card${open ? ' open' : ''}${isWrong(khCheck) ? ' wrong' : ''}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpAccDrop(event,'${khEnc}',this)">`
+      let h = `<div class="bp-acc-card${open ? ' open' : ''}${isWrong(khCheck) ? ' wrong ' + bpPullCls(khCheck) : ''}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpAccDrop(event,'${khEnc}',this)">`
         + `<div class="bp-acc-head" onclick="bpAccToggle('${khEnc}')">`
         + `<span class="bp-acc-grip" draggable="true" data-member="${escHtml(kh)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()" onclick="event.stopPropagation()">⠿</span>`
         + bpRankShield(kh) + `<span class="bp-acc-kh">⚔ ${escHtml(kh)}</span>` + khCheck.hint
@@ -9445,14 +9558,17 @@ async function revokeApiToken(tokenId, clientName) {
         + '<span class="bp-acc-chev">›</span></div>';
       if (!open) {
         if (engs.length) {
-          h += '<div class="bp-acc-mini">' + engs.map(n => `<span${isWrong(bpCheckMarkup(n, 'ingenieur')) ? ' class="wrong"' : ''}>${escHtml(n)}</span>`).join(' · ') + '</div>';
+          h += '<div class="bp-acc-mini">' + engs.map(n => {
+            const c = bpCheckMarkup(n, 'ingenieur');
+            return `<span${isWrong(c) ? ` class="wrong ${bpPullCls(c)}" title="${escHtml(tr('s_bp_hint_title'))}"` : ''}>${bpIsPinned(n) ? '<span class="bp-pair-mini">♥</span> ' : ''}${escHtml(n)}</span>`;
+          }).join(' · ') + '</div>';
         }
         return h + '</div>';
       }
       h += engs.map(n => {
         const c = bpCheckMarkup(n, 'ingenieur');
-        return `<div class="bp-acc-eng${isWrong(c) ? ' wrong' : ''}" draggable="true" data-member="${escHtml(n)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`
-          + `<span class="bp-acc-grip">⠿</span>${bpRankShield(n)}<span class="bp-acc-ing">⚗ ${escHtml(n)}</span>${c.hint}${bpAskBtn(n)}`
+        return `<div class="bp-acc-eng${isWrong(c) ? ' wrong ' + bpPullCls(c) : ''}" draggable="true" data-member="${escHtml(n)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`
+          + `<span class="bp-acc-grip">⠿</span>${bpRankShield(n)}<span class="bp-acc-ing">⚗ ${escHtml(n)}</span>${c.hint}${bpPairBtn(n)}${bpAskBtn(n)}`
           + `<button class="bp-acc-btn" type="button" title="${escHtml(tr('s_bp_drop_to_queue'))}" onclick="bpAccToQueue('${bpEnc(n)}')">↩</button></div>`;
       }).join('');
       if (!full) {
@@ -9475,7 +9591,8 @@ async function revokeApiToken(tokenId, clientName) {
     if (meta.beruf === 'kriegsherr' && !confirm(trf('{name} ist Kriegsherr. Zum Ingenieur bei {kh} machen? Seine Ingenieure kommen in die Warteschlange.', { name, kh }))) return;
     try {
       await bpSaveBeruf(name, 'ingenieur', !!meta.berufMedHilfe, kh);
-      bpOpenKh = kh;
+      if (bpOpenSet.size <= 1) bpOpenSet.clear();
+      bpOpenSet.add(kh);
       await loadMembers();
       window.berufePlannerRender();
     } catch (err) {
@@ -9551,26 +9668,27 @@ async function revokeApiToken(tokenId, clientName) {
       const engineers = bpEngineerListFor(kh);
       const khEnc = bpEnc(kh);
       html += '<tr>';
-      const khCheck = bpCheckMarkup(kh, 'kriegsherr');
+      const khCheck = bpCheckMarkup(kh, 'kriegsherr', true);
       html += `<td class="bp-cell-name${khCheck.cls}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToWarlord(event,'${khEnc}',this)">`;
       html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(kh)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`;
       html += bpRankShield(kh);
-      html += '<span style="font-size:12px;color:#f09080;">⚔</span>';
-      html += `<span class="bp-name-text kh">${escHtml(kh)}</span>`;
+      html += '<span class="bp-ico" style="font-size:12px;color:#f09080;">⚔</span>';
+      html += `<span class="bp-name-text kh" title="${escHtml(kh)}">${escHtml(kh)}</span>`;
       html += khCheck.hint;
       html += bpAskBtn(kh);
       html += '</div></td>';
 
       for (let i = 0; i < maxIng; i++) {
         const eng = engineers[i] || null;
-        const engCheck = eng ? bpCheckMarkup(eng, 'ingenieur') : { cls: '', hint: '' };
+        const engCheck = eng ? bpCheckMarkup(eng, 'ingenieur', true) : { cls: '', hint: '' };
         html += `<td class="bp-cell-slot${engCheck.cls}" ondragover="bpAllowDrop(event,this)" ondragleave="bpDropLeave(this)" ondrop="bpDropToEngineerSlot(event,'${khEnc}',${i},this)">`;
         if (eng) {
           html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(eng)}" ondragstart="bpDragStart(event,this.dataset.member)" ondragend="bpDragEnd()">`;
           html += bpRankShield(eng);
-          html += '<span style="font-size:12px;color:#80b8ff;">⚗</span>';
-          html += `<span class="bp-name-text ing">${escHtml(eng)}</span>`;
+          html += '<span class="bp-ico" style="font-size:12px;color:#80b8ff;">⚗</span>';
+          html += `<span class="bp-name-text ing" title="${escHtml(eng)}">${escHtml(eng)}</span>`;
           html += engCheck.hint;
+          html += bpPairBtn(eng);
           html += bpAskBtn(eng);
           html += '</div>';
         } else {
@@ -9773,6 +9891,192 @@ async function revokeApiToken(tokenId, clientName) {
       window.berufePlannerRender();
     } catch (err) {
       toast(tr('Fehler: ') + err.message, 'err');
+    }
+  };
+
+  // Automatisch aufteilen (mit Vorschau):
+  //  1. Wer in der Warteschlange vom Rang her Kriegsherr ist (Rangcheck an), wird Kriegsherr.
+  //  2. Jeder Kriegsherr ohne aktiven Ingenieur bekommt zuerst einen aktiven aus der Warteschlange
+  //     (aktiv = oberes Drittel nach Punkten der letzten 4 abgeschlossenen Wochen, AFK/fehlend = 0).
+  //  3. Der Rest geht gleichmaessig und zufaellig auf die freien Plaetze.
+  //  4. Optional (Haekchen, Standard an): Kriegsherren mit 2+ Aktiven geben einen an Kriegsherren ohne
+  //     Aktiven ab; ist der Empfaenger voll, geht dafuer sein schwaechster Ingenieur zurueck (Tausch).
+  //  ♥-Paare und R4/R5 werden nie angefasst.
+  let bpFillScores = null; // { scores: {name: pts}, threshold, weeks }
+  let bpFillCurrent = null;
+
+  const bpShuffle = arr => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  async function bpLoadFillScores() {
+    const data = await api('ranking-history', { weeks: 4 });
+    const weeks = data?.weeks || [];
+    const scores = {};
+    (data?.players || []).forEach(p => {
+      scores[p.name] = weeks.reduce((sum, yw) => {
+        const e = p.entries?.[yw];
+        return sum + (e && !e.missing && !e.afk ? calcPoints(e.flags || {}) : 0);
+      }, 0);
+    });
+    const sorted = Object.values(scores).filter(v => v > 0).sort((a, b) => b - a);
+    const threshold = sorted.length ? sorted[Math.max(0, Math.ceil(sorted.length / 3) - 1)] : Infinity;
+    return { scores, threshold, weeks: weeks.length };
+  }
+
+  function bpPlanFill(withMoves) {
+    const { scores, threshold } = bpFillScores;
+    const pts = n => scores[n] || 0;
+    const isActive = n => pts(n) > 0 && pts(n) >= threshold;
+    const maxIng = getBerufeMaxEngineers();
+    const stay = [];
+    const newKh = [];
+    const cands = [];
+    bpQueueList().forEach(n => {
+      const rank = Number(PREV[n]);
+      if (rank >= 4) stay.push({ name: n, reason: 'r45' });
+      else if (bpExpectedBeruf(rank) === 'kriegsherr') newKh.push(n);
+      else cands.push(n);
+    });
+    const warlords = [...bpWarlordList(), ...newKh];
+    // Zustand: Kriegsherr -> Ingenieure; origin = Kriegsherr vor der Verteilung (null = Warteschlange)
+    const slots = new Map();
+    const origin = {};
+    warlords.forEach(kh => {
+      const engs = newKh.includes(kh) ? [] : bpEngineerListFor(kh);
+      slots.set(kh, engs.slice());
+      engs.forEach(n => { origin[n] = kh; });
+    });
+    const freeOf = kh => maxIng - slots.get(kh).length;
+    const hasActive = kh => slots.get(kh).some(isActive);
+    const movable = n => origin[n] === null || (!bpIsPinned(n) && Number(PREV[n]) < 4);
+    const put = (n, kh) => { slots.get(kh).push(n); };
+    const pull = (n, kh) => { const l = slots.get(kh); l.splice(l.indexOf(n), 1); };
+    cands.forEach(n => { origin[n] = null; });
+
+    // Schritt 2: die aktivsten aus der Warteschlange zuerst an Kriegsherren ohne aktiven Ingenieur
+    const activeCands = bpShuffle(cands.filter(isActive)).sort((a, b) => pts(b) - pts(a));
+    const used = new Set();
+    bpShuffle(warlords.filter(kh => !hasActive(kh) && freeOf(kh) > 0)).forEach(kh => {
+      const n = activeCands.find(c => !used.has(c));
+      if (!n) return;
+      used.add(n);
+      put(n, kh);
+    });
+    // Schritt 3: Rest gleichmaessig, Zufall bei Gleichstand
+    bpShuffle(cands.filter(n => !used.has(n))).forEach(n => {
+      const best = Math.max(0, ...warlords.map(freeOf));
+      if (!best) { stay.push({ name: n, reason: 'full' }); return; }
+      const options = warlords.filter(kh => freeOf(kh) === best);
+      put(n, options[Math.floor(Math.random() * options.length)]);
+    });
+    // Schritt 4: Aktive umsetzen, bis jeder Kriegsherr einen hat (soweit moeglich)
+    if (withMoves) {
+      bpShuffle(warlords.filter(kh => !hasActive(kh))).forEach(w => {
+        // Spender: Kriegsherr mit den meisten Aktiven (mind. 2), davon einer beweglich
+        const donors = warlords
+          .filter(d => d !== w && slots.get(d).filter(isActive).length >= 2 && slots.get(d).some(n => isActive(n) && movable(n)))
+          .sort((a, b) => slots.get(b).filter(isActive).length - slots.get(a).filter(isActive).length);
+        const d = donors[0];
+        if (!d) return;
+        // Der schwaechste bewegliche Aktive geht, die Spender behalten ihre Besten
+        const a = slots.get(d).filter(n => isActive(n) && movable(n)).sort((x, y) => pts(x) - pts(y))[0];
+        if (freeOf(w) > 0) { pull(a, d); put(a, w); return; }
+        const b = slots.get(w).filter(n => !isActive(n) && movable(n)).sort((x, y) => pts(x) - pts(y))[0];
+        if (!b) return; // voll und nur ♥-Paare: nichts zu machen
+        pull(a, d); pull(b, w); put(a, w); put(b, d);
+      });
+    }
+    // Ergebnis: Unterschiede zum Ausgangszustand
+    const engs = [];
+    const moves = [];
+    warlords.forEach(kh => slots.get(kh).forEach(n => {
+      const e = { name: n, kh, pts: pts(n), active: isActive(n) };
+      if (origin[n] === null) engs.push(e);
+      else if (origin[n] !== kh) moves.push({ ...e, from: origin[n] });
+    }));
+    return { newKh, engs, moves, stay, noActive: warlords.filter(kh => !hasActive(kh)) };
+  }
+
+  function bpRenderFillPreview() {
+    const box = document.getElementById('bp-fill-body');
+    if (!box) return;
+    const withMoves = document.getElementById('bp-fill-move')?.checked !== false;
+    const plan = bpFillCurrent = bpPlanFill(withMoves);
+    const { threshold, weeks } = bpFillScores;
+    const li = s => `<li>${s}</li>`;
+    const engTxt = e => `${bpRankShield(e.name)}<b>${escHtml(e.name)}</b> <span class="bp-fill-pts${e.active ? ' on' : ''}">${e.active ? '★ ' : ''}${escHtml(trf('s_bp_fill_pts', { n: e.pts }))}</span>`;
+    let h = `<div class="hint" style="margin-bottom:10px">${escHtml(trf('s_bp_fill_hint', { n: Number.isFinite(threshold) ? threshold : '–', w: weeks }))}</div>`;
+    if (plan.newKh.length) {
+      h += `<div class="bp-fill-h">⚔ ${escHtml(tr('s_bp_fill_new_kh'))} (${plan.newKh.length})</div><ul class="bp-fill-list">`
+        + plan.newKh.map(n => li(`${bpRankShield(n)}<b>${escHtml(n)}</b>`)).join('') + '</ul>';
+    }
+    if (plan.engs.length) {
+      const byKh = {};
+      plan.engs.forEach(e => (byKh[e.kh] = byKh[e.kh] || []).push(e));
+      h += `<div class="bp-fill-h">⚗ ${escHtml(tr('s_bp_fill_engs'))} (${plan.engs.length})</div><ul class="bp-fill-list">`
+        + Object.keys(byKh).sort((a, b) => a.localeCompare(b, 'de')).map(kh => li(
+          `<span class="bp-fill-kh">${escHtml(kh)}</span> ← ` + byKh[kh].map(engTxt).join('<span class="bp-fill-pts">·</span>')
+        )).join('') + '</ul>';
+    }
+    if (plan.moves.length) {
+      h += `<div class="bp-fill-h">⇄ ${escHtml(tr('s_bp_fill_moves'))} (${plan.moves.length})</div><ul class="bp-fill-list">`
+        + plan.moves.map(e => li(`${engTxt(e)} <span class="bp-fill-pts">${escHtml(e.from)} →</span> <span class="bp-fill-kh">${escHtml(e.kh)}</span>`)).join('') + '</ul>';
+    }
+    if (plan.stay.length) {
+      h += `<div class="bp-fill-h">⏸ ${escHtml(tr('s_bp_fill_stay'))} (${plan.stay.length})</div><ul class="bp-fill-list">`
+        + plan.stay.map(s => li(`${bpRankShield(s.name)}${escHtml(s.name)} <span class="bp-fill-pts">${escHtml(tr(s.reason === 'r45' ? 's_bp_fill_reason_r45' : 's_bp_fill_reason_full'))}</span>`)).join('') + '</ul>';
+    }
+    if (plan.noActive.length) {
+      h += `<div class="bp-fill-h warn">⚠ ${escHtml(tr('s_bp_fill_no_active'))} (${plan.noActive.length})</div>`
+        + `<div class="bp-fill-warn">${plan.noActive.map(escHtml).join(' · ')}</div>`;
+    }
+    const nothing = !plan.newKh.length && !plan.engs.length && !plan.moves.length;
+    if (nothing) h += `<div class="hint">${escHtml(tr('s_bp_fill_none'))}</div>`;
+    box.innerHTML = h;
+    const applyBtn = document.getElementById('bp-fill-apply');
+    if (applyBtn) applyBtn.disabled = nothing;
+  }
+
+  window.bpFillRest = async function(btn) {
+    if (btn) btn.disabled = true;
+    try {
+      bpFillScores = await bpLoadFillScores();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+      return;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+    bpRenderFillPreview();
+    openModal('modal-bp-fill');
+  };
+  window.bpFillReroll = function() { bpRenderFillPreview(); };
+
+  window.bpFillApply = async function(btn) {
+    const plan = bpFillCurrent;
+    if (!plan) return;
+    if (btn) btn.disabled = true;
+    const med = n => !!(memberMeta[n] || {}).berufMedHilfe;
+    try {
+      // 1. neue Kriegsherren, 2. Umgesetzte kurz loesen (der Server prueft die Hoechstzahl, sonst
+      // blockiert ein Tausch zwischen zwei vollen Kriegsherren), 3. alle Ingenieure zuordnen
+      for (const n of plan.newKh) await bpSaveBeruf(n, 'kriegsherr', 0, null);
+      for (const e of plan.moves) await bpSaveBeruf(e.name, 'ingenieur', med(e.name), null);
+      for (const e of [...plan.moves, ...plan.engs]) await bpSaveBeruf(e.name, 'ingenieur', med(e.name), e.kh);
+      closeModal('modal-bp-fill');
+      toast(trf('s_bp_fill_done', { n: plan.newKh.length + plan.engs.length + plan.moves.length, rest: plan.stay.length }), 'ok');
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    } finally {
+      if (btn) btn.disabled = false;
+      bpFillCurrent = null;
+      await loadMembers();
+      window.berufePlannerRender();
     }
   };
 })();

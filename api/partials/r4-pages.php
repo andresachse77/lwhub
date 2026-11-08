@@ -169,6 +169,7 @@ $auNav = function (string $active) use ($member): string {
           <option value="count_asc" data-i18n="s_bp_sort_least">Wenigste Ingenieure zuerst</option>
         </select>
         <button class="wt-btn" onclick="berufePlannerLoadPage()" style="padding:6px 12px;font-size:12px;">↻ <span data-i18n="s_bp_reload">Neu laden</span></button>
+        <button class="wt-btn" id="bp-fill-btn" onclick="bpFillRest(this)" style="padding:6px 12px;font-size:12px;">🎲 <span data-i18n="s_bp_fill_btn">Automatisch aufteilen</span></button>
         <button class="wt-btn" id="bp-tpl-btn" onclick="bpOpenTemplates()" style="padding:6px 12px;font-size:12px;">✎ <span data-i18n="s_bp_tpl_btn">Fragetexte</span></button>
         <button class="wt-btn" id="bp-mail-btn" onclick="berufePlannerCopyMail(this)" style="padding:6px 12px;font-size:12px;">✉ <span data-i18n="s_bp_alliance_mail">Allianzmail</span></button>
       </div>

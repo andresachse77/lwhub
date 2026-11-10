@@ -295,6 +295,7 @@
     "s_reauth_btn": "重新登录",
     "s_reauth_done": "已重新登录——请重复上一步。",
     "s_reauth_error": "未保存：登录已过期。",
+    "s_se_inactive_nav": "错过特殊活动",
     "s_link_teilen": "分享链接",
     "s_link_copied": "链接已复制",
     "s_link_copy_manual": "复制此链接：",

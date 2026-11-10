@@ -3988,7 +3988,7 @@ const LW_ROUTES = {
 };
 // Ansichten innerhalb einer Seite: Name in der Adresse → interner Name. Jede Ansicht hat so ihren eigenen Link.
 const LW_SUBVIEWS = {
-  r: { points: 'punkte', trend: 'trend', events: 'events' },
+  r: { points: 'punkte', inactive: 'se', trend: 'trend', events: 'events' },
   w: { guard1: 'w1', guard2: 'w2', guard3: 'w3', desert: 'wu', special: 'se', vs: 'vs', donations: 'sp' },
   a: { alliances: 'alliances', archive: 'archive', transfer: 'transfer', merge: 'merge', admins: 'admins', tokens: 'tokens' }
 };
@@ -4060,7 +4060,7 @@ function lwApplySub(id, sub, render = false) {
     if (id === 'r' && document.getElementById('au-' + sub)) {
       const changed = auView !== sub;
       auShow(sub);
-      if (render && changed && sub === 'punkte') loadErgebnis();
+      if (render && changed) auLoadView(sub);
     }
     if (id === 'w') {
       activeEventView = sub;
@@ -4258,7 +4258,14 @@ async function showPage(id, options = {}) {
   }
 
   // Ensure base member/entry data exists before rendering data-heavy views.
-  if (id === 'd' || id === 'e') {
+  // Dashboard gehoert zu den Auswertungen: dieselbe Ladeanimation wie dort
+  if (id === 'd' && !skipBattleLoader) {
+    await runWithBattleLoader(async () => {
+      await auLoaderTick();
+      await ensureCoreDataLoaded({ forceEntries: !entries.length });
+      renderDashboard();
+    }, 600, 0);
+  } else if (id === 'd' || id === 'e') {
     await ensureCoreDataLoaded({ forceEntries: !entries.length });
   }
 
@@ -4275,13 +4282,7 @@ async function showPage(id, options = {}) {
   if (id === 'd') renderDashboard();
   if (id === 'e') renderList();
   if (id === 't') await renderTeamsPage();
-  if (id === 'r' && auView === 'punkte') {
-    if (skipBattleLoader) {
-      await loadErgebnis();
-    } else {
-      await runWithBattleLoader(async () => { await loadErgebnis(); });
-    }
-  }
+  if (id === 'r') await auLoadView(auView, { skipBattleLoader });
   if (id === 'v') { await loadMembers(); await refreshEntriesIfNeeded({background:true}); await loadAccessRequests(); renderVerwaltung(); renderFlagsAdmin(); }
   if (id === 'a') adminInitPage();
   if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 't' && id !== 'a' && id !== 'w' && id !== 'z' && id !== 'zv' && id !== 'bp' && id !== 'sc') {
@@ -7656,7 +7657,7 @@ function auShow(view) {
   auView = view;
   lwSubChanged('r');
   document.querySelectorAll('#page-r [data-au]').forEach(b => b.classList.toggle('on', b.dataset.au === view));
-  for (const v of ['punkte', 'trend', 'events']) {
+  for (const v of ['punkte', 'se', 'trend', 'events']) {
     const el = document.getElementById('au-' + v);
     if (el) el.hidden = v !== view;
   }
@@ -7674,9 +7675,40 @@ async function auOpen(view) {
   const wasOther = auView !== view;
   auShow(view);
   if (!document.getElementById('page-r')?.classList.contains('active')) await showPage('r');
-  else if (view === 'punkte' && wasOther) await loadErgebnis();
+  else if (wasOther) await auLoadView(view);
 }
 window.auOpen = auOpen;
+
+// Jede Ansicht der Auswertungen laedt mit derselben Ladeanimation (Carlie & Kim). Trend und Server-Events
+// sind eingebettete Seiten: die Animation laeuft, bis sie „fertig“ melden (lwhub:frame-ready), hoechstens 12 s.
+const auFrameReady = {};   // Ansicht → true, sobald der Rahmen einmal fertig geladen hat
+const auFrameWaiters = {}; // Ansicht → [resolve]
+function auWaitForFrame(view) {
+  const frame = document.querySelector(`#au-${view} iframe`);
+  if (!frame || auFrameReady[view]) return Promise.resolve();
+  return new Promise((resolve) => {
+    (auFrameWaiters[view] ||= []).push(resolve);
+    setTimeout(resolve, 12000);
+  });
+}
+window.addEventListener('message', (e) => {
+  if (e.origin !== window.location.origin || e.data?.type !== 'lwhub:frame-ready') return;
+  const view = ['trend', 'events'].find((v) => document.querySelector(`#au-${v} iframe`)?.contentWindow === e.source);
+  if (!view) return;
+  auFrameReady[view] = true;
+  (auFrameWaiters[view] || []).splice(0).forEach((r) => r());
+});
+async function auLoadViewData(view) {
+  if (view === 'punkte') await loadErgebnis();
+  else if (view === 'se') await loadSeInactive();
+  else await auWaitForFrame(view);
+}
+// Kurz warten, damit die Animation auch dann erscheint, wenn die Ansicht schon fertig ist (sonst mal mit, mal ohne)
+const auLoaderTick = () => new Promise((r) => setTimeout(r, 30));
+function auLoadView(view, { skipBattleLoader = false } = {}) {
+  if (skipBattleLoader) return auLoadViewData(view);
+  return runWithBattleLoader(async () => { await auLoaderTick(); await auLoadViewData(view); }, 600, 0);
+}
 
 async function loadErgebnis() {
   const weeksN = parseInt(document.getElementById('ergebnis-weeks').value, 10) || 4;

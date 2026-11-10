@@ -125,7 +125,7 @@
   </main>
 </div>
 
-<script src="js/lwhub-access.js?v=20261110b"></script>
+<script src="js/lwhub-access.js?v=20261110c"></script>
 <script src="js/power-trend.js?v=20261017c"></script>
 <script>
 let activeApiUrl = LwhubAccess.apiCandidates()[0];
@@ -295,8 +295,12 @@ document.getElementById('thresholds').addEventListener('input', (e) => {
   const { apiUrl, alliances } = await LwhubAccess.findApi();
   activeApiUrl = apiUrl;
   const wanted = new URLSearchParams(location.search).get('alliance') || LwhubAccess.preferredAlliance();
-  await LwhubAccess.fillOwnAlliances(document.getElementById('allianceSelect'), apiUrl, alliances, wanted, { view: true });
-  await loadHistory();
+  try {
+    await LwhubAccess.fillOwnAlliances(document.getElementById('allianceSelect'), apiUrl, alliances, wanted, { view: true });
+    await loadHistory();
+  } finally {
+    LwhubAccess.reportReady();
+  }
 })();
 </script>
 </body>

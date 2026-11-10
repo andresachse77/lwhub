@@ -157,6 +157,12 @@ LwhubAccess.reportState = function (params) {
   try { window.parent.postMessage({ type: 'lwhub:frame-state', query: String(params) }, location.origin); } catch (_) {}
 };
 
+// Im LWHub eingebettet: "fertig geladen" melden, damit der LWHub seine Ladeanimation beendet.
+LwhubAccess.reportReady = function () {
+  if (window.self === window.top) return;
+  try { window.parent.postMessage({ type: 'lwhub:frame-ready' }, location.origin); } catch (_) {}
+};
+
 // Im LWHub eingebettet (iframe): Trend, Event und Scanner erreicht man ueber die LWHub-Navigation
 // (/scan, /stats/trend, /stats/events). Eigene Spruenge hier wuerden nur den Rahmen umschalten, waehrend
 // oben noch der alte Reiter markiert ist. Direkt aufgerufen bleiben die Knoepfe da.

@@ -295,6 +295,7 @@
     "s_reauth_btn": "Se reconnecter",
     "s_reauth_done": "Reconnecté – refais la dernière étape.",
     "s_reauth_error": "Non enregistré : connexion expirée.",
+    "s_se_inactive_nav": "Spécial manqué",
     "s_link_teilen": "Partager le lien",
     "s_link_copied": "Lien copié",
     "s_link_copy_manual": "Lien à copier :",

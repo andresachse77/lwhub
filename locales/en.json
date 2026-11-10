@@ -310,6 +310,7 @@
     "s_reauth_btn": "Log in again",
     "s_reauth_done": "Logged in again – please repeat the last step.",
     "s_reauth_error": "Not saved: login expired.",
+    "s_se_inactive_nav": "Missed special",
     "s_link_teilen": "Share link",
     "s_link_copied": "Link copied",
     "s_link_copy_manual": "Link to copy:",

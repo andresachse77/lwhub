@@ -1,7 +1,8 @@
 <?php // R4 Pages – nur nach verifiziertem Rank ≥4 ausgeliefert
 // Leiste der Auswertungen: oben im Dashboard (page-d) und in page-r, $active = aktive Ansicht
 $auNav = function (string $active) use ($member): string {
-    $items = [['dashboard', '📋', 's_dashboard', 'Dashboard'], ['punkte', '🏅', 's_punkte_uebersicht', 'Punkte-Übersicht']];
+    $items = [['dashboard', '📋', 's_dashboard', 'Dashboard'], ['punkte', '🏅', 's_punkte_uebersicht', 'Punkte-Übersicht'],
+        ['se', '💤', 's_se_inactive_nav', 'Spezial verpasst']];
     if (scannerViewAllowed($member)) {
         $items[] = ['trend', '📈', 's_scanner_trend', 'Kampfkraft-Trend'];
         $items[] = ['events', '⚔', 's_server_events', 'Server-Events'];
@@ -431,6 +432,24 @@ $auNav = function (string $active) use ($member): string {
     <iframe class="au-frame" data-src="web-scanner-onnx/event.html" title="Server-Events"></iframe>
   </div>
   <?php endif; ?>
+  <!-- Kein Spezialevent in letzten Wochen (frueher in der Verwaltung), laedt beim Oeffnen (auShow) -->
+  <div class="panel" id="au-se" hidden style="max-width:100%;">
+    <div class="panel-head">
+      <div class="panel-title">🔍 <span>Kein Spezialevent in letzten Wochen</span></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="font-size:0.85em;color:var(--softer);">Wochen:</label>
+        <select id="se-weeks-select" data-on-change="loadSeInactive" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.85em;">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+        <button class="save-btn" data-action="loadSeInactive" style="padding:4px 12px;font-size:0.85em;" title="Neu laden">↻</button>
+      </div>
+    </div>
+    <div id="se-inactive-result" style="padding:8px 0;"></div>
+  </div>
   <div class="panel" id="au-punkte" style="max-width:100%;">
     <div class="panel-head" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <div class="panel-title">🏅 <span id="ergebnis-title">Punkte-Übersicht</span></div>
@@ -525,24 +544,6 @@ $auNav = function (string $active) use ($member): string {
     <div id="v-list"></div>
   </div>
 
-  <!-- SE AUSWERTUNG -->
-  <div class="panel" style="margin-top:1rem;">
-    <div class="panel-head">
-      <div class="panel-title">🔍 <span>Kein Spezialevent in letzten Wochen</span></div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <label style="font-size:0.85em;color:var(--softer);">Wochen:</label>
-        <select id="se-weeks-select" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.85em;">
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4" selected>4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-        </select>
-        <button class="save-btn" data-action="loadSeInactive" style="padding:4px 12px;font-size:0.85em;">Laden</button>
-      </div>
-    </div>
-    <div id="se-inactive-result" style="padding:8px 0;"></div>
-  </div>
 
   <!-- FEATURE CONFIG -->
   <div class="panel" style="margin-top:1rem;">

@@ -4293,7 +4293,8 @@ function applyInitialSavedPageSelection() {
   const saved = lwInitialPage().id;
 
   const hasStoredTarget = !!document.getElementById('page-' + saved);
-  const safeInitial = hasStoredTarget ? saved : 'm';
+  // R4-Seite aus dem Link (noch nicht geladen): nichts aufdecken statt ersatzweise "Mein Bereich"
+  const safeInitial = hasStoredTarget ? saved : (LW_R4_PAGES.has(saved) ? '' : 'm');
 
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   document.getElementById('page-' + safeInitial)?.classList.add('active');
@@ -7995,15 +7996,16 @@ async function initApp(){
     document.getElementById('login-screen').style.display = 'none';
     startPresencePing(authMember.member_name, authMember.discord_id, authMember.discord_username);
     await Promise.all([me_loadHistory(authMember.discord_id, authMember.member_name), loadFlagConfig()]);
-    const _initElapsed = Date.now() - battleLoaderShownAt;
-    if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
-    await hideBattleLoader();
-
     // Warm up core datasets right after login so Events/Zug are ready without manual sync.
     ensureCoreDataLoaded({ forceEntries: true }).catch(() => {});
 
     updateEventTabVisibility();
-    lwShowInitialPage({ skipBattleLoader: true });
+    // Erst die Seite aus dem Link (oder die zuletzt besuchte) fertig laden, dann die Animation ausblenden.
+    // Sonst blitzt kurz "Mein Bereich" auf, bevor z. B. /stats/inactive erscheint.
+    await lwShowInitialPage({ skipBattleLoader: true }).catch(() => {});
+    const _initElapsed = Date.now() - battleLoaderShownAt;
+    if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
+    await hideBattleLoader();
     return;
   }
 
@@ -8051,10 +8053,10 @@ async function initApp(){
     buildNavActionsFromTabs();
     startPresencePing(localAuth.member_name || LOCAL_DEV_MEMBER_NAME, localAuth.discord_id || '', localAuth.discord_username || '');
     await me_loadHistory(localAuth.discord_id || '', localAuth.member_name || LOCAL_DEV_MEMBER_NAME);
+    await lwShowInitialPage({ skipBattleLoader: true }).catch(() => {});
     const _initElapsed = Date.now() - battleLoaderShownAt;
     if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
     await hideBattleLoader();
-    lwShowInitialPage({ skipBattleLoader: true });
   } catch(e) {
     await hideBattleLoader();
     toast('Fehler beim Laden: ' + e.message);

@@ -4261,10 +4261,9 @@ async function showPage(id, options = {}) {
   // Dashboard gehoert zu den Auswertungen: dieselbe Ladeanimation wie dort
   if (id === 'd' && !skipBattleLoader) {
     await runWithBattleLoader(async () => {
-      await auLoaderTick();
       await ensureCoreDataLoaded({ forceEntries: !entries.length });
       renderDashboard();
-    }, 600, 0);
+    }, 0, 120, 0);
   } else if (id === 'd' || id === 'e') {
     await ensureCoreDataLoaded({ forceEntries: !entries.length });
   }
@@ -5366,7 +5365,9 @@ async function hideBattleLoader(endFrameMs = 600) {
   battleLoaderShownAt = 0;
 }
 
-async function runWithBattleLoader(task, minVisibleMs = 1800, showDelayMs = 120) {
+// endFrameMs: wie lange das Schlussbild steht (0 = sofort weg). Wurde die Animation gar nicht gezeigt
+// (Aufgabe schneller als showDelayMs), wird auch nicht auf das Schlussbild gewartet.
+async function runWithBattleLoader(task, minVisibleMs = 1800, showDelayMs = 120, endFrameMs = 600) {
   battleLoaderDepth += 1;
   let loaderShown = false;
   let loaderTimer = null;
@@ -5391,7 +5392,9 @@ async function runWithBattleLoader(task, minVisibleMs = 1800, showDelayMs = 120)
       }
     }
     battleLoaderDepth = Math.max(0, battleLoaderDepth - 1);
-    if (battleLoaderDepth === 0) await hideBattleLoader();
+    if (battleLoaderDepth === 0 && document.getElementById('battle-loader')?.classList.contains('show')) {
+      await hideBattleLoader(endFrameMs);
+    }
   }
 }
 
@@ -7703,11 +7706,11 @@ async function auLoadViewData(view) {
   else if (view === 'se') await loadSeInactive();
   else await auWaitForFrame(view);
 }
-// Kurz warten, damit die Animation auch dann erscheint, wenn die Ansicht schon fertig ist (sonst mal mit, mal ohne)
-const auLoaderTick = () => new Promise((r) => setTimeout(r, 30));
+// Animation nur, solange wirklich geladen wird: keine Mindestzeit, kein Schlussbild. Ist die Ansicht in
+// unter 120 ms fertig, erscheint sie gar nicht erst.
 function auLoadView(view, { skipBattleLoader = false } = {}) {
   if (skipBattleLoader) return auLoadViewData(view);
-  return runWithBattleLoader(async () => { await auLoaderTick(); await auLoadViewData(view); }, 600, 0);
+  return runWithBattleLoader(() => auLoadViewData(view), 0, 120, 0);
 }
 
 async function loadErgebnis() {

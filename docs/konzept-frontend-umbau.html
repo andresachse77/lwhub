@@ -79,7 +79,7 @@
   <div class="badge-row">
     <span class="badge blue">Konzept</span>
     <span class="badge amber">Entwurf</span>
-    <span class="badge">Stand 08.11.2026</span>
+    <span class="badge">Stand 10.11.2026</span>
     <a class="badge green" href="#gzip-test" style="text-decoration:none;">▶ Live-Test gzip &amp; Header</a>
     <a class="badge green" href="#handler-test" style="text-decoration:none;">▶ Live-Test Inline-Handler</a>
   </div>
@@ -115,7 +115,7 @@
   <h3>Ist es so schon gut genug?</h3>
   <p>Für den Anfang war es genau richtig: eine Datei, kein Build, per FTP hochladen, fertig. Bei der jetzigen Größe kostet es uns aber an drei Stellen:</p>
   <ul>
-    <li><strong>Teilen:</strong> Es gibt keine Links auf Unterseiten. Welche Seite man sieht, steht nur in <code>localStorage</code> (<code>lwhub_last_page</code>). Wer einen Link schickt, landet beim anderen immer auf dessen letzter Seite.</li>
+    <li><strong>Teilen:</strong> <em>(seit 10.11.2026 gelöst, siehe Abschnitt 2)</em> Es gab keine Links auf Unterseiten. Welche Seite man sieht, stand nur in <code>localStorage</code> (<code>lwhub_last_page</code>). Wer einen Link schickte, landete beim anderen immer auf dessen letzter Seite.</li>
     <li><strong>Wartung:</strong> Alles liegt im selben globalen Bereich. Eine Funktion umzubenennen bedeutet, 10.000 Zeilen plus die PHP-Partials zu durchsuchen. Merge-Konflikte treffen fast immer dieselbe Datei.</li>
     <li><strong>Performance:</strong> Ein normales Mitglied (R1–R3) lädt und parst grob <strong>55–60 % JavaScript, das es nie benutzt</strong> (Ranking, Verwaltung, Admin, Planer). Weil alles in der HTML-Datei steckt, muss der Browser nach <em>jeder</em> kleinen Änderung die kompletten ~500 KB neu laden, denn nichts davon kann getrennt im Cache bleiben.</li>
   </ul>
@@ -154,9 +154,18 @@ lwhub.de/admin                  → Admin               (a)
     <li><strong>Rechte:</strong> Öffnet jemand ohne R4 einen R4-Link, bekommt er einen freundlichen Hinweis („Diese Seite ist nur für R4/R5“) und dann die Startseite. Die Logik dafür gibt es schon (<code>safeId</code> in <code>showPage()</code>), sie braucht nur einen sichtbaren Hinweis.</li>
     <li><strong>Allianz:</strong> Wenn der Link eine andere Allianz meint als den aktiven Charakter des Empfängers, fragen wir kurz nach („Zu Charakter X wechseln?“), statt still die falschen Daten zu zeigen.</li>
     <li><strong>Vorschau in Discord:</strong> Links werden fast immer in Discord geteilt. Discord sieht nur den Pfad, nicht den Hash. Mit echten Pfaden (<code>/zug</code> statt <code>#zug</code>) kann PHP pro Seite einen passenden Titel als <code>og:title</code> mitgeben, z. B. „LWHub · Zugplan“. Mit Hash-Links sieht jede Vorschau gleich aus.</li>
-    <li><strong>Altlast:</strong> <code>applyHashRouteIfNeeded()</code> und <code>goToView()</code> leiten noch auf <code>me.html</code>, <code>me2.html</code>, <code>me3.html</code> und <code>punkte.html</code> weiter. Diese Dateien gibt es nicht mehr, der Code kann weg, sobald das neue Routing steht.</li>
+    <li><strong>Altlast:</strong> <em>erledigt.</em> <code>applyHashRouteIfNeeded()</code> und <code>goToView()</code> sind weg. Alte Adressen wie <code>me.html</code> oder <code>punkte.html</code> landen jetzt auf <code>/me</code> bzw. <code>/points</code>.</li>
   </ul>
-  <div class="note"><p><strong>Technik dahinter:</strong> Eine <code>.htaccess</code>-Zeile <code>FallbackResource /index.php</code> (oder eine RewriteRule, die <code>/api</code>, <code>/docs</code>, <code>/web-scanner-onnx</code> und echte Dateien ausnimmt) schickt jeden Pfad an die App. In der App liest ein kleiner Router <code>location.pathname</code> und nutzt <code>history.pushState</code> und <code>popstate</code>, damit Zurück und Vor im Browser funktionieren. Lokal macht <code>scripte/router.php</code> dasselbe.</p></div>
+  <div class="note"><p><strong>So ist es gebaut (seit 10.11.2026):</strong></p>
+  <ul>
+    <li><strong>Server:</strong> Eine <code>RewriteRule</code> in der <code>.htaccess</code> schickt nur die bekannten Namen (<code>/me</code>, <code>/train</code>, <code>/members</code> …) an <code>index.html</code>. Fehlende Bilder oder Dateien in <code>docs/</code> und im Scanner bekommen weiter ein echtes 404. Lokal macht <code>scripte/router.php</code> dasselbe.</li>
+    <li><strong>App:</strong> Die Liste <code>LW_ROUTES</code> ordnet jede Seite ihrem Pfad zu. <code>showPage()</code> schreibt die Adresse mit <code>history.pushState</code>, Zurück und Vor laufen über <code>popstate</code>. Ein Link hat beim Start Vorrang vor der zuletzt besuchten Seite.</li>
+    <li><strong><code>&lt;base href="/"&gt;</code></strong> im Kopf: Bilder, <code>api</code>, <code>locales/</code> und der Scanner werden immer ab der Hauptadresse geladen, auch unter <code>/train/plan</code>. Die API-Adresse kommt aus <code>window.getApiBase()</code>, nie aus <code>location.pathname</code>.</li>
+    <li><strong>Discord-Login:</strong> Discord schickt immer zur Hauptadresse zurück. Das Ziel steht vorher in <code>sessionStorage</code> (<code>lwhub_return_to</code>), es werden nur eigene Pfade angenommen.</li>
+    <li><strong>Rechte:</strong> Geht ein Link auf eine Seite, die jemand nicht sehen darf, kommt ein kurzer Hinweis („nur für R4/R5“ oder „gerade nicht verfügbar“) und die Startseite.</li>
+    <li><strong>Teilen:</strong> Der Knopf 🔗 im Kopf öffnet auf dem Handy das Teilen-Menü, am PC kopiert er den Link.</li>
+  </ul>
+  <p><strong>Noch offen:</strong> Unteradressen wie <code>/train/2026-11-12</code>, <code>/members/lion%20tooth</code> und <code>/stats?w=46</code> öffnen erst einmal nur die Seite selbst (die Adresse bleibt aber stehen). Ebenso offen: die Rückfrage bei einer anderen Allianz und <code>og:title</code> je Seite. Dafür braucht es <code>index.php</code> statt <code>index.html</code>.</p></div>
 </section>
 
 <!-- ───────────────────────────────── -->
@@ -281,7 +290,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
   <h3>Reihenfolge</h3>
   <ol>
     <li><strong>Server-Einstellungen:</strong> gzip, Cache-Header und Sicherheits-Header in der <code>.htaccess</code> (siehe „Schnelle Gewinne“). Kein Code-Umbau, der größte Gewinn für R4.</li>
-    <li><strong>Router und Links</strong>, noch in der großen Datei. <code>showPage()</code> bekommt Pfade, dazu Zurück/Vor, <code>.htaccess</code>-Fallback, Rücksprung nach dem Discord-Login und der „Link teilen“-Knopf. Das bringt Nutzern sofort etwas.</li>
+    <li><strong>Router und Links: erledigt am 10.11.2026</strong> (noch in der großen Datei). Jede Seite hat ihre Adresse, Zurück/Vor funktioniert, nach dem Discord-Login geht es zum Link zurück, dazu der „Link teilen“-Knopf. Unteradressen (Tag, Mitglied, KW) und <code>og:title</code> folgen, Details in Abschnitt 2.</li>
     <li><strong>CSS auslagern</strong> nach <code>assets/css/base.css</code> und Seiten-CSS, mit <code>?v=</code>-Version im Link.</li>
     <li><strong>Kern auslagern:</strong> <code>api.js</code> (<code>fetchJson</code>, <code>API_BASE_CANDIDATES</code>), <code>auth.js</code>, <code>state.js</code>, <code>i18n.js</code>.</li>
     <li><strong>Seiten einzeln herauslösen</strong>, die großen und abgeschlossenen zuerst: Berufeplaner und Zug (beide schon eigene IIFEs), dann Admin, Verwaltung, Auswertungen. Zum Schluss Mein Bereich und Teams.</li>
@@ -297,7 +306,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
         <li>Beim Auslagern in Module bleibt der Verteiler im Kern (<code>actions.js</code>), jedes Modul meldet seine Funktionen dort an.</li>
       </ul>
     </li>
-    <li><strong>Aufräumen:</strong> <code>goToView()</code> / <code>applyHashRouteIfNeeded()</code> mit den alten <code>me*.html</code>-Zielen entfernen.</li>
+    <li><strong>Aufräumen:</strong> <em>erledigt am 10.11.2026</em>, zusammen mit dem Router: <code>goToView()</code> und <code>applyHashRouteIfNeeded()</code> sind weg.</li>
   </ol>
 
   <h3>Schnelle Gewinne, die sofort gehen</h3>

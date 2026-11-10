@@ -118,7 +118,7 @@
   }
 
   async function fetchVersion() {
-    const url = new URL(VERSION_URL, window.location.href);
+    const url = new URL(VERSION_URL, document.baseURI) // nicht location.href: unter /train/plan waere das falsch;
     url.searchParams.set('_ts', String(Date.now()));
 
     const response = await fetch(url.toString(), {

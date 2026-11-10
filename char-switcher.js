@@ -26,9 +26,7 @@
     if (typeof window.getApiBase === 'function') return window.getApiBase();
     const override = (localStorage.getItem('iny_api_base') || '').replace(/\/$/, '');
     if (override) return override;
-    const p = window.location.pathname;
-    const base = p.endsWith('/') ? p : p.replace(/[^/]*$/, '');
-    return `${window.location.origin}${base}api`;
+    return new URL('api', document.baseURI).href; // <base href="/"> in index.html
   }
 
   // Discord-Token und eigene Discord-ID mitsenden, damit der Server die Rolle selbst prueft (wie fetchJson)
@@ -74,15 +72,6 @@
 
   function rankColor(r) {
     return { 1:'#f0a500', 2:'#2ecb7a', 3:'#4a9eff', 4:'#e05545', 5:'#9b6dff' }[+r] || '#7a8498';
-  }
-
-  function getSiblingUrl(fileName) {
-    const url = new URL(window.location.href);
-    url.search = '';
-    url.hash   = '';
-    if (url.pathname.endsWith('/')) url.pathname += fileName;
-    else url.pathname = url.pathname.replace(/[^/]*$/, fileName);
-    return url.toString();
   }
 
   // ── CSS ──────────────────────────────────────────────────────────────────────

@@ -38,3 +38,14 @@
   # dort als Meldung auf, bis sie umgebaut sind.
   Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; connect-src 'self' https://discord.com https://unavatar.io https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
 </IfModule>
+
+# ── 4. Links auf Unterseiten (Konzept Schritt 2) ──
+# /me, /train/plan, /members … gibt es nicht als Datei: der Server liefert index.html, die App zeigt die Seite.
+# Bewusst nur diese Namen (Liste wie LW_ROUTES in index.html), damit fehlende Dateien in img/, docs/ oder
+# web-scanner-onnx/ weiter ein echtes 404 bekommen statt der Startseite.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(me|teams|points|train|events|jobs|stats|dash|list|members|scan|admin)(/.*)?$ index.html [L]
+  # Alte Einzelseiten von frueher
+  RewriteRule ^(me|me2|me3|punkte)\.html$ index.html [L]
+</IfModule>

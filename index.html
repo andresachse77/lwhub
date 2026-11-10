@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Alle relativen Adressen (img/, api, locales/ …) gelten ab der Hauptadresse, auch unter /train/plan -->
+<base href="/">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <title>Alli App</title>
 <style>
@@ -1384,6 +1386,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
       <option value="es">ES</option>
       <option value="zh">ZH</option>
     </select>
+    <button class="sync-btn" id="btn-share" data-action="lwShareLink" title="Link teilen">🔗</button>
     <button class="sync-btn" id="btn-sync" data-action="syncData" title="Daten neu laden">🔄</button>
   </div>
   <input type="number" id="kwInput" style="display:none" min="1" max="9953" value="2616">
@@ -2095,7 +2098,7 @@ const LW_ACTIONS = new Set([
   'bpTplSwitchLang', 'bpTplSwitchVariant', 'bpUnsetWarlord', 'cancelEdit', 'changeYearWeek', 'clearTeamHero',
   'closeApiTokenCreated', 'closeModal', 'closeTeamEditor', 'copyApiToken', 'discordLogin', 'discordLogout',
   'ergebnisApply', 'ergebnisSortBy', 'fillHonorHomeAllianceList', 'loadApiTokens', 'loadArchive', 'loadErgebnis',
-  'loadMergePlayers', 'loadSeInactive', 'loadTransferPlayers', 'lwReload', 'lwSelectText', 'lwhubReauthLogin',
+  'loadMergePlayers', 'loadSeInactive', 'loadTransferPlayers', 'lwReload', 'lwSelectText', 'lwShareLink', 'lwhubReauthLogin',
   'mapAccessRequestToMember', 'meBerufSelect', 'meSelectWeek', 'meStepWeek', 'onPoolHeroDragStart', 'onTeamSlotDragStart',
   'onTeamSlotDrop', 'openAllianceFeatures', 'openCreateAlliance', 'openCreateApiToken', 'openEditAlliance', 'openEditor',
   'openGrantAdmin', 'openMemberMe', 'openMemberMeInApp', 'openTeamEditor', 'rejectAccessRequest', 'removeMember',
@@ -2195,6 +2198,9 @@ function zugDayHover(el, on, isToday) {
 // ─── KONFIGURATION ───
 // Optional: localStorage.setItem('iny_api_base', 'https://dein-api-host/api')
 // Optional: ?api=https://dein-api-host/api (wird in localStorage gespeichert)
+// Hauptadresse der App (aus <base href="/">). Nie location.pathname nehmen: unter /train/plan waere das falsch.
+const LW_APP_BASE = new URL('.', document.baseURI);
+window.getApiBase = () => (localStorage.getItem('iny_api_base') || '').replace(/\/$/, '') || new URL('api', LW_APP_BASE).href;
 const IS_GITHUB_PAGES = window.location.hostname.endsWith('github.io');
 const apiFromQuery = new URLSearchParams(window.location.search).get('api');
 if (apiFromQuery) {
@@ -2209,10 +2215,7 @@ function buildApiBaseCandidates() {
   if (API_BASE_OVERRIDE) return [API_BASE_OVERRIDE];
   if (window.location.protocol === 'file:') return ['http://127.0.0.1:8080/api'];
   if (IS_GITHUB_PAGES) return [];
-  const basePath = window.location.pathname.endsWith('/')
-    ? window.location.pathname
-    : window.location.pathname.replace(/[^/]*$/, '');
-  return [`${window.location.origin}${basePath}api`];
+  return [new URL('api', LW_APP_BASE).href];
 }
 
 const API_BASE_CANDIDATES = buildApiBaseCandidates();
@@ -2220,7 +2223,8 @@ let activeApiBaseIndex = 0;
 
 // ─── DISCORD OAuth2 ───
 const DISCORD_CLIENT_ID = '1494427568361967626';
-const DISCORD_REDIRECT = window.location.origin + window.location.pathname;
+// Immer die Hauptadresse (bei Discord so eingetragen). Wohin es danach geht, steht in lwhub_return_to.
+const DISCORD_REDIRECT = LW_APP_BASE.href;
 const DISCORD_AUTH_URL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=token&scope=identify&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT)}`;
 const IS_LOCAL_PREVIEW = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const AUTH_STATE_KEY = 'iny_auth_state_v1';
@@ -2229,78 +2233,6 @@ const LOCAL_DEV_MEMBER_NAME = 'Lion Tooth';
 let currentDiscordUser = null;
 let authMember = null;
 let defaultLoginBoxMarkup = '';
-
-function getSiblingPageUrl(fileName) {
-  const url = new URL(window.location.href);
-  url.search = '';
-  url.hash = '';
-  if (url.pathname.endsWith('/')) {
-    url.pathname = `${url.pathname}${fileName}`;
-  } else {
-    url.pathname = url.pathname.replace(/[^/]*$/, fileName);
-  }
-  return url.toString();
-}
-
-function getBaseInyUrl(view = '') {
-  const url = new URL(window.location.href);
-  url.search = '';
-  if (url.pathname.endsWith('/')) {
-    // keep
-  } else {
-    url.pathname = url.pathname.replace(/[^/]*$/, '');
-  }
-  const cleanView = String(view || '').trim().toLowerCase();
-  url.hash = cleanView && cleanView !== 'admin' ? `#${cleanView}` : '';
-  return url.toString();
-}
-
-function buildForwardedSearch(forAdmin = false) {
-  const params = new URLSearchParams(window.location.search);
-  const next = new URLSearchParams();
-  const api = (params.get('api') || '').trim();
-  const member = (params.get('member') || '').trim();
-  if (api) next.set('api', api);
-  if (!forAdmin && member) next.set('member', member);
-  return next.toString();
-}
-
-function goToView(view) {
-  const fileByView = {
-    admin: 'index.html',
-    me: 'me.html',
-    me2: 'me2.html',
-    me3: 'me3.html',
-    punkte: 'punkte.html'
-  };
-  const key = String(view || 'admin').trim().toLowerCase();
-  const file = fileByView[key] || 'index.html';
-  const target = new URL(getSiblingPageUrl(file));
-  target.search = buildForwardedSearch(file === 'index.html');
-  window.location.href = target.toString();
-}
-
-function applyHashRouteIfNeeded() {
-  const view = String(window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
-  if (!view) return;
-  const viewToFile = {
-    me: 'me.html',
-    me2: 'me2.html',
-    me3: 'me3.html',
-    punkte: 'punkte.html'
-  };
-  const targetFile = viewToFile[view];
-  if (!targetFile) return;
-
-  const currentFile = window.location.pathname.split('/').pop() || 'index.html';
-  if (currentFile !== targetFile) {
-    const target = new URL(getSiblingPageUrl(targetFile));
-    target.search = buildForwardedSearch(targetFile === 'index.html');
-    window.location.replace(target.toString());
-  }
-}
-
-applyHashRouteIfNeeded();
 
 function readAuthState() {
   try {
@@ -2329,13 +2261,8 @@ window.goToMe = goToMe;
 function goToPointsGuide() { showPage('p'); }
 window.goToPointsGuide = goToPointsGuide;
 
-function openMemberMe(name) {
-  const targetName = String(name || '').trim();
-  if (!targetName) return;
-  const targetUrl = new URL(getSiblingPageUrl('me.html'));
-  targetUrl.searchParams.set('member', targetName);
-  window.location.href = targetUrl.toString();
-}
+// Frueher Sprung auf me.html?member=… (die Datei gibt es nicht mehr): jetzt die Ansicht in der App
+function openMemberMe(name) { return openMemberMeInApp(name); }
 window.openMemberMe = openMemberMe;
 
 async function openMemberMeInApp(name) {
@@ -2414,7 +2341,24 @@ function ensureLocalPreviewAuth() {
   return localState;
 }
 
+// Ziel fuer nach dem Login merken: Discord schickt immer zur Hauptadresse zurueck
+const LW_RETURN_KEY = 'lwhub_return_to';
+function lwRememberReturnTo() {
+  const here = window.location.pathname + window.location.search;
+  try {
+    if (here !== LW_APP_BASE.pathname) sessionStorage.setItem(LW_RETURN_KEY, here);
+    else sessionStorage.removeItem(LW_RETURN_KEY);
+  } catch (_) {}
+}
+function lwTakeReturnTo() {
+  let target = '';
+  try { target = sessionStorage.getItem(LW_RETURN_KEY) || ''; sessionStorage.removeItem(LW_RETURN_KEY); } catch (_) {}
+  // Nur eigene Pfade, nie eine fremde Adresse (//evil.example)
+  return target.startsWith(LW_APP_BASE.pathname) && !target.startsWith('//') ? target : '';
+}
+
 function discordLogin() {
+  lwRememberReturnTo();
   window.location.href = DISCORD_AUTH_URL;
 }
 
@@ -2423,7 +2367,7 @@ function discordLogout() {
   localStorage.removeItem('discord_user');
   localStorage.removeItem('iny_active_char_v1');
   clearAuthState();
-  window.location.href = getBaseInyUrl();
+  window.location.href = LW_APP_BASE.href;
 }
 
 async function renderAccessDenied(user, reason = 'Kein Zugriff') {
@@ -2523,7 +2467,8 @@ async function checkDiscordAuth() {
     const params = new URLSearchParams(hash.substring(1));
     const token = params.get('access_token');
     localStorage.setItem('discord_token', token);
-    history.replaceState(null, '', window.location.pathname); // URL säubern
+    // URL säubern und dorthin zurück, wo der Login gestartet wurde (geteilter Link, z. B. /train/plan)
+    history.replaceState(null, '', lwTakeReturnTo() || window.location.pathname);
     // Neu-Anmeldung im eigenen Fenster (A11): Token ist gespeichert, das Fenster wird nicht mehr gebraucht
     if (window.name === 'lwhub-reauth') { try { window.close(); } catch (_) {} }
   }
@@ -2646,7 +2591,7 @@ function lwhubShowReauth() {
 }
 window.lwhubReauthLogin = function() {
   const popup = window.open(DISCORD_AUTH_URL, 'lwhub-reauth', 'width=520,height=760');
-  if (!popup) { window.location.href = DISCORD_AUTH_URL; return; } // Popup blockiert: wie bisher im selben Tab
+  if (!popup) { lwRememberReturnTo(); window.location.href = DISCORD_AUTH_URL; return; } // Popup blockiert: wie bisher im selben Tab
   const note = document.getElementById('reauth-wait');
   if (note) note.hidden = false;
 };
@@ -4034,6 +3979,103 @@ function resetRoleScopedUi() {
   if (r4Pages) r4Pages.innerHTML = '';
 }
 
+// ── ROUTER: eigene Adresse je Seite (docs/konzept-frontend-umbau.html, Schritt 2) ──
+// Seiten-ID → Pfad. Englisch und kurz, damit Links in Discord lesbar bleiben. Neue Seite → hier eintragen
+// und in /.htaccess (RewriteRule) ergaenzen.
+const LW_ROUTES = {
+  m: 'me', t: 'teams', p: 'points', zv: 'train', z: 'train/plan', w: 'events', bp: 'jobs',
+  r: 'stats', d: 'dash', e: 'list', v: 'members', sc: 'scan', a: 'admin'
+};
+// Seiten, die nur R4/R5 sehen (fuer den Hinweis, wenn ein Link ins Leere geht)
+const LW_R4_PAGES = new Set(['z', 'w', 'bp', 'r', 'd', 'e', 'v', 'sc', 'a']);
+// Alte Links: #zv, #m … und die frueheren Seiten me.html / punkte.html
+const LW_LEGACY_HASH = { me: 'm', me2: 'm', me3: 'm', punkte: 'p', zug: 'zv' };
+const LW_ROUTES_LONGEST_FIRST = Object.entries(LW_ROUTES).sort((a, b) => b[1].length - a[1].length);
+
+function lwPathForPage(id) {
+  return LW_APP_BASE.pathname + (LW_ROUTES[id] || '');
+}
+
+// Seiten-ID aus der Adresse, oder null (Hauptadresse / unbekannt)
+function lwPageFromLocation() {
+  const hash = String(window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
+  if (hash && !hash.includes('=')) {
+    if (LW_ROUTES[hash]) return hash;
+    if (LW_LEGACY_HASH[hash]) return LW_LEGACY_HASH[hash];
+  }
+  let rest = window.location.pathname;
+  if (!rest.startsWith(LW_APP_BASE.pathname)) return null;
+  rest = rest.slice(LW_APP_BASE.pathname.length);
+  try { rest = decodeURIComponent(rest); } catch (_) {}
+  rest = rest.replace(/\/+$/, '').toLowerCase();
+  if (rest === 'me.html' || rest === 'me2.html' || rest === 'me3.html') return 'm';
+  if (rest === 'punkte.html') return 'p';
+  if (!rest || rest === 'index.html') return null;
+  const hit = LW_ROUTES_LONGEST_FIRST.find(([, path]) => rest === path || rest.startsWith(path + '/'));
+  return hit ? hit[0] : null;
+}
+
+// Welche Seite beim Start? Erst die Adresse (geteilter Link), sonst die zuletzt gewaehlte
+function lwInitialPage() {
+  const fromUrl = lwPageFromLocation();
+  if (fromUrl) return { id: fromUrl, fromUrl: true };
+  let saved = '';
+  try { saved = localStorage.getItem('lwhub_last_page') || ''; } catch (_) {}
+  return { id: saved || 'm', fromUrl: false };
+}
+
+function lwShowInitialPage(options = {}) {
+  const start = lwInitialPage();
+  return showPage(start.id, { ...options, fromUrl: start.fromUrl, replaceUrl: true });
+}
+
+// Adresse an die gezeigte Seite anpassen. Steht schon ein passender Pfad da (z. B. spaeter /train/2026-11-12),
+// bleibt er stehen.
+function lwSyncUrl(id, options = {}) {
+  if (options.fromHistory || !LW_ROUTES[id]) return;
+  const target = lwPathForPage(id);
+  const path = window.location.pathname;
+  const hasOldHash = /^#[a-z0-9]+$/i.test(window.location.hash || '');
+  // Nur eine schon saubere Adresse stehen lassen; /TRAIN, /me.html oder /#zv werden umgeschrieben
+  if (lwPageFromLocation() === id && !hasOldHash && (path === target || path.startsWith(target + '/'))) return;
+  const replace = options.replaceUrl || options.remember === false;
+  try {
+    if (replace) history.replaceState({ page: id }, '', target);
+    else history.pushState({ page: id }, '', target);
+  } catch (_) {}
+}
+
+// Link fuehrt auf eine Seite, die diese Person nicht sehen kann: kurz sagen warum
+function lwNotifyUnavailable(id) {
+  const r4 = LW_R4_PAGES.has(id) && !authMember?.can_manage;
+  toast(tr(r4 ? 's_page_r4_only' : 's_page_unavailable'));
+}
+
+// Zurueck/Vor im Browser
+window.addEventListener('popstate', () => {
+  if (!authMember || document.getElementById('login-screen')?.style.display === 'flex') return;
+  const id = lwPageFromLocation() || startPageId();
+  showPage(id, { fromHistory: true });
+});
+
+// „Link teilen“: Handy → Teilen-Menue, PC → Zwischenablage
+async function lwShareLink() {
+  const url = window.location.origin + window.location.pathname + window.location.search;
+  const title = document.querySelector('#main-tabs .tab.active, #r4-tab-btns .tab.active, #admin-tab-btns .tab.active')?.textContent?.trim();
+  const isTouch = window.matchMedia?.('(pointer: coarse)').matches;
+  if (isTouch && navigator.share) {
+    try { await navigator.share({ title: title ? `LWHub · ${title}` : 'LWHub', url }); return; }
+    catch (e) { if (e?.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast(tr('s_link_copied'), 'ok');
+  } catch (_) {
+    window.prompt(tr('s_link_copy_manual'), url);
+  }
+}
+window.lwShareLink = lwShareLink;
+
 // ── NAV ──
 // Startseite, wenn die gewuenschte Seite nicht sichtbar ist: Mein Bereich, sonst Meine Teams, sonst Punkte
 function startPageId() {
@@ -4060,6 +4102,8 @@ async function showPage(id, options = {}) {
   if (options?.remember !== false && safeId === id) {
     try { localStorage.setItem('lwhub_last_page', safeId); } catch(e) {}
   }
+  if (options?.fromUrl && safeId !== id) lwNotifyUnavailable(id);
+  lwSyncUrl(safeId, { ...options, replaceUrl: options?.replaceUrl || safeId !== id });
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pageEl = document.getElementById('page-' + safeId);
@@ -4152,10 +4196,7 @@ async function showPage(id, options = {}) {
 }
 
 function applyInitialSavedPageSelection() {
-  let saved = 'm';
-  try {
-    saved = localStorage.getItem('lwhub_last_page') || 'm';
-  } catch (_) {}
+  const saved = lwInitialPage().id;
 
   const hasStoredTarget = !!document.getElementById('page-' + saved);
   const safeInitial = hasStoredTarget ? saved : 'm';
@@ -7005,6 +7046,7 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
 }
 
 function renderVerwaltung(filter=''){
+  if (!document.getElementById('v-stats')) return; // R4-Seiten noch nicht geladen (z. B. Sprachwechsel beim Start)
   const missingDiscord = members.filter((n) => !memberMeta[n]?.discordConnected).length;
   const pendingAccess = accessRequests.length;
   // Ehrenrollen sind im Spiel nicht in der Allianz und zaehlen nicht mit (eigene Zeilen unten)
@@ -7814,7 +7856,7 @@ async function initApp(){
     ensureCoreDataLoaded({ forceEntries: true }).catch(() => {});
 
     updateEventTabVisibility();
-    showPage(localStorage.getItem('lwhub_last_page') || 'm', { skipBattleLoader: true });
+    lwShowInitialPage({ skipBattleLoader: true });
     return;
   }
 
@@ -7865,7 +7907,7 @@ async function initApp(){
     const _initElapsed = Date.now() - battleLoaderShownAt;
     if (_initElapsed < 1800) await new Promise(r => setTimeout(r, 1800 - _initElapsed));
     await hideBattleLoader();
-    showPage(localStorage.getItem('lwhub_last_page') || 'm', { skipBattleLoader: true });
+    lwShowInitialPage({ skipBattleLoader: true });
   } catch(e) {
     await hideBattleLoader();
     toast('Fehler beim Laden: ' + e.message);
@@ -7886,12 +7928,7 @@ function adminRankColor(r) {
 }
 
 async function adminApi(path, options = {}) {
-  const override = (localStorage.getItem('iny_api_base') || '').replace(/\/$/, '');
-  const base = override || (() => {
-    const p = window.location.pathname;
-    const b = p.endsWith('/') ? p : p.replace(/[^/]*$/, '');
-    return `${window.location.origin}${b}api`;
-  })();
+  const base = window.getApiBase();
   const res = await fetch(base + path, { ...options, headers: { ...lwhubAuthHeaders(), ...(options.headers || {}) } });
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
   if (!res.ok) throw lwhubAuthProblem(res.status, data) || new Error(data.error || `HTTP ${res.status}`);

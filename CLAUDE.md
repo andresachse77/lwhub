@@ -54,3 +54,10 @@ siehe Block „ROUTER“ vor `showPage()` in `index.html`.
 - Hat eine eingebettete Seite einen teilbaren Stand (z. B. welches Event), meldet sie ihn mit
   `LwhubAccess.reportState(params)`. Der LWHub übernimmt nur die Schlüssel aus `LW_FRAME_PARAMS` als
   `?…` in seine Adresse und gibt sie beim Öffnen eines Links an den Rahmen weiter.
+
+## Dokumentseiten (docs/)
+
+Jede Seite unter `docs/` (Konzepte, Aufgabenlisten, Handbuch) bekommt oben rechts **🔗 Teilen** und
+**← Zur App**: den Link `<a class="back-to-app" href="../">` mit `backToApp()`-Listener (kein `onclick=`)
+und am Ende `<script src="doc-share.js"></script>` (im Handbuch `../doc-share.js`). Ohne diese Knöpfe
+kommt man im Vollbild (iPad) nicht zurück und kann nichts teilen.

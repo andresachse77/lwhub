@@ -379,7 +379,7 @@ R2 = Ingenieur · R3 = Kriegsherr
   });
 </script>
 <!-- Zurueck zur App: die Konzepte oeffnen in einem neuen Tab, im Vollbild gibt es keine Tab-Leiste -->
-<a class="back-to-app" href="../" onclick="return backToApp()">&larr; Zur App</a>
+<a class="back-to-app" href="../">&larr; Zur App</a>
 <style>
   .back-to-app { position: fixed; top: 12px; right: 12px; z-index: 1000; padding: 7px 14px; border-radius: 999px;
     background: rgba(13,17,23,.92); border: 1px solid rgba(240,165,0,.45); color: #f0a500; font: 600 13px/1 system-ui, sans-serif;
@@ -393,6 +393,7 @@ R2 = Ingenieur · R3 = Kriegsherr
     setTimeout(function () { location.href = '../'; }, 150);
     return false;
   }
+  document.querySelector('.back-to-app').addEventListener('click', function (e) { e.preventDefault(); backToApp(); });
 </script>
 </body>
 </html>

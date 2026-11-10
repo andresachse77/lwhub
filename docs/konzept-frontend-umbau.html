@@ -65,6 +65,10 @@
   .demo-out { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; color: var(--text-secondary); min-height: 40px; margin-bottom: 16px; white-space: pre-wrap; word-break: break-word; }
   .test-note { font-size: 13px; color: var(--text-secondary); margin-left: 8px; }
   .footer { color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border-color); padding-top: 16px; }
+  .back-to-app { position: fixed; top: 12px; right: 12px; z-index: 1000; padding: 7px 14px; border-radius: 999px;
+    background: rgba(13,17,23,.92); border: 1px solid rgba(240,165,0,.45); color: #f0a500; font: 600 13px/1 system-ui, sans-serif;
+    text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .back-to-app:hover { background: rgba(240,165,0,.15); }
 </style>
 <script>
   // Sammelt CSP-Meldungen ab dem ersten Moment. Chrome/Edge melden Inline-Handler schon beim Einlesen des HTML.
@@ -571,5 +575,16 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
 
 <div class="footer">LWHub · Konzept Umbau Startseite · Fragen an Lion Tooth (Server 776)</div>
 </div>
+<a class="back-to-app" href="../">&larr; Zur App</a>
+<script>
+  // Tab schliessen, wenn der Browser es erlaubt (frisch per Link geoeffnet), sonst die App hier oeffnen.
+  // Wichtig im Vollbild (z. B. iPad), wo es keine Tableiste und keinen Zurueck-Knopf gibt.
+  function backToApp() {
+    try { window.close(); } catch (e) {}
+    setTimeout(function () { location.href = '../'; }, 150);
+    return false;
+  }
+  document.querySelector('.back-to-app').addEventListener('click', function (e) { e.preventDefault(); backToApp(); });
+</script>
 </body>
 </html>

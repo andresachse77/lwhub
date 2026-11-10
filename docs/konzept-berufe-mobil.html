@@ -173,6 +173,10 @@
   .toast.on { transform: none; }
   .toast span { flex: 1; }
   .toast button { flex: none; height: 40px; padding: 0 14px; border-radius: 10px; border: 0; background: transparent; color: var(--gold); font-weight: 700; font-size: 14px; }
+  .back-to-app { position: fixed; top: 12px; right: 12px; z-index: 1000; padding: 7px 14px; border-radius: 999px;
+    background: rgba(13,17,23,.92); border: 1px solid rgba(240,165,0,.45); color: #f0a500; font: 600 13px/1 system-ui, sans-serif;
+    text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .back-to-app:hover { background: rgba(240,165,0,.15); }
 </style>
 </head>
 <body>
@@ -604,6 +608,17 @@
   if (VDESC[qv]) variant = qv;
   render();
 })();
+</script>
+<a class="back-to-app" href="../">&larr; Zur App</a>
+<script>
+  // Tab schliessen, wenn der Browser es erlaubt (frisch per Link geoeffnet), sonst die App hier oeffnen.
+  // Wichtig im Vollbild (z. B. iPad), wo es keine Tableiste und keinen Zurueck-Knopf gibt.
+  function backToApp() {
+    try { window.close(); } catch (e) {}
+    setTimeout(function () { location.href = '../'; }, 150);
+    return false;
+  }
+  document.querySelector('.back-to-app').addEventListener('click', function (e) { e.preventDefault(); backToApp(); });
 </script>
 </body>
 </html>

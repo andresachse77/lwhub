@@ -666,7 +666,7 @@
   </main>
 </div>
 
-<a class="back-to-app" href="../../" onclick="return backToApp()">&larr; Zur App</a>
+<a class="back-to-app" href="../../">&larr; Zur App</a>
 <script>
   // Inhaltsverzeichnis auf dem Handy auf- und zuklappen
   (function () {
@@ -700,6 +700,7 @@
     setTimeout(function () { location.href = '../../'; }, 150);
     return false;
   }
+  document.querySelector('.back-to-app').addEventListener('click', function (e) { e.preventDefault(); backToApp(); });
 </script>
 </body>
 </html>

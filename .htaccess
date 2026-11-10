@@ -45,7 +45,7 @@
 # web-scanner-onnx/ weiter ein echtes 404 bekommen statt der Startseite.
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^(me|teams|points|train|events|jobs|stats|dash|list|members|scan|admin)(/.*)?$ index.html [L]
+  RewriteRule ^(me|teams|points|train|events|jobs|stats|list|members|scan|admin)(/.*)?$ index.html [L]
   # Alte Einzelseiten von frueher
   RewriteRule ^(me|me2|me3|punkte)\.html$ index.html [L]
 </IfModule>

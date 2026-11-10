@@ -35,6 +35,10 @@ siehe Block „ROUTER“ vor `showPage()` in `index.html`.
 
 - Neue Seite → Pfad in `LW_ROUTES` (englisch, kurz) **und** in der `RewriteRule` in `/.htaccess`
   eintragen. R4-Seiten zusätzlich in `LW_R4_PAGES`.
+- Schema immer `/<bereich>/<ansicht>`. Hat eine Seite mehrere Ansichten (Reiter innerhalb der Seite),
+  bekommt jede einen Eintrag in `LW_SUBVIEWS`, `lwCurrentSub()` liefert die aktive, und die Umschalt-
+  Funktion ruft am Ende `lwSubChanged(id)` auf. Keine Ansicht als eigene Top-Level-Adresse anlegen.
+  Reine Anzeige-Vorlieben (z. B. Tabelle/Akkordeon im Berufeplaner) bekommen keinen Link.
 - Seiten immer über `showPage(id)` wechseln, nicht `.page.active` von Hand setzen. Nur so stimmen
   Adresse, Zurück/Vor und `lwhub_last_page`.
 - `index.html` hat `<base href="/">`. Relative Adressen (`img/…`, `locales/…`) gelten also immer ab der

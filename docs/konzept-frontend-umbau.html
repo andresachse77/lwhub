@@ -128,6 +128,7 @@
   <p>Egal welchen Weg wir nehmen: jede Seite und jede sinnvolle Ansicht bekommt eine eigene Adresse. Vorschlag:</p>
 <p>Adressen, Dateien und Funktionen bekommen <strong>englische Namen</strong>. Dann versteht jeder in der Allianz einen Link, egal welche Sprache er im LWHub eingestellt hat. Die Texte auf den Seiten bleiben wie heute übersetzt.</p>
 <p>Die Namen sind bewusst kurz, damit ein Link auch im Discord-Chat oder auf dem Handy gut lesbar bleibt.</p>
+<p>Das Schema ist überall gleich: <code>/&lt;bereich&gt;/&lt;ansicht&gt;</code>. Hat eine Seite mehrere Ansichten (Auswertungen, Events, Admin), bekommt jede Ansicht ihren eigenen Link, wie beim Zug mit <code>/train</code> und <code>/train/plan</code>. Ohne Ansicht im Link öffnet sich die erste bzw. die passende.</p>
 <pre>lwhub.de/                       → Startseite (wie heute: letzte Seite)
 lwhub.de/me                     → Mein Bereich        (heute m)
 lwhub.de/teams                  → Meine Teams         (t)
@@ -135,14 +136,17 @@ lwhub.de/points                 → Punkte-Guide        (p)
 lwhub.de/train                  → Zug, aktuelle Woche (zv)
 lwhub.de/train/2026-11-12       → Zug, bestimmter Tag
 lwhub.de/train/plan             → Zug-Planer R4       (z)
-lwhub.de/events                 → Events              (w)
+lwhub.de/events/guard1          → Events: Wache 1     (w; ebenso guard2, guard3,
+                                  desert, special, vs, donations)
 lwhub.de/jobs                   → Berufeplaner        (bp)
-lwhub.de/stats?w=46             → Auswertungen, KW 46 (r)
-lwhub.de/dash                   → Dashboard           (d)
+lwhub.de/stats/dash             → Auswertungen: Dashboard (d, auch /stats)
+lwhub.de/stats/points           → Auswertungen: Punkte (r; ebenso trend, events)
+lwhub.de/stats/points?w=46      → … KW 46 (noch offen)
 lwhub.de/members                → Verwaltung          (v)
 lwhub.de/members/lion%20tooth   → Detail eines Mitglieds
 lwhub.de/scan                   → Scanner             (sc)
-lwhub.de/admin                  → Admin               (a)
+lwhub.de/admin/alliances        → Admin: Allianzen    (a; ebenso archive, transfer,
+                                  merge, admins, tokens)
 …?a=776-XYZ                     → optional: Allianz festlegen (Char-Switcher)</pre>
   <p><strong>Mitglieder im Link:</strong> Der Spielername steht kleingeschrieben im Link, die Suche ignoriert Groß/Klein (<code>/members/Lion%20Tooth</code> funktioniert also auch). Die interne <code>player_id</code> wäre zwar eindeutig, ist aber 36 Zeichen lang und für niemanden lesbar. Benennt sich jemand um, findet die App den alten Namen über <code>player_name_history</code> und leitet auf den neuen weiter.</p>
   <p>Alte Links mit <code>#…</code> oder den Kurz-IDs (<code>m</code>, <code>zv</code> …) leiten wir einfach auf die neue Adresse um, damit nichts kaputtgeht.</p>
@@ -159,7 +163,7 @@ lwhub.de/admin                  → Admin               (a)
   <div class="note"><p><strong>So ist es gebaut (seit 10.11.2026):</strong></p>
   <ul>
     <li><strong>Server:</strong> Eine <code>RewriteRule</code> in der <code>.htaccess</code> schickt nur die bekannten Namen (<code>/me</code>, <code>/train</code>, <code>/members</code> …) an <code>index.html</code>. Fehlende Bilder oder Dateien in <code>docs/</code> und im Scanner bekommen weiter ein echtes 404. Lokal macht <code>scripte/router.php</code> dasselbe.</li>
-    <li><strong>App:</strong> Die Liste <code>LW_ROUTES</code> ordnet jede Seite ihrem Pfad zu. <code>showPage()</code> schreibt die Adresse mit <code>history.pushState</code>, Zurück und Vor laufen über <code>popstate</code>. Ein Link hat beim Start Vorrang vor der zuletzt besuchten Seite.</li>
+    <li><strong>App:</strong> Die Liste <code>LW_ROUTES</code> ordnet jede Seite ihrem Pfad zu, <code>LW_SUBVIEWS</code> die Ansichten innerhalb einer Seite. <code>showPage()</code> schreibt die Adresse mit <code>history.pushState</code>, Zurück und Vor laufen über <code>popstate</code>. Ein Link hat beim Start Vorrang vor der zuletzt besuchten Seite.</li>
     <li><strong><code>&lt;base href="/"&gt;</code></strong> im Kopf: Bilder, <code>api</code>, <code>locales/</code> und der Scanner werden immer ab der Hauptadresse geladen, auch unter <code>/train/plan</code>. Die API-Adresse kommt aus <code>window.getApiBase()</code>, nie aus <code>location.pathname</code>.</li>
     <li><strong>Discord-Login:</strong> Discord schickt immer zur Hauptadresse zurück. Das Ziel steht vorher in <code>sessionStorage</code> (<code>lwhub_return_to</code>), es werden nur eigene Pfade angenommen.</li>
     <li><strong>Rechte:</strong> Geht ein Link auf eine Seite, die jemand nicht sehen darf, kommt ein kurzer Hinweis („nur für R4/R5“ oder „gerade nicht verfügbar“) und die Startseite.</li>

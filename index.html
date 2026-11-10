@@ -3980,45 +3980,68 @@ function resetRoleScopedUi() {
 }
 
 // ── ROUTER: eigene Adresse je Seite (docs/konzept-frontend-umbau.html, Schritt 2) ──
-// Seiten-ID → Pfad. Englisch und kurz, damit Links in Discord lesbar bleiben. Neue Seite → hier eintragen
-// und in /.htaccess (RewriteRule) ergaenzen.
+// Schema ueberall gleich: /<bereich> oder /<bereich>/<ansicht>. Englisch und kurz, damit Links in Discord
+// lesbar bleiben. Neue Seite → hier eintragen und in /.htaccess (RewriteRule) ergaenzen.
 const LW_ROUTES = {
   m: 'me', t: 'teams', p: 'points', zv: 'train', z: 'train/plan', w: 'events', bp: 'jobs',
-  r: 'stats', d: 'dash', e: 'list', v: 'members', sc: 'scan', a: 'admin'
+  r: 'stats', d: 'stats/dash', e: 'list', v: 'members', sc: 'scan', a: 'admin'
+};
+// Ansichten innerhalb einer Seite: Name in der Adresse → interner Name. Jede Ansicht hat so ihren eigenen Link.
+const LW_SUBVIEWS = {
+  r: { points: 'punkte', trend: 'trend', events: 'events' },
+  w: { guard1: 'w1', guard2: 'w2', guard3: 'w3', desert: 'wu', special: 'se', vs: 'vs', donations: 'sp' },
+  a: { alliances: 'alliances', archive: 'archive', transfer: 'transfer', merge: 'merge', admins: 'admins', tokens: 'tokens' }
 };
 // Seiten, die nur R4/R5 sehen (fuer den Hinweis, wenn ein Link ins Leere geht)
 const LW_R4_PAGES = new Set(['z', 'w', 'bp', 'r', 'd', 'e', 'v', 'sc', 'a']);
 // Alte Links: #zv, #m … und die frueheren Seiten me.html / punkte.html
 const LW_LEGACY_HASH = { me: 'm', me2: 'm', me3: 'm', punkte: 'p', zug: 'zv' };
 const LW_ROUTES_LONGEST_FIRST = Object.entries(LW_ROUTES).sort((a, b) => b[1].length - a[1].length);
+let lwApplyingRoute = false; // true, solange der Router selbst eine Ansicht umschaltet (dann kein neuer Verlaufseintrag)
 
-function lwPathForPage(id) {
-  return LW_APP_BASE.pathname + (LW_ROUTES[id] || '');
+// Aktuell gezeigte Ansicht einer Seite (interner Name)
+function lwCurrentSub(id) {
+  if (id === 'r') return auView;
+  if (id === 'w') return activeEventView;
+  if (id === 'a') return (document.querySelector('#page-a .admin-page.active')?.id || '').replace('admin-section-', '');
+  return '';
 }
 
-// Seiten-ID aus der Adresse, oder null (Hauptadresse / unbekannt)
-function lwPageFromLocation() {
+function lwPathForPage(id) {
+  const sub = lwCurrentSub(id);
+  const slug = sub ? Object.keys(LW_SUBVIEWS[id] || {}).find((k) => LW_SUBVIEWS[id][k] === sub) : '';
+  return LW_APP_BASE.pathname + (LW_ROUTES[id] || '') + (slug ? '/' + slug : '');
+}
+
+// Seite und Ansicht aus der Adresse: { id, sub } oder null (Hauptadresse / unbekannt)
+function lwRouteFromLocation() {
   const hash = String(window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
   if (hash && !hash.includes('=')) {
-    if (LW_ROUTES[hash]) return hash;
-    if (LW_LEGACY_HASH[hash]) return LW_LEGACY_HASH[hash];
+    if (LW_ROUTES[hash]) return { id: hash };
+    if (LW_LEGACY_HASH[hash]) return { id: LW_LEGACY_HASH[hash] };
   }
   let rest = window.location.pathname;
   if (!rest.startsWith(LW_APP_BASE.pathname)) return null;
   rest = rest.slice(LW_APP_BASE.pathname.length);
   try { rest = decodeURIComponent(rest); } catch (_) {}
   rest = rest.replace(/\/+$/, '').toLowerCase();
-  if (rest === 'me.html' || rest === 'me2.html' || rest === 'me3.html') return 'm';
-  if (rest === 'punkte.html') return 'p';
+  if (rest === 'me.html' || rest === 'me2.html' || rest === 'me3.html') return { id: 'm' };
+  if (rest === 'punkte.html') return { id: 'p' };
   if (!rest || rest === 'index.html') return null;
   const hit = LW_ROUTES_LONGEST_FIRST.find(([, path]) => rest === path || rest.startsWith(path + '/'));
-  return hit ? hit[0] : null;
+  if (!hit) return null;
+  const [id, path] = hit;
+  const sub = LW_SUBVIEWS[id]?.[rest.slice(path.length + 1).split('/')[0]];
+  // /stats ohne Ansicht: wie der Reiter „Auswertungen“ das Dashboard
+  if (id === 'r' && !sub) return { id: 'd' };
+  return { id, sub };
 }
+function lwPageFromLocation() { return lwRouteFromLocation()?.id || null; }
 
 // Welche Seite beim Start? Erst die Adresse (geteilter Link), sonst die zuletzt gewaehlte
 function lwInitialPage() {
-  const fromUrl = lwPageFromLocation();
-  if (fromUrl) return { id: fromUrl, fromUrl: true };
+  const fromUrl = lwRouteFromLocation();
+  if (fromUrl) return { ...fromUrl, fromUrl: true };
   let saved = '';
   try { saved = localStorage.getItem('lwhub_last_page') || ''; } catch (_) {}
   return { id: saved || 'm', fromUrl: false };
@@ -4026,13 +4049,38 @@ function lwInitialPage() {
 
 function lwShowInitialPage(options = {}) {
   const start = lwInitialPage();
-  return showPage(start.id, { ...options, fromUrl: start.fromUrl, replaceUrl: true });
+  return showPage(start.id, { ...options, sub: start.sub, fromUrl: start.fromUrl, replaceUrl: true });
 }
 
-// Adresse an die gezeigte Seite anpassen. Steht schon ein passender Pfad da (z. B. spaeter /train/2026-11-12),
-// bleibt er stehen.
+// Ansicht aus der Adresse einstellen. render = true: Seite ist schon offen, also gleich neu zeichnen.
+function lwApplySub(id, sub, render = false) {
+  if (!sub) return;
+  lwApplyingRoute = true;
+  try {
+    if (id === 'r' && document.getElementById('au-' + sub)) {
+      const changed = auView !== sub;
+      auShow(sub);
+      if (render && changed && sub === 'punkte') loadErgebnis();
+    }
+    if (id === 'w') {
+      activeEventView = sub;
+      eventViewPicked = true;
+      if (render) selectEventView(sub);
+    }
+    if (id === 'a') {
+      const btn = [...document.querySelectorAll('#page-a .admin-nav-tab')].find((b) => (b.dataset.args || '').includes(`"${sub}"`));
+      if (btn) adminShowTab(sub, btn);
+    }
+  } finally {
+    lwApplyingRoute = false;
+  }
+}
+
+// Adresse an die gezeigte Seite und Ansicht anpassen. Steht schon ein tieferer Pfad da
+// (z. B. spaeter /train/2026-11-12), bleibt er stehen.
 function lwSyncUrl(id, options = {}) {
   if (options.fromHistory || !LW_ROUTES[id]) return;
+  if (!document.getElementById('page-' + id)?.classList.contains('active')) return;
   const target = lwPathForPage(id);
   const path = window.location.pathname;
   const hasOldHash = /^#[a-z0-9]+$/i.test(window.location.hash || '');
@@ -4045,6 +4093,12 @@ function lwSyncUrl(id, options = {}) {
   } catch (_) {}
 }
 
+// Ansicht innerhalb einer Seite gewechselt (Knopf geklickt): Adresse mitziehen
+function lwSubChanged(id, replace = false) {
+  if (lwApplyingRoute) return;
+  lwSyncUrl(id, { replaceUrl: replace });
+}
+
 // Link fuehrt auf eine Seite, die diese Person nicht sehen kann: kurz sagen warum
 function lwNotifyUnavailable(id) {
   const r4 = LW_R4_PAGES.has(id) && !authMember?.can_manage;
@@ -4054,8 +4108,13 @@ function lwNotifyUnavailable(id) {
 // Zurueck/Vor im Browser
 window.addEventListener('popstate', () => {
   if (!authMember || document.getElementById('login-screen')?.style.display === 'flex') return;
-  const id = lwPageFromLocation() || startPageId();
-  showPage(id, { fromHistory: true });
+  const route = lwRouteFromLocation() || { id: startPageId() };
+  // Nur die Ansicht wechselt (z. B. /events/vs → /events/guard1): Seite nicht neu laden
+  if (route.sub && document.getElementById('page-' + route.id)?.classList.contains('active')) {
+    lwApplySub(route.id, route.sub, true);
+    return;
+  }
+  showPage(route.id, { fromHistory: true, sub: route.sub });
 });
 
 // „Link teilen“: Handy → Teilen-Menue, PC → Zwischenablage
@@ -4103,11 +4162,12 @@ async function showPage(id, options = {}) {
     try { localStorage.setItem('lwhub_last_page', safeId); } catch(e) {}
   }
   if (options?.fromUrl && safeId !== id) lwNotifyUnavailable(id);
-  lwSyncUrl(safeId, { ...options, replaceUrl: options?.replaceUrl || safeId !== id });
+  if (safeId === id) lwApplySub(safeId, options?.sub);
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pageEl = document.getElementById('page-' + safeId);
   if (pageEl) pageEl.classList.add('active');
+  lwSyncUrl(safeId, { ...options, replaceUrl: options?.replaceUrl || safeId !== id });
   // Update active tab (search all tab containers since R4 ones are injected later)
   document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(t => t.classList.remove('active'));
   // Dashboard gehoert zum Reiter "Auswertungen" (tab-r)
@@ -5424,6 +5484,7 @@ function pickEventView() {
 function selectEventView(view, byUser = false) {
   if (byUser) eventViewPicked = true;
   activeEventView = view;
+  lwSubChanged('w', !byUser); // automatisch gewaehlt: Adresse nur ersetzen, kein neuer Verlaufseintrag
   updateEventTabVisibility();
   document.querySelectorAll('.wache-tab').forEach(b => b.classList.toggle('on', b.dataset.ev === view));
 
@@ -7559,6 +7620,7 @@ function ergebnisWeekCell(entry, realRank, withRank = true) {
 var auView = 'punkte'; // var: showPage liest es evtl. schon vor dieser Zeile – aktive Ansicht in page-r (Dashboard ist eine eigene Seite, page-d)
 function auShow(view) {
   auView = view;
+  lwSubChanged('r');
   document.querySelectorAll('#page-r [data-au]').forEach(b => b.classList.toggle('on', b.dataset.au === view));
   for (const v of ['punkte', 'trend', 'events']) {
     const el = document.getElementById('au-' + v);
@@ -7951,6 +8013,7 @@ function adminShowTab(name, btn) {
   if (name === 'transfer') loadTransferAlliances();
   if (name === 'merge') loadMergeAlliances();
   if (name === 'tokens') adminInitApiTokensTab();
+  lwSubChanged('a');
 }
 
 // ── Admin Feature Config ──

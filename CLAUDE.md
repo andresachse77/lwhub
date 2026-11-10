@@ -46,3 +46,8 @@ siehe Block „ROUTER“ vor `showPage()` in `index.html`.
   nehmen (unter `/train/plan` wäre das falsch), sondern `document.baseURI`, `LW_APP_BASE` oder
   `window.getApiBase()`.
 - Keine `href="#…"`-Links: mit `<base>` springen sie auf die Hauptadresse.
+- Keine „In eigenem Fenster öffnen“-Links und kein `target="_blank"` auf LWHub-Seiten oder Scanner,
+  Trend und Event. Die laufen eingebettet, die Navigation macht der LWHub (`/scan`, `/stats/trend`,
+  `/stats/events`). Neue Tabs nur für Dokumente unter `docs/`.
+  Der eingebettete Scanner ist über `Document-Isolation-Policy` (web-scanner-onnx/.htaccess) genauso
+  schnell wie allein. Im iframe kein Zugriff auf `parent`/`top`, nur über API oder `localStorage`.

@@ -149,3 +149,17 @@ const LwhubAccess = {
     document.getElementById('userBadge').hidden = true;
   },
 };
+
+// Im LWHub eingebettet (iframe): Trend, Event und Scanner erreicht man ueber die LWHub-Navigation
+// (/scan, /stats/trend, /stats/events). Eigene Spruenge hier wuerden nur den Rahmen umschalten, waehrend
+// oben noch der alte Reiter markiert ist. Direkt aufgerufen bleiben die Knoepfe da.
+if (window.self !== window.top) {
+  const hideOwnNav = () => {
+    for (const id of ['linkTrend', 'linkEvent', 'linkScanner']) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hideOwnNav);
+  else hideOwnNav();
+}

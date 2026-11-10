@@ -5,6 +5,10 @@
 <IfModule mod_headers.c>
   Header always set Cross-Origin-Opener-Policy "same-origin"
   Header always set Cross-Origin-Embedder-Policy "credentialless"
+  # Dasselbe fuer den im LWHub eingebetteten Scanner (iframe): Chrome/Edge 137+ schotten damit nur dieses
+  # Dokument ab, die LWHub-Seite drumherum bleibt unveraendert. Ein eigenes Fenster ist so nicht mehr schneller.
+  # Firefox/Safari kennen den Header nicht und rechnen eingebettet weiter mit einem Thread.
+  Header always set Document-Isolation-Policy "isolate-and-credentialless"
 </IfModule>
 
 # Skripte/Styles/Seiten immer beim Server nachfragen (ETag -> 304, wenn unveraendert), damit nach einem

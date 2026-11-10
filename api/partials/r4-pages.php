@@ -374,7 +374,7 @@ $auNav = function (string $active) use ($member): string {
         <button class="flt-toggle" id="se-btn-skip" data-action="spezialToggleSkip" title="Unsere Allianz wertet das Event dieser KW nicht aus (nur für diese Allianz)">⏸ <span>Nicht auswerten</span></button>
         <?php if (scannerTabAllowed($member)): ?>
         <button class="flt-toggle" id="se-btn-import" data-action="spezialImportFromScanner" title="Häkchen dieser KW aus der Vorher/Nachher-Auswertung setzen: Kills oder Kampfkraft-Verlust = Teilnahme, nach Kills Platz 1–50 Top 50, Platz 1–20 Top 20">📸 <span data-i18n="s_vs_from_scanner">Aus Scanner übernehmen</span></button>
-        <a class="flt-toggle" id="se-scan-eval" href="web-scanner-onnx/event.html" target="_blank" rel="noopener" title="Vorher/Nachher-Auswertung in eigenem Fenster öffnen">🔍</a>
+        <button class="flt-toggle" id="se-scan-eval" data-action="auOpen" data-args='["events"]' title="Vorher/Nachher-Auswertung öffnen (Auswertungen → Server-Events)">🔍</button>
         <?php endif; ?>
         <span class="se-plan-status" id="se-plan-status"></span>
       </div>
@@ -425,11 +425,9 @@ $auNav = function (string $active) use ($member): string {
   <?php if (scannerViewAllowed($member)): ?>
   <!-- Trend und Event-Auswertung aus dem Scanner, erst beim ersten Oeffnen geladen (auShow) -->
   <div id="au-trend" hidden>
-    <div class="scanner-frame-bar"><a href="web-scanner-onnx/trend.html" target="_blank" rel="noopener" data-i18n="s_scanner_open_window_trend">In eigenem Fenster öffnen</a></div>
     <iframe class="au-frame" data-src="web-scanner-onnx/trend.html" title="Kampfkraft-Trend"></iframe>
   </div>
   <div id="au-events" hidden>
-    <div class="scanner-frame-bar"><a href="web-scanner-onnx/event.html" target="_blank" rel="noopener" data-i18n="s_scanner_open_window_trend">In eigenem Fenster öffnen</a></div>
     <iframe class="au-frame" data-src="web-scanner-onnx/event.html" title="Server-Events"></iframe>
   </div>
   <?php endif; ?>
@@ -578,16 +576,6 @@ $auNav = function (string $active) use ($member): string {
 <!-- ═══ SCANNER (web-scanner-onnx, OCR im Browser) – iframe wird erst beim ersten Oeffnen geladen ═══ -->
 <!-- Ehren-R4 und Betreiber-Zuschauer sehen nur den Kampfkraft-Trend, scannen und hochladen koennen sie nicht -->
 <div class="page" id="page-sc">
-  <div class="scanner-frame-bar">
-    <?php if ($canScan): ?>
-    <span>📸 <span data-i18n="s_scanner">Scanner</span></span>
-    <a href="web-scanner-onnx/index.html" target="_blank" rel="noopener" data-i18n="s_scanner_open_window">In eigenem Fenster öffnen (auf der CPU schneller)</a>
-    <a href="web-scanner-onnx/trend.html" target="_blank" rel="noopener">📈 <span data-i18n="s_scanner_trend">Kampfkraft-Trend</span></a>
-    <?php else: ?>
-    <span>📈 <span data-i18n="s_scanner_trend">Kampfkraft-Trend</span></span>
-    <a href="web-scanner-onnx/trend.html" target="_blank" rel="noopener" data-i18n="s_scanner_open_window_trend">In eigenem Fenster öffnen</a>
-    <?php endif; ?>
-  </div>
   <iframe id="scanner-frame" data-src="web-scanner-onnx/<?= $canScan ? 'index.html' : 'trend.html' ?>" title="Scanner" allow="display-capture"></iframe>
 </div>
 <?php endif; ?>

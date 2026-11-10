@@ -150,6 +150,13 @@ const LwhubAccess = {
   },
 };
 
+// Im LWHub eingebettet: den eigenen Stand (z. B. welches Event) an den LWHub melden. Der schreibt ihn in seine
+// Adresse, damit „Link teilen“ genau diese Ansicht verschickt. postMessage, weil der Rahmen abgeschottet ist.
+LwhubAccess.reportState = function (params) {
+  if (window.self === window.top) return;
+  try { window.parent.postMessage({ type: 'lwhub:frame-state', query: String(params) }, location.origin); } catch (_) {}
+};
+
 // Im LWHub eingebettet (iframe): Trend, Event und Scanner erreicht man ueber die LWHub-Navigation
 // (/scan, /stats/trend, /stats/events). Eigene Spruenge hier wuerden nur den Rahmen umschalten, waehrend
 // oben noch der alte Reiter markiert ist. Direkt aufgerufen bleiben die Knoepfe da.

@@ -51,3 +51,6 @@ siehe Block „ROUTER“ vor `showPage()` in `index.html`.
   `/stats/events`). Neue Tabs nur für Dokumente unter `docs/`.
   Der eingebettete Scanner ist über `Document-Isolation-Policy` (web-scanner-onnx/.htaccess) genauso
   schnell wie allein. Im iframe kein Zugriff auf `parent`/`top`, nur über API oder `localStorage`.
+- Hat eine eingebettete Seite einen teilbaren Stand (z. B. welches Event), meldet sie ihn mit
+  `LwhubAccess.reportState(params)`. Der LWHub übernimmt nur die Schlüssel aus `LW_FRAME_PARAMS` als
+  `?…` in seine Adresse und gibt sie beim Öffnen eines Links an den Rahmen weiter.

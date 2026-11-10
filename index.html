@@ -4082,16 +4082,50 @@ function lwSyncUrl(id, options = {}) {
   if (options.fromHistory || !LW_ROUTES[id]) return;
   if (!document.getElementById('page-' + id)?.classList.contains('active')) return;
   const target = lwPathForPage(id);
+  const query = lwQueryForPage(id);
   const path = window.location.pathname;
   const hasOldHash = /^#[a-z0-9]+$/i.test(window.location.hash || '');
-  // Nur eine schon saubere Adresse stehen lassen; /TRAIN, /me.html oder /#zv werden umgeschrieben
-  if (lwPageFromLocation() === id && !hasOldHash && (path === target || path.startsWith(target + '/'))) return;
+  // Nur eine schon saubere Adresse stehen lassen; /TRAIN, /me.html oder /#zv werden umgeschrieben.
+  // ?date=… aus einem geteilten Link bleibt stehen, bis die Auswertung ihren Stand meldet.
+  const sameQuery = !query || window.location.search === query;
+  if (lwPageFromLocation() === id && !hasOldHash && ((path === target && sameQuery) || path.startsWith(target + '/'))) return;
   const replace = options.replaceUrl || options.remember === false;
   try {
-    if (replace) history.replaceState({ page: id }, '', target);
-    else history.pushState({ page: id }, '', target);
+    if (replace) history.replaceState({ page: id }, '', target + query);
+    else history.pushState({ page: id }, '', target + query);
   } catch (_) {}
 }
+
+// Eingebettete Auswertungen (Server-Events) melden ihren Stand, z. B. welches Event offen ist. Der kommt als
+// ?date=…&start=…&end=… in die LWHub-Adresse, damit „Link teilen“ genau diese Auswertung verschickt.
+const LW_FRAME_PARAMS = ['alliance', 'date', 'start', 'end'];
+const lwFrameQuery = {}; // Ansicht → letzter gemeldeter Stand ('date=…&start=…')
+function lwQueryForPage(id) {
+  const q = id === 'r' ? lwFrameQuery[auView] : '';
+  return q ? '?' + q : '';
+}
+// Stand aus der LWHub-Adresse fuer den Rahmen (nur wenn die Adresse genau diese Ansicht meint)
+function lwFrameParamsFromUrl(view) {
+  const route = lwRouteFromLocation();
+  if (route?.id !== 'r' || route.sub !== view) return {};
+  const url = new URLSearchParams(window.location.search);
+  const out = {};
+  for (const k of LW_FRAME_PARAMS) if (url.get(k)) out[k] = url.get(k);
+  return out;
+}
+window.addEventListener('message', (e) => {
+  if (e.origin !== window.location.origin || e.data?.type !== 'lwhub:frame-state') return;
+  const view = ['trend', 'events'].find((v) => document.querySelector(`#au-${v} iframe`)?.contentWindow === e.source);
+  if (!view) return;
+  const q = new URLSearchParams();
+  for (const [k, v] of new URLSearchParams(String(e.data.query || ''))) if (LW_FRAME_PARAMS.includes(k) && v) q.set(k, v);
+  lwFrameQuery[view] = q.toString().replace(/%3A/gi, ':'); // 19:02 statt 19%3A02, im Link besser lesbar
+  if (auView !== view || !document.getElementById('page-r')?.classList.contains('active')) return;
+  const url = window.location.pathname + lwQueryForPage('r');
+  if (url !== window.location.pathname + window.location.search) {
+    try { history.replaceState(history.state, '', url); } catch (_) {}
+  }
+});
 
 // Ansicht innerhalb einer Seite gewechselt (Knopf geklickt): Adresse mitziehen
 function lwSubChanged(id, replace = false) {
@@ -7629,7 +7663,7 @@ function auShow(view) {
   const frame = document.querySelector(`#au-${view} iframe[data-src]`);
   if (frame && !frame.getAttribute('src')) {
     const alliance = getEffectiveAllianceForApi();
-    frame.src = frame.dataset.src + '?' + new URLSearchParams({ ...(alliance ? { alliance } : {}), t: Date.now() });
+    frame.src = frame.dataset.src + '?' + new URLSearchParams({ ...(alliance ? { alliance } : {}), ...lwFrameParamsFromUrl(view), t: Date.now() });
   }
 }
 window.auShow = auShow;

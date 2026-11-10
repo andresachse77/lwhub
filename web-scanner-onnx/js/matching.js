@@ -180,7 +180,9 @@ const MatchingEngine = {
    * @param {string|null} discordToken  Discord-Access-Token aus dem lwhub-Login; der Server prüft damit,
    *   ob der Aufrufer R4/R5 der Allianz ist (lokaler PHP-Server ausgenommen).
    */
-  async syncToLwHub(apiUrl, alliance, assignedPairs, newPlayers, archivePlayerIds = [], discordToken = null) {
+  // recordedAt: Zeit der Scan-Runde (erste Aufnahme), nicht die Upload-Zeit. Sonst zaehlt ein Vorher-Scan, der
+  // erst nach dem Eventstart fertig nachbearbeitet ist, in der Event-Auswertung als Nachher.
+  async syncToLwHub(apiUrl, alliance, assignedPairs, newPlayers, archivePlayerIds = [], discordToken = null, recordedAt = null) {
     const entries = [];
     // VS-Werte (Allianz-Duell) je Kachelart: hoechster Wert je Tag bzw. Woche
     const vsValues = (tiles) => {
@@ -279,7 +281,7 @@ const MatchingEngine = {
     const payload = {
       alliance: alliance,
       source: 'desktop_web_scanner',
-      recorded_at: new Date().toISOString(),
+      recorded_at: recordedAt || new Date().toISOString(),
       entries: entries,
       archive_player_ids: archivePlayerIds
     };

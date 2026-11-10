@@ -820,3 +820,21 @@ html, body {
 .sync-list .sync-name { font-weight: 600; user-select: all; }
 .sync-list .sync-reason { display: block; color: var(--text-muted); }
 .sync-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Scanzeit der Runde neben dem Upload-Knopf */
+.scan-time { display: inline-flex; align-items: center; gap: 6px; cursor: default; }
+.scan-time input { background: var(--bg-card); color: inherit; border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; font: inherit; color-scheme: dark; }
+.scan-time-info { color: var(--text-muted); font-size: 11px; }
+
+/* Event der Scan-Runde (unter dem Kopf) */
+.event-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--border); background: var(--bg-card); font-size: 13px; }
+.event-bar-label { font-weight: 600; }
+.event-bar select, .event-form input { background: var(--bg-dark, #0d1117); color: inherit; border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font: inherit; color-scheme: dark; }
+.event-bar select { max-width: 100%; }
+.event-bar-info { color: var(--text-muted); font-size: 12px; }
+.event-bar-info.ok { color: var(--success); }
+.event-bar-info.warn { color: var(--warning); }
+.event-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-basis: 100%; }
+.event-form[hidden] { display: none; }
+.event-form #evFTitle { width: 160px; }
+.event-st { color: var(--text-muted); font-size: 11px; min-width: 64px; }

@@ -33,6 +33,36 @@ function ensureSpecialEventsTables(PDO $pdo): void {
             PRIMARY KEY (alliance, year_week)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
+    // Eigene Events einer Allianz (z. B. ein Chaos-Event nur fuer NxU1): beliebig viele, an jedem Tag,
+    // nur fuer die Event-Auswertung. Das Spezialevent je KW (oben) bleibt davon unberuehrt.
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS alliance_events (
+            event_id INT NOT NULL AUTO_INCREMENT,
+            alliance VARCHAR(50) NOT NULL,
+            title VARCHAR(100) NOT NULL,
+            event_date DATE NOT NULL,
+            start_time CHAR(5) NOT NULL,
+            end_time CHAR(5) NOT NULL,
+            created_by VARCHAR(150) NULL,
+            updated_by VARCHAR(150) NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (event_id),
+            KEY ix_alliance_events (alliance, event_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+function allianceEventRow(array $r): array {
+    return [
+        'id' => (int)$r['event_id'],
+        'title' => $r['title'],
+        'event_date' => $r['event_date'],
+        'start' => $r['start_time'],
+        'end' => $r['end_time'],
+        'updated_by' => $r['updated_by'] ?? $r['created_by'],
+        'updated_at' => $r['updated_at'],
+    ];
 }
 
 /** Server-Nr. der Allianz (alliance_config "server") oder null. */
@@ -68,7 +98,7 @@ function specialEventRow(array $r): array {
  * GET /special-events – Events des Servers (neueste zuerst), die KWs, die diese Allianz nicht auswertet,
  * und bisher genutzte Eventnamen fuer die Auswahl.
  */
-function handleGetSpecialEvents(PDO $pdo, string $alliance): never {
+function handleGetSpecialEvents(PDO $pdo, string $alliance, ?int $savedId = null): never {
     ensureSpecialEventsTables($pdo);
     $scope = specialEventScope($pdo, $alliance);
     $stmt = $pdo->prepare("SELECT * FROM special_events WHERE scope = ? ORDER BY year_week DESC LIMIT 60");
@@ -84,13 +114,21 @@ function handleGetSpecialEvents(PDO $pdo, string $alliance): never {
 
     $stmt = $pdo->prepare("SELECT year_week FROM special_event_skips WHERE alliance = ? ORDER BY year_week DESC LIMIT 60");
     $stmt->execute([$alliance]);
-
+    $skipped = array_map('intval', array_column($stmt->fetchAll(), 'year_week'));
+    $stmt = $pdo->prepare("SELECT * FROM alliance_events WHERE alliance = ? ORDER BY event_date DESC, start_time DESC LIMIT 60");
+    $stmt->execute([$alliance]);
+    $own = array_map('allianceEventRow', $stmt->fetchAll());
+    $stmt = $pdo->prepare("SELECT title FROM alliance_events WHERE alliance = ? GROUP BY title ORDER BY MAX(event_date) DESC LIMIT 30");
+    $stmt->execute([$alliance]);
+    $titles = array_values(array_unique(array_merge($titles, array_column($stmt->fetchAll(), 'title'))));
     jsonOut(200, [
         'ok' => true,
         'server' => allianceServer($pdo, $alliance),
         'events' => $events,
-        'skipped_weeks' => array_map('intval', array_column($stmt->fetchAll(), 'year_week')),
+        'skipped_weeks' => $skipped,
         'titles' => $titles,
+        'alliance_events' => $own,
+        'saved_id' => $savedId,
     ]);
 }
 
@@ -154,4 +192,73 @@ function specialEventFreeWeeks(PDO $pdo, string $alliance): array {
     ");
     $stmt->execute([specialEventScope($pdo, $alliance), $alliance]);
     return array_map('intval', array_column($stmt->fetchAll(), 'year_week'));
+}
+
+/**
+ * POST /alliance-events – R4/R5 der Allianz.
+ *   { title, event_date, start, end }              neues Event dieser Allianz
+ *   { id, title, event_date, start, end }          Event aendern
+ *   { id, delete: true }                           Event loeschen
+ *   { from_year_week }                             Spezialevent dieser KW (Server) zu einem Event nur dieser
+ *                                                  Allianz machen: fuer die anderen Allianzen des Servers weg
+ * Antwort wie GET /special-events, dazu 'saved_id'.
+ */
+function handleSaveAllianceEvent(PDO $pdo, string $alliance, array $body): never {
+    $caller = requireAllianceWriter($pdo, $alliance, 4, true, (string)($body['discord_id'] ?? ''));
+    ensureSpecialEventsTables($pdo);
+    $by = $caller['member']['current_name'] ?? null;
+    $id = (int)($body['id'] ?? 0);
+
+    if ($id > 0 && !empty($body['delete'])) {
+        $pdo->prepare("DELETE FROM alliance_events WHERE event_id = ? AND alliance = ?")->execute([$id, $alliance]);
+        handleGetSpecialEvents($pdo, $alliance);
+    }
+
+    if (!empty($body['from_year_week'])) {
+        $yearWeek = (int)$body['from_year_week'];
+        $scope = specialEventScope($pdo, $alliance);
+        $stmt = $pdo->prepare("SELECT * FROM special_events WHERE scope = ? AND year_week = ? AND no_event = 0");
+        $stmt->execute([$scope, $yearWeek]);
+        $row = $stmt->fetch();
+        if (!$row || !$row['event_date'] || !$row['start_time'] || !$row['end_time']) {
+            jsonOut(404, ['error' => 'In dieser KW ist kein Spezialevent mit Zeitfenster festgelegt']);
+        }
+        $pdo->beginTransaction();
+        $pdo->prepare("
+            INSERT INTO alliance_events (alliance, title, event_date, start_time, end_time, created_by, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ")->execute([$alliance, $row['title'] ?: 'Event', $row['event_date'], $row['start_time'], $row['end_time'],
+            $row['updated_by'], $by]);
+        $newId = (int)$pdo->lastInsertId();
+        $pdo->prepare("DELETE FROM special_events WHERE scope = ? AND year_week = ?")->execute([$scope, $yearWeek]);
+        $pdo->commit();
+        handleGetSpecialEvents($pdo, $alliance, $newId);
+    }
+
+    $title = mb_substr(trim((string)($body['title'] ?? '')), 0, 100);
+    $date = trim((string)($body['event_date'] ?? ''));
+    $time = fn($v) => preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', trim((string)$v)) ? trim((string)$v) : null;
+    $start = $time($body['start'] ?? '');
+    $end = $time($body['end'] ?? '');
+    if ($title === '') jsonOut(400, ['error' => 'Bitte einen Namen für das Event angeben']);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !strtotime($date)) jsonOut(400, ['error' => 'Ungültiger Tag']);
+    if (!$start || !$end) jsonOut(400, ['error' => 'Bitte Start und Ende angeben (HH:MM)']);
+
+    if ($id > 0) {
+        $stmt = $pdo->prepare("
+            UPDATE alliance_events SET title = ?, event_date = ?, start_time = ?, end_time = ?, updated_by = ?
+            WHERE event_id = ? AND alliance = ?
+        ");
+        $stmt->execute([$title, $date, $start, $end, $by, $id, $alliance]);
+        $exists = $pdo->prepare("SELECT 1 FROM alliance_events WHERE event_id = ? AND alliance = ?");
+        $exists->execute([$id, $alliance]);
+        if (!$exists->fetchColumn()) jsonOut(404, ['error' => 'Event nicht gefunden']);
+    } else {
+        $pdo->prepare("
+            INSERT INTO alliance_events (alliance, title, event_date, start_time, end_time, created_by, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ")->execute([$alliance, $title, $date, $start, $end, $by, $by]);
+        $id = (int)$pdo->lastInsertId();
+    }
+    handleGetSpecialEvents($pdo, $alliance, $id);
 }

@@ -171,13 +171,17 @@ const gameTime = (date, time) => {
   return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
 };
 
-// Gespeicherte Spezialevents des Servers (GET /special-events), neueste zuerst, ohne "kein Event"
+// Gespeicherte Events (GET /special-events), neueste zuerst: Spezialevents des Servers (🌐, je KW) und eigene
+// Events der Allianz (🛡, z. B. ein Chaos-Event nur fuer NxU1, im Scanner angelegt)
 let savedEvents = [];
 async function loadSavedEvents(alliance) {
   try {
     const r = await fetch(`${activeApiUrl}/special-events?alliance=${encodeURIComponent(alliance)}`);
     const d = await r.json();
-    savedEvents = (d.events || []).filter((e) => !e.no_event && e.event_date && e.start && e.end);
+    const server = (d.events || []).filter((e) => !e.no_event && e.event_date && e.start && e.end)
+      .map((e) => ({ ...e, kind: 'server' }));
+    const own = (d.alliance_events || []).map((e) => ({ ...e, kind: 'alliance', alliance }));
+    savedEvents = [...server, ...own].sort((a, b) => `${b.event_date}T${b.start}`.localeCompare(`${a.event_date}T${a.start}`));
   } catch { savedEvents = []; }
 }
 const formVal = (id) => document.getElementById(id).value;
@@ -194,8 +198,9 @@ function renderEventNav() {
   const date = formVal('evDate'), start = formVal('evStart'), end = formVal('evEnd');
   const day = (d) => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: '2-digit' });
   const server = `(${t('ev_server_time')} ${gameTime(date, start)}–${gameTime(date, end)})`;
+  const where = ev?.kind === 'alliance' ? `🛡 ${ev.alliance}` : ev ? `🌐 KW ${ev.year_week % 100}` : '';
   document.getElementById('evNavLabel').textContent = ev
-    ? `KW ${ev.year_week % 100} · ${ev.title || t('ev_nav_untitled')} · ${day(date)} ${start}–${end} ${server}`
+    ? `${where} · ${ev.title || t('ev_nav_untitled')} · ${day(date)} ${start}–${end} ${server}`
     : `${t('ev_nav_custom')} · ${day(date)} ${start}–${end} ${server}`;
   document.getElementById('evPrev').disabled = !olderEvent();
   document.getElementById('evNext').disabled = !newerEvent();

@@ -306,6 +306,10 @@ try {
         if ($method === 'GET') handleGetSpecialEvents($pdo, $ALLIANCE);
         if ($method === 'POST') handleSaveSpecialEvent($pdo, $ALLIANCE, $body);
     }
+    // POST /alliance-events – eigene Events der Allianz (anlegen, aendern, loeschen, aus Spezialevent umwandeln)
+    if ($method === 'POST' && count($segments) === 1 && $segments[0] === 'alliance-events') {
+        handleSaveAllianceEvent($pdo, $ALLIANCE, $body);
+    }
 
     // GET /se-inactive
     if ($method === 'GET' && count($segments) === 1 && $segments[0] === 'se-inactive') {

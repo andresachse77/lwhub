@@ -1510,7 +1510,11 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
     $entries = $body['entries'] ?? [];
     if (!is_array($entries)) jsonOut(400, ['error' => 'Ungültige Entries-Liste']);
 
-    $recordedAt = !empty($body['recorded_at']) ? date('Y-m-d H:i:s', strtotime($body['recorded_at'])) : date('Y-m-d H:i:s');
+    // Scanzeit vom Scanner (erste Aufnahme der Runde), sonst jetzt. Hoechstens ein paar Minuten in der Zukunft
+    // (Uhr am PC geht vor), aeltere Zeiten sind erlaubt (Screenshots nachtraeglich auswerten).
+    $recordedTs = !empty($body['recorded_at']) ? strtotime((string)$body['recorded_at']) : false;
+    if ($recordedTs === false || $recordedTs > time() + 600) $recordedTs = time();
+    $recordedAt = date('Y-m-d H:i:s', $recordedTs);
 
     // Konzept v2, A12 (App-Format): scan_type fuer die ganze Erfassung, Wert in entries[].value_numeric.
     // Ohne scan_type gilt das Web-Scanner-Format (power_str, vs[]) wie bisher.

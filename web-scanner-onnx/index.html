@@ -13,6 +13,7 @@
   .rank-gap-box[hidden] { display: none; }
   .status-lists { display: contents; }
   .rank-gap-box strong { color: var(--warning); font-weight: 600; }
+  .session-restore-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
   .workspace-split { position: relative; min-height: 0; }
   .processing-progress { margin-bottom: 12px; }
   .processing-head { display: flex; gap: 16px; align-items: center; }
@@ -85,9 +86,36 @@
       <div id="statLists" class="status-lists" title="Mitglieder mit Wert je gescannter Liste – unter voll: Liste noch einmal durchscrollen"></div>
       <div id="lastUploadBadge" class="badge-stat" hidden></div>
       <div id="userBadge" class="badge-stat" hidden></div>
+      <label id="scanTimeBox" class="badge-stat scan-time" title="Zu dieser Zeit zählen die Werte im LWHub, auch in der Event-Auswertung (vorher/nachher). Von selbst: die erste Aufnahme dieser Runde. Ändern, wenn nötig.">
+        🕒 <span>Scanzeit</span> <input type="datetime-local" id="scanTime" step="60">
+        <span id="scanTimeInfo" class="scan-time-info"></span>
+      </label>
       <button id="btnSyncToLwHub" class="btn btn-success" disabled>🚀 Nach LWHub &uuml;bertragen</button>
     </div>
   </header>
+
+  <!-- Event dieser Scan-Runde: anlegen und sehen, ob der Scan als Vorher oder Nachher zaehlt -->
+  <div id="eventBar" class="event-bar">
+    <span class="event-bar-label">🎯 Event</span>
+    <select id="evPick" title="Event, für das du gerade scannst (Vorher- oder Nachher-Scan)">
+      <option value="">– kein Event –</option>
+    </select>
+    <button id="evNewBtn" class="btn btn-sm btn-secondary" title="Eigenes Event dieser Allianz anlegen (z. B. Chaos nur für uns)">＋ Neu</button>
+    <button id="evEditBtn" class="btn btn-sm btn-secondary" hidden title="Name und Zeiten ändern">✏️</button>
+    <span id="evPickInfo" class="event-bar-info"></span>
+    <form id="evForm" class="event-form" hidden>
+      <input type="text" id="evFTitle" list="evFTitles" maxlength="100" placeholder="Name, z. B. Chaos" required>
+      <datalist id="evFTitles"></datalist>
+      <input type="date" id="evFDate" required>
+      <input type="time" id="evFStart" required> <span id="evFStartSt" class="event-st"></span>
+      <span>–</span>
+      <input type="time" id="evFEnd" required> <span id="evFEndSt" class="event-st"></span>
+      <button type="submit" class="btn btn-sm btn-success">💾 Speichern</button>
+      <button type="button" id="evFDelete" class="btn btn-sm btn-danger" hidden>🗑</button>
+      <button type="button" id="evFCancel" class="btn btn-sm btn-secondary">Abbrechen</button>
+      <span class="event-bar-info">Zeiten in deiner Uhrzeit, daneben die Serverzeit (ST). Nur für diese Allianz.</span>
+    </form>
+  </div>
 
   <!-- 2-SENKEN SPLIT SCREEN -->
   <main class="workspace-split">
@@ -188,6 +216,15 @@
         <!-- Live-Scan kommt nicht hinterher: deutlich oben statt nur im Protokoll -->
         <div id="queueWarnBox" class="queue-warn-box" hidden aria-live="polite"></div>
 
+        <!-- Nicht abgeschlossene Scan-Runde nach Absturz/Neuladen (js/scan-session.js) -->
+        <div id="sessionRestoreBox" class="rank-gap-box session-restore" hidden>
+          <span id="sessionRestoreText"></span>
+          <div class="session-restore-actions">
+            <button id="btnSessionRestore" class="btn btn-sm btn-success">▶ Neu auswerten</button>
+            <button id="btnSessionDiscard" class="btn btn-sm btn-secondary">🗑 Verwerfen</button>
+          </div>
+        </div>
+
         <!-- Uebersprungene Plaetze ganz oben, damit man sie schon beim Scrollen sieht -->
         <div id="rankGapBox" class="rank-gap-box" hidden></div>
 
@@ -277,6 +314,7 @@
 <script src="js/ocr-client.js?v=20261017i"></script>
 <script src="js/lwhub-access.js?v=20261110b"></script>
 <script src="js/zip-store.js?v=20261017f"></script>
+<script src="js/scan-session.js?v=20261110a"></script>
 <script src="js/desert-storm.js?v=20261108i"></script>
 
 <!-- APP BOOTSTRAP -->
@@ -438,6 +476,7 @@ async function initAlliances() {
   await LwhubAccess.fillOwnAlliances(document.getElementById('allianceSelect'), apiUrl, alliances, LwhubAccess.preferredAlliance());
   if (alliances.length) log(`API erreichbar unter ${activeApiUrl}.`);
   await checkScannerAccess();
+  loadScanEvents('');
 }
 
 // 2. Mitglieder von LWHub laden
@@ -516,8 +555,10 @@ showBoostState();
 if (window.cockpit.syncRender) log('🖌 Zeichnen ohne Bündeln (?render=sync) – nur zum Vergleichen.');
 
 document.getElementById('btnResetPool').addEventListener('click', () => {
-  if (confirm('Möchtest du wirklich alle bisher erfassten Scan-Kacheln aus dem Session-Pool verwerfen?')) {
+  if (confirm('Möchtest du wirklich alle bisher erfassten Scan-Kacheln aus dem Session-Pool verwerfen?\n\nDie im Browser gesicherten Ansichten dieser Runde werden dabei auch gelöscht.')) {
     window.cockpit.resetAllScans();
+    ScanSession.clear();
+    document.getElementById('sessionRestoreBox').hidden = true;
     desertStorm.clear();
     desertMirrorTried.clear();
     desertPresent.clear();
@@ -526,6 +567,7 @@ document.getElementById('btnResetPool').addEventListener('click', () => {
     seenRanks.clear();
     rankGapsPending = false;
     document.getElementById('rankGapBox').hidden = true;
+    resetScanTime();
     log('Session-Pool und alle Zuweisungen geleert.');
   }
 });
@@ -1031,6 +1073,7 @@ async function processFiles(fileList) {
   const files = all.filter(f => f.type.startsWith('image/'))
     .sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }));
   if (filesRunActive || files.length === 0 || !ocr.ready) return;
+  for (const f of files) noteScanTime(f.lastModified);
   filesRunActive = true;
   stopProcessingRequested = false;
   const startedAt = Date.now();
@@ -1165,6 +1208,7 @@ function setVideoProgress(name, t, duration, kept, open) {
 
 async function processVideos(files) {
   if (filesRunActive || !ocr.ready) return;
+  for (const f of files) noteScanTime(f.lastModified);
   filesRunActive = true;
   stopProcessingRequested = false;
   const fileButtons = [document.getElementById('btnPickFiles'), document.getElementById('btnHeaderFiles')];
@@ -1422,6 +1466,13 @@ liveRunner.onIdle = drainLiveQueue;
 
 async function startCapture() {
   if (!ocr.ready) return;
+  // Alte gesicherte Runde nicht auswerten lassen, aber neu scannen: sonst mischen sich alte und neue Ansichten
+  if (!document.getElementById('sessionRestoreBox').hidden) {
+    if (confirm('Es gibt noch gesicherte Ansichten einer früheren Runde (Hinweis oben).\n\nOK = verwerfen und neu anfangen\nAbbrechen = behalten, die neuen Ansichten kommen dazu')) {
+      await ScanSession.clear();
+    }
+    document.getElementById('sessionRestoreBox').hidden = true;
+  }
   try {
     captureStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5, displaySurface: 'window' }, audio: false });
     liveVideo.srcObject = captureStream;
@@ -1454,7 +1505,13 @@ async function startCapture() {
         log('Warteschlange voll – älteste Ansicht verworfen. Bitte langsamer scrollen.');
       }
       // Gleich packen; das Rohbild wird danach nicht mehr gebraucht
-      liveQueue.push({ packed: packFrame(canvas), label: `Ansicht ${liveFrameCount}` });
+      const capturedAt = Date.now();
+      noteScanTime(capturedAt);
+      const packed = packFrame(canvas);
+      const alliance = document.getElementById('allianceSelect').value;
+      packed.then((blob) => ScanSession.add({ blob, label: `Ansicht ${liveFrameCount}`, at: capturedAt, alliance }))
+        .then((ok) => { if (ok === false && !sessionWarned) { sessionWarned = true; log('⚠️ Ansichten können im Browser nicht gesichert werden (Speicher voll oder privates Fenster) – bei einem Absturz wären sie weg.'); } });
+      liveQueue.push({ packed, label: `Ansicht ${liveFrameCount}` });
       updateLiveStatus();
       drainLiveQueue();
     }, 800);
@@ -1503,6 +1560,243 @@ function stopImageProcessing() {
 }
 document.getElementById('btnStopProcessing').addEventListener('click', stopImageProcessing);
 
+// 7b. Scanzeit der Runde: erste Aufnahme (Live-Ansicht, Screenshot- oder Videodatei). Damit zaehlt ein Scan
+//     zu der Zeit, zu der er gemacht wurde, nicht wenn er nach dem Nachbearbeiten hochgeladen wird.
+//     Eine Runde endet mit "Pool leeren".
+const scanRound = { firstAt: null, edited: false };
+const scanTimeInput = document.getElementById('scanTime');
+const pad2 = (n) => String(n).padStart(2, '0');
+function toLocalInput(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+// Serverzeit im Spiel: UTC−2
+function serverTimeHm(ms) {
+  const d = new Date(ms - 2 * 3600 * 1000);
+  return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+}
+function scanTimeLabel(ms) {
+  const d = new Date(ms);
+  return `${d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })} ${pad2(d.getHours())}:${pad2(d.getMinutes())} (${serverTimeHm(ms)} ST)`;
+}
+function scanTimeMs() {
+  const v = scanTimeInput.value ? new Date(scanTimeInput.value).getTime() : NaN;
+  return Number.isFinite(v) ? v : null;
+}
+function scanTimeIso() {
+  const ms = scanTimeMs();
+  return new Date(ms && ms <= Date.now() + 60000 ? ms : Date.now()).toISOString();
+}
+function renderScanTime() {
+  if (!scanRound.edited) scanTimeInput.value = scanRound.firstAt ? toLocalInput(scanRound.firstAt) : '';
+  const ms = scanTimeMs();
+  const info = document.getElementById('scanTimeInfo');
+  if (!ms) { info.textContent = 'noch keine Aufnahme – sonst Upload-Zeit'; return; }
+  info.textContent = `= ${serverTimeHm(ms)} ST · ${scanRound.edited ? 'von Hand' : 'erste Aufnahme'}`;
+  document.dispatchEvent(new CustomEvent('scantime:change', { detail: { ms } }));
+}
+function noteScanTime(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return;
+  if (scanRound.firstAt && ms >= scanRound.firstAt) return;
+  scanRound.firstAt = ms;
+  renderScanTime();
+}
+function resetScanTime() {
+  scanRound.firstAt = null;
+  scanRound.edited = false;
+  renderScanTime();
+}
+scanTimeInput.addEventListener('change', () => {
+  scanRound.edited = !!scanTimeInput.value;
+  renderScanTime();
+});
+renderScanTime();
+
+// 7c. Absturzsicher: gesicherte Ansichten einer nicht abgeschlossenen Runde anbieten (js/scan-session.js)
+let sessionWarned = false;
+async function offerSessionRestore() {
+  await ScanSession.dropStale();
+  const info = await ScanSession.info();
+  const box = document.getElementById('sessionRestoreBox');
+  if (!info) { box.hidden = true; return; }
+  const allianceNote = info.alliances.length ? `, ${info.alliances.join(' / ')}` : '';
+  document.getElementById('sessionRestoreText').innerHTML =
+    `<strong>Gesicherte Scan-Runde gefunden:</strong> ${info.count} Ansichten ab ${scanTimeLabel(info.firstAt)}${allianceNote}. ` +
+    'Neu auswerten lässt alle Bilder noch einmal durch die Erkennung laufen, die Scanzeit bleibt die der ersten Ansicht.';
+  box.hidden = false;
+}
+document.getElementById('btnSessionRestore').addEventListener('click', async () => {
+  const btn = document.getElementById('btnSessionRestore');
+  btn.disabled = true;
+  try {
+    const info = await ScanSession.info();
+    const selected = document.getElementById('allianceSelect').value;
+    if (info?.alliances.length && !info.alliances.includes(selected)
+        && !confirm(`Die Runde wurde für ${info.alliances.join(' / ')} gescannt, gewählt ist ${selected}. Trotzdem für ${selected} auswerten?`)) return;
+    for (let i = 0; i < 120 && !ocr.ready; i++) await new Promise((r) => setTimeout(r, 500)); // OCR startet noch
+    if (!ocr.ready) { alert('Die Texterkennung ist noch nicht bereit. Bitte gleich noch einmal versuchen.'); return; }
+    const files = await ScanSession.files();
+    log(`Werte ${files.length} gesicherte Ansichten neu aus…`);
+    document.getElementById('sessionRestoreBox').hidden = true;
+    await processFiles(files);
+  } finally {
+    btn.disabled = false;
+  }
+});
+document.getElementById('btnSessionDiscard').addEventListener('click', async () => {
+  if (!confirm('Gesicherte Ansichten dieser Runde endgültig löschen?')) return;
+  await ScanSession.clear();
+  document.getElementById('sessionRestoreBox').hidden = true;
+  log('Gesicherte Ansichten gelöscht.');
+});
+offerSessionRestore();
+
+// 7d. Event der Scan-Runde: eigene Events der Allianz anlegen (POST /alliance-events) und zeigen, ob die
+//     Scanzeit vor oder nach dem Start liegt. Spezialevents des Servers (Events → Spezial) erscheinen zur
+//     Auswahl, geaendert werden sie weiter dort.
+let scanEvents = [];
+const evPick = document.getElementById('evPick');
+const evForm = document.getElementById('evForm');
+const EV_PICK_KEY = 'lwhub.scanner.event';
+const evKey = (e) => (e.kind === 'alliance' ? `a:${e.id}` : `s:${e.year_week}`);
+const evDayLabel = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+const evMs = (date, hm) => new Date(`${date}T${hm}`).getTime();
+// Ende vor dem Start (22:00–02:00): Ende am Folgetag
+const evEndMs = (e) => { const s = evMs(e.event_date, e.start); let x = evMs(e.event_date, e.end); if (x <= s) x += 86400000; return x; };
+const evStMs = (date, hm) => serverTimeHm(evMs(date, hm));
+
+async function loadScanEvents(selectKey) {
+  const alliance = document.getElementById('allianceSelect').value;
+  if (!activeApiUrl || !alliance) return;
+  try {
+    const r = await fetch(`${activeApiUrl}/special-events?alliance=${encodeURIComponent(alliance)}`);
+    const d = await r.json();
+    applyScanEvents(d, alliance, selectKey);
+  } catch (_) { /* ohne Liste geht der Scan trotzdem */ }
+}
+function applyScanEvents(d, alliance, selectKey) {
+  const server = (d.events || []).filter((e) => !e.no_event && e.event_date && e.start && e.end).map((e) => ({ ...e, kind: 'server' }));
+  const own = (d.alliance_events || []).map((e) => ({ ...e, kind: 'alliance' }));
+  scanEvents = [...own, ...server].sort((a, b) => `${b.event_date}T${b.start}`.localeCompare(`${a.event_date}T${a.start}`)).slice(0, 25);
+  document.getElementById('evFTitles').innerHTML = '';
+  for (const t of d.titles || []) { const o = document.createElement('option'); o.value = t; document.getElementById('evFTitles').appendChild(o); }
+  let keep = selectKey || evPick.value;
+  if (!keep) { try { keep = localStorage.getItem(EV_PICK_KEY) || ''; } catch (_) {} }
+  evPick.innerHTML = '<option value="">– kein Event –</option>';
+  for (const e of scanEvents) {
+    const o = document.createElement('option');
+    o.value = evKey(e);
+    o.textContent = `${e.kind === 'alliance' ? '🛡 ' + alliance : '🌐 Server'} · ${e.title || 'Event'} · ${evDayLabel(e.event_date)} ${e.start}–${e.end} (${evStMs(e.event_date, e.start)}–${evStMs(e.event_date, e.end)} ST)`;
+    evPick.appendChild(o);
+  }
+  evPick.value = scanEvents.some((e) => evKey(e) === keep) ? keep : '';
+  renderEventInfo();
+}
+const pickedEvent = () => scanEvents.find((e) => evKey(e) === evPick.value) || null;
+
+// Zaehlt die Scanzeit als Vorher- oder Nachher-Scan? (Regel wie /scans/event-compare)
+function renderEventInfo() {
+  const ev = pickedEvent();
+  document.getElementById('evEditBtn').hidden = !(ev && ev.kind === 'alliance');
+  const info = document.getElementById('evPickInfo');
+  info.className = 'event-bar-info';
+  if (!ev) { info.textContent = ''; return; }
+  const ms = scanTimeMs() || Date.now();
+  const start = evMs(ev.event_date, ev.start);
+  const end = evEndMs(ev);
+  const when = scanTimeMs() ? 'Scanzeit' : 'Jetzt';
+  if (ms <= start && ms >= start - 12 * 3600000) {
+    info.textContent = `✅ ${when} ${serverTimeHm(ms)} ST → zählt als VORHER-Scan (Start ${evStMs(ev.event_date, ev.start)} ST)`;
+    info.classList.add('ok');
+  } else if (ms > start && ms <= end + 90 * 60000) {
+    info.textContent = `✅ ${when} ${serverTimeHm(ms)} ST → zählt als NACHHER-Scan (Ende ${evStMs(ev.event_date, ev.end)} ST, bis 90 Min. danach)`;
+    info.classList.add('ok');
+  } else {
+    info.textContent = `⚠️ ${when} ${serverTimeHm(ms)} ST liegt außerhalb dieses Events (vorher: bis 12 Std. vor dem Start, nachher: bis 90 Min. nach dem Ende)`;
+    info.classList.add('warn');
+  }
+}
+evPick.addEventListener('change', () => {
+  try { localStorage.setItem(EV_PICK_KEY, evPick.value); } catch (_) {}
+  evForm.hidden = true;
+  renderEventInfo();
+});
+document.addEventListener('scantime:change', renderEventInfo);
+setInterval(() => { if (!scanTimeMs()) renderEventInfo(); }, 30000); // "Jetzt" mitlaufen lassen
+
+function updateFormSt() {
+  const d = document.getElementById('evFDate').value;
+  for (const [inp, out] of [['evFStart', 'evFStartSt'], ['evFEnd', 'evFEndSt']]) {
+    const v = document.getElementById(inp).value;
+    document.getElementById(out).textContent = d && v ? `= ${evStMs(d, v)} ST` : '';
+  }
+}
+for (const id of ['evFDate', 'evFStart', 'evFEnd']) document.getElementById(id).addEventListener('input', updateFormSt);
+
+function openEventForm(ev) {
+  evForm.hidden = false;
+  evForm.dataset.id = ev?.id || '';
+  const now = new Date();
+  const day = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  // Vorschlag fuer ein neues Event: naechste volle Stunde, eine Stunde lang
+  const nextHour = `${pad2((now.getHours() + 1) % 24)}:00`;
+  const after = `${pad2((now.getHours() + 2) % 24)}:00`;
+  document.getElementById('evFTitle').value = ev?.title || '';
+  document.getElementById('evFDate').value = ev?.event_date || day;
+  document.getElementById('evFStart').value = ev?.start || nextHour;
+  document.getElementById('evFEnd').value = ev?.end || after;
+  document.getElementById('evFDelete').hidden = !ev;
+  updateFormSt();
+  document.getElementById('evFTitle').focus();
+}
+document.getElementById('evNewBtn').addEventListener('click', () => openEventForm(null));
+document.getElementById('evEditBtn').addEventListener('click', () => openEventForm(pickedEvent()));
+document.getElementById('evFCancel').addEventListener('click', () => { evForm.hidden = true; });
+
+async function postAllianceEvent(body) {
+  const alliance = document.getElementById('allianceSelect').value;
+  const discordId = LwhubAccess.readStorageJson('iny_auth_state_v1')?.discord_id || '';
+  const resp = await fetch(`${activeApiUrl}/alliance-events?alliance=${encodeURIComponent(alliance)}`, {
+    method: 'POST',
+    headers: { ...LwhubAccess.authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, alliance, discord_id: discordId }),
+  });
+  const d = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(d.error || `HTTP ${resp.status}`);
+  return { d, alliance };
+}
+evForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = {
+    title: document.getElementById('evFTitle').value.trim(),
+    event_date: document.getElementById('evFDate').value,
+    start: document.getElementById('evFStart').value,
+    end: document.getElementById('evFEnd').value,
+  };
+  if (evForm.dataset.id) body.id = Number(evForm.dataset.id);
+  try {
+    const { d, alliance } = await postAllianceEvent(body);
+    evForm.hidden = true;
+    applyScanEvents(d, alliance, d.saved_id ? `a:${d.saved_id}` : '');
+    try { localStorage.setItem(EV_PICK_KEY, evPick.value); } catch (_) {}
+    log(`🎯 Event „${body.title}“ gespeichert (${evDayLabel(body.event_date)} ${body.start}–${body.end}, ${evStMs(body.event_date, body.start)}–${evStMs(body.event_date, body.end)} ST).`);
+  } catch (err) {
+    alert(`Event nicht gespeichert: ${err.message}`);
+  }
+});
+document.getElementById('evFDelete').addEventListener('click', async () => {
+  const id = Number(evForm.dataset.id);
+  if (!id || !confirm('Dieses Event löschen? Die Scans bleiben, nur der Eintrag in der Event-Auswertung verschwindet.')) return;
+  try {
+    const { d, alliance } = await postAllianceEvent({ id, delete: true });
+    evForm.hidden = true;
+    applyScanEvents(d, alliance, '');
+  } catch (err) {
+    alert(`Nicht gelöscht: ${err.message}`);
+  }
+});
+document.getElementById('allianceSelect').addEventListener('change', () => loadScanEvents(''));
+
 // 8. Sync nach LWHub
 document.getElementById('btnSyncToLwHub').addEventListener('click', async () => {
   const alliance = document.getElementById('allianceSelect').value;
@@ -1522,7 +1816,9 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
     return;
   }
 
+  const recordedAt = scanTimeIso();
   let confirmMsg = `Nach LWHub (${alliance}) übertragen?\n`;
+  if (hasMembers) confirmMsg += `\n🕒 Scanzeit: ${scanTimeLabel(new Date(recordedAt).getTime())}\n`;
   if (hasMembers) {
     confirmMsg += `\n📋 Mitglieder und Werte\n` +
       `• ${assigned.size} Mitglieder aktualisieren\n` +
@@ -1540,7 +1836,7 @@ document.getElementById('btnSyncToLwHub').addEventListener('click', async () => 
   btn.disabled = true;
   try {
     if (hasMembers) {
-      const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, LwhubAccess.discordToken());
+      const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, LwhubAccess.discordToken(), recordedAt);
       showSyncResult(res, alliance);
       loadLastUploads();
       await loadMembers();

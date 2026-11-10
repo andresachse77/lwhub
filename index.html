@@ -76,7 +76,8 @@ nav {
 }
 .lang-select:focus { outline: none; border-color: var(--gold); }
 .nav-actions { display: flex; align-items: center; gap: 10px; }
-@media (max-width: 1100px) { .nav-actions .nav-link-btn, .nav-actions .nav-help-btn, .nav-actions .sync-btn, .nav-actions #lang-switch { display: none !important; } }
+/* Schmale Fenster: Knoepfe wandern ins Charakter-Menue. 🔗 Link teilen bleibt immer sichtbar (am Handy am wichtigsten). */
+@media (max-width: 1100px) { .nav-actions .nav-link-btn, .nav-actions .nav-help-btn, .nav-actions .sync-btn:not(#btn-share), .nav-actions #lang-switch { display: none !important; } }
 .nav-link-btn {
   display: none;
   align-items: center;

@@ -7513,75 +7513,91 @@ async function loadSeInactive() {
   box.innerHTML = '<div class="hint">' + escHtml(tr('Lade …')) + '</div>';
   try {
     const data = await fetchJson(`/se-inactive?weeks=${weeks}`);
+    const kwLabel = (w) => `KW ${String(w).slice(2)}`;
+    const tooNew = data.too_new || [];
+    // Zu neu fuer die Auswertung: grau unter der Tabelle, nicht unter "verpasst"
+    const tooNewHtml = tooNew.length
+      ? `<div class="hint" style="margin-top:10px;color:var(--softer);">🆕 ${escHtml(trf('Noch zu neu für die Auswertung (weniger als {n} Wochen dabei):', { n: data.min_weeks || 2 }))} `
+        + tooNew.map((p) => `<span data-action="openMemberMe" data-args="${lwArgs(p.name)}" style="cursor:pointer;text-decoration:underline;text-underline-offset:3px;">${escHtml(p.name)}</span> (${escHtml(tr('seit'))} ${kwLabel(p.since)})`).join(', ')
+        + '</div>'
+      : '';
 
     if (!data.inactive || data.inactive.length === 0) {
-      box.innerHTML = '<div class="hint" style="color:var(--green);">✓ ' + escHtml(tr('Alle aktiven Mitglieder waren mindestens einmal beim Spezialevent dabei!')) + '</div>';
+      box.innerHTML = '<div class="hint" style="color:var(--green);">✓ ' + escHtml(tr('Alle aktiven Mitglieder waren mindestens einmal beim Spezialevent dabei!')) + '</div>' + tooNewHtml;
       return;
     }
 
-    const weekLabels = (data.weeks || []).map(w => `KW ${String(w).slice(2)}`);
+    const weekLabels = (data.weeks || []).map(kwLabel);
 
-    // Punkte pro Spieler + Woche berechnen (flags kommen jetzt vom API)
-    const playerPoints = {}; // name → { [yw]: pts, total: n }
+    // Punkte je Spieler und Woche. Gezaehlt werden nur Wochen, in denen jemand Mitglied war: Schnitt pro
+    // Woche statt Summe, damit Neue nicht schlechter dastehen als sie sind.
+    const playerPoints = {}; // name → { [yw]: pts, total, count, avg }
     const weekTotals  = {};  // yw → Summe aller Spieler
     (data.weeks || []).forEach(w => { weekTotals[w] = 0; });
 
     for (const player of data.inactive) {
-      let total = 0;
+      let total = 0, count = 0;
       playerPoints[player.name] = {};
       for (const [yw, detail] of Object.entries(player.weeks)) {
         const flags = {};
         if (Array.isArray(detail.flags)) detail.flags.forEach(k => { flags[k] = true; });
-        const pts = (detail.status === 'afk' || detail.status === 'missing') ? null : calcPoints(flags);
+        const counts = detail.status === 'se' || detail.status === 'no_se';
+        const pts = counts ? calcPoints(flags) : null;
         playerPoints[player.name][yw] = pts;
-        if (pts !== null) { total += pts; weekTotals[yw] = (weekTotals[yw] || 0) + pts; }
+        if (pts !== null) { total += pts; count++; weekTotals[yw] = (weekTotals[yw] || 0) + pts; }
       }
-      playerPoints[player.name].total = total;
+      Object.assign(playerPoints[player.name], { total, count, avg: count ? Math.round(total / count) : 0 });
     }
 
-    // Aufsteigend nach Gesamtpunktzahl sortieren
-    data.inactive.sort((a, b) => (playerPoints[a.name]?.total ?? 0) - (playerPoints[b.name]?.total ?? 0));
+    // Aufsteigend nach Punkten pro Woche
+    data.inactive.sort((a, b) => (playerPoints[a.name]?.avg ?? 0) - (playerPoints[b.name]?.avg ?? 0));
 
     let html = `<div style="margin-bottom:8px;color:var(--softer);font-size:0.85em;">
       ${data.inactive.length} ${escHtml(tr('Spieler ohne Spezialevent-Teilnahme in den letzten'))} ${weeks} ${escHtml(tr('Wochen'))} (${weekLabels.join(', ')}):
     </div>`;
     html += `<table style="width:100%;border-collapse:collapse;font-size:0.88em;">
       <thead><tr>
-        <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border);">Spieler</th>
+        <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border);">${escHtml(tr('Spieler'))}</th>
         ${(data.weeks||[]).map((w,i) => `<th style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">${weekLabels[i]}<br><span style="font-size:0.82em;color:var(--softer);font-weight:400;">${weekTotals[w] ?? 0} Pkt</span></th>`).join('')}
-        <th style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">Gesamt</th>
+        <th style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);" title="${escHtml(tr('Punkte pro Woche, nur Wochen als Mitglied'))}">${escHtml(tr('Ø / Woche'))}</th>
       </tr></thead><tbody>`;
 
     const statusIcon = s => {
       if (s === 'se')      return '<span style="color:var(--green);">✓ SE</span>';
       if (s === 'afk')     return '<span style="color:var(--softer);">AFK</span>';
       if (s === 'no_se')   return '<span style="color:var(--red);">–</span>';
+      if (s === 'new')     return `<span style="color:var(--softer);" title="${escHtml(tr('Noch nicht in der Allianz'))}">${escHtml(tr('neu'))}</span>`;
       if (s === 'missing') return '<span style="color:var(--softer);">?</span>';
       return '?';
     };
 
     for (const player of data.inactive) {
-      const esc = player.name.replace(/"/g, '&quot;');
-      const totalPts = playerPoints[player.name]?.total ?? 0;
+      const pp = playerPoints[player.name] || { avg: 0, total: 0, count: 0 };
+      // Farbe wie frueher bei 4 Wochen (unter 100 rot, unter 200 gelb), jetzt pro Woche
+      const color = pp.avg < 25 ? 'var(--red)' : pp.avg < 50 ? 'var(--gold)' : 'var(--green)';
+      const sinceTag = player.since ? ` <span style="font-size:0.82em;color:var(--softer);">🆕 ${escHtml(tr('seit'))} ${kwLabel(player.since)}</span>` : '';
       html += `<tr>
         <td style="padding:4px 8px;border-bottom:1px solid var(--border);">
-          <span style="cursor:pointer;color:var(--accent);text-decoration:underline;text-underline-offset:3px;" data-action="openMemberMe" data-args="${lwArgs(player.name)}">${ player.name}</span>
+          <span style="cursor:pointer;color:var(--accent);text-decoration:underline;text-underline-offset:3px;" data-action="openMemberMe" data-args="${lwArgs(player.name)}">${escHtml(player.name)}</span>${sinceTag}
         </td>
         ${(data.weeks||[]).map(w => {
           const detail = player.weeks[w] || { status: 'missing' };
-          const pts = playerPoints[player.name]?.[w];
+          const pts = pp[w];
           const ptsStr = pts !== null && pts !== undefined
             ? `<br><span style="font-size:0.82em;color:var(--softer);">${pts} Pkt</span>` : '';
           return `<td style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">${statusIcon(detail.status)}${ptsStr}</td>`;
         }).join('')}
-        <td style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);font-weight:600;color:${totalPts < 100 ? 'var(--red)' : totalPts < 200 ? 'var(--gold)' : 'var(--green)'};">${totalPts}</td>
+        <td style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">
+          <span style="font-weight:600;color:${color};">${pp.avg}</span>
+          <br><span style="font-size:0.82em;color:var(--softer);">${escHtml(trf('{t} in {n} Wo.', { t: pp.total, n: pp.count }))}</span>
+        </td>
       </tr>`;
     }
 
-    html += '</tbody></table>';
+    html += '</tbody></table>' + tooNewHtml;
     box.innerHTML = html;
   } catch(e) {
-    box.innerHTML = `<div class="hint" style="color:var(--red);"></div>`;
+    box.innerHTML = `<div class="hint" style="color:var(--red);">${escHtml(tr('Fehler beim Laden:'))} ${escHtml(e?.message || String(e))}</div>`;
   }
 }
 window.loadSeInactive = loadSeInactive;

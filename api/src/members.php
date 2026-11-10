@@ -1048,6 +1048,9 @@ function handleSwapIdToDiscord(PDO $pdo, string $alliance, string $nameEncoded):
     }
 }
 
+// Mindestens so viele der ausgewerteten Wochen Mitglied, sonst "noch zu neu" statt "Spezial verpasst"
+const SE_MIN_MEMBER_WEEKS = 2;
+
 function handleGetSeInactive(PDO $pdo, string $alliance): never {
     $weeks = max(1, min(12, (int)($_GET['weeks'] ?? 4)));
 
@@ -1072,6 +1075,7 @@ function handleGetSeInactive(PDO $pdo, string $alliance): never {
     $allPlayers = $stmt->fetchAll();
 
     $inactive = [];
+    $tooNew = [];
     foreach ($allPlayers as $player) {
         $neverSE    = true;
         $alwaysAfk  = true;
@@ -1112,16 +1116,30 @@ function handleGetSeInactive(PDO $pdo, string $alliance): never {
             ];
         }
 
+        // Neu in der Allianz: Wochen vor dem ersten Eintrag zaehlen nicht (Status "new" statt "missing").
+        // Wer in weniger als SE_MIN_MEMBER_WEEKS der Wochen dabei war, hatte kaum Gelegenheit und steht nicht
+        // unter "verpasst", sondern in too_new.
+        $present = array_keys(array_filter($weekDetails, fn($d) => $d['status'] !== 'missing'));
+        $since = $present ? min(array_map('intval', $present)) : null;
+        foreach ($weekDetails as $yw => $d) {
+            if ($d['status'] === 'missing' && ($since === null || (int)$yw < $since)) $weekDetails[$yw]['status'] = 'new';
+        }
+        $isNew = $since !== null && $since > min(array_map('intval', $recentWeeks));
         $hasAnyAfk = in_array('afk', array_column($weekDetails, 'status'), true);
         if ($neverSE && !$hasAnyAfk) {
+            if (count($present) < SE_MIN_MEMBER_WEEKS) {
+                if ($present) $tooNew[] = ['name' => $player['current_name'], 'since' => $since];
+                continue;
+            }
             $inactive[] = [
                 'name'  => $player['current_name'],
                 'weeks' => $weekDetails,
+                'since' => $isNew ? $since : null,
             ];
         }
     }
 
-    jsonOut(200, ['weeks' => $recentWeeks, 'inactive' => $inactive]);
+    jsonOut(200, ['weeks' => $recentWeeks, 'inactive' => $inactive, 'too_new' => $tooNew, 'min_weeks' => SE_MIN_MEMBER_WEEKS]);
 }
 
 function handleGetRankingHistory(PDO $pdo, string $alliance): never {

@@ -27,18 +27,6 @@ function getCombatPowerCorrectionValue(PDO $pdo, string $alliance): int {
     }
 }
 
-function validateTotalHeroPower(?int $totalHeroPower, array $teams): void {
-    if ($totalHeroPower === null) return;
-    $teamPowerSum = 0;
-    foreach ($teams as $team) {
-        $teamPowerSum += (int)($team['combat_power'] ?? 0);
-    }
-    $maxTotal = (int)floor($teamPowerSum * 1.2);
-    if ($totalHeroPower > $maxTotal) {
-        jsonOut(400, ['error' => "Heldenkampfkraft darf höchstens 120% der Team-Kampfkraft betragen (max. {$maxTotal})."]);
-    }
-}
-
 function normalizeMonkeyLevel(mixed $value): ?int {
     if ($value === null || $value === '') return null;
     $n = (int)$value;
@@ -283,7 +271,6 @@ function handleSaveMyTeams(PDO $pdo, string $alliance, ?string $nameRaw, array $
     $totalHeroPower = isset($body['total_hero_power']) && $body['total_hero_power'] !== ''
         ? normalizeCombatPower($body['total_hero_power'])
         : null;
-    validateTotalHeroPower($totalHeroPower, $teams);
 
     $result = saveTeamPayload($pdo, $alliance, $player, array_values($teams), $totalHeroPower);
     jsonOut(200, $result);
@@ -308,7 +295,6 @@ function handleSaveMemberTeams(PDO $pdo, string $alliance, string $nameRaw, arra
     $totalHeroPower = isset($body['total_hero_power']) && $body['total_hero_power'] !== ''
         ? normalizeCombatPower($body['total_hero_power'])
         : null;
-    validateTotalHeroPower($totalHeroPower, $teams);
 
     $result = saveTeamPayload($pdo, $alliance, $player, array_values($teams), $totalHeroPower);
     jsonOut(200, $result);

@@ -650,8 +650,6 @@
     "s_teams_bearbeiten": "Teams bearbeiten",
     "s_max_ingenieure_kriegsherr": "Max. Ingenieure je Kriegsanführer",
     "s_berufe_grenze_default": "Steuert die Berufe-Grenze (Standard: 3).",
-    "s_thp_max": "Maximale Heldenkampfkraft",
-    "s_thp_limit": "Heldenkampfkraft darf höchstens 120% der Team-Kampfkraft betragen",
     "s_combat_power_correction": "Korrekturwert für unrealistische Kampfkraft",
     "s_combat_power_correction_sub": "Werte ab 999 werden auf diesen Wert gesetzt (Standard: 40).",
     "s_history_weeks": "Wertewochen aufheben",

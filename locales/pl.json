@@ -641,8 +641,6 @@
     "s_teams_bearbeiten": "Edytuj drużyny",
     "s_max_ingenieure_kriegsherr": "Maks. inżynierów na warlorda",
     "s_berufe_grenze_default": "Steruje limitem zawodów (domyślnie: 3).",
-    "s_thp_max": "Maksymalna łączna siła bohaterów",
-    "s_thp_limit": "Łączna siła bohaterów nie może przekroczyć 120% siły bojowej drużyn",
     "s_combat_power_correction": "Wartość korekty dla nierealnej siły bojowej",
     "s_combat_power_correction_sub": "Wartości od 999 są ustawiane na tę wartość (domyślnie: 40).",
     "s_history_weeks": "Liczba zachowanych tygodni",

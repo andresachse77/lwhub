@@ -650,8 +650,6 @@
     "s_teams_bearbeiten": "Edit teams",
     "s_max_ingenieure_kriegsherr": "Max. engineers per warlord",
     "s_berufe_grenze_default": "Controls the profession limit (default: 3).",
-    "s_thp_max": "Maximum total hero power",
-    "s_thp_limit": "Total hero power may not exceed 120% of team combat power",
     "s_combat_power_correction": "Correction value for unrealistic combat power",
     "s_combat_power_correction_sub": "Values from 999 onward are set to this value (default: 40).",
     "s_history_weeks": "Weeks of data to keep",

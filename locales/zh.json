@@ -641,8 +641,6 @@
     "s_teams_bearbeiten": "编辑队伍",
     "s_max_ingenieure_kriegsherr": "每位战争领主的最大工程师数",
     "s_berufe_grenze_default": "控制职业上限（默认：3）。",
-    "s_thp_max": "英雄总战力上限",
-    "s_thp_limit": "英雄总战力不得超过队伍战斗力的120%",
     "s_combat_power_correction": "异常战斗力的修正值",
     "s_combat_power_correction_sub": "999及以上的数值将设置为此值（默认：40）。",
     "s_history_weeks": "保留的数据周数",

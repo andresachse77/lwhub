@@ -2028,7 +2028,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <form id="team-editor-form">
       <div class="field">
         <label data-i18n="s_total_hero_power">Heldenkampfkraft</label>
-        <input type="number" id="team-editor-total" min="0" inputmode="numeric" placeholder="Optional" max="0">
+        <input type="number" id="team-editor-total" min="0" inputmode="numeric" placeholder="Optional">
       </div>
       <div class="field">
         <label data-i18n="s_overlord_level">Overlord-Level</label>
@@ -4824,14 +4824,7 @@ function updateTeamPowerConstraint() {
     const powerEl = document.getElementById(`team-editor-power-${slot}`);
     if (powerEl && Number(powerEl.value) >= 999) powerEl.value = String(correction);
   }
-  const teamPowerSum = Array.from({ length: 4 }, (_, i) => Number(document.getElementById(`team-editor-power-${i + 1}`)?.value || 0))
-    .reduce((sum, value) => sum + (Number.isFinite(value) ? Math.max(0, Math.min(999, value)) : 0), 0);
-  const maxTotal = Math.floor(teamPowerSum * 1.2);
-  const totalEl = document.getElementById('team-editor-total');
-  if (!totalEl) return;
-  totalEl.max = String(maxTotal);
-  totalEl.title = `${tr('s_thp_max')} ${maxTotal}`;
-  if (Number(totalEl.value) > maxTotal) totalEl.value = String(maxTotal);
+  // Heldenkampfkraft zaehlt alle Helden, nicht nur die in T1–T4: keine Grenze aus der Team-Summe (bis 15.11. max. 120 %)
 }
 
 function bindTeamPowerListeners() {
@@ -4864,14 +4857,6 @@ async function saveTeams(event = null) {
     return;
   }
   updateTeamPowerConstraint();
-  const teamPowerSum = Array.from({ length: 4 }, (_, i) => Number(document.getElementById(`team-editor-power-${i + 1}`)?.value || 0))
-    .reduce((sum, value) => sum + (Number.isFinite(value) ? Math.max(0, Math.min(999, value)) : 0), 0);
-  const maxTotal = Math.floor(teamPowerSum * 1.2);
-  const totalHeroPower = Number(document.getElementById('team-editor-total')?.value || 0);
-  if (totalHeroPower > maxTotal) {
-    toast(`${tr('s_thp_limit')}: ${maxTotal}`);
-    return;
-  }
   const monkeyLevel = document.getElementById('team-editor-monkey-level')?.value || '';
   const monkeyOwner = getMonkeyOwnerSlot();
   const payload = {

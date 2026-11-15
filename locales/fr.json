@@ -641,8 +641,6 @@
     "s_teams_bearbeiten": "Modifier les équipes",
     "s_max_ingenieure_kriegsherr": "Ingénieurs max. par seigneur de guerre",
     "s_berufe_grenze_default": "Contrôle la limite de professions (par défaut : 3).",
-    "s_thp_max": "Puissance totale maximale des héros",
-    "s_thp_limit": "La puissance totale des héros ne peut pas dépasser 120 % de la puissance de combat des équipes",
     "s_combat_power_correction": "Valeur de correction pour une puissance irréaliste",
     "s_combat_power_correction_sub": "Les valeurs à partir de 999 sont remplacées par cette valeur (par défaut : 40).",
     "s_history_weeks": "Semaines de données à conserver",

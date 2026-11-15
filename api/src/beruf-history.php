@@ -110,7 +110,7 @@ function berufCut(string $s, int $max): string {
     return preg_replace('/^(.{0,' . $max . '}).*$/us', '$1', $s) ?? substr($s, 0, $max);
 }
 
-/** Max. Ingenieure je Kriegsherr, ohne DDL (laeuft auch mitten im Scan-Sync). */
+/** Max. Ingenieure je Kriegsanführer, ohne DDL (laeuft auch mitten im Scan-Sync). */
 function berufMaxEngineersNoDdl(PDO $pdo, string $alliance): int {
     try {
         $stmt = $pdo->prepare("SELECT config_value FROM alliance_config WHERE alliance = ? AND config_key = 'berufe_max_ingenieure' LIMIT 1");
@@ -122,8 +122,8 @@ function berufMaxEngineersNoDdl(PDO $pdo, string $alliance): int {
 
 /**
  * Kommt ein Spieler zurueck (Archiv, anderer Allianz, Zusammenfuehren), holt das seinen letzten bekannten
- * Berufe-Stand in dieser Allianz zurueck: seinen Beruf und Kriegsherrn, falls er gerade keinen hat, und als
- * Kriegsherr seine frueheren Ingenieure, soweit sie noch Ingenieur ohne Kriegsherrn sind. Was inzwischen
+ * Berufe-Stand in dieser Allianz zurueck: seinen Beruf und Kriegsanführer, falls er gerade keinen hat, und als
+ * Kriegsanführer seine frueheren Ingenieure, soweit sie noch Ingenieur ohne Kriegsanführer sind. Was inzwischen
  * neu eingeteilt wurde, bleibt. $historyId = ID im Verlauf (beim Zusammenfuehren die des Duplikats).
  */
 function restoreBerufFromHistory(PDO $pdo, string $alliance, string $historyId, ?string $targetId = null): void {
@@ -232,7 +232,7 @@ function berufTargetState(array $snapshot, array $current, ?array $only = null):
         if ($id === null || ($only !== null && !in_array($id, $only, true))) continue;
         $target[$id] = ['id' => $id, 'n' => $target[$id]['n'], 'b' => $e['b'], 'm' => $e['m'], 'w' => $e['w'] !== null ? ($map[$e['w']] ?? null) : null];
     }
-    // Ingenieur ohne Kriegsherrn im Ziel → ohne Zuordnung
+    // Ingenieur ohne Kriegsanführer im Ziel → ohne Zuordnung
     foreach ($target as $id => $t) {
         if ($t['w'] !== null && (($target[$t['w']]['b'] ?? null) !== 'kriegsherr' || $t['b'] !== 'ingenieur')) $target[$id]['w'] = null;
     }

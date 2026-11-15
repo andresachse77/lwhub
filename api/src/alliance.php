@@ -87,7 +87,7 @@ function handleSetAllianceConfig(PDO $pdo, string $alliance, array $body): never
         if ($key === 'berufe_rangcheck' && !in_array($value, ['true', 'false'], true)) {
             jsonOut(400, ['error' => 'berufe_rangcheck muss true oder false sein']);
         }
-        // Feste Paare im Berufeplaner: leer oder JSON {"<Ingenieur-ID>": "<Kriegsherr-ID>", ...}; "Automatisch aufteilen" fasst sie nicht an
+        // Feste Paare im Berufeplaner: leer oder JSON {"<Ingenieur-ID>": "<Kriegsanführer-ID>", ...}; "Automatisch aufteilen" fasst sie nicht an
         if ($key === 'berufe_paare' && $value !== '' && $value !== '{}') {
             $pairs = json_decode($value, true);
             if (!is_array($pairs) || array_is_list($pairs) || count($pairs) > 500) {

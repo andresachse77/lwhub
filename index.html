@@ -940,7 +940,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   align-items: flex-start;
 }
 .bp-queue-panel { min-width: 0; }
-/* Berufeplaner als Akkordeon (Mockup C, docs/konzept-berufe-mobil.html): Kriegsherren als Karten, Namen ungekuerzt */
+/* Berufeplaner als Akkordeon (Mockup C, docs/konzept-berufe-mobil.html): Kriegsanführer als Karten, Namen ungekuerzt */
 .bp-hist-row { display: block; width: 100%; text-align: left; background: var(--card2); color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer; font-size: 13px; }
 .bp-hist-row:hover { border-color: var(--gold); }
 .bp-hist-row .bp-hist-meta { color: var(--soft); font-size: 12px; }
@@ -1185,7 +1185,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 
 /* Berufeplaner nutzt die ganze Fensterbreite (sonst .page max 1400px): mit grossem Fenster werden die Kacheln breiter */
 #page-bp { max-width: none; }
-/* Tabelle: Platz fuer Namen statt Symbole (die Spaltenkoepfe sagen schon Kriegsherr/Ing.) */
+/* Tabelle: Platz fuer Namen statt Symbole (die Spaltenkoepfe sagen schon Kriegsanführer/Ing.) */
 .bp-table .bp-ico { display: none; }
 .bp-table .bp-name-draggable { gap: 5px; }
 /* Mit Maus: ✉ und ♡ erst beim Drueberfahren, ueber dem Namen statt daneben. Festes Paar ♥ bleibt sichtbar. */
@@ -1512,7 +1512,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     <section class="me-panel" id="me-berufe-section" style="display:none;margin-top:18px;">
       <div class="me-panel-head">
         <div>
-          <div class="me-panel-title"><span aria-hidden="true">⚗</span> <span>Beruf</span></div>
+          <div class="me-panel-title"><span aria-hidden="true">👷</span> <span>Beruf</span></div>
           <div class="me-panel-sub">Dein Beruf in der Allianz - von dir selbst oder R4 pflegbar</div>
         </div>
       </div>
@@ -1878,7 +1878,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 <div class="modal-bg hidden" id="modal-bp-fill">
   <div class="modal" style="width:min(640px, 100%)">
     <div class="modal-title">🎲 <span data-i18n="s_bp_fill_modal_title">Automatisch aufteilen – Vorschau</span></div>
-    <label class="bp-fill-opt"><input type="checkbox" id="bp-fill-move" checked data-on-change="bpFillReroll"> <span data-i18n="s_bp_fill_move_opt">Eingeteilte Ingenieure auch umsetzen: jedem Kriegsherrn einen aktiven geben und die Anzahl ausgleichen (♥-Paare bleiben)</span></label>
+    <label class="bp-fill-opt"><input type="checkbox" id="bp-fill-move" checked data-on-change="bpFillReroll"> <span data-i18n="s_bp_fill_move_opt">Eingeteilte Ingenieure auch umsetzen: jedem Kriegsanführer einen aktiven geben und die Anzahl ausgleichen (♥-Paare bleiben)</span></label>
     <div id="bp-fill-body" class="bp-fill-body" data-i18n-skip="1"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" data-action="bpFillReroll" data-i18n="s_bp_fill_reroll">Neu würfeln</button>
@@ -3815,8 +3815,8 @@ function renderMeBerufe() {
 
   const opts = [
     { value: null,         label: tr('Kein Beruf'),  icon: '—',  cls: '' },
-    { value: 'ingenieur',  label: tr('Ingenieur'),   icon: '⚗',  cls: '' },
-    { value: 'kriegsherr', label: tr('Kriegsherr'),  icon: '⚔',  cls: 'kriegsherr' },
+    { value: 'ingenieur',  label: tr('Ingenieur'),   icon: '👷',  cls: '' },
+    { value: 'kriegsherr', label: tr('Kriegsanführer'),  icon: '⚔',  cls: 'kriegsherr' },
   ];
 
   let html = `<div class="me-beruf-picker">`;
@@ -3834,13 +3834,13 @@ function renderMeBerufe() {
       </label>
     </div>
     <div class="me-beruf-sub">
-      <div class="me-beruf-sub-label">⚡ ${escHtml(tr('Win-Win Kriegsherr'))}</div>
+      <div class="me-beruf-sub-label">⚡ ${escHtml(tr('Win-Win Kriegsanführer'))}</div>
       ${kriegsherren.length
         ? `<select class="me-beruf-select" id="me-winwin-sel">
             <option value="">${escHtml(tr('— keiner —'))}</option>
             ${kriegsherren.map(n => `<option value="${escHtml(n)}"${n === winwin ? ' selected' : ''}>${escHtml(n)}</option>`).join('')}
           </select>`
-        : `<div class="me-beruf-info">${escHtml(tr('Noch keine Kriegsherren in der Allianz vorhanden.'))}</div>`
+        : `<div class="me-beruf-info">${escHtml(tr('Noch keine Kriegsanführer in der Allianz vorhanden.'))}</div>`
       }
     </div>`;
   } else if (beruf === 'kriegsherr') {
@@ -6561,7 +6561,7 @@ const FEATURE_CAT_DEFS = [
   { key:'strafe',  icon:'❌', label:'s_strafpunkte_label',   sub:'s_in_der_verwaltung_pflegbar' },
   { key:'bonus',   icon:'⭐', label:'s_pluspunkte',         sub:'s_in_der_verwaltung_pflegbar' },
   { key:'afk',     icon:'⏸', label:'AFK',                   sub:'s_afk_sperrt_rang_aenderung' },
-  { key:'berufe',  icon:'⚗', label:'s_berufe_label',        sub:'s_ingenieur_kriegsherr_von_mitgliedern_und_r4_pflegbar' },
+  { key:'berufe',  icon:'👷', label:'s_berufe_label',        sub:'s_ingenieur_kriegsherr_von_mitgliedern_und_r4_pflegbar' },
   { key:'scanner', icon:'📸', label:'s_scanner',             sub:'s_scanner_feature_sub' },
   { key:'ergebnis', icon:'📊', label:'s_ergebnis',           sub:'s_ergebnis_feature_sub' },
 ];
@@ -7127,8 +7127,8 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
 
   const berufDefs = [
     { v: null,         l: '— ' + tr('Kein') },
-    { v: 'ingenieur',  l: '⚗ ' + tr('Ingenieur') },
-    { v: 'kriegsherr', l: '⚔ ' + tr('Kriegsherr') },
+    { v: 'ingenieur',  l: '👷 ' + tr('Ingenieur') },
+    { v: 'kriegsherr', l: '⚔ ' + tr('Kriegsanführer') },
   ];
   let berufBtns = '';
   for (let i = 0; i < berufDefs.length; i++) {
@@ -7149,7 +7149,7 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
       }
       winwinEl = '<select class="v-rank-sel" id="v-beruf-winwin" style="flex:1;min-width:120px;" data-stop="click">' + opts + '</select>';
     } else {
-      winwinEl = '<span style="font-size:12px;color:var(--soft);">' + escHtml(tr('Keine Kriegsherren vorhanden')) + '</span>';
+      winwinEl = '<span style="font-size:12px;color:var(--soft);">' + escHtml(tr('Keine Kriegsanführer vorhanden')) + '</span>';
     }
     subHtml = '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">'
       + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'
@@ -7159,7 +7159,7 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
   }
 
   return '<div class="flag-cat" style="background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.18);margin-top:10px;">'
-    + '<div class="flag-cat-title" style="color:#6aabff;">⚗ ' + escHtml(tr('Beruf')) + '</div>'
+    + '<div class="flag-cat-title" style="color:#6aabff;">👷 ' + escHtml(tr('Beruf')) + '</div>'
     + '<div class="flag-btns">' + berufBtns + '</div>'
     + subHtml
     + '</div>';
@@ -9538,7 +9538,7 @@ async function revokeApiToken(tokenId, clientName) {
     return warlords;
   }
 
-  // Ingenieure, deren Kriegsherr umbenannt, archiviert oder kein Kriegsherr mehr ist, landen wieder in der Warteschlange
+  // Ingenieure, deren Kriegsanführer umbenannt, archiviert oder kein Kriegsanführer mehr ist, landen wieder in der Warteschlange
   function bpQueueList() {
     const warlords = new Set(members.filter(n => (memberMeta[n]?.beruf || null) === 'kriegsherr'));
     return members.filter(n => {
@@ -9573,7 +9573,7 @@ async function revokeApiToken(tokenId, clientName) {
     return placement === expected ? 'ok' : 'wrong';
   }
 
-  // Zusatzklassen und Hinweis fuer eine Kachel. Kriegsherr-Spalte links, Ingenieur-Slots rechts.
+  // Zusatzklassen und Hinweis fuer eine Kachel. Kriegsanführer-Spalte links, Ingenieur-Slots rechts.
   // compact (Tabelle): nur der Pfeil als Hinweis, damit der gekuerzte Name nicht ganz verschwindet
   function bpCheckMarkup(name, placement, compact) {
     const status = bpBerufStatus(name, placement);
@@ -9595,7 +9595,7 @@ async function revokeApiToken(tokenId, clientName) {
   // Spieler fragen (B7): Standardvorlage je Sprache, Text in der Sprache des Spielers. Eigene Vorlagen
   // (B8) kommen spaeter als alliance_config berufe_frage_vorlagen = {"de": "...", ...} und gehen vor.
   const BP_ASK_DEFAULTS = {
-    de: { ing: 'Ingenieur', kh: 'Kriegsherr', none: 'noch keiner', text: 'Hallo $Spieler, kannst du mir bitte deinen aktuellen Beruf bestätigen? Bei uns gilt: R2 = $R2Beruf, R3 = $R3Beruf. Danke! – $Absender', r145: 'Hallo $Spieler, kurze Frage für unseren Berufeplaner: Bist du gerade Kriegsherr oder Ingenieur? Bei mir steht: $BerufIst. Danke! – $Absender' },
+    de: { ing: 'Ingenieur', kh: 'Kriegsanführer', none: 'noch keiner', text: 'Hallo $Spieler, kannst du mir bitte deinen aktuellen Beruf bestätigen? Bei uns gilt: R2 = $R2Beruf, R3 = $R3Beruf. Danke! – $Absender', r145: 'Hallo $Spieler, kurze Frage für unseren Berufeplaner: Bist du gerade Kriegsanführer oder Ingenieur? Bei mir steht: $BerufIst. Danke! – $Absender' },
     en: { ing: 'Engineer', kh: 'Warlord', none: 'none yet', text: 'Hi $Spieler, could you please confirm your current profession? Our rule: R2 = $R2Beruf, R3 = $R3Beruf. Thanks! – $Absender', r145: 'Hi $Spieler, quick question for our profession planner: are you currently a Warlord or an Engineer? I have you down as: $BerufIst. Thanks! – $Absender' },
     fr: { ing: 'Ingénieur', kh: 'Seigneur de guerre', none: 'aucun pour l\'instant', text: 'Salut $Spieler, peux-tu me confirmer ton métier actuel ? Chez nous : R2 = $R2Beruf, R3 = $R3Beruf. Merci ! – $Absender', r145: 'Salut $Spieler, petite question pour notre planning des métiers : es-tu Seigneur de guerre ou Ingénieur en ce moment ? Chez moi tu es noté : $BerufIst. Merci ! – $Absender' },
     es: { ing: 'Ingeniero', kh: 'Señor de la guerra', none: 'ninguno todavía', text: 'Hola $Spieler, ¿puedes confirmarme tu profesión actual? Nuestra regla: R2 = $R2Beruf, R3 = $R3Beruf. ¡Gracias! – $Absender', r145: 'Hola $Spieler, una pregunta rápida para nuestro planificador de profesiones: ¿ahora eres Señor de la guerra o Ingeniero? Yo te tengo como: $BerufIst. ¡Gracias! – $Absender' },
@@ -9642,7 +9642,7 @@ async function revokeApiToken(tokenId, clientName) {
     const rank = Number(PREV[name]);
     const r2 = getBerufRankCheckR2();
     const r3 = r2 === 'ingenieur' ? 'kriegsherr' : 'ingenieur';
-    // Wie im Planer einsortiert: Ingenieur nur mit gueltigem Kriegsherrn, sonst steht er in der Warteschlange
+    // Wie im Planer einsortiert: Ingenieur nur mit gueltigem Kriegsanführer, sonst steht er in der Warteschlange
     const placed = meta.beruf === 'kriegsherr' ? 'kriegsherr'
       : (meta.beruf === 'ingenieur' && !bpQueueList().includes(name)) ? 'ingenieur' : null;
     const vars = {
@@ -9809,8 +9809,8 @@ async function revokeApiToken(tokenId, clientName) {
     setTimeout(() => box.classList.remove('bp-flash'), 1800);
   };
 
-  // Feste Paare (♥): Ingenieur bleibt bei seinem Kriegsherrn, "Automatisch aufteilen" setzt ihn nie um.
-  // alliance_config berufe_paare = {"<Ingenieur-ID>": "<Kriegsherr-ID>"}; IDs ueberstehen Umbenennungen.
+  // Feste Paare (♥): Ingenieur bleibt bei seinem Kriegsanführer, "Automatisch aufteilen" setzt ihn nie um.
+  // alliance_config berufe_paare = {"<Ingenieur-ID>": "<Kriegsanführer-ID>"}; IDs ueberstehen Umbenennungen.
   function bpPairs() {
     let v = flagConfig?.berufe_paare;
     if (typeof v === 'string') { try { v = JSON.parse(v || '{}'); } catch (e) { v = null; } }
@@ -9859,7 +9859,7 @@ async function revokeApiToken(tokenId, clientName) {
   }
 
   // Ein festes Paar loest sich auf, sobald es nicht mehr so im Planer steht: Ingenieur woanders hin oder in die
-  // Warteschlange, oder sein Kriegsherr ist keiner mehr. Sonst "wacht" das Herz beim Zurueckbauen wieder auf.
+  // Warteschlange, oder sein Kriegsanführer ist keiner mehr. Sonst "wacht" das Herz beim Zurueckbauen wieder auf.
   async function bpDropStalePairs(name, beruf, winwin) {
     const pairs = bpPairs();
     const id = memberMeta[name]?.id;
@@ -10077,7 +10077,7 @@ async function revokeApiToken(tokenId, clientName) {
   // Ansicht: Akkordeon (Standard, Mockup C aus docs/konzept-berufe-mobil.html) oder die bisherige Tabelle.
   // In der Tabelle wurden lange Namen abgeschnitten, auch auf grossen Bildschirmen.
   let bpView = (() => { try { return localStorage.getItem('lwhub_bp_view') || 'acc'; } catch (_) { return 'acc'; } })();
-  // Aufgeklappte Kriegsherren. Ein Klick klappt nur diesen einen auf, "Alle aufklappen" alle.
+  // Aufgeklappte Kriegsanführer. Ein Klick klappt nur diesen einen auf, "Alle aufklappen" alle.
   const bpOpenSet = new Set();
   window.bpSetView = function(view) {
     bpView = view === 'table' ? 'table' : 'acc';
@@ -10133,7 +10133,7 @@ async function revokeApiToken(tokenId, clientName) {
         const c = bpCheckMarkup(n, 'ingenieur');
         return `<div class="bp-acc-eng${isWrong(c) ? ' wrong ' + bpPullCls(c) : ''}" draggable="true" data-member="${escHtml(n)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, n)}" data-on-dragend="bpDragEnd">`
           // Reihenfolge ✉ ♡ 🗑: das Herz liegt zwischen Fragen und Entfernen, damit man nicht versehentlich entfernt
-          + `<span class="bp-acc-grip">⠿</span>${bpRankShield(n)}<span class="bp-acc-ing">⚗ ${escHtml(n)}</span>${c.hint}${bpAskBtn(n)}${bpPairBtn(n)}`
+          + `<span class="bp-acc-grip">⠿</span>${bpRankShield(n)}<span class="bp-acc-ing">👷 ${escHtml(n)}</span>${c.hint}${bpAskBtn(n)}${bpPairBtn(n)}`
           + bpDelBtn('bpAccToQueue', bpEnc(n)) + '</div>';
       }).join('');
       if (!full) {
@@ -10146,13 +10146,13 @@ async function revokeApiToken(tokenId, clientName) {
     }).join('') + '</div>';
   }
 
-  // Spieler als Ingenieur zu einem Kriegsherrn (Akkordeon: Ziehen auf die Karte oder Auswahl "+ Ingenieur")
+  // Spieler als Ingenieur zu einem Kriegsanführer (Akkordeon: Ziehen auf die Karte oder Auswahl "+ Ingenieur")
   async function bpAccAssignName(name, kh) {
     const engs = bpEngineerListFor(kh);
     if (!name || name === kh || engs.includes(name)) return;
     if (engs.length >= getBerufeMaxEngineers()) { toast(trf('{kh} hat schon {n} Ingenieure', { kh, n: engs.length }), 'err'); return; }
     const meta = memberMeta[name] || {};
-    if (meta.beruf === 'kriegsherr' && !confirm(trf('{name} ist Kriegsherr. Zum Ingenieur bei {kh} machen? Seine Ingenieure kommen in die Warteschlange.', { name, kh }))) return;
+    if (meta.beruf === 'kriegsherr' && !confirm(trf('{name} ist Kriegsanführer. Zum Ingenieur bei {kh} machen? Seine Ingenieure kommen in die Warteschlange.', { name, kh }))) return;
     try {
       await bpSaveBeruf(name, 'ingenieur', !!meta.berufMedHilfe, kh);
       if (bpOpenSet.size <= 1) bpOpenSet.clear();
@@ -10257,7 +10257,7 @@ async function revokeApiToken(tokenId, clientName) {
         if (eng) {
           html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(eng)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, eng)}" data-on-dragend="bpDragEnd">`;
           html += bpRankShield(eng);
-          html += '<span class="bp-ico" style="font-size:12px;color:#80b8ff;">⚗</span>';
+          html += '<span class="bp-ico" style="font-size:12px;color:#80b8ff;">👷</span>';
           html += `<span class="bp-name-text ing" title="${escHtml(eng)}">${escHtml(eng)}</span>`;
           html += engCheck.hint;
           html += bpAskBtn(eng);
@@ -10467,13 +10467,13 @@ async function revokeApiToken(tokenId, clientName) {
   };
 
   // Automatisch aufteilen (mit Vorschau):
-  //  1. Wer in der Warteschlange vom Rang her Kriegsherr ist (Rangcheck an), wird Kriegsherr.
-  //  2. Jeder Kriegsherr ohne aktiven Ingenieur bekommt zuerst einen aktiven aus der Warteschlange
+  //  1. Wer in der Warteschlange vom Rang her Kriegsanführer ist (Rangcheck an), wird Kriegsanführer.
+  //  2. Jeder Kriegsanführer ohne aktiven Ingenieur bekommt zuerst einen aktiven aus der Warteschlange
   //     (aktiv = oberes Drittel nach Punkten der letzten 4 abgeschlossenen Wochen, AFK/fehlend = 0).
   //  3. Der Rest geht gleichmaessig und zufaellig auf die freien Plaetze.
-  //  4. Optional (Haekchen, Standard an): Kriegsherren mit 2+ Aktiven geben einen an Kriegsherren ohne
+  //  4. Optional (Haekchen, Standard an): Kriegsanführer mit 2+ Aktiven geben einen an Kriegsanführern ohne
   //     Aktiven ab; ist der Empfaenger voll, geht dafuer sein schwaechster Ingenieur zurueck (Tausch).
-  //  5. Optional (gleiches Haekchen): Anzahl ausgleichen, kein Kriegsherr hat 2+ Ingenieure mehr als ein anderer.
+  //  5. Optional (gleiches Haekchen): Anzahl ausgleichen, kein Kriegsanführer hat 2+ Ingenieure mehr als ein anderer.
   //  ♥-Paare und R4/R5 werden nie angefasst.
   let bpFillScores = null; // { scores: {name: pts}, threshold, weeks }
   let bpFillCurrent = null;
@@ -10516,7 +10516,7 @@ async function revokeApiToken(tokenId, clientName) {
       else cands.push(n);
     });
     const warlords = [...bpWarlordList(), ...newKh];
-    // Zustand: Kriegsherr -> Ingenieure; origin = Kriegsherr vor der Verteilung (null = Warteschlange)
+    // Zustand: Kriegsanführer -> Ingenieure; origin = Kriegsanführer vor der Verteilung (null = Warteschlange)
     const slots = new Map();
     const origin = {};
     warlords.forEach(kh => {
@@ -10531,7 +10531,7 @@ async function revokeApiToken(tokenId, clientName) {
     const pull = (n, kh) => { const l = slots.get(kh); l.splice(l.indexOf(n), 1); };
     cands.forEach(n => { origin[n] = null; });
 
-    // Schritt 2: die aktivsten aus der Warteschlange zuerst an Kriegsherren ohne aktiven Ingenieur
+    // Schritt 2: die aktivsten aus der Warteschlange zuerst an Kriegsanführern ohne aktiven Ingenieur
     const activeCands = bpShuffle(cands.filter(isActive)).sort((a, b) => pts(b) - pts(a));
     const used = new Set();
     bpShuffle(warlords.filter(kh => !hasActive(kh) && freeOf(kh) > 0)).forEach(kh => {
@@ -10547,10 +10547,10 @@ async function revokeApiToken(tokenId, clientName) {
       const options = warlords.filter(kh => freeOf(kh) === best);
       put(n, options[Math.floor(Math.random() * options.length)]);
     });
-    // Schritt 4: Aktive umsetzen, bis jeder Kriegsherr einen hat (soweit moeglich)
+    // Schritt 4: Aktive umsetzen, bis jeder Kriegsanführer einen hat (soweit moeglich)
     if (withMoves) {
       bpShuffle(warlords.filter(kh => !hasActive(kh))).forEach(w => {
-        // Spender: Kriegsherr mit den meisten Aktiven (mind. 2), davon einer beweglich
+        // Spender: Kriegsanführer mit den meisten Aktiven (mind. 2), davon einer beweglich
         const donors = warlords
           .filter(d => d !== w && slots.get(d).filter(isActive).length >= 2 && slots.get(d).some(n => isActive(n) && movable(n)))
           .sort((a, b) => slots.get(b).filter(isActive).length - slots.get(a).filter(isActive).length);
@@ -10611,7 +10611,7 @@ async function revokeApiToken(tokenId, clientName) {
     if (plan.engs.length) {
       const byKh = {};
       plan.engs.forEach(e => (byKh[e.kh] = byKh[e.kh] || []).push(e));
-      h += `<div class="bp-fill-h">⚗ ${escHtml(tr('s_bp_fill_engs'))} (${plan.engs.length})</div><ul class="bp-fill-list">`
+      h += `<div class="bp-fill-h">👷 ${escHtml(tr('s_bp_fill_engs'))} (${plan.engs.length})</div><ul class="bp-fill-list">`
         + Object.keys(byKh).sort((a, b) => a.localeCompare(b, 'de')).map(kh => li(
           `<span class="bp-fill-kh">${escHtml(kh)}</span> ← ` + byKh[kh].map(engTxt).join('<span class="bp-fill-pts">·</span>')
         )).join('') + '</ul>';
@@ -10669,8 +10669,8 @@ async function revokeApiToken(tokenId, clientName) {
     const med = n => !!(memberMeta[n] || {}).berufMedHilfe;
     try {
       await runWithBattleLoader(async () => {
-        // 1. neue Kriegsherren, 2. Umgesetzte kurz loesen (der Server prueft die Hoechstzahl, sonst
-        // blockiert ein Tausch zwischen zwei vollen Kriegsherren), 3. alle Ingenieure zuordnen
+        // 1. neue Kriegsanführer, 2. Umgesetzte kurz loesen (der Server prueft die Hoechstzahl, sonst
+        // blockiert ein Tausch zwischen zwei vollen Kriegsanführern), 3. alle Ingenieure zuordnen
         for (const n of plan.newKh) await bpSaveBeruf(n, 'kriegsherr', 0, null);
         for (const e of plan.moves) await bpSaveBeruf(e.name, 'ingenieur', med(e.name), null);
         for (const e of [...plan.moves, ...plan.engs]) await bpSaveBeruf(e.name, 'ingenieur', med(e.name), e.kh);

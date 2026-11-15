@@ -92,7 +92,7 @@ function ensureBerufColumns(PDO $pdo): void {
     ] as $sql) {
         try { $pdo->exec($sql); } catch (\PDOException) {}
     }
-    // Einmalig: alte Zuordnung per Name (beruf_winwin) auf die Spieler-ID des Kriegsherrn umstellen
+    // Einmalig: alte Zuordnung per Name (beruf_winwin) auf die Spieler-ID des Kriegsanführers umstellen
     if (!$pdo->query("SELECT 1 FROM players WHERE beruf_winwin IS NOT NULL LIMIT 1")->fetch()) return;
     $pdo->exec("
         UPDATE players p
@@ -104,10 +104,10 @@ function ensureBerufColumns(PDO $pdo): void {
     releaseOrphanEngineers($pdo);
 }
 
-// Name des zugeordneten Kriegsherrn fuer SELECTs mit Alias p; die API liefert weiter beruf_winwin als Namen
+// Name des zugeordneten Kriegsanführer fuer SELECTs mit Alias p; die API liefert weiter beruf_winwin als Namen
 const SQL_BERUF_WINWIN = "(SELECT k.current_name FROM players k WHERE k.alliance = p.alliance AND k.player_id = p.beruf_winwin_id) AS beruf_winwin";
 
-// Zuordnung loesen, wo der Kriegsherr archiviert, verschoben oder kein Kriegsherr mehr ist (oder der Spieler kein Ingenieur)
+// Zuordnung loesen, wo der Kriegsanführer archiviert, verschoben oder kein Kriegsanführer mehr ist (oder der Spieler kein Ingenieur)
 function releaseOrphanEngineers(PDO $pdo, ?string $alliance = null): void {
     $sql = "
         UPDATE players p

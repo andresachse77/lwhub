@@ -1249,7 +1249,7 @@ function handleApplyRankChange(PDO $pdo, string $alliance, array $body, array $p
     jsonOut(200, ['ok' => true, 'oldRank' => $oldRank, 'newRank' => $effectiveRank]);
 }
 
-function getBerufeMaxEngineersPerKriegsherr(PDO $pdo, string $alliance): int {
+function getBerufeMaxEngineersPerKriegsanführer(PDO $pdo, string $alliance): int {
     ensureAllianceConfigTable($pdo);
     $stmt = $pdo->prepare("SELECT config_value FROM alliance_config WHERE alliance = ? AND config_key = 'berufe_max_ingenieure' LIMIT 1");
     $stmt->execute([$alliance]);
@@ -1295,15 +1295,15 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
     $medHilfe = ($beruf === 'ingenieur' && !empty($body['med_hilfe'])) ? 1 : 0;
     $winwin   = ($beruf === 'ingenieur') ? (trim((string)($body['winwin'] ?? '')) ?: null) : null;
 
-    // Die Oberflaeche schickt den Namen des Kriegsherrn, gespeichert wird seine Spieler-ID
+    // Die Oberflaeche schickt den Namen des Kriegsanführers, gespeichert wird seine Spieler-ID
     $winwinId = null;
     if ($winwin !== null) {
-        $maxEngineers = getBerufeMaxEngineersPerKriegsherr($pdo, $alliance);
+        $maxEngineers = getBerufeMaxEngineersPerKriegsanführer($pdo, $alliance);
         $chk = $pdo->prepare("SELECT player_id, beruf FROM players WHERE alliance = ? AND current_name = ? AND is_active = 1 AND " . sqlNoHonor('') . " LIMIT 1");
         $chk->execute([$alliance, $winwin]);
         $chkRow = $chk->fetch();
         if (!$chkRow || $chkRow['beruf'] !== 'kriegsherr') {
-            jsonOut(400, ['error' => 'Win-Win Ziel ist kein Kriegsherr']);
+            jsonOut(400, ['error' => 'Win-Win Ziel ist kein Kriegsanführer']);
         }
         $winwinId = $chkRow['player_id'];
         $cntStmt = $pdo->prepare(
@@ -1311,7 +1311,7 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
         );
         $cntStmt->execute([$alliance, $winwinId, $target['player_id']]);
         if ((int)($cntStmt->fetch()['cnt'] ?? 0) >= $maxEngineers) {
-            jsonOut(409, ['error' => "Dieser Kriegsherr hat bereits {$maxEngineers} Ingenieure"]);
+            jsonOut(409, ['error' => "Dieser Kriegsanführer hat bereits {$maxEngineers} Ingenieure"]);
         }
     }
 

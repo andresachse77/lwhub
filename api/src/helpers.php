@@ -190,7 +190,7 @@ function berufMismatches(PDO $pdo, string $alliance, string $r2, array $ranksBef
         $rank = (int)$r['current_rank_code'];
         $expected = berufExpectedForRank($rank, $r2);
         if ($expected === null) continue;
-        // Wie im Planer: Ingenieur nur mit gueltigem Kriegsherrn, sonst steht er in der Warteschlange
+        // Wie im Planer: Ingenieur nur mit gueltigem Kriegsanführer, sonst steht er in der Warteschlange
         $placed = ($r['beruf'] ?? null) === 'kriegsherr' ? 'kriegsherr'
             : ((($r['beruf'] ?? null) === 'ingenieur' && isset($warlords[$r['beruf_winwin_id'] ?? ''])) ? 'ingenieur' : null);
         if ($placed === $expected) continue;

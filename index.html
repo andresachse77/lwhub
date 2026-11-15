@@ -10416,9 +10416,9 @@ async function revokeApiToken(tokenId, clientName) {
   };
 
   function bpBuildMailText() {
-    const maxIng = getBerufeMaxEngineers();
+    // Erste Zeile kommt im Spiel in den Betreff, der Rest ist der Inhalt. Ohne Ingenieur-Hoechstzahl, die braucht dort keiner.
     const warlords = bpWarlordList();
-    const lines = [`${tr('s_bp_mail_title')} ${authMember?.alliance || ''}`.trim(), `${tr('s_bp_max_engineers_label')}: ${maxIng}`, '', tr('s_bp_mail_winwin'), ''];
+    const lines = [tr('s_bp_mail_title'), tr('s_bp_mail_winwin'), ''];
     if (!warlords.length) {
       lines.push(tr('s_bp_no_warlords_assigned'));
       return lines.join('\n');

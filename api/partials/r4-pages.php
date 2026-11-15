@@ -174,6 +174,7 @@ $auNav = function (string $active) use ($member): string {
         <button class="wt-btn" data-action="berufePlannerLoadPage" style="padding:6px 12px;font-size:12px;white-space:nowrap;">↻ <span data-i18n="s_bp_reload">Neu laden</span></button>
         <button class="wt-btn" id="bp-fill-btn" data-action="bpFillRest" data-args='[{"$":"el"}]' style="padding:6px 12px;font-size:12px;white-space:nowrap;">🎲 <span data-i18n="s_bp_fill_btn">Automatisch aufteilen</span></button>
         <button class="wt-btn" id="bp-tpl-btn" data-action="bpOpenTemplates" style="padding:6px 12px;font-size:12px;">✎ <span data-i18n="s_bp_tpl_btn">Fragetexte</span></button>
+        <button class="wt-btn" id="bp-hist-btn" data-action="bpOpenHistory" style="padding:6px 12px;font-size:12px;">🕘 <span data-i18n="s_bp_hist_btn">Verlauf</span></button>
         <button class="wt-btn" id="bp-mail-btn" data-action="berufePlannerCopyMail" data-args='[{"$":"el"}]' style="padding:6px 12px;font-size:12px;">✉ <span data-i18n="s_bp_alliance_mail">Allianzmail</span></button>
       </div>
     </div>

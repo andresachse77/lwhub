@@ -342,6 +342,7 @@ function handleGetMembers(PDO $pdo, string $alliance): never {
     ensureBerufColumns($pdo);
     ensurePreferredLanguageColumn($pdo);
     ensureScannerColumns($pdo);
+    recordBerufSnapshot($pdo, $alliance, 'check'); // Netz fuer Aenderungen ohne eigenen Haken
 
     // ?scope=game: nur wer im Spiel in der Allianz ist (ohne Ehrenrollen) – fuer Scanner und Auswertungen.
     // Ohne scope kommen alle, damit die Verwaltung die Ehren-Eintraege anzeigen und pflegen kann.
@@ -714,7 +715,7 @@ function handleMergePlayer(PDO $pdo, string $alliance, string $nameEncoded, arra
             $before = $pdo->prepare("SELECT COUNT(*) FROM weekly_entries WHERE alliance = ? AND player_id = ?");
             $before->execute([$alliance, $keepId]);
             $weeksBefore = (int)$before->fetchColumn();
-            restoreArchivedPlayerData($pdo, $fromArchiveId, $alliance);
+            restoreArchivedPlayerData($pdo, $fromArchiveId, $alliance, $keepId, $oldId);
             $before->execute([$alliance, $keepId]);
             $summary['weeks_moved'] = (int)$before->fetchColumn() - $weeksBefore;
             $summary['weeks_dropped'] = $archWeeks - $summary['weeks_moved'];
@@ -729,6 +730,7 @@ function handleMergePlayer(PDO $pdo, string $alliance, string $nameEncoded, arra
             $pdo->prepare("UPDATE players SET created_at = LEAST(created_at, ?) WHERE alliance = ? AND player_id = ?")
                 ->execute([$dropCreated, $alliance, $keepId]);
         }
+        recordBerufSnapshot($pdo, $alliance, 'merge', $dropName . ' → ' . (string)$keep['current_name']);
         $pdo->commit();
         jsonOut(200, ['ok' => true, 'player_id' => $keepId, 'merged_name' => $dropName] + $summary);
     } catch (\PDOException $e) {
@@ -895,6 +897,8 @@ function archivePlayerInternal(PDO $pdo, string $alliance, string $playerId, ?st
     $stmt->execute([$alliance, $playerId]);
     $row = $stmt->fetch();
     if (!$row) return false;
+    // Berufe-Stand vor dem Archivieren merken: kommt er zurueck, holt restoreArchivedPlayerData ihn daraus
+    recordBerufSnapshot($pdo, $alliance, 'before:archive');
 
     $archiveId = uuid4();
 
@@ -1318,6 +1322,7 @@ function handleSaveMemberBeruf(PDO $pdo, string $alliance, string $nameEncoded, 
         $pdo->prepare("UPDATE players SET beruf_winwin_id = NULL WHERE alliance = ? AND beruf_winwin_id = ?")
             ->execute([$alliance, $target['player_id']]);
     }
+    recordBerufSnapshot($pdo, $alliance, 'planer', $requesterName);
 
     jsonOut(200, ['ok' => true]);
 }
@@ -1345,6 +1350,8 @@ function moveWeeklyEntries(PDO $pdo, string $playerId, string $fromAlliance, str
 // Auch das R5-Werkzeug "Spieler verschieben" (handleTransferPlayer) nutzt diese Funktion. Der Aufrufer
 // oeffnet die Transaktion.
 function movePlayerToAlliance(PDO $pdo, string $playerId, string $fromAlliance, string $toAlliance): void {
+    recordBerufSnapshot($pdo, $fromAlliance, 'before:move-out');
+    recordBerufSnapshot($pdo, $toAlliance, 'before:move-in');
     for ($r = 1; $r <= 5; $r++) {
         $pdo->prepare("INSERT IGNORE INTO ranks (alliance, rank_code) VALUES (?, ?)")->execute([$toAlliance, $r]);
     }
@@ -1375,6 +1382,10 @@ function movePlayerToAlliance(PDO $pdo, string $playerId, string $fromAlliance, 
     // Seine Ingenieure in der alten Allianz und seine eigene Zuordnung dorthin gelten nicht mehr
     releaseOrphanEngineers($pdo, $fromAlliance);
     releaseOrphanEngineers($pdo, $toAlliance);
+    // War er frueher schon in der Ziel-Allianz (VS-Aushelfen, Urlaub): Beruf und Ingenieure von damals
+    restoreBerufFromHistory($pdo, $toAlliance, $playerId);
+    recordBerufSnapshot($pdo, $fromAlliance, 'move-out');
+    recordBerufSnapshot($pdo, $toAlliance, 'move-in');
 }
 
 // Akzente und Umlaute auf den Grundbuchstaben (ohne intl/mbstring, die nicht ueberall installiert sind)
@@ -1635,6 +1646,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
         error_log("beruf_mismatches vorbereiten {$targetAlliance}: " . $e->getMessage());
         $berufR2 = null;
     }
+    if (!$dryRun) recordBerufSnapshot($pdo, $targetAlliance, 'before:scan');
 
     $pdo->beginTransaction();
     try {
@@ -2038,6 +2050,7 @@ function handleSyncScans(PDO $pdo, string $alliance, array $body, array $protect
         if ($dryRun) $pdo->rollBack();
         else {
             $pdo->commit();
+            recordBerufSnapshot($pdo, $targetAlliance, 'scan');
             // Wer hat gescannt (scan-uploads.php) – nach dem Commit, ein Fehler hier stoert den Upload nicht
             logScanUpload($pdo, $targetAlliance, $caller, preg_match('/^\d+$/', $claimedId) ? $claimedId : null, $source, $scanId, $summary);
             // Neue Woche angelegt? Alte Wertewochen ablegen (week-retention.php)

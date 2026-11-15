@@ -47,7 +47,7 @@ function insertWeeklyEntryWithFlags(PDO $pdo, string $alliance, array $entry, ar
  * Allianz-Wechsel (handleTransferPlayer) wandert seine Historie dorthin mit.
  * Genutzt vom Wiederherstellen-Knopf (archive.php) und vom Scanner-Sync (members.php handleSyncScans).
  */
-function restoreArchivedPlayerData(PDO $pdo, string $archiveId, string $alliance): void {
+function restoreArchivedPlayerData(PDO $pdo, string $archiveId, string $alliance, ?string $targetId = null, ?string $historyId = null): void {
     // Scan-Werte werden nicht archiviert, sie liegen weiter in der alten Allianz. Kommt der Spieler in einer
     // anderen Allianz zurueck, ziehen sie mit um (wie movePlayerToAlliance) – bis 03.11. blieben sie verwaist.
     $arch = $pdo->prepare("SELECT alliance, player_id FROM archived_players WHERE archive_id = ?");
@@ -85,6 +85,9 @@ function restoreArchivedPlayerData(PDO $pdo, string $archiveId, string $alliance
         } catch (\PDOException $e) { if (!isOptionalTableError($e)) throw $e; }
     }
 
+    // Beruf und Ingenieure aus dem Berufe-Verlauf (das Archiv selbst speichert keine Berufe)
+    if ($from) restoreBerufFromHistory($pdo, $alliance, $historyId ?? $from['player_id'], $targetId ?? $from['player_id']);
+
     $pdo->prepare("DELETE FROM archived_entry_flags WHERE archive_id = ?")->execute([$archiveId]);
     $pdo->prepare("DELETE FROM archived_weekly_entries WHERE archive_id = ?")->execute([$archiveId]);
     $pdo->prepare("DELETE FROM archived_name_history WHERE archive_id = ?")->execute([$archiveId]);
@@ -114,6 +117,7 @@ function handleRestorePlayer(PDO $pdo, string $archiveIdEncoded, array $body): n
         $pdo->prepare("INSERT INTO players (alliance, player_id, current_name, current_rank_code, is_active, created_at) VALUES (?, ?, ?, ?, 1, ?)")
             ->execute([$archived['alliance'], $archived['player_id'], $archived['current_name'], $archived['current_rank_code'], $archived['player_created_at']]);
         restoreArchivedPlayerData($pdo, $archiveId, $archived['alliance']);
+        recordBerufSnapshot($pdo, $archived['alliance'], 'restore-player');
         $pdo->commit();
         jsonOut(200, ['ok' => true]);
     } catch (\PDOException $e) {

@@ -941,6 +941,13 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 }
 .bp-queue-panel { min-width: 0; }
 /* Berufeplaner als Akkordeon (Mockup C, docs/konzept-berufe-mobil.html): Kriegsherren als Karten, Namen ungekuerzt */
+.bp-hist-row { display: block; width: 100%; text-align: left; background: var(--card2); color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer; font-size: 13px; }
+.bp-hist-row:hover { border-color: var(--gold); }
+.bp-hist-row .bp-hist-meta { color: var(--soft); font-size: 12px; }
+.bp-hist-row .bp-hist-sum { color: var(--soft); font-size: 12px; margin-top: 3px; overflow-wrap: anywhere; }
+.bp-hist-change { display: flex; gap: 8px; align-items: flex-start; padding: 6px 2px; border-bottom: 1px solid var(--line2); font-size: 13px; }
+.bp-hist-change input { margin-top: 3px; }
+.bp-hist-change .bp-hist-from { color: var(--soft); text-decoration: line-through; }
 .bp-view { display: inline-flex; border: 1px solid var(--line2); border-radius: 6px; overflow: hidden; }
 .bp-view button { background: transparent; color: var(--soft); border: 0; padding: 5px 10px; font-size: 12px; cursor: pointer; }
 .bp-view button.on { background: rgba(240,165,0,.14); color: var(--gold); }
@@ -1880,6 +1887,18 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
     </div>
   </div>
 </div>
+<div class="modal-bg hidden" id="modal-bp-history">
+  <div class="modal" style="width:min(640px, 100%)">
+    <div class="modal-title">🕘 <span data-i18n="s_bp_hist_title">Berufe-Verlauf</span></div>
+    <div class="hint" id="bp-hist-hint" style="margin-bottom:10px" data-i18n="s_bp_hist_hint">Nach jeder Änderung merkt sich der LWHub den ganzen Stand. Tippe auf einen Zeitpunkt, um zu sehen, was sich zurückändern würde.</div>
+    <div id="bp-hist-body" class="bp-fill-body" data-i18n-skip="1"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="bp-hist-back" hidden data-action="bpHistBack" data-i18n="s_bp_hist_back">Zurück</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-bp-history"]' data-i18n="s_bp_ask_close">Schließen</button>
+      <button class="btn btn-gold" id="bp-hist-restore" hidden data-action="bpHistRestore" data-args='[{"$":"el"}]' data-i18n="s_bp_hist_restore">Ausgewählte wiederherstellen</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg hidden" id="modal-bp-templates">
   <div class="modal" style="width:min(560px, 100%)">
     <div class="modal-title">✎ <span data-i18n="s_bp_tpl_title">Fragetexte für „Spieler fragen“</span></div>
@@ -2094,7 +2113,7 @@ const LW_ACTIONS = new Set([
   'berufePlannerLoadPage', 'berufePlannerSetSort', 'bpAccAssign', 'bpAccDrop', 'bpAccToQueue', 'bpAccToggle',
   'bpAccToggleAll', 'bpAllowDrop', 'bpAskCopyAgain', 'bpAskPlayer', 'bpDragEnd', 'bpDragStart',
   'bpDropLeave', 'bpDropNewWarlord', 'bpDropToEngineerSlot', 'bpDropToQueue', 'bpDropToWarlord', 'bpFillApply',
-  'bpFillReroll', 'bpFillRest', 'bpJumpWrong', 'bpMakeWarlord', 'bpOpenTemplates', 'bpSaveRankCheck',
+  'bpFillReroll', 'bpFillRest', 'bpHistBack', 'bpHistRestore', 'bpHistShow', 'bpJumpWrong', 'bpMakeWarlord', 'bpOpenHistory', 'bpOpenTemplates', 'bpSaveRankCheck',
   'bpSetView', 'bpTogglePair', 'bpTplInsertVar', 'bpTplRenderPreview', 'bpTplResetLang', 'bpTplSave',
   'bpTplSwitchLang', 'bpTplSwitchVariant', 'bpUnsetWarlord', 'cancelEdit', 'changeYearWeek', 'clearTeamHero',
   'closeApiTokenCreated', 'closeModal', 'closeTeamEditor', 'copyApiToken', 'discordLogin', 'discordLogout',
@@ -9951,6 +9970,109 @@ async function revokeApiToken(tokenId, clientName) {
     await apiPost({ action: 'save_beruf', name, beruf, med_hilfe: medHilfe ? 1 : 0, winwin: winwin || null });
     await bpDropStalePairs(name, beruf, winwin);
   }
+
+  // ── Berufe-Verlauf (api/src/beruf-history.php) ──
+  // Liste der gespeicherten Staende; ein Klick zeigt, was sich gegenueber heute aendern wuerde, R4/R5 koennen
+  // einzelne oder alle Aenderungen wiederherstellen.
+  let bpHistCurrent = null;
+  function bpHistWhen(s) {
+    const m = String(s || '').match(/^(\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d)/);
+    if (!m) return escHtml(s || '');
+    let wd = '';
+    try { wd = new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(document.documentElement.lang || 'de', { weekday: 'short' }) + ' '; } catch (_) {}
+    return escHtml(`${wd}${m[3]}.${m[2]}.${m[1]} ${m[4]}:${m[5]}`);
+  }
+  function bpHistSource(src) {
+    const s = String(src || '').replace(/^before:/, '');
+    const key = s.startsWith('restore:') ? 'restore' : s.startsWith('move') ? 'move' : s;
+    const map = { planer: 's_bp_hist_src_planer', scan: 's_bp_hist_src_scan', archive: 's_bp_hist_src_archive', move: 's_bp_hist_src_move',
+      merge: 's_bp_hist_src_merge', restore: 's_bp_hist_src_restore', 'restore-player': 's_bp_hist_src_archive', check: 's_bp_hist_src_check' };
+    return tr(map[key] || 's_bp_hist_src_check');
+  }
+  function bpHistLabel(e) {
+    if (!e) return '—';
+    if (e.b === 'kriegsherr') return '⚔ ' + escHtml(tr('s_bp_hist_kh'));
+    if (e.b === 'ingenieur') {
+      return '🔧 ' + escHtml(tr('s_bp_hist_ing')) + (e.w ? ' ' + escHtml(tr('s_bp_hist_at')) + ' <b>' + escHtml(e.w) + '</b>' : '') + (e.m ? ' · ✚' : '');
+    }
+    return escHtml(tr('s_bp_queue_title'));
+  }
+  window.bpOpenHistory = async function() {
+    bpHistCurrent = null;
+    document.getElementById('bp-hist-back').hidden = true;
+    document.getElementById('bp-hist-restore').hidden = true;
+    document.getElementById('bp-hist-hint').hidden = false;
+    const body = document.getElementById('bp-hist-body');
+    body.innerHTML = '<span class="spin">↻</span>';
+    openModal('modal-bp-history');
+    try {
+      const data = await fetchJson('/beruf-history');
+      const rows = data.snapshots || [];
+      if (!rows.length) { body.innerHTML = `<div class="hint">${escHtml(tr('s_bp_hist_empty'))}</div>`; return; }
+      body.innerHTML = rows.map(r => {
+        const sum = (r.changes_list || []).slice(0, 4).map(c => `${escHtml(c.name)}: ${bpHistLabel(c.to)}`).join(' · ')
+          + (r.changes > 4 ? ' …' : '');
+        const by = r.changed_by ? ' · ' + escHtml(r.changed_by) : '';
+        const count = r.changes ? ` · ${r.changes} ${escHtml(tr('s_bp_hist_changes'))}` : '';
+        return `<button type="button" class="bp-hist-row" data-action="bpHistShow" data-args="${lwArgs(r.snapshot_id)}">
+          <b>${bpHistWhen(r.created_at)}</b> <span class="bp-hist-meta">· ${escHtml(bpHistSource(r.source))}${by}${count} · ⚔ ${r.warlords} · 🔧 ${r.engineers}</span>
+          ${sum ? `<div class="bp-hist-sum">${sum}</div>` : ''}</button>`;
+      }).join('');
+    } catch (err) {
+      body.innerHTML = `<div class="hint">${escHtml(tr('Fehler: ') + err.message)}</div>`;
+    }
+  };
+  window.bpHistBack = function() { window.bpOpenHistory(); };
+  window.bpHistShow = async function(id) {
+    const body = document.getElementById('bp-hist-body');
+    body.innerHTML = '<span class="spin">↻</span>';
+    document.getElementById('bp-hist-back').hidden = false;
+    document.getElementById('bp-hist-hint').hidden = true;
+    const restoreBtn = document.getElementById('bp-hist-restore');
+    restoreBtn.hidden = true;
+    try {
+      const data = await fetchJson(`/beruf-history/${encodeURIComponent(id)}`);
+      bpHistCurrent = data;
+      const canRestore = bpCanEditRankCheck();
+      const changes = data.changes || [];
+      let html = `<div style="margin-bottom:8px"><b>${escHtml(tr('s_bp_hist_state_of'))} ${bpHistWhen(data.snapshot.created_at)}</b></div>`;
+      if (!changes.length) html += `<div class="hint">${escHtml(tr('s_bp_hist_same'))}</div>`;
+      html += changes.map(c => `<label class="bp-hist-change">
+          ${canRestore ? `<input type="checkbox" class="bp-hist-pick" value="${escHtml(c.id)}" checked>` : ''}
+          <span><b>${escHtml(c.name)}</b><br>
+          <span class="bp-hist-from">${escHtml(tr('s_bp_hist_now'))}: ${bpHistLabel(c.from)}</span><br>
+          ${escHtml(tr('s_bp_hist_then'))}: ${bpHistLabel(c.to)}</span></label>`).join('');
+      if ((data.gone || []).length) {
+        html += `<div class="hint" style="margin-top:10px">${escHtml(tr('s_bp_hist_gone'))}: `
+          + data.gone.map(g => `${escHtml(g.name)} (${bpHistLabel(g)})`).join(', ') + '</div>';
+      }
+      body.innerHTML = html;
+      restoreBtn.hidden = !canRestore || !changes.length;
+    } catch (err) {
+      body.innerHTML = `<div class="hint">${escHtml(tr('Fehler: ') + err.message)}</div>`;
+    }
+  };
+  window.bpHistRestore = async function(btn) {
+    if (!bpHistCurrent) return;
+    const ids = Array.from(document.querySelectorAll('#bp-hist-body .bp-hist-pick:checked')).map(el => el.value);
+    if (!ids.length) return;
+    if (!confirm(tr('s_bp_hist_confirm').replace('{n}', ids.length))) return;
+    bpBusy(btn, true);
+    try {
+      await fetchJson(`/beruf-history/${encodeURIComponent(bpHistCurrent.snapshot.snapshot_id)}/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: authMember?.discord_id || '', player_ids: ids })
+      });
+      toast(tr('s_bp_hist_done'), 'ok');
+      closeModal('modal-bp-history');
+      await window.berufePlannerLoadPage();
+    } catch (err) {
+      toast(tr('Fehler: ') + err.message, 'err');
+    } finally {
+      bpBusy(btn, false);
+    }
+  };
 
   // Ansicht: Akkordeon (Standard, Mockup C aus docs/konzept-berufe-mobil.html) oder die bisherige Tabelle.
   // In der Tabelle wurden lange Namen abgeschnitten, auch auf grossen Bildschirmen.

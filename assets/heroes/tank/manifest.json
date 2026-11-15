@@ -22,15 +22,15 @@
     {
       "id": "marshall",
       "name": "Marshall",
-      "image": "assets/heroes/tank/extracted/marshall.png",
-      "thumb": "assets/heroes/tank/extracted/thumbs/marshall.png",
+      "image": "assets/heroes/tank/extracted/marshall.png?v=2",
+      "thumb": "assets/heroes/tank/extracted/thumbs/marshall.png?v=2",
       "source": "user-provided"
     },
     {
       "id": "stetmann",
       "name": "Stetmann",
-      "image": "assets/heroes/tank/extracted/stetmann.png",
-      "thumb": "assets/heroes/tank/extracted/thumbs/stetmann.png",
+      "image": "assets/heroes/tank/extracted/stetmann.png?v=2",
+      "thumb": "assets/heroes/tank/extracted/thumbs/stetmann.png?v=2",
       "source": "user-provided"
     },
     {

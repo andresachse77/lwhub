@@ -10429,7 +10429,7 @@ async function revokeApiToken(tokenId, clientName) {
       if (!engineers.length) {
         lines.push(`  - ${tr('s_bp_no_engineers')}`);
       } else {
-        engineers.forEach((name, idx) => lines.push(`  ${idx + 1}. ⚗ ${name}`));
+        engineers.forEach((name, idx) => lines.push(`  ${idx + 1}. 👷 ${name}`)); // 👷 wie das Ingenieur-Bild im Spiel; ⚗ sah dort wie ein Grill aus
       }
       lines.push('');
     });

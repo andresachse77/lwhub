@@ -602,7 +602,7 @@
     "s_bp_confirm_unset_line1": "The profession will be set to 'No profession'.",
     "s_bp_confirm_unset_line2": "All assigned engineers will lose their win-win assignment and will also return to the queue.",
     "s_bp_mail_title": "Profession plan Win-Win partners",
-    "s_bp_mail_winwin": "⚗ Engineers: give your warlord Win-Win once a day. If you don't have Win-Win yet, please learn it first.",
+    "s_bp_mail_winwin": "👷 Engineers: give your warlord Win-Win once a day. If you don't have Win-Win yet, please learn it first.",
     "s_bp_no_warlords_assigned": "No warlords assigned.",
     "s_bp_no_engineers": "no engineers",
     "s_bp_copy_failed": "Copy failed",

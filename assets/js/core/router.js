@@ -98,6 +98,12 @@ async function injectAdminTabs(discordId) {
     const data = await fetchJson(`/tab-html?section=admin&discord_id=${encodeURIComponent(discordId)}`);
     if (!data.ok) return;
     document.getElementById('admin-tab-btns').innerHTML = data.tabBtns;
+    // Admin-Seite und -Dialoge kommen nur fuer R5 vom Server (api/partials/admin-pages.php)
+    const adminPages = document.getElementById('admin-pages-container');
+    if (adminPages) {
+      adminPages.innerHTML = data.pages || '';
+      if (typeof window.applyI18n === 'function') window.applyI18n(adminPages);
+    }
   } catch(e) { /* silent fail */ }
 }
 
@@ -108,6 +114,8 @@ function resetRoleScopedUi() {
   if (r4Btns) r4Btns.innerHTML = '';
   if (adminBtns) adminBtns.innerHTML = '';
   if (r4Pages) r4Pages.innerHTML = '';
+  const adminPages = document.getElementById('admin-pages-container');
+  if (adminPages) adminPages.innerHTML = '';
 }
 
 // ── ROUTER: eigene Adresse je Seite (docs/konzept-frontend-umbau.html, Schritt 2) ──

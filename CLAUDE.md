@@ -90,6 +90,11 @@ Ladereihenfolge:
   (das bricht die ganze Seite mit einem SyntaxError).
 - Neue Seite → eigene Datei in `pages/`, Tag **vor** `start.js` eintragen.
 
+HTML, das nur R4/R5 oder nur R5 sehen dürfen, steht **nicht** in `index.html`, sondern kommt vom Server
+(`/tab-html`, `api/src/members.php`): `api/partials/r4-pages.php` (R4-Seiten und Berufeplaner-Dialoge,
+eingefügt in `#r4-pages-container`) und `api/partials/admin-pages.php` (Admin-Seite und Admin-Dialoge, nur
+R5, in `#admin-pages-container`). Neue Dialoge einer R4-/Admin-Seite gehören in das passende Partial.
+
 - Dateien unter `assets/css/` und `assets/js/` in `index.html` **immer** mit `?v=dev` einbinden:
   `<link rel="stylesheet" href="assets/css/x.css?v=dev">`, `<script src="assets/js/x.js?v=dev">`.
   Das Deploy ersetzt `dev` durch einen Hash der Datei, die `.htaccess` erlaubt dann ein Jahr Cache.

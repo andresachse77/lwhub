@@ -581,3 +581,76 @@ $auNav = function (string $active) use ($member): string {
   <iframe id="scanner-frame" data-src="web-scanner-onnx/<?= $canScan ? 'index.html' : 'trend.html' ?>" title="Scanner" allow="display-capture"></iframe>
 </div>
 <?php endif; ?>
+
+<!-- ── Berufeplaner-Dialoge (pages/jobs.js) ── -->
+<div class="modal-bg hidden" id="modal-bp-ask">
+  <div class="modal">
+    <div class="modal-title">✉ <span data-i18n="s_bp_ask_title">Spieler fragen</span>: <span id="bp-ask-name" data-i18n-skip="1"></span></div>
+    <div class="hint" style="margin-bottom:10px" data-i18n="s_bp_ask_hint">Der Text ist schon kopiert. Im Spiel als Mail einfügen und senden.</div>
+    <div class="field" data-i18n-skip="1">
+      <textarea id="bp-ask-text"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="bpAskCopyAgain" data-args='[{"$":"el"}]' data-i18n="s_bp_ask_copy_again">Nochmal kopieren</button>
+      <button class="btn btn-gold" data-action="closeModal" data-args='["modal-bp-ask"]' data-i18n="s_bp_ask_close">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg hidden" id="modal-bp-fill">
+  <div class="modal" style="width:min(640px, 100%)">
+    <div class="modal-title">🎲 <span data-i18n="s_bp_fill_modal_title">Automatisch aufteilen – Vorschau</span></div>
+    <label class="bp-fill-opt"><input type="checkbox" id="bp-fill-move" checked data-on-change="bpFillReroll"> <span data-i18n="s_bp_fill_move_opt">Eingeteilte Ingenieure auch umsetzen: jedem Kriegsanführer einen aktiven geben und die Anzahl ausgleichen (♥-Paare bleiben)</span></label>
+    <div id="bp-fill-body" class="bp-fill-body" data-i18n-skip="1"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="bpFillReroll" data-i18n="s_bp_fill_reroll">Neu würfeln</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-bp-fill"]' data-i18n="s_abbrechen">Abbrechen</button>
+      <button class="btn btn-gold" id="bp-fill-apply" data-action="bpFillApply" data-args='[{"$":"el"}]' data-i18n="s_bp_fill_apply">Übernehmen</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg hidden" id="modal-bp-history">
+  <div class="modal" style="width:min(640px, 100%)">
+    <div class="modal-title">🕘 <span data-i18n="s_bp_hist_title">Berufe-Verlauf</span></div>
+    <div class="hint" id="bp-hist-hint" style="margin-bottom:10px" data-i18n="s_bp_hist_hint">Nach jeder Änderung merkt sich der LWHub den ganzen Stand. Tippe auf einen Zeitpunkt, um zu sehen, was sich zurückändern würde.</div>
+    <div id="bp-hist-body" class="bp-fill-body" data-i18n-skip="1"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="bp-hist-back" hidden data-action="bpHistBack" data-i18n="s_bp_hist_back">Zurück</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-bp-history"]' data-i18n="s_bp_ask_close">Schließen</button>
+      <button class="btn btn-gold" id="bp-hist-restore" hidden data-action="bpHistRestore" data-args='[{"$":"el"}]' data-i18n="s_bp_hist_restore">Ausgewählte wiederherstellen</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg hidden" id="modal-bp-templates">
+  <div class="modal" style="width:min(560px, 100%)">
+    <div class="modal-title">✎ <span data-i18n="s_bp_tpl_title">Fragetexte für „Spieler fragen“</span></div>
+    <div class="hint" style="margin-bottom:10px" data-i18n="s_bp_tpl_hint">Jeder Spieler bekommt den Text in seiner Sprache. Klick auf einen Platzhalter fügt ihn ein.</div>
+    <div class="bp-view" id="bp-tpl-variant" style="margin-bottom:6px">
+      <button type="button" data-variant="r23" data-action="bpTplSwitchVariant" data-args='["r23"]' data-i18n="s_bp_tpl_var_r23">Für R2/R3</button>
+      <button type="button" data-variant="r145" data-action="bpTplSwitchVariant" data-args='["r145"]' data-i18n="s_bp_tpl_var_r145">Für R1, R4, R5</button>
+    </div>
+    <div class="hint" id="bp-tpl-variant-note" style="margin-bottom:10px" data-i18n-skip="1"></div>
+    <div class="field">
+      <select id="bp-tpl-lang" data-on-change="bpTplSwitchLang" data-args-change='[{"$":"value"}]' data-i18n-skip="1">
+        <option value="de">Deutsch</option>
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+        <option value="it">Italiano</option>
+        <option value="pl">Polski</option>
+        <option value="zh">中文</option>
+      </select>
+    </div>
+    <div id="bp-tpl-chips" class="bp-tpl-chips" data-i18n-skip="1"></div>
+    <div class="field" data-i18n-skip="1">
+      <textarea id="bp-tpl-text" maxlength="1000" data-on-input="bpTplRenderPreview"></textarea>
+    </div>
+    <div class="bp-tpl-preview-label" data-i18n="s_bp_tpl_preview">Vorschau</div>
+    <div id="bp-tpl-preview" class="bp-tpl-preview" data-i18n-skip="1"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-action="bpTplResetLang" data-i18n="s_bp_tpl_reset">Standard wiederherstellen</button>
+      <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-bp-templates"]' data-i18n="s_abbrechen">Abbrechen</button>
+      <button class="btn btn-gold" data-action="bpTplSave" data-args='[{"$":"el"}]' data-i18n="s_bp_tpl_save">Speichern</button>
+    </div>
+  </div>
+</div>

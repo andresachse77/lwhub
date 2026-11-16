@@ -301,8 +301,18 @@
       const opening = !trigger.classList.contains('open');
       trigger.classList.toggle('open');
       dropdown.classList.toggle('open');
-      if (opening) rebuildNavSection();
+      if (opening) {
+        rebuildNavSection();
+        updateAdminMenuItem();
+      }
     });
+
+    // "Allianz-Verwaltung" nur zeigen, wenn die Admin-Seite wirklich da ist. Die liefert der Server
+    // nur an R5 und Betreiber (api/partials/admin-pages.php); fuer alle anderen gibt es den Punkt nicht.
+    function updateAdminMenuItem() {
+      const item = document.getElementById('cs-admin-btn');
+      if (item) item.style.display = document.getElementById('page-a') ? '' : 'none';
+    }
     document.addEventListener('click', () => {
       trigger.classList.remove('open');
       dropdown.classList.remove('open');

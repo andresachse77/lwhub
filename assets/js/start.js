@@ -108,7 +108,7 @@ async function initApp(){
     resetRoleScopedUi();
     if (authMember?.can_manage) {
       await injectR4Tabs(authMember.discord_id);
-      if ((authMember?.rank || 0) >= 5) await injectAdminTabs(authMember.discord_id);
+      await injectAdminTabs(authMember.discord_id); // R5 oder Betreiber, das entscheidet der Server
     }
 
     // Nav actions for char-switcher dropdown (tabs hidden on mobile → show as menu items)
@@ -159,7 +159,7 @@ async function initApp(){
     resetRoleScopedUi();
     if (authMember?.can_manage) {
       await injectR4Tabs(authMember.discord_id || 'local-preview');
-      if ((authMember?.rank || 0) >= 5) await injectAdminTabs(authMember.discord_id || 'local-preview');
+      await injectAdminTabs(authMember.discord_id || 'local-preview'); // R5 oder Betreiber, das entscheidet der Server
       updateEventTabVisibility();
       renderAll();
       hydrateEntriesFromCache(kw, { allowStale: true });

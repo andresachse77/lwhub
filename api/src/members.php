@@ -55,7 +55,10 @@ function handleTabHtml(PDO $pdo, string $alliance): never {
     $effectiveRank = effectiveRankForAccess($rank, normalizeHonorRole($member['honor_role'] ?? null));
 
     if ($section === 'r4'    && $effectiveRank < 4) jsonOut(403, ['ok' => false, 'error' => 'Rang 4 oder höher erforderlich']);
-    if ($section === 'admin' && $effectiveRank < 5) jsonOut(403, ['ok' => false, 'error' => 'Rang 5 erforderlich']);
+    // Admin wie requireR5(): Rang 5 oder Betreiber (site_admins), auch wenn der aktive Char nur R4 ist
+    if ($section === 'admin' && $effectiveRank < 5 && !isSiteAdmin($pdo, $discordId)) {
+        jsonOut(403, ['ok' => false, 'error' => 'Rang 5 erforderlich']);
+    }
 
     $partialsDir = __DIR__ . '/../partials/';
 

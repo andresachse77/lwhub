@@ -20,3 +20,9 @@ $h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 <meta property="og:title" content="<?= $h($lwOgTitle) ?>">
 <meta property="og:description" content="Allianz-Werkzeug für Last War: Punkte, Events, Zug und Berufe.">
 <meta property="og:url" content="<?= $h($lwScheme . '://' . $lwHost . ($lwPath === '' ? '/' : '/' . $lwPath)) ?>">
+<meta property="og:image" content="<?= $h($lwScheme . '://' . $lwHost . '/img/og-image.png') ?>">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="LWHub">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#f0a500">

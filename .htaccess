@@ -35,8 +35,9 @@
   Header always set X-Frame-Options "SAMEORIGIN"
   # Kamera, Mikrofon, Standort werden nicht gebraucht
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
-  # Nur noch HTTPS. Erst einen Tag testen, danach auf 31536000 (1 Jahr) erhoehen.
-  Header always set Strict-Transport-Security "max-age=86400"
+  # Nur noch HTTPS (HSTS). Schrittweise erhoehen: 1 Tag seit 08.11.2026, 1 Woche seit 16.11.2026,
+  # danach 31536000 (1 Jahr). Waehrend dieser Zeit laesst der Browser bei Zertifikatsfehlern keine Ausnahme zu.
+  Header always set Strict-Transport-Security "max-age=604800"
 
   # Content-Security-Policy, NUR im Beobachtungsmodus: blockiert nichts, meldet Verstoesse in der
   # Browser-Konsole. Das ist die Zielrichtlinie nach Konzept A. Inline-<script> und onclick= tauchen

@@ -5,11 +5,11 @@
 header('Content-Type: text/html; charset=UTF-8');
 header('Cache-Control: no-cache');
 // Content-Security-Policy, SCHARF (blockiert) nur fuer die App-Seiten: nur eigene Scripts, keine Inline-Scripts,
-// keine on…=-Attribute. Externe Ziele: Discord (Anmeldung, Avatare), unavatar.io, Google Fonts.
+// keine on…=-Attribute. Externe Ziele: Discord (Anmeldung, Avatare), unavatar.io. Schriften liegen in assets/fonts/.
 // Scanner, docs/ und iny/ haben eigene Bedürfnisse und bleiben bei der Beobachtungs-Regel aus /.htaccess.
 // Neue externe Quelle (Bild, API, Script)? Hier eintragen, sonst blockiert der Browser sie.
 header("Content-Security-Policy: default-src 'self'; script-src 'self'; script-src-attr 'none'; "
-    . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; "
+    . "style-src 'self' 'unsafe-inline'; font-src 'self'; "
     . "img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; "
     . "connect-src 'self' https://discord.com https://unavatar.io; frame-src 'self'; frame-ancestors 'self'; "
     . "base-uri 'self'; form-action 'self'; object-src 'none'");
@@ -25,9 +25,10 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self'; script-s
 <title>Alli App</title>
 <?php include __DIR__ . '/views/head-meta.php'; ?>
 <meta name="lwhub-build" content="dev">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap">
+<!-- Schriften selbst gehostet (assets/fonts/), keine Verbindung zu Google -->
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/rajdhani-700-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/fonts.css?v=dev">
 <!-- "dev" in der Version ersetzt das Deploy durch einen Hash der Datei (.github/workflows/deploy-hetzner.yml) -->
 <link rel="stylesheet" href="assets/css/app.css?v=dev">
 </head>

@@ -9,6 +9,9 @@
 </IfModule>
 
 # ── 2. Cache ──
+<IfModule mod_mime.c>
+  AddType font/woff2 .woff2
+</IfModule>
 # Seiten, Skripte, Styles, JSON: immer beim Server nachfragen (ETag -> 304, wenn unveraendert).
 # Ausnahme: Dateien unter assets/css/ und assets/js/ mit Hash-Version im Link (?v=<12 Hex-Zeichen>)
 # duerfen ein Jahr im Browser bleiben. Das Deploy setzt den Hash je Datei in index.html ein; aendert sich
@@ -19,6 +22,10 @@
   </FilesMatch>
   <FilesMatch "\.(svg|png|jpe?g|webp|gif|ico)$">
     Header set Cache-Control "max-age=86400"
+  </FilesMatch>
+  # Schriften (assets/fonts/) aendern sich nicht: 30 Tage
+  <FilesMatch "\.woff2$">
+    Header set Cache-Control "max-age=2592000"
   </FilesMatch>
   <If "%{REQUEST_URI} =~ m#/assets/(css|js)/[A-Za-z0-9._/-]+\.(css|js)$# && %{QUERY_STRING} =~ /(^|&)v=[0-9a-f]{12}(&|$)/">
     Header set Cache-Control "max-age=31536000, immutable"
@@ -42,7 +49,7 @@
   # Content-Security-Policy, NUR im Beobachtungsmodus: blockiert nichts, meldet Verstoesse in der
   # Browser-Konsole. Das ist die Zielrichtlinie nach Konzept A. Inline-<script> und onclick= tauchen
   # dort als Meldung auf, bis sie umgebaut sind.
-  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' blob: https://cdn.jsdelivr.net 'wasm-unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; connect-src 'self' https://discord.com https://unavatar.io https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' blob: https://cdn.jsdelivr.net 'wasm-unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; connect-src 'self' https://discord.com https://unavatar.io https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
 </IfModule>
 
 # ── 4. Links auf Unterseiten (Konzept Schritt 2) ──

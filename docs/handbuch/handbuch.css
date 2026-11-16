@@ -1,5 +1,5 @@
 /* lwhub Handbuch & Werbeseite – abgeleitet vom Stil der Konzeptseiten (docs/konzept-*.html) */
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap');
+@import url('../../assets/css/fonts.css'); /* selbst gehostet, nicht mehr Google Fonts */
 
 :root {
   --bg-primary: #0e1117; --bg-secondary: #161b22; --bg-tertiary: #21262d; --bg-card: #1c2128;

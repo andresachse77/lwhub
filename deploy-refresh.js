@@ -15,6 +15,63 @@
   let countdownTimerId = null;
   let pendingVersion = '';
 
+  // ── Versionsanzeige neben dem Logo, nur auf Geraeten mit Schalter ──
+  // Einschalten: lwhub.de/?showversion=1, ausschalten: ?showversion=0 (gilt je Browser/Geraet).
+  // Zeigt die Version, mit der diese Seite geladen wurde (meta lwhub-build, setzt das Deploy), und
+  // die Version auf dem Server bei der letzten Pruefung. Unterschied = Update steht an.
+  const SHOW_KEY = 'lwhub_show_version';
+  const BUILD = ((document.querySelector('meta[name="lwhub-build"]') || {}).content || '').trim();
+  let lastServerVersion = '';
+  let lastCheckAt = null;
+
+  function short(v) { return v ? String(v).slice(0, 7) : '?'; }
+
+  function readShowSwitch() {
+    try {
+      const url = new URL(window.location.href);
+      const flag = url.searchParams.get('showversion');
+      if (flag === null) return localStorage.getItem(SHOW_KEY) === '1';
+      if (flag === '1') localStorage.setItem(SHOW_KEY, '1');
+      else localStorage.removeItem(SHOW_KEY);
+      url.searchParams.delete('showversion');
+      history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+      return flag === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  const SHOW_VERSION = readShowSwitch();
+
+  function renderVersionBadge() {
+    if (!SHOW_VERSION) return;
+    const logo = document.querySelector('nav .logo');
+    if (!logo) return;
+    let badge = document.getElementById('lw-build-badge');
+    if (!badge) {
+      badge = document.createElement('small');
+      badge.id = 'lw-build-badge';
+      badge.className = 'lw-build';
+      logo.appendChild(badge);
+    }
+    const old = !!(lastServerVersion && BUILD && BUILD !== 'dev' && lastServerVersion !== BUILD);
+    badge.textContent = old ? short(BUILD) + ' → ' + short(lastServerVersion) : (BUILD === 'dev' ? 'dev' : short(BUILD));
+    badge.classList.toggle('is-old', old);
+    let seen = '';
+    let autoOff = false;
+    try {
+      seen = localStorage.getItem(STORAGE_KEY) || '';
+      autoOff = localStorage.getItem(DISABLE_KEY) === '1';
+    } catch (_) {}
+    badge.title = [
+      'Geladen: ' + (BUILD || '?'),
+      'Server: ' + (lastServerVersion || 'noch nicht geprueft'),
+      'Gemerkt: ' + (seen || '–'),
+      'Geprueft: ' + (lastCheckAt ? lastCheckAt.toLocaleTimeString() : '–'),
+      autoOff ? 'Automatisches Neuladen ist AUS' : 'Prueft alle ' + Math.round(POLL_MS / 1000) + ' s'
+    ].join('\n');
+  }
+
   function tr(key, fallback, vars) {
     const fn = typeof window.trText === 'function' ? window.trText : null;
     let out = fn ? fn(key) : key;
@@ -150,6 +207,9 @@
     if (localStorage.getItem(DISABLE_KEY) === '1') return;
 
     const version = await fetchVersion();
+    lastServerVersion = version;
+    lastCheckAt = new Date();
+    renderVersionBadge();
     if (!version) return;
 
     const current = localStorage.getItem(STORAGE_KEY) || '';
@@ -162,6 +222,16 @@
       if (pendingVersion === version) return;
       showReloadNotice(version);
     }
+  }
+
+  renderVersionBadge();
+  if (SHOW_VERSION) {
+    // nur fuer die Anzeige sofort nachfragen; Neuladen entscheidet weiter checkForDeploy()
+    fetchVersion().then(function (v) {
+      lastServerVersion = v;
+      lastCheckAt = new Date();
+      renderVersionBadge();
+    }).catch(function () {});
   }
 
   setTimeout(function () {

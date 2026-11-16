@@ -1344,3 +1344,9 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   border-top: 1px solid var(--line);
 }
 .v-detail .flag-cats { display: flex; flex-direction: column; gap: 6px; }
+
+/* Versionsanzeige neben dem Logo, nur mit ?showversion=1 (deploy-refresh.js) */
+.logo .lw-build { font-family: Consolas, 'SFMono-Regular', Menlo, monospace; font-size: 11px; font-weight: 500;
+  letter-spacing: 0; color: var(--soft); margin-left: 8px; padding: 1px 6px; border: 1px solid var(--line2);
+  border-radius: 6px; vertical-align: middle; white-space: nowrap; cursor: help; }
+.logo .lw-build.is-old { color: var(--gold); border-color: var(--gold); }

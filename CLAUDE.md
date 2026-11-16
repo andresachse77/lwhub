@@ -70,7 +70,7 @@ Seit dem 16.11.2026 steht das CSS der Hauptseite in `assets/css/app.css` (nicht 
 Seit dem 16.11.2026 liegt der Kern des Scripts in `assets/js/core/` (normale Scripts, **keine** Module,
 alles bleibt global): `actions.js` (Verteiler, `LW_ACTIONS`), `api.js` (Adresse, `fetchJson`, `api`,
 `apiPost`), `auth.js` (Discord-Login), `points.js` (Formeln, Kategorien, `escHtml`, KW-Helfer),
-`state.js` (globale Variablen wie `members`, `kw`, `entries`). Sie laden in dieser Reihenfolge vor dem
+`state.js` (globale Variablen wie `members`, `kw`, `entries`), `features.js` (Feature-Schalter, `flagConfig`). Sie laden in dieser Reihenfolge vor dem
 großen `<script>` in `index.html`.
 
 - Code oben in diesen Dateien (außerhalb von Funktionen) darf nur Dinge aus derselben oder einer
@@ -79,7 +79,8 @@ großen `<script>` in `index.html`.
   (das bricht die ganze Seite mit einem SyntaxError).
 
 Seiten, die schon eigene Dateien haben, liegen in `assets/js/pages/` (seit 16.11.2026: `events.js` = Events
-mit Wache/Wüste/Spezial/VS/Spenden, `admin.js` = Admin, `train.js` = Zug, `jobs.js` = Berufeplaner). Ladereihenfolge in `index.html`: `i18n.js`, `deploy-refresh.js` → Kern → großes `<script>` →
+mit Wache/Wüste/Spezial/VS/Spenden, `admin.js` = Admin, `members.js` = Verwaltung, `stats.js` = Auswertungen
+SE-Inaktiv und Ergebnis, `train.js` = Zug, `jobs.js` = Berufeplaner). Ladereihenfolge in `index.html`: `i18n.js`, `deploy-refresh.js` → Kern → großes `<script>` →
 `pages/*.js` → `assets/js/start.js` (ruft `initApp()` auf) → `char-switcher.js`. `deploy-refresh.js` steht
 bewusst vor dem App-Code: es liest `?showversion`, bevor der Router die Adresse neu schreibt.
 

@@ -31,7 +31,7 @@ muss 0 ergeben.
 ## Frontend: Adressen und Router
 
 Seit dem 10.11.2026 hat jede Seite eine eigene Adresse (`/me`, `/train/plan`, `/members` …),
-siehe Block „ROUTER“ vor `showPage()` in `index.html`.
+siehe Block „ROUTER“ vor `showPage()` in `assets/js/core/router.js`.
 
 - Neue Seite → Pfad in `LW_ROUTES` (englisch, kurz) **und** in der `RewriteRule` in `/.htaccess`
   eintragen. R4-Seiten zusätzlich in `LW_R4_PAGES`.
@@ -67,25 +67,28 @@ kommt man im Vollbild (iPad) nicht zurück und kann nichts teilen.
 Seit dem 16.11.2026 steht das CSS der Hauptseite in `assets/css/app.css` (nicht mehr im `<style>` von
 `index.html`). Neue Styles dort eintragen.
 
-Seit dem 16.11.2026 liegt der Kern des Scripts in `assets/js/core/` (normale Scripts, **keine** Module,
-alles bleibt global): `actions.js` (Verteiler, `LW_ACTIONS`), `api.js` (Adresse, `fetchJson`, `api`,
-`apiPost`), `auth.js` (Discord-Login), `points.js` (Formeln, Kategorien, `escHtml`, KW-Helfer),
-`state.js` (globale Variablen wie `members`, `kw`, `entries`), `features.js` (Feature-Schalter, `flagConfig`). Sie laden in dieser Reihenfolge vor dem
-großen `<script>` in `index.html`.
+Seit dem 16.11.2026 steht **kein JavaScript mehr in `index.html`** (kein Inline-`<script>`, auch nicht für
+Kleinigkeiten: die CSP soll später `script-src 'self'` ohne `unsafe-inline` werden). Alles liegt in normalen
+Scripts, **keine** Module, alles bleibt global. Die Reihenfolge der `<script>`-Tags in `index.html` ist die
+Ladereihenfolge:
 
-- Code oben in diesen Dateien (außerhalb von Funktionen) darf nur Dinge aus derselben oder einer
-  früher geladenen Datei aufrufen, nicht aus `index.html`: die ist beim Laden noch nicht da.
+1. `i18n.js`, `deploy-refresh.js` (liest `?showversion`, bevor der Router die Adresse neu schreibt)
+2. Kern `assets/js/core/`: `actions.js` (Verteiler, `LW_ACTIONS`), `api.js` (`fetchJson`, `api`, `apiPost`),
+   `auth.js` (Discord-Login), `points.js` (Formeln, Kategorien, `escHtml`, KW-Helfer), `state.js` (globale
+   Variablen wie `members`, `kw`, `entries`), `features.js` (Feature-Schalter, `flagConfig`), `ui.js`
+   (`toast`, `tr`, Ladeanimation), `data.js` (Daten laden/speichern, Bearbeiten-Dialog, KW-Wechsel)
+3. `pages/me.js` (Mein Bereich), dann `core/router.js` (Navigation, R4-/Admin-Reiter, `LW_ROUTES`,
+   `showPage`, `renderAll`, Ansichten der Auswertungen)
+4. Seiten `assets/js/pages/`: `teams.js`, `entries.js` (Eintragen-Liste `/list`), `dashboard.js`
+   (Dashboard, Ranking-Tabelle), `members.js` (Verwaltung), `stats.js` (SE-Inaktiv, Ergebnis), `events.js`
+   (Wache/Wüste/Spezial/VS/Spenden), `admin.js`, `train.js` (Zug), `jobs.js` (Berufeplaner)
+5. `assets/js/start.js` (Sync, Presence, `initApp()` und der Startaufruf), danach `char-switcher.js`
+
+- Code oben in einer Datei (außerhalb von Funktionen) darf nur Dinge aus derselben oder einer **früher**
+  geladenen Datei benutzen. Innerhalb von Funktionen ist alles erlaubt, die laufen erst nach dem Start.
 - Eine Variable nie zweimal mit `let`/`const` anlegen, auch nicht in verschiedenen Dateien
   (das bricht die ganze Seite mit einem SyntaxError).
-
-Seiten, die schon eigene Dateien haben, liegen in `assets/js/pages/` (seit 16.11.2026: `events.js` = Events
-mit Wache/Wüste/Spezial/VS/Spenden, `admin.js` = Admin, `members.js` = Verwaltung, `stats.js` = Auswertungen
-SE-Inaktiv und Ergebnis, `train.js` = Zug, `jobs.js` = Berufeplaner). Ladereihenfolge in `index.html`: `i18n.js`, `deploy-refresh.js` → Kern → großes `<script>` →
-`pages/*.js` → `assets/js/start.js` (ruft `initApp()` auf) → `char-switcher.js`. `deploy-refresh.js` steht
-bewusst vor dem App-Code: es liest `?showversion`, bevor der Router die Adresse neu schreibt.
-
-- Eine neue Seiten-Datei kommt **vor** `start.js`, sonst ist sie beim Start der App noch nicht da.
-- Code im großen `<script>` darf beim Laden (außerhalb von Funktionen) nichts aus `pages/` aufrufen.
+- Neue Seite → eigene Datei in `pages/`, Tag **vor** `start.js` eintragen.
 
 - Dateien unter `assets/css/` und `assets/js/` in `index.html` **immer** mit `?v=dev` einbinden:
   `<link rel="stylesheet" href="assets/css/x.css?v=dev">`, `<script src="assets/js/x.js?v=dev">`.

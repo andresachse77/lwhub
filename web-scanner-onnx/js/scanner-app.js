@@ -1,0 +1,1789 @@
+// LWHub-Scanner – Haupt-Script der Scanner-Seite (index.html). Ausgelagert aus dem Inline-<script> (CSP ohne unsafe-inline).
+
+let activeApiUrl = LwhubAccess.apiCandidates()[0];
+
+window.cockpit = new CockpitState();
+const ocr = new BrowserOcr();
+ocr.onNotice = (text) => log(text);
+
+// Logger
+const logBox = document.getElementById('logBox');
+function log(msg) {
+  const line = document.createElement('div');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logBox.appendChild(line);
+  logBox.scrollTop = logBox.scrollHeight;
+  console.log(msg);
+}
+
+// 0. OCR-Engine im Browser starten
+const OCR_BACKEND_KEY = 'lwhub.scanner.ocrBackend';
+const backendSelect = document.getElementById('ocrBackendSelect');
+const ocrBadge = document.getElementById('ocrStatusBadge');
+const ocrButtons = ['btnHeaderStart', 'btnStartCapture', 'btnHeaderFiles', 'btnPickFiles'].map(id => document.getElementById(id));
+
+function readStoredBackend() {
+  try { return localStorage.getItem(OCR_BACKEND_KEY); } catch (_) { return null; }
+}
+function storeBackend(value) {
+  try { localStorage.setItem(OCR_BACKEND_KEY, value); } catch (_) {}
+}
+
+async function startOcrEngine() {
+  const backend = backendSelect.value;
+  ocrButtons.forEach(b => { b.disabled = true; });
+  ocrBadge.className = 'badge-stat warning';
+  ocrBadge.textContent = 'OCR startet…';
+  log(`Starte Browser-OCR (${backend === 'webgpu' ? 'WebGPU' : 'WebAssembly'})…`);
+  try {
+    // ?threads=N (per worker) and ?workers=N override the core-based split for benchmarking.
+    const params = new URLSearchParams(location.search);
+    const info = await ocr.init(backend, (text) => { ocrBadge.textContent = text; }, {
+      cores: Number(coresSelect.value),
+      threads: Number(params.get('threads')) || undefined,
+      workers: Number(params.get('workers')) || undefined,
+    });
+    const label = (info.backend === 'webgpu' ? 'WebGPU' : `CPU, ${info.threads} Thread${info.threads === 1 ? '' : 's'}`)
+      + (info.workers > 1 ? ` × ${info.workers} parallel` : '');
+    ocrBadge.className = 'badge-stat success';
+    ocrBadge.textContent = `OCR bereit (${label})`;
+    if (backend === 'webgpu' && info.backend !== 'webgpu') {
+      log('WebGPU ist in diesem Browser nicht verfügbar – verwende CPU.');
+      backendSelect.value = 'wasm';
+    }
+    log(`Browser-OCR bereit nach ${(info.ms / 1000).toFixed(1)} s (${label}).`);
+    ocrButtons.forEach(b => { b.disabled = false; });
+    updateCaptureButtons(captureStream !== null);
+  } catch (err) {
+    if (backend === 'webgpu') {
+      // A GPU/driver that WebGPU cannot use: fall back to the CPU for this visit (choice not stored).
+      log(`WebGPU konnte nicht gestartet werden (${err.message}) – verwende CPU.`);
+      backendSelect.value = 'wasm';
+      return startOcrEngine();
+    }
+    ocrBadge.className = 'badge-stat';
+    ocrBadge.textContent = 'OCR-Fehler';
+    log(`FEHLER: OCR-Engine konnte nicht gestartet werden: ${err.message}`);
+  }
+}
+
+// Default: the GPU when the browser offers WebGPU (about 3x faster), otherwise the CPU. Not on
+// iPhone/iPad: WebGPU there loses its device or stalls after a few full-size frames.
+const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const storedBackend = readStoredBackend();
+backendSelect.value = ['webgpu', 'wasm'].includes(storedBackend) ? storedBackend
+  : (navigator.gpu && !isAppleMobile ? 'webgpu' : 'wasm');
+backendSelect.addEventListener('change', () => {
+  storeBackend(backendSelect.value);
+  startOcrEngine();
+});
+
+// CPU-Kerne: 1 … alle logischen Prozessoren, Standard max − 1. Der Browser kennt keine P-/E-Kerne,
+// welche Kerne die Threads bekommen, entscheidet das Betriebssystem.
+const OCR_CORES_KEY = 'lwhub.scanner.ocrCores';
+const coresSelect = document.getElementById('ocrCoresSelect');
+for (let n = BrowserOcr.maxCores; n >= 1; n--) {
+  const { threads, workers } = BrowserOcr.split(n);
+  const opt = document.createElement('option');
+  opt.value = String(n);
+  opt.textContent = `${n}${n === BrowserOcr.defaultCores ? ' (max − 1)' : n === BrowserOcr.maxCores ? ' (alle)' : ''} → ${workers} × ${threads} Threads`;
+  coresSelect.appendChild(opt);
+}
+let storedCores = null;
+try { storedCores = Number(localStorage.getItem(OCR_CORES_KEY)) || null; } catch (_) {}
+coresSelect.value = String(storedCores && storedCores <= BrowserOcr.maxCores ? storedCores : BrowserOcr.defaultCores);
+coresSelect.addEventListener('change', () => {
+  try { localStorage.setItem(OCR_CORES_KEY, coresSelect.value); } catch (_) {}
+  startOcrEngine();
+});
+
+// 1. Dropzone "Neuer Spieler" ganz oben links initialisieren
+const dropzoneNew = document.getElementById('dropzoneNewPlayer');
+window.cockpit.attachDropHandlers(dropzoneNew, (cardId) => {
+  window.cockpit.assignCardAsNewPlayer(cardId);
+});
+
+// Zugang: lwhub-Login (Discord), der Server prueft R4/R5 per Token (js/lwhub-access.js).
+let accessOk = false;
+
+async function checkScannerAccess() {
+  const alliance = document.getElementById('allianceSelect').value;
+  const data = await LwhubAccess.check(activeApiUrl, alliance, 'Der Scanner');
+  accessOk = !!data;
+  document.getElementById('btnSyncToLwHub').disabled = !accessOk;
+  document.getElementById('linkTrend').href = `trend.html?alliance=${encodeURIComponent(alliance)}`;
+  document.getElementById('linkEvent').href = `event.html?alliance=${encodeURIComponent(alliance)}`;
+  if (!accessOk) return false;
+  log(`Zugang für ${alliance} bestätigt (${document.getElementById('userBadge').textContent.replace('🛡️ ', '')}).`);
+  loadLastUploads();
+  await loadMembers();
+  return true;
+}
+
+// Wer hat zuletzt gescannt (GET /scans/uploads, api/src/scan-uploads.php). Nur Anzeige, Fehler bleiben still.
+async function loadLastUploads() {
+  const badge = document.getElementById('lastUploadBadge');
+  const alliance = document.getElementById('allianceSelect').value;
+  try {
+    const resp = await fetch(`${activeApiUrl}/scans/uploads?alliance=${encodeURIComponent(alliance)}&limit=5`, {
+      headers: LwhubAccess.authHeaders(), signal: AbortSignal.timeout(10000),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    const fmt = (u) => {
+      const when = new Date(String(u.created_at).replace(' ', 'T')).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+      return `${u.scanner || 'unbekannt'} · ${when} · ${u.entries} Einträge`;
+    };
+    const list = data.uploads || [];
+    if (!list.length) {
+      badge.textContent = '🕓 Noch kein Upload protokolliert';
+      badge.title = 'Uploads werden seit dem 08.11.2026 mit Namen protokolliert.';
+    } else {
+      badge.textContent = `🕓 Zuletzt: ${fmt(list[0])}`;
+      badge.title = `Letzte Uploads nach LWHub (${alliance}):\n` + list.map(fmt).join('\n');
+    }
+    badge.hidden = false;
+  } catch {
+    badge.hidden = true;
+  }
+}
+document.getElementById('accessGateRetry').addEventListener('click', checkScannerAccess);
+
+// Allianzen laden (Vorauswahl: Allianz des aktiven Chars aus lwhub)
+async function initAlliances() {
+  const { apiUrl, alliances } = await LwhubAccess.findApi();
+  activeApiUrl = apiUrl;
+  await LwhubAccess.fillOwnAlliances(document.getElementById('allianceSelect'), apiUrl, alliances, LwhubAccess.preferredAlliance());
+  if (alliances.length) log(`API erreichbar unter ${activeApiUrl}.`);
+  await checkScannerAccess();
+  loadScanEvents('');
+}
+
+// 2. Mitglieder von LWHub laden
+async function loadMembers() {
+  if (!accessOk) return;
+  const alliance = document.getElementById('allianceSelect').value;
+  log(`Lade Mitgliederliste für Allianz ${alliance} von ${activeApiUrl}...`);
+  try {
+    const list = await MatchingEngine.fetchLwHubMembers(activeApiUrl, alliance);
+    window.cockpit.setMembers(list);
+    document.getElementById('memberCountBadge').textContent = `${list.length} Mitglieder`;
+    log(`Erfolgreich ${list.length} Mitglieder geladen.`);
+    renderDesert();
+  } catch (err) {
+    log(`HINWEIS: Konnte LWHub API (${activeApiUrl}) nicht erreichen (${err.message}). Verwende Test-Mitglieder.`);
+    const mockList = [
+      { id: '1', name: 'Lion Tooth', rank: 4, current_power: 164000000 },
+      { id: '2', name: 'DarkKnight', rank: 3, current_power: 142000000 },
+      { id: '3', name: 'Valkyrie', rank: 4, current_power: 189000000 },
+      { id: '4', name: 'ShadowHunter', rank: 3, current_power: 95000000 },
+      { id: '5', name: 'IronClad', rank: 3, current_power: 110000000 },
+      { id: '6', name: 'Phoenix', rank: 4, current_power: 175000000 }
+    ];
+    window.cockpit.setMembers(mockList);
+    document.getElementById('memberCountBadge').textContent = `${mockList.length} Mitglieder (Mock)`;
+  }
+}
+
+document.querySelectorAll('.pill-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    window.cockpit.setFilterMode(btn.dataset.filter);
+  });
+});
+
+const searchInput = document.getElementById('memberSearchInput');
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    window.cockpit.setSearchQuery(e.target.value);
+  });
+}
+
+const sortSelect = document.getElementById('memberSortSelect');
+if (sortSelect) {
+  sortSelect.addEventListener('change', (e) => {
+    window.cockpit.setSortMode(e.target.value);
+  });
+}
+
+document.getElementById('allianceSelect').addEventListener('change', async () => {
+  if (!await checkScannerAccess()) return;
+  log(`Allianz gewechselt auf ${document.getElementById('allianceSelect').value}. Kacheln wurden automatisch neu abgeglichen.`);
+});
+document.getElementById('btnReloadMembers').addEventListener('click', loadMembers);
+
+document.getElementById('btnRematch').addEventListener('click', () => {
+  window.cockpit.rematchAll();
+  log(`Manueller Neu-Abgleich aller Kacheln (${window.cockpit.scannedCardsPool.length}) durchgeführt.`);
+});
+
+// 🚀 Boost: waehrend der Verarbeitung nichts zeichnen, keine Kacheln bei Spielern (drag-drop.js). Einstellung bleibt im Browser.
+const btnBoost = document.getElementById('btnBoost');
+function showBoostState() {
+  btnBoost.setAttribute('aria-pressed', window.cockpit.boost ? 'true' : 'false');
+  btnBoost.textContent = window.cockpit.boost ? '🚀 Boost an' : '🚀 Boost';
+}
+btnBoost.addEventListener('click', () => {
+  window.cockpit.setBoost(!window.cockpit.boost);
+  showBoostState();
+  log(window.cockpit.boost
+    ? '🚀 Boost an: Listen erst am Ende, keine Kacheln bei den Spielern. Unklare Kacheln erscheinen am Ende rechts, unsichere Treffer am Ende mit Bild beim Spieler (⚠ bitte prüfen).'
+    : '🚀 Boost aus: alle Kacheln wieder mit Bild, Listen laufen live mit.');
+});
+showBoostState();
+if (window.cockpit.syncRender) log('🖌 Zeichnen ohne Bündeln (?render=sync) – nur zum Vergleichen.');
+
+document.getElementById('btnResetPool').addEventListener('click', () => {
+  if (confirm('Möchtest du wirklich alle bisher erfassten Scan-Kacheln aus dem Session-Pool verwerfen?\n\nDie im Browser gesicherten Ansichten dieser Runde werden dabei auch gelöscht.')) {
+    window.cockpit.resetAllScans();
+    ScanSession.clear();
+    document.getElementById('sessionRestoreBox').hidden = true;
+    desertStorm.clear();
+    desertMirrorTried.clear();
+    desertPresent.clear();
+    desertCrops.clear();
+    renderDesert();
+    seenRanks.clear();
+    rankGapsPending = false;
+    document.getElementById('rankGapBox').hidden = true;
+    resetScanTime();
+    log('Session-Pool und alle Zuweisungen geleert.');
+  }
+});
+
+// 3. Bildausschnitt für Kachel erstellen
+function cropCanvas(img, box, pad = 6) {
+  const x = Math.max(0, box.left - pad), y = Math.max(0, box.top - pad);
+  const w = (box.right - box.left) + pad * 2, h = (box.bottom - box.top) + pad * 2;
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, w); c.height = Math.max(1, h);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
+  return c;
+}
+
+// 4. Kacheln in Cockpit einspeisen
+// Allianz-Kuerzel vergleichen wie scanAllianceTagMatches() in api/src/members.php: OCR verwechselt 1/l/I/i/|
+// und 0/O, sonst exakt. Ein Zeichen Abweichung zaehlte bis 17.10. noch als gleich – dann waren NxU1 und
+// NxU2 dieselbe Allianz. Ein falsch gelesenes "NxU7" faellt dafuer jetzt heraus.
+function sameAllianceTag(a, b) {
+  const n = (t) => String(t || '').trim().toLowerCase().replace(/[il|]/g, '1').replace(/o/g, '0').replace(/[^a-z0-9]/g, '');
+  return n(a) === n(b);
+}
+
+const isValueMode = (mode) => mode === 'vs' || mode === 'kills' || mode === 'donation';
+const resultCount = (r) => r.mode === 'ranking' ? r.rankings.length : isValueMode(r.mode) ? r.vs_rows.length : r.cards.length;
+
+// Gesehene Platznummern je Liste: so faellt auf, wenn beim Scrollen Stellen uebersprungen wurden
+// (NxU2 am 17.10.: VS Di Platz 11–21, Kampfkraft Platz 60). Platz 1–3 sind Medaillen ohne Ziffer.
+// Je Platz wird gezaehlt, in wie vielen Ansichten er stand: das Listenende zaehlt erst ab zwei Ansichten,
+// damit eine einzelne falsch gelesene Nummer ("561") keine riesige Luecke vortaeuscht.
+const seenRanks = new Map();
+let rankGapsPending = false;
+
+function rankListLabel(result) {
+  if (result.mode === 'ranking') return 'Kampfkraft';
+  const type = result.vs && result.vs.type;
+  if (type === 'VS_DAY') return `VS ${result.vs.day || 'Tag'}`;
+  return { VS_WEEK: 'VS Woche', KILLS: 'Kills', DONATION_DAY: 'Spenden Tag', DONATION_WEEK: 'Spenden Woche' }[type] || null;
+}
+
+function noteRanks(result) {
+  const label = rankListLabel(result);
+  if (!label) return;
+  const rows = result.mode === 'ranking' ? result.rankings : result.vs_rows;
+  // Ohne Haken bei "Deine Allianz" zaehlt der VS-Rang ueber alle Allianzen – andere Platznummern
+  const alliance = document.getElementById('allianceSelect').value;
+  if (rows.some((r) => r.alliance_tag && !sameAllianceTag(r.alliance_tag, alliance))) return;
+  if (!seenRanks.has(label)) seenRanks.set(label, new Map());
+  const counts = seenRanks.get(label);
+  // Zeilen ohne lesbaren Wert (meist eine "0") wurden gesehen und gelten nicht als uebersprungen
+  const inView = new Set([...rows.map((r) => r.rank_position), ...(result.ranks_without_value || [])]
+    .map((p) => parseInt(p, 10)).filter((pos) => pos > 0));
+  for (const pos of inView) counts.set(pos, (counts.get(pos) || 0) + 1);
+  if (inView.size) rankGapsPending = true;
+}
+
+// Die Hinweise stehen in einem eigenen Kasten ueber dem Protokoll – im Protokoll wuerden sie beim naechsten
+// Scan sofort wegrollen. Waehrend des Live-Scans (live = true) nach jeder Ansicht neu, damit man noch beim
+// Scrollen sieht, wo man zurueck muss; ins Protokoll erst am Ende eines Durchlaufs.
+function reportRankGaps(live = false) {
+  if (!rankGapsPending) return;
+  if (!live) rankGapsPending = false;
+  const box = document.getElementById('rankGapBox');
+  box.replaceChildren();
+  for (const [label, counts] of seenRanks) {
+    const confirmed = [...counts].filter(([, n]) => n >= 2).map(([pos]) => pos);
+    if (!confirmed.length) continue;
+    const missing = [];
+    for (let p = 4; p <= Math.max(...confirmed); p++) if (!counts.has(p)) missing.push(p);
+    if (!missing.length) continue;
+    const spans = [];
+    for (const p of missing) {
+      const last = spans[spans.length - 1];
+      if (last && p === last[1] + 1) last[1] = p; else spans.push([p, p]);
+    }
+    const text = spans.map(([a, b]) => a === b ? `${a}` : `${a}–${b}`).join(', ');
+    const line = document.createElement('div');
+    line.textContent = `${label}: Platz ${text}`;
+    box.appendChild(line);
+    if (!live) log(`⚠️ ${label}: Platz ${text} nicht erfasst.`);
+  }
+  if (box.childElementCount) {
+    const head = document.createElement('strong');
+    head.textContent = live
+      ? '⚠️ Bisher übersprungen – noch einmal hochscrollen und langsam durch diese Stellen:'
+      : '⚠️ Nicht erfasst – diese Stellen der Liste noch einmal langsam durchscrollen:';
+    box.prepend(head);
+  }
+  box.hidden = box.childElementCount === 0;
+}
+
+// Wuestensturm (js/desert-storm.js): Mails und Protokoll werden nur gesammelt, keine Kacheln
+const desertStorm = DesertStorm.createCollector();
+// "<Kampfzeit>|<Name>" -> Punkte der unlesbaren Mail-Zeile (Auswahl "Wer ist das?") oder null ("war da")
+const desertPresent = new Map();
+const desertCrops = new Map(); // "<Kampfzeit>|<Punkte>" -> Bildausschnitt der unlesbaren Mail-Zeile
+let desertRenderTimer = null;
+function scheduleDesertRender() {
+  clearTimeout(desertRenderTimer);
+  desertRenderTimer = setTimeout(renderDesert, 300);
+}
+function desertReport() {
+  const members = window.cockpit.members || [];
+  return DesertStorm.evaluate(desertStorm, {
+    present: desertPresent,
+    // Mitglied samt Trefferguete: unter mehreren Lesarten eines Namens gewinnt die beste
+    match: (name) => {
+      const m = members.length ? MatchingEngine.findMatch({ name }, members) : null;
+      return m && !m.byPower ? { ...m.member, score: m.score } : null;
+    },
+  });
+}
+function renderDesert() {
+  const box = document.getElementById('desertBox');
+  box.replaceChildren();
+  const report = desertReport();
+  const hasLog = report.logCount > 0;
+  if (!report.battles.length && !hasLog) { box.hidden = true; return; }
+  box.hidden = false;
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  const head = el('div', 'desert-head');
+  head.appendChild(el('strong', null, '🏜 Wüstensturm – angemeldet, aber nicht erschienen'));
+  const copy = el('button', 'btn btn-sm btn-secondary', '📋 Ergebnis kopieren');
+  copy.disabled = !report.battles.length;
+  copy.addEventListener('click', async () => {
+    const text = DesertStorm.reportText(desertReport(), document.getElementById('allianceSelect').value);
+    try { await navigator.clipboard.writeText(text); copy.textContent = '✅ Kopiert'; }
+    catch { prompt('Ergebnis zum Kopieren:', text); }
+    setTimeout(() => { copy.textContent = '📋 Ergebnis kopieren'; }, 1500);
+  });
+  head.appendChild(copy);
+  box.appendChild(head);
+  // Hochgeladen wird mit dem einen Knopf "Nach LWHub übertragen" oben – hier nur, ob die Häkchen mitgehen
+  const block = desertBlockReason(report);
+  box.appendChild(el('div', 'desert-note' + (block ? ' warn' : ' ok'), block
+    ? `🚫 Wüste-Häkchen gehen noch nicht mit: ${block}`
+    : '🚀 Die Wüste-Häkchen (Anmeldung, Teilnahme, Fehlen) gehen mit „Nach LWHub übertragen“ oben mit.'));
+
+  box.appendChild(el('div', 'desert-note', hasLog
+    ? `Protokoll: ${report.logCount} Änderungen an der Aufstellung (${DesertStorm.fmtAt(report.logFrom)} – ${DesertStorm.fmtAt(report.logTo)}). Kampfergebnis-Mails: ${report.battles.length}.`
+    : 'Noch kein Protokoll erfasst: Events → Wüstensturm → Protokolle öffnen und bis Montag zurückscrollen.'));
+  if (!report.battles.length) {
+    box.appendChild(el('div', 'desert-note warn', 'Noch keine Kampfergebnis-Mail erfasst: Mail „[Wüstensturm]-Kampfergebnis!“ öffnen und die individuellen Punkte bis ganz unten durchscrollen.'));
+  }
+
+  for (const b of report.battles) {
+    const sec = el('div', 'desert-team');
+    const came = b.participants.filter((p) => p.attended).length;
+    sec.appendChild(el('h3', null, `⚔ Team ${b.team} (${b.team === 'B' ? 'Mittag' : 'Abend'}) · ${DesertStorm.fmtAt(b.at)}`));
+    const field = b.players.length + b.unnamed.length;
+    sec.appendChild(el('div', 'desert-note', `Angemeldet: ${b.participants.length} · davon erschienen: ${came} · auf dem Feld: ${field}`));
+    // Lueckenpruefung wie bei VS/Kampfkraft: welche Plaetze der Mail wurden nie gelesen?
+    const gaps = DesertStorm.missingPlaces(b);
+    if (b.lastRank > field || gaps.length) {
+      const where = gaps.length ? ` Nicht erfasst: <b>Platz ${gaps.join(', ')}</b>.` : '';
+      const warn = el('div', 'desert-note warn');
+      warn.innerHTML = `⚠️ Die Mail hat ${b.lastRank} Plätze, erfasst sind ${field}.${where} Die Mail noch einmal öffnen und langsam über diese Stelle scrollen – sonst fehlt jemand zu Unrecht.`;
+      sec.appendChild(warn);
+    }
+    // Protokoll muss bis Montag der Kampfwoche zurueckreichen, sonst fehlen Anmeldungen
+    const monday = new Date(`${b.at.slice(0, 10)}T12:00:00`);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    const mondayIso = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+    if (!b.logCount) sec.appendChild(el('div', 'desert-note warn', '⚠️ Kein Protokoll aus dieser Woche erfasst – Anmeldungen unbekannt.'));
+    else if (b.logFrom.slice(0, 10) > mondayIso) sec.appendChild(el('div', 'desert-note warn', `⚠️ Protokoll reicht nur bis ${DesertStorm.fmtAt(b.logFrom)} zurück – frühere Anmeldungen fehlen. Bis Montag zurückscrollen.`));
+
+    sec.appendChild(el('div', null, b.noShow.length ? '❌ Angemeldet, aber nicht erschienen:' : '✅ Alle Angemeldeten waren da.'));
+    const miss = el('ul', 'desert-list');
+    for (const p of b.noShow) {
+      const li = el('li', 'miss', p.name);
+      const btn = el('button', null, 'war da');
+      btn.title = 'Name in der Mail nicht lesbar? Als erschienen markieren';
+      btn.addEventListener('click', () => { desertPresent.set(`${b.at}|${p.name}`, null); renderDesert(); });
+      li.appendChild(btn);
+      miss.appendChild(li);
+    }
+    if (b.noShow.length) sec.appendChild(miss);
+    // Stellvertreter kommen nur rein, wenn ein Platz frei wird: nur zur Info, keine Strafpunkte
+    const idleSubs = b.substitutes.filter((s) => !s.attended);
+    if (b.unregistered.length) {
+      sec.appendChild(el('div', 'desert-note warn', `➕ Auf dem Feld, aber im Protokoll nicht in Team ${b.team} gefunden (bekommen trotzdem Anmeldung + Teilnahme). Meist wurde ein Protokoll-Eintrag nicht gelesen – das Protokoll an der Stelle noch einmal langsam scrollen:`));
+      const ul = el('ul', 'desert-list');
+      for (const p of b.unregistered) ul.appendChild(el('li', 'ok', `${p.name}${p.points != null ? ` (${p.points.toLocaleString('de-DE')})` : ''}`));
+      sec.appendChild(ul);
+    }
+    if (idleSubs.length) {
+      sec.appendChild(el('div', 'desert-note', 'ℹ️ Stellvertreter, nicht dabei (keine Strafe – Stellvertreter kommen nur rein, wenn ein Platz frei wird):'));
+      const ul = el('ul', 'desert-list');
+      for (const s of idleSubs) ul.appendChild(el('li', null, s.name));
+      sec.appendChild(ul);
+    }
+    // Unlesbare Namen: Bildausschnitt der Mail-Zeile zeigen und zuordnen lassen
+    const open = [...b.participants, ...b.substitutes].filter((p) => !p.attended);
+    for (const pts of b.unnamed) {
+      const row = el('div', 'desert-unnamed');
+      row.appendChild(el('div', 'desert-note warn', `❔ Name in der Mail nicht lesbar (${pts.toLocaleString('de-DE')} Punkte). Wer ist das?`));
+      const crop = desertCrops.get(`${b.at}|${pts}`);
+      if (crop) row.appendChild(crop);
+      const sel = el('select');
+      sel.appendChild(el('option', null, '– Spieler wählen –')).value = '';
+      // Oben: laut Protokoll angemeldet und nicht auf dem Feld; darunter alle anderen Mitglieder (auch ohne Protokoll)
+      if (open.length) {
+        const g = sel.appendChild(el('optgroup'));
+        g.label = 'Angemeldet, nicht auf dem Feld';
+        for (const p of open) g.appendChild(el('option', null, `${p.name}${p.role === 'sub' ? ' (Ersatz)' : ''}`)).value = p.name;
+      }
+      const taken = new Set([...open.map((p) => p.name), ...b.players.map((p) => p.name)]);
+      const rest = (window.cockpit.members || []).map((m) => m.name).filter((n) => n && !taken.has(n)).sort((x, y) => x.localeCompare(y));
+      if (rest.length) {
+        const g = sel.appendChild(el('optgroup'));
+        g.label = open.length ? 'Alle anderen Mitglieder' : 'Mitglieder';
+        for (const n of rest) g.appendChild(el('option', null, n)).value = n;
+      }
+      sel.addEventListener('change', () => { if (sel.value) { desertPresent.set(`${b.at}|${sel.value}`, pts); renderDesert(); } });
+      row.appendChild(sel);
+      sec.appendChild(row);
+    }
+
+    const det = el('details');
+    det.appendChild(el('summary', null, `Aufstellung laut Protokoll (${b.participants.length} Teilnehmer, ${b.substitutes.length} Ersatz)`));
+    const roster = (title, list) => {
+      det.appendChild(el('div', 'desert-note', title));
+      const ul = el('ul', 'desert-list');
+      for (const p of list) {
+        const manual = desertPresent.has(`${b.at}|${p.name}`);
+        const li = el('li', (p.attended ? 'ok' : '') + (manual ? ' manual' : ''), `${p.attended ? '✓' : '·'} ${p.name}${p.points != null ? ` (${p.points.toLocaleString('de-DE')})` : ''}`);
+        if (manual) {
+          const undo = el('button', null, '↶');
+          undo.title = 'Markierung „war da“ zurücknehmen';
+          undo.addEventListener('click', () => { desertPresent.delete(`${b.at}|${p.name}`); renderDesert(); });
+          li.appendChild(undo);
+        }
+        ul.appendChild(li);
+      }
+      det.appendChild(ul);
+    };
+    roster('Teilnehmer:', b.participants);
+    roster('Stellvertreter:', b.substitutes);
+    if (b.unregistered.length) roster('Auf dem Feld, aber laut Protokoll nicht in diesem Team:', b.unregistered.map((p) => ({ ...p, attended: true })));
+    sec.appendChild(det);
+    box.appendChild(sec);
+  }
+}
+
+// Warum die Wueste-Haekchen (noch) nicht hochgeladen werden duerfen; null = bereit.
+// Gesperrt ohne Protokoll und solange Mail-Zeilen fehlen – sonst bekaeme jemand zu Unrecht "Fehlen".
+function desertBlockReason(report = desertReport()) {
+  if (!report.battles.length) return 'noch keine Kampfergebnis-Mail erfasst.';
+  if (report.battles.some((b) => !b.logCount)) return 'Protokoll der Woche fehlt (Events → Wüstensturm → Protokolle).';
+  if (report.battles.some((b) => b.lastRank > b.players.length + b.unnamed.length)) return 'in einer Mail fehlen noch Zeilen – die fehlenden Plätze nachscannen.';
+  return null;
+}
+function desertHasData(report = desertReport()) {
+  return report.battles.length > 0 || report.logCount > 0;
+}
+
+function desertSummary() {
+  const weeks = DesertStorm.hubFlags(desertReport());
+  const count = (w, flag) => w.players.filter((p) => p.flags.includes(flag)).length;
+  const summary = weeks.map((w) => `KW ${w.year_week % 100}: ${w.players.length} Spieler – ${count(w, 'wuesteTeilnahme')}× Teilnahme, `
+    + `${count(w, 'wuesteFehlen')}× Fehlen, ${w.players.filter((p) => p.flags.length === 1 && p.flags[0] === 'wuesteAnmeldung').length}× nur Anmeldung`
+    + `\nFehlen (−15): ${w.players.filter((p) => p.flags.includes('wuesteFehlen')).map((p) => p.name).join(', ') || 'niemand'}`
+    + (w.unmatched.length ? `\nNicht zugeordnet (bekommen nichts): ${w.unmatched.join(', ')}` : '')).join('\n');
+  return summary;
+}
+
+// Laedt die Wueste-Haekchen hoch (Rueckfrage macht der gemeinsame Upload-Knopf). Wirft bei Fehlern.
+async function uploadDesertFlags(alliance) {
+  const weeks = DesertStorm.hubFlags(desertReport());
+  let changed = 0, unchanged = 0, skipped = 0;
+  for (const w of weeks) {
+    const resp = await fetch(`${activeApiUrl}/scans/desert-flags?alliance=${encodeURIComponent(alliance)}`, {
+      method: 'POST',
+      headers: { ...LwhubAccess.authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alliance, year_week: w.year_week, players: w.players.map(({ player_id, flags }) => ({ player_id, flags })) }),
+    });
+    const res = await resp.json().catch(() => ({}));
+    if (!resp.ok || !res.ok) throw new Error(res.error || `HTTP ${resp.status}`);
+    changed += res.changed; unchanged += res.unchanged; skipped += res.skipped.length;
+  }
+  log(`🏜 Wüste-Häkchen übertragen: ${changed} geändert, ${unchanged} schon richtig${skipped ? `, ${skipped} übersprungen` : ''}.`);
+  return { changed, unchanged, skipped };
+}
+
+// Spiegelschrift: manche schreiben ihren Namen rueckwaerts mit gespiegelten Buchstaben ("[NxU1]oɔɔoᗡ lƎ").
+// Normal liest die OCR davon nichts; waagerecht gespiegelt kommt "E|Docco[ruxH]" heraus (getestet 08.11.2026,
+// 83–90 % Sicherheit). Daher: Zeile ohne Namen einmal gespiegelt nachlesen. "[ruxH]" ist das gespiegelte Kuerzel.
+const desertMirrorTried = new Set();
+async function readMirroredName(img, u, width) {
+  const key = `${u.at}|${u.points}`;
+  if (desertMirrorTried.has(key)) return;
+  desertMirrorTried.add(key);
+  const crop = cropCanvas(img, { left: Math.round(width * 0.38), right: Math.round(width * 0.95), top: u.box.top, bottom: u.box.bottom }, 0);
+  const mirrored = document.createElement('canvas');
+  mirrored.width = crop.width; mirrored.height = crop.height;
+  const g = mirrored.getContext('2d');
+  g.translate(mirrored.width, 0); g.scale(-1, 1);
+  g.drawImage(crop, 0, 0);
+  try {
+    const r = await ocr.process(mirrored);
+    const best = (r.raw_lines || [])
+      .filter((l) => l.score >= 0.7 && (l.text.match(/[A-Za-z]/g) || []).length >= 3)
+      .sort((a, b) => b.text.length - a.text.length)[0];
+    if (!best) return;
+    const name = best.text
+      .replace(/\s*[[(][^\])]*[\])]?\s*$/, '') // gespiegeltes Kuerzel steht jetzt hinten: "Docco[ruxH]"
+      .replace(/\|/g, 'l')                    // "E|Docco" → "ElDocco"
+      .trim();
+    if (desertStorm.addName(u.at, name, u.points)) {
+      log(`🪞 Spiegelschrift gelesen: „${name}“ (${u.points.toLocaleString('de-DE')} Punkte).`);
+      scheduleDesertRender();
+    }
+  } catch (err) {
+    log(`⚠️ Spiegelschrift nicht lesbar (${u.points.toLocaleString('de-DE')} Punkte): ${err.message}`);
+  }
+}
+
+function processOcrResult(img, result) {
+  if (result.mode === 'unknown' && DesertStorm.detect(result.raw_lines || [], result.height)) {
+    desertStorm.feed(result.raw_lines, result.width, result.height);
+    // Ausschnitt der unlesbaren Zeile (Avatar + Name) einmal je Kampf und Punktzahl aufheben
+    for (const u of desertStorm.lastUnnamed) {
+      const key = `${u.at}|${u.points}`;
+      if (img && !desertCrops.has(key)) {
+        desertCrops.set(key, cropCanvas(img, { left: Math.round(result.width * 0.08), right: Math.round(result.width * 0.92), top: u.box.top, bottom: u.box.bottom }, 0));
+      }
+      if (img) readMirroredName(img, u, result.width);
+    }
+    scheduleDesertRender();
+    return;
+  }
+  noteRanks(result);
+  if (captureStream) reportRankGaps(true);
+  if (isValueMode(result.mode)) {
+    // VS (Allianz-Duell): beim gemischten Wochen-Rang stehen auch Spieler der Gegner-Allianz in der Liste.
+    // Kills und Spenden (Staerke-Rangliste) laufen als gleiche Wert-Kacheln, nur ohne Allianz-Kuerzel.
+    const alliance = document.getElementById('allianceSelect').value;
+    for (const row of result.vs_rows) {
+      if (row.alliance_tag && !sameAllianceTag(row.alliance_tag, alliance)) continue;
+      window.cockpit.addScannedCard({
+        name: row.name,
+        power: null,
+        level: null,
+        status: '',
+        vs: { type: result.vs.type, day: result.vs.day, points: row.points },
+        rank_position: row.rank_position,
+        confidence: row.confidence
+      }, cropCanvas(img, row.box, 4));
+    }
+    return;
+  }
+  if (result.mode === 'ranking') {
+    for (const row of result.rankings) {
+      const canvas = cropCanvas(img, row.box, 4);
+      window.cockpit.addScannedCard({
+        name: row.name,
+        power: row.power,
+        level: null,
+        status: row.rank_position ? `Rang #${row.rank_position}` : 'Rangliste',
+        rank_code: row.rank_code,
+        confidence: row.confidence
+      }, canvas);
+    }
+  } else {
+    for (const card of result.cards) {
+      const canvas = cropCanvas(img, card.box, 6);
+      window.cockpit.addScannedCard(card, canvas);
+    }
+  }
+}
+
+// 5. Fortschrittsanzeige (Screenshots & Live-Warteschlange)
+let filesRunActive = false;
+let processingCountdownTimer = null;
+let processingEstimatedEndAt = null;
+let stopProcessingRequested = false;
+
+function updateProcessingStopButton() {
+  const btn = document.getElementById('btnStopProcessing');
+  if (!btn) return;
+  btn.disabled = !(filesRunActive || captureTimer !== null || captureStream !== null || liveQueue.length > 0);
+}
+
+function setRemaining(n, label) {
+  const num = document.getElementById('processingRemaining');
+  num.textContent = String(n);
+  num.classList.toggle('done', n === 0);
+  document.getElementById('processingRemainingLabel').textContent = n === 0 ? 'fertig' : label;
+}
+
+function updateProcessingCountdown(completed, total) {
+  const countdown = document.getElementById('processingCountdown');
+  if (!countdown) return;
+  if (completed >= total) {
+    countdown.textContent = 'Fertig';
+  } else if (processingEstimatedEndAt === null) {
+    countdown.textContent = 'Restzeit wird ermittelt…';
+  } else {
+    const remainingSeconds = Math.max(0, Math.ceil((processingEstimatedEndAt - Date.now()) / 1000));
+    countdown.textContent = remainingSeconds > 0 ? `noch ca. ${remainingSeconds} s` : 'dauert länger als geschätzt…';
+  }
+}
+
+function setProcessingProgress(completed, total, startedAt, file, isProcessing) {
+  const container = document.getElementById('processingProgress');
+  const text = document.getElementById('processingProgressText');
+  const bar = document.getElementById('processingProgressBar');
+  if (!container || !text || !bar) return;
+  container.hidden = false;
+  bar.max = total;
+  bar.value = completed;
+  setRemaining(total - completed, 'Bilder übrig');
+  text.textContent = isProcessing
+    ? `Starte ${total} Bild${total === 1 ? '' : 'er'}…`
+    : `${completed}/${total} Bilder verarbeitet · zuletzt ${file}`;
+  if (completed > 0 && completed < total) {
+    const averagePerImage = (Date.now() - startedAt) / 1000 / completed;
+    processingEstimatedEndAt = Date.now() + (total - completed) * averagePerImage * 1000;
+  }
+  updateProcessingCountdown(completed, total);
+}
+
+// Decodes the file off the main thread; the ImageBitmap works for the OCR and for the card crops.
+function loadImageFile(file) {
+  return createImageBitmap(file).catch(() => { throw new Error('Bild konnte nicht gelesen werden'); });
+}
+
+// "Gerade in Arbeit": thumbnail, name and running time of every frame an OCR worker is busy with.
+const ocrActiveBox = document.getElementById('ocrActive');
+const activeJobs = new Map();
+let activeJobsTimer = null;
+
+function updateActiveJobs() {
+  const now = performance.now();
+  for (const job of activeJobs.values()) job.time.textContent = `${((now - job.started) / 1000).toFixed(1)} s`;
+  ocrActiveBox.hidden = activeJobs.size === 0;
+  if (activeJobs.size === 0 && activeJobsTimer !== null) { clearInterval(activeJobsTimer); activeJobsTimer = null; }
+}
+
+function ocrTracked(source, label) {
+  // 🚀 Boost: keine Vorschaubilder der laufenden Erkennung (wechseln bei 7 parallel staendig und flackern).
+  // Fortschritt zeigen Restzahl und Balken oben.
+  if (window.cockpit.boost) {
+    ocrActiveBox.hidden = activeJobs.size === 0;
+    return ocr.process(source);
+  }
+  const el = document.createElement('div');
+  el.className = 'ocr-job';
+  const thumb = document.createElement('canvas');
+  const sw = source.videoWidth || source.width, sh = source.videoHeight || source.height;
+  thumb.width = 100;
+  thumb.height = Math.max(1, Math.round(100 * sh / sw));
+  thumb.getContext('2d').drawImage(source, 0, 0, thumb.width, thumb.height);
+  const name = document.createElement('div');
+  name.className = 'ocr-job-label';
+  name.textContent = label;
+  name.title = label;
+  const time = document.createElement('div');
+  el.append(thumb, name, time);
+  ocrActiveBox.appendChild(el);
+  const job = { el, time, started: performance.now() };
+  activeJobs.set(job, job);
+  if (activeJobsTimer === null) activeJobsTimer = setInterval(updateActiveJobs, 200);
+  updateActiveJobs();
+  const p = ocr.process(source);
+  p.finally(() => { el.remove(); activeJobs.delete(job); updateActiveJobs(); }).catch(() => {});
+  return p;
+}
+
+// Runs OCR jobs on the worker pool: a job starts as soon as any worker is free (a slow frame no
+// longer holds up the others), while results reach onResult strictly in submission order.
+function createOrderedRunner(onResult) {
+  let submitted = 0, flushed = 0, running = 0;
+  const done = new Map();
+  const runner = {
+    onIdle: null,
+    get running() { return running; },
+    submit(meta, task) {
+      const i = submitted++;
+      running++;
+      task().then(data => ({ data }), error => ({ error })).then((r) => {
+        running--;
+        done.set(i, { meta, ...r });
+        while (done.has(flushed)) {
+          const item = done.get(flushed);
+          done.delete(flushed++);
+          try { onResult(item); } catch (e) { log(`FEHLER beim Übernehmen: ${e.message}`); }
+        }
+        runner.onIdle?.();
+      });
+    },
+  };
+  return runner;
+}
+
+// 6. Screenshots verarbeiten (ersetzt den Testlauf mit den lokalen Testbildern)
+async function processFiles(fileList) {
+  const all = Array.from(fileList);
+  const videos = all.filter(isVideoFile);
+  if (videos.length > 0) await processVideos(videos);
+  const files = all.filter(f => f.type.startsWith('image/'))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }));
+  if (filesRunActive || files.length === 0 || !ocr.ready) return;
+  for (const f of files) noteScanTime(f.lastModified);
+  filesRunActive = true;
+  stopProcessingRequested = false;
+  const startedAt = Date.now();
+  const fileButtons = [document.getElementById('btnPickFiles'), document.getElementById('btnHeaderFiles')];
+  fileButtons.forEach(b => { b.disabled = true; });
+  updateProcessingStopButton();
+  processingEstimatedEndAt = null;
+  if (processingCountdownTimer !== null) clearInterval(processingCountdownTimer);
+  processingCountdownTimer = setInterval(() => updateProcessingCountdown(0, files.length), 1000);
+  log(`Verarbeite ${files.length} Screenshot(s) im Browser (${ocr.size} parallel)...`);
+  let next = 0, completed = 0;
+  setProcessingProgress(0, files.length, startedAt, files[0].name, true);
+  try {
+    await new Promise((resolve) => {
+      const runner = createOrderedRunner(({ meta: file, data, error }) => {
+        if (error) {
+          log(`Fehler bei ${file.name}: ${error.message}`);
+        } else {
+          processOcrResult(data.img, data.data);
+          data.img.close();
+          keepCapture(file.name, file, data.data);
+          const count = resultCount(data.data);
+          log(`${file.name}: ${count} Kachel(n) erkannt (${(data.data.elapsed_ms / 1000).toFixed(1)} s).`);
+        }
+        completed++;
+        setProcessingProgress(completed, files.length, startedAt, file.name, false);
+      });
+      const pump = () => {
+        while (!stopProcessingRequested && next < files.length && runner.running < ocr.size) {
+          const file = files[next++];
+          runner.submit(file, () => loadImageFile(file).then(img => ocrTracked(img, file.name).then(data => ({ img, data }))));
+        }
+        if (runner.running === 0) resolve();
+      };
+      runner.onIdle = pump;
+      pump();
+    });
+    if (stopProcessingRequested) log('Verarbeitung durch Stop-Button abgebrochen.');
+    reportRankGaps();
+    // Messung zum Schluss gleich ausgeben, nicht erst nach den naechsten 10 s
+    setTimeout(() => window.cockpit.reportRenderStats(true), 200);
+  } finally {
+    clearInterval(processingCountdownTimer);
+    processingCountdownTimer = null;
+    filesRunActive = false;
+    fileButtons.forEach(b => { b.disabled = !ocr.ready; });
+    if (stopProcessingRequested) document.getElementById('processingProgressText').textContent = 'Verarbeitung gestoppt.';
+    updateProcessingStopButton();
+    window.cockpit.render(); // 🚀 Boost: jetzt erst die Listen zeichnen
+  }
+}
+
+// 6b. Bildschirmaufnahme als Video (z. B. iPhone: Safari kann den Bildschirm nicht live teilen)
+// The video plays (muted, off-screen) and every presented frame is looked at; whenever all OCR
+// workers are busy the video pauses, so processing never drops views and the scroll speed while
+// recording only matters as far as consecutive kept views still overlap. Playing instead of
+// seeking: iOS Safari often draws seeked frames of a paused video as black.
+// A frame where the list rests is kept at once; while scrolling, the stillest frame of each short
+// window is kept.
+const VIDEO_STEP_S = 0.1;
+const VIDEO_STILL = 0.004;
+const VIDEO_MAX_GAP_S = 0.3;
+const VIDEO_RATE = 2;
+
+function isVideoFile(f) {
+  return f.type.startsWith('video/') || /\.(mov|mp4|m4v|webm)$/i.test(f.name);
+}
+
+async function openVideo(file) {
+  if (!('requestVideoFrameCallback' in HTMLVideoElement.prototype)) {
+    throw new Error('Dieser Browser kann Videos nicht Bild für Bild auslesen – bitte einen aktuellen Browser verwenden.');
+  }
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  // In the DOM (but invisible) so Safari keeps decoding and presenting frames.
+  video.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;';
+  document.body.appendChild(video);
+  video.src = URL.createObjectURL(file);
+  try {
+    await new Promise((resolve, reject) => {
+      video.addEventListener('loadeddata', resolve, { once: true });
+      video.addEventListener('error', () => reject(new Error('Video konnte nicht gelesen werden (Format von diesem Browser nicht unterstützt?)')), { once: true });
+    });
+    return video;
+  } catch (err) {
+    closeVideo(video);
+    throw err;
+  }
+}
+
+function closeVideo(video) {
+  video.pause();
+  URL.revokeObjectURL(video.src);
+  video.removeAttribute('src');
+  video.load();
+  video.remove();
+}
+
+// Resolves with the media time of the next presented frame, or null once the video has ended.
+function nextVideoFrame(video) {
+  return new Promise((resolve) => {
+    if (video.ended) { resolve(null); return; }
+    const onEnded = () => { video.cancelVideoFrameCallback(id); resolve(null); };
+    video.addEventListener('ended', onEnded, { once: true });
+    const id = video.requestVideoFrameCallback((_, meta) => {
+      video.removeEventListener('ended', onEnded);
+      resolve(meta.mediaTime);
+    });
+  });
+}
+
+function drawVideoFrame(video) {
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  return canvas;
+}
+
+function setVideoProgress(name, t, duration, kept, open) {
+  document.getElementById('processingProgress').hidden = false;
+  setRemaining(open, 'Ansichten offen');
+  document.getElementById('processingProgressText').textContent =
+    `${name}: ${Math.round(t)}/${Math.round(duration)} s durchsucht · ${kept} Ansichten erfasst`;
+  document.getElementById('processingCountdown').textContent = '';
+  const bar = document.getElementById('processingProgressBar');
+  bar.max = duration;
+  bar.value = Math.min(t, duration);
+}
+
+async function processVideos(files) {
+  if (filesRunActive || !ocr.ready) return;
+  for (const f of files) noteScanTime(f.lastModified);
+  filesRunActive = true;
+  stopProcessingRequested = false;
+  const fileButtons = [document.getElementById('btnPickFiles'), document.getElementById('btnHeaderFiles')];
+  fileButtons.forEach(b => { b.disabled = true; });
+  updateProcessingStopButton();
+
+  const runner = createOrderedRunner(({ meta: { canvas, label }, data, error }) => {
+    if (error) { log(`Fehler bei ${label}: ${error.message}`); return; }
+    processOcrResult(canvas, data);
+    if (keepCaptureEnabled()) keepCapture(`${label}.png`, new Promise((resolve) => canvas.toBlob(resolve, 'image/png')), data);
+    log(`${label}: ${resultCount(data)} Kachel(n) erkannt (${(data.elapsed_ms / 1000).toFixed(1)} s).`);
+  });
+  let wake = null;
+  let onProgress = () => {};
+  runner.onIdle = () => { onProgress(); const w = wake; wake = null; w?.(); };
+  const waitUntil = async (cond) => { while (!cond()) await new Promise((r) => { wake = r; }); };
+
+  try {
+    for (const file of files) {
+      if (stopProcessingRequested) break;
+      let video;
+      try {
+        video = await openVideo(file);
+      } catch (err) {
+        log(`${file.name}: ${err.message}`);
+        continue;
+      }
+      try {
+        const duration = video.duration;
+        if (!Number.isFinite(duration) || duration <= 0) {
+          log(`${file.name}: Videolänge unbekannt – bitte als MP4 oder MOV aufnehmen.`);
+          continue;
+        }
+        log(`Video ${file.name}: ${duration.toFixed(1)} s, ${video.videoWidth}×${video.videoHeight} – suche geänderte Ansichten (${ocr.size} parallel)…`);
+        const base = file.name.replace(/\.[^.]+$/, '');
+        let t = 0, kept = 0, nextSample = 0, prevSig = null, lastKeptSig = null, cand = null;
+        onProgress = () => setVideoProgress(file.name, t, duration, kept, runner.running);
+
+        const play = () => video.play().catch((err) => { throw new Error(`Video lässt sich nicht abspielen (${err.message})`); });
+        const keep = async (c) => {
+          lastKeptSig = c.sig;
+          if (runner.running >= ocr.size) {
+            video.pause();
+            await waitUntil(() => runner.running < ocr.size || stopProcessingRequested);
+            if (stopProcessingRequested) return;
+            if (!video.ended) await play();
+          }
+          kept++;
+          const label = `${base} ${c.t.toFixed(1)} s`;
+          runner.submit({ canvas: c.canvas, label }, () => ocrTracked(c.canvas, label));
+        };
+
+        video.playbackRate = VIDEO_RATE;
+        await play();
+        for (;;) {
+          const mediaTime = await nextVideoFrame(video);
+          if (mediaTime === null || stopProcessingRequested) break;
+          if (mediaTime < nextSample) continue;
+          t = mediaTime;
+          nextSample = t + VIDEO_STEP_S;
+          const sig = frameSignature(video);
+          const motion = prevSig ? signatureDifference(prevSig, sig) : 1;
+          prevSig = sig;
+          if (lastKeptSig && signatureDifference(lastKeptSig, sig) < CHANGE_THRESHOLD) {
+            cand = null;
+          } else {
+            if (!cand || motion < cand.motion) {
+              cand = { t, sig, motion, since: cand ? cand.since : t, canvas: drawVideoFrame(video) };
+            }
+            if (motion < VIDEO_STILL || t - cand.since >= VIDEO_MAX_GAP_S) {
+              await keep(cand);
+              cand = null;
+            }
+          }
+          onProgress();
+        }
+        if (cand && !stopProcessingRequested) await keep(cand);
+        t = duration;
+        onProgress();
+        log(`Video ${file.name}: ${kept} Ansichten an die Texterkennung übergeben.`);
+      } catch (err) {
+        log(`${file.name}: ${err.message}`);
+      } finally {
+        closeVideo(video);
+      }
+    }
+    await waitUntil(() => runner.running === 0);
+    onProgress();
+    if (stopProcessingRequested) log('Verarbeitung durch Stop-Button abgebrochen.');
+    reportRankGaps();
+    // Messung zum Schluss gleich ausgeben, nicht erst nach den naechsten 10 s
+    setTimeout(() => window.cockpit.reportRenderStats(true), 200);
+  } finally {
+    filesRunActive = false;
+    fileButtons.forEach(b => { b.disabled = !ocr.ready; });
+    if (stopProcessingRequested) document.getElementById('processingProgressText').textContent = 'Verarbeitung gestoppt.';
+    updateProcessingStopButton();
+    window.cockpit.render(); // 🚀 Boost: jetzt erst die Listen zeichnen
+  }
+}
+
+const screenshotInput = document.getElementById('screenshotInput');
+screenshotInput.addEventListener('change', () => {
+  processFiles(screenshotInput.files);
+  screenshotInput.value = '';
+});
+document.getElementById('btnPickFiles').addEventListener('click', () => screenshotInput.click());
+document.getElementById('btnHeaderFiles').addEventListener('click', () => screenshotInput.click());
+
+// Screenshots auch per Drag & Drop auf den rechten Bereich
+const rightPane = document.querySelector('.pane-right');
+rightPane.addEventListener('dragover', (e) => {
+  if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) e.preventDefault();
+});
+rightPane.addEventListener('drop', (e) => {
+  if (!e.dataTransfer || e.dataTransfer.files.length === 0) return;
+  e.preventDefault();
+  processFiles(e.dataTransfer.files);
+});
+
+// 7. Live Screen-Capture
+// Changed frames are captured on a fixed tick and queued; the OCR worker pool drains the queue
+// (one frame per worker at a time) and keeps draining after Stop.
+const CHANGE_THRESHOLD = 0.015;
+// Wartende Ansichten liegen als PNG im Speicher (~1 MB statt ~5 MB als Rohbild): so passen 250 hinein,
+// genug fuer ein langes Wuestensturm-Protokoll und gleich danach die Mail. Erst darueber wird verworfen.
+const MAX_LIVE_QUEUE = 250;
+const QUEUE_WARN_AT = 60; // ab hier oben deutlich "Bitte kurz warten"
+let liveDropped = 0;
+let captureStream = null;
+let captureTimer = null;
+let prevSignature = null;
+let liveQueue = [];
+// Laeuft gerade eine Verarbeitung? Im 🚀 Boost zeichnet das Cockpit dann nur die Zaehler (drag-drop.js, renderNow)
+window.scannerBusy = () => filesRunActive || captureStream !== null || liveQueue.length > 0 || liveRunner.running > 0;
+let liveFrameCount = 0;
+
+function frameSignature(canvas) {
+  const small = document.createElement('canvas');
+  small.width = 48; small.height = 32;
+  const sctx = small.getContext('2d');
+  sctx.drawImage(canvas, 0, 0, 48, 32);
+  const data = sctx.getImageData(0, 0, 48, 32).data;
+  const sig = new Uint8Array(48 * 32);
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    sig[p] = (data[i] * 299 + data[i + 1] * 587 + data[i + 2] * 114) / 1000;
+  }
+  return sig;
+}
+
+function signatureDifference(a, b) {
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) sum += Math.abs(a[i] - b[i]);
+  return sum / (255 * a.length);
+}
+
+const liveVideo = document.getElementById('liveVideoPreview');
+const btnStart = document.getElementById('btnStartCapture');
+const btnStop = document.getElementById('btnStopCapture');
+const btnHeaderStart = document.getElementById('btnHeaderStart');
+const btnHeaderStop = document.getElementById('btnHeaderStop');
+const captureStatusText = document.getElementById('captureStatusText');
+
+// Safari on iPhone/iPad (and most mobile browsers) cannot share the screen with a web page:
+// hide the live scan there and point to the video import instead.
+const canCaptureScreen = !!navigator.mediaDevices?.getDisplayMedia;
+if (!canCaptureScreen) {
+  [btnStart, btnStop, btnHeaderStart, btnHeaderStop].forEach(b => { b.style.display = 'none'; });
+  document.getElementById('btnHeaderFiles').textContent = '🎬 Video / Screenshots';
+  captureStatusText.textContent = 'Live-Scan geht in diesem Browser nicht (z. B. Safari auf dem iPhone). Stattdessen: '
+    + 'Bildschirmaufnahme im Kontrollzentrum starten, im Spiel durch die Liste scrollen (darf zügig sein), '
+    + 'Aufnahme beenden und das Video hier über „Screenshots / Video laden“ auswählen.';
+  log('Dieser Browser kann den Bildschirm nicht live teilen – bitte eine Bildschirmaufnahme als Video hochladen.');
+}
+
+function updateCaptureButtons(running) {
+  btnStart.disabled = running || !ocr.ready;
+  btnStop.disabled = !running;
+  btnHeaderStart.disabled = running || !ocr.ready;
+  btnHeaderStop.disabled = !running;
+  updateProcessingStopButton();
+}
+
+function updateLiveStatus() {
+  const busy = liveQueue.length + liveRunner.running;
+  const state = captureStream ? 'Scan aktiv' : (busy > 0 ? 'Gestoppt, verarbeite Rest' : 'Gestoppt');
+  captureStatusText.textContent = `${state} – ${liveFrameCount} Ansichten erfasst, ${liveRunner.running} in Arbeit, ${liveQueue.length} wartend.`;
+  // Same panel as for screenshots (unless a screenshot run is using it): big number = frames still open
+  if (!filesRunActive && (captureStream || busy > 0 || liveFrameCount > 0)) {
+    document.getElementById('processingProgress').hidden = false;
+    setRemaining(busy, 'Ansichten offen');
+    document.getElementById('processingProgressText').textContent = `${state} · ${liveFrameCount} Ansichten erfasst`;
+    document.getElementById('processingCountdown').textContent = '';
+    const bar = document.getElementById('processingProgressBar');
+    bar.max = Math.max(1, liveFrameCount);
+    bar.value = liveFrameCount - busy;
+  }
+  // Deutlicher Hinweis statt nur einer Zeile im Protokoll
+  const warn = document.getElementById('queueWarnBox');
+  if (liveDropped > 0) {
+    warn.className = 'queue-warn-box drop';
+    warn.textContent = `⚠️ ${liveDropped} Ansichten verworfen, weil zu schnell gescrollt wurde. Die zuletzt gescannte Liste noch einmal langsam durchscrollen.`;
+    warn.hidden = false;
+  } else if (liveQueue.length >= QUEUE_WARN_AT) {
+    warn.className = 'queue-warn-box';
+    warn.textContent = `⏳ Bitte kurz warten – der Scanner holt auf (${liveQueue.length} Ansichten wartend). Erst weiterscrollen oder die nächste Liste öffnen, wenn die Zahl deutlich kleiner ist.`;
+    warn.hidden = false;
+  } else {
+    warn.hidden = true;
+  }
+}
+
+// Wartende Ansicht als PNG packen und erst bei der Erkennung wieder auspacken
+function packFrame(canvas) {
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+async function unpackFrame(blob) {
+  const bmp = await createImageBitmap(blob);
+  const canvas = document.createElement('canvas');
+  canvas.width = bmp.width;
+  canvas.height = bmp.height;
+  canvas.getContext('2d').drawImage(bmp, 0, 0);
+  bmp.close();
+  return canvas;
+}
+
+// Live frames go through the same ordered runner: every free worker takes the next queued frame.
+const liveRunner = createOrderedRunner(({ meta: { canvas, label, blob }, data, error }) => {
+  if (error) { log(`FEHLER bei ${label}: ${error.message}`); return; }
+  processOcrResult(canvas, data);
+  if (keepCaptureEnabled()) keepCapture(`${label}.png`, blob || packFrame(canvas), data);
+  const count = resultCount(data);
+  log(`${label}: ${count} Kachel(n) erkannt (${(data.elapsed_ms / 1000).toFixed(1)} s, ${liveQueue.length} wartend).`);
+});
+
+function drainLiveQueue() {
+  while (liveQueue.length > 0 && liveRunner.running < ocr.size) {
+    const job = liveQueue.shift();
+    liveRunner.submit(job, async () => {
+      job.blob = await job.packed;
+      job.canvas = await unpackFrame(job.blob);
+      return ocrTracked(job.canvas, job.label);
+    });
+  }
+  updateLiveStatus();
+  updateProcessingStopButton();
+  if (liveRunner.running === 0 && liveQueue.length === 0 && !captureStream) {
+    window.cockpit.render();
+    reportRankGaps();
+    // Messung zum Schluss eines Scans gleich ausgeben, nicht erst nach den naechsten 10 s
+    setTimeout(() => window.cockpit.reportRenderStats(true), 200);
+  }
+}
+liveRunner.onIdle = drainLiveQueue;
+
+async function startCapture() {
+  if (!ocr.ready) return;
+  // Alte gesicherte Runde nicht auswerten lassen, aber neu scannen: sonst mischen sich alte und neue Ansichten
+  if (!document.getElementById('sessionRestoreBox').hidden) {
+    if (confirm('Es gibt noch gesicherte Ansichten einer früheren Runde (Hinweis oben).\n\nOK = verwerfen und neu anfangen\nAbbrechen = behalten, die neuen Ansichten kommen dazu')) {
+      await ScanSession.clear();
+    }
+    document.getElementById('sessionRestoreBox').hidden = true;
+  }
+  try {
+    captureStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5, displaySurface: 'window' }, audio: false });
+    liveVideo.srcObject = captureStream;
+    liveVideo.style.display = 'block';
+    await liveVideo.play();
+
+    prevSignature = null;
+    liveFrameCount = 0;
+    liveDropped = 0;
+    updateCaptureButtons(true);
+    document.getElementById('scanStatusBadge').textContent = 'Scan läuft';
+    document.getElementById('scanStatusBadge').className = 'badge-stat success';
+    log('Live-Scan gestartet. Scrolle die Liste langsam – diese Seite liest nur Pixel, sie klickt oder scrollt nie selbst.');
+
+    captureStream.getVideoTracks()[0].addEventListener('ended', stopCapture);
+    captureTimer = setInterval(() => {
+      if (!captureStream || liveVideo.videoWidth === 0) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = liveVideo.videoWidth;
+      canvas.height = liveVideo.videoHeight;
+      canvas.getContext('2d').drawImage(liveVideo, 0, 0);
+
+      const sig = frameSignature(canvas);
+      if (prevSignature && signatureDifference(prevSignature, sig) < CHANGE_THRESHOLD) return;
+      prevSignature = sig;
+      liveFrameCount++;
+      if (liveQueue.length >= MAX_LIVE_QUEUE) {
+        liveQueue.shift();
+        liveDropped++;
+        log('Warteschlange voll – älteste Ansicht verworfen. Bitte langsamer scrollen.');
+      }
+      // Gleich packen; das Rohbild wird danach nicht mehr gebraucht
+      const capturedAt = Date.now();
+      noteScanTime(capturedAt);
+      const packed = packFrame(canvas);
+      const alliance = document.getElementById('allianceSelect').value;
+      packed.then((blob) => ScanSession.add({ blob, label: `Ansicht ${liveFrameCount}`, at: capturedAt, alliance }))
+        .then((ok) => { if (ok === false && !sessionWarned) { sessionWarned = true; log('⚠️ Ansichten können im Browser nicht gesichert werden (Speicher voll oder privates Fenster) – bei einem Absturz wären sie weg.'); } });
+      liveQueue.push({ packed, label: `Ansicht ${liveFrameCount}` });
+      updateLiveStatus();
+      drainLiveQueue();
+    }, 800);
+  } catch (err) {
+    captureStream = null;
+    log('Freigabe abgebrochen: ' + err.message);
+  }
+}
+
+btnStart.addEventListener('click', startCapture);
+btnHeaderStart.addEventListener('click', startCapture);
+
+function stopCapture() {
+  if (captureTimer) clearInterval(captureTimer);
+  captureTimer = null;
+  if (captureStream) captureStream.getTracks().forEach(t => t.stop());
+  captureStream = null;
+  liveVideo.style.display = 'none';
+  liveVideo.srcObject = null;
+  updateCaptureButtons(false);
+  document.getElementById('scanStatusBadge').textContent = 'Gestoppt';
+  document.getElementById('scanStatusBadge').className = 'badge-stat';
+  log(liveQueue.length > 0
+    ? `Live-Scan beendet. ${liveQueue.length} Ansichten werden noch verarbeitet.`
+    : 'Live-Scan beendet.');
+  updateLiveStatus();
+  if (liveRunner.running === 0) window.cockpit.render();
+  if (liveRunner.running === 0 && liveQueue.length === 0) reportRankGaps();
+}
+
+btnStop.addEventListener('click', stopCapture);
+btnHeaderStop.addEventListener('click', stopCapture);
+
+// Zentrale Stop-Funktion: bricht Screenshot-Verarbeitung UND Live-Scan inkl. Warteschlange ab
+function stopImageProcessing() {
+  if (filesRunActive) {
+    stopProcessingRequested = true;
+    log('Bildverarbeitung (Screenshots) wird nach dem aktuellen Bild gestoppt.');
+  }
+  if (liveQueue.length > 0) {
+    log(`${liveQueue.length} wartende Ansichten verworfen.`);
+    liveQueue = [];
+  }
+  if (captureTimer !== null || captureStream !== null) stopCapture();
+  updateProcessingStopButton();
+}
+document.getElementById('btnStopProcessing').addEventListener('click', stopImageProcessing);
+
+// 7b. Scanzeit der Runde: erste Aufnahme (Live-Ansicht, Screenshot- oder Videodatei). Damit zaehlt ein Scan
+//     zu der Zeit, zu der er gemacht wurde, nicht wenn er nach dem Nachbearbeiten hochgeladen wird.
+//     Eine Runde endet mit "Pool leeren".
+const scanRound = { firstAt: null, edited: false };
+const scanTimeInput = document.getElementById('scanTime');
+const pad2 = (n) => String(n).padStart(2, '0');
+function toLocalInput(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+// Serverzeit im Spiel: UTC−2
+function serverTimeHm(ms) {
+  const d = new Date(ms - 2 * 3600 * 1000);
+  return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+}
+function scanTimeLabel(ms) {
+  const d = new Date(ms);
+  return `${d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })} ${pad2(d.getHours())}:${pad2(d.getMinutes())} (${serverTimeHm(ms)} ST)`;
+}
+function scanTimeMs() {
+  const v = scanTimeInput.value ? new Date(scanTimeInput.value).getTime() : NaN;
+  return Number.isFinite(v) ? v : null;
+}
+function scanTimeIso() {
+  const ms = scanTimeMs();
+  return new Date(ms && ms <= Date.now() + 60000 ? ms : Date.now()).toISOString();
+}
+function renderScanTime() {
+  if (!scanRound.edited) scanTimeInput.value = scanRound.firstAt ? toLocalInput(scanRound.firstAt) : '';
+  const ms = scanTimeMs();
+  const info = document.getElementById('scanTimeInfo');
+  if (!ms) { info.textContent = 'noch keine Aufnahme – sonst Upload-Zeit'; return; }
+  info.textContent = `= ${serverTimeHm(ms)} ST · ${scanRound.edited ? 'von Hand' : 'erste Aufnahme'}`;
+  document.dispatchEvent(new CustomEvent('scantime:change', { detail: { ms } }));
+}
+function noteScanTime(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return;
+  if (scanRound.firstAt && ms >= scanRound.firstAt) return;
+  scanRound.firstAt = ms;
+  renderScanTime();
+}
+function resetScanTime() {
+  scanRound.firstAt = null;
+  scanRound.edited = false;
+  renderScanTime();
+}
+scanTimeInput.addEventListener('change', () => {
+  scanRound.edited = !!scanTimeInput.value;
+  renderScanTime();
+});
+renderScanTime();
+
+// 7c. Absturzsicher: gesicherte Ansichten einer nicht abgeschlossenen Runde anbieten (js/scan-session.js)
+let sessionWarned = false;
+async function offerSessionRestore() {
+  await ScanSession.dropStale();
+  const info = await ScanSession.info();
+  const box = document.getElementById('sessionRestoreBox');
+  if (!info) { box.hidden = true; return; }
+  const allianceNote = info.alliances.length ? `, ${info.alliances.join(' / ')}` : '';
+  document.getElementById('sessionRestoreText').innerHTML =
+    `<strong>Gesicherte Scan-Runde gefunden:</strong> ${info.count} Ansichten ab ${scanTimeLabel(info.firstAt)}${allianceNote}. ` +
+    'Neu auswerten lässt alle Bilder noch einmal durch die Erkennung laufen, die Scanzeit bleibt die der ersten Ansicht.';
+  box.hidden = false;
+}
+document.getElementById('btnSessionRestore').addEventListener('click', async () => {
+  const btn = document.getElementById('btnSessionRestore');
+  btn.disabled = true;
+  try {
+    const info = await ScanSession.info();
+    const selected = document.getElementById('allianceSelect').value;
+    if (info?.alliances.length && !info.alliances.includes(selected)
+        && !confirm(`Die Runde wurde für ${info.alliances.join(' / ')} gescannt, gewählt ist ${selected}. Trotzdem für ${selected} auswerten?`)) return;
+    for (let i = 0; i < 120 && !ocr.ready; i++) await new Promise((r) => setTimeout(r, 500)); // OCR startet noch
+    if (!ocr.ready) { alert('Die Texterkennung ist noch nicht bereit. Bitte gleich noch einmal versuchen.'); return; }
+    const files = await ScanSession.files();
+    log(`Werte ${files.length} gesicherte Ansichten neu aus…`);
+    document.getElementById('sessionRestoreBox').hidden = true;
+    await processFiles(files);
+  } finally {
+    btn.disabled = false;
+  }
+});
+document.getElementById('btnSessionDiscard').addEventListener('click', async () => {
+  if (!confirm('Gesicherte Ansichten dieser Runde endgültig löschen?')) return;
+  await ScanSession.clear();
+  document.getElementById('sessionRestoreBox').hidden = true;
+  log('Gesicherte Ansichten gelöscht.');
+});
+offerSessionRestore();
+
+// 7d. Event der Scan-Runde: eigene Events der Allianz anlegen (POST /alliance-events) und zeigen, ob die
+//     Scanzeit vor oder nach dem Start liegt. Spezialevents des Servers (Events → Spezial) erscheinen zur
+//     Auswahl, geaendert werden sie weiter dort.
+let scanEvents = [];
+const evPick = document.getElementById('evPick');
+const evForm = document.getElementById('evForm');
+const EV_PICK_KEY = 'lwhub.scanner.event';
+const evKey = (e) => (e.kind === 'alliance' ? `a:${e.id}` : `s:${e.year_week}`);
+const evDayLabel = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+const evMs = (date, hm) => new Date(`${date}T${hm}`).getTime();
+// Ende vor dem Start (22:00–02:00): Ende am Folgetag
+const evEndMs = (e) => { const s = evMs(e.event_date, e.start); let x = evMs(e.event_date, e.end); if (x <= s) x += 86400000; return x; };
+const evStMs = (date, hm) => serverTimeHm(evMs(date, hm));
+
+async function loadScanEvents(selectKey) {
+  const alliance = document.getElementById('allianceSelect').value;
+  if (!activeApiUrl || !alliance) return;
+  try {
+    const r = await fetch(`${activeApiUrl}/special-events?alliance=${encodeURIComponent(alliance)}`);
+    const d = await r.json();
+    applyScanEvents(d, alliance, selectKey);
+  } catch (_) { /* ohne Liste geht der Scan trotzdem */ }
+}
+function applyScanEvents(d, alliance, selectKey) {
+  const server = (d.events || []).filter((e) => !e.no_event && e.event_date && e.start && e.end).map((e) => ({ ...e, kind: 'server' }));
+  const own = (d.alliance_events || []).map((e) => ({ ...e, kind: 'alliance' }));
+  scanEvents = [...own, ...server].sort((a, b) => `${b.event_date}T${b.start}`.localeCompare(`${a.event_date}T${a.start}`)).slice(0, 25);
+  document.getElementById('evFTitles').innerHTML = '';
+  for (const t of d.titles || []) { const o = document.createElement('option'); o.value = t; document.getElementById('evFTitles').appendChild(o); }
+  let keep = selectKey || evPick.value;
+  if (!keep) { try { keep = localStorage.getItem(EV_PICK_KEY) || ''; } catch (_) {} }
+  evPick.innerHTML = '<option value="">– kein Event –</option>';
+  for (const e of scanEvents) {
+    const o = document.createElement('option');
+    o.value = evKey(e);
+    o.textContent = `${e.kind === 'alliance' ? '🛡 ' + alliance : '🌐 Server'} · ${e.title || 'Event'} · ${evDayLabel(e.event_date)} ${e.start}–${e.end} (${evStMs(e.event_date, e.start)}–${evStMs(e.event_date, e.end)} ST)`;
+    evPick.appendChild(o);
+  }
+  evPick.value = scanEvents.some((e) => evKey(e) === keep) ? keep : '';
+  renderEventInfo();
+}
+const pickedEvent = () => scanEvents.find((e) => evKey(e) === evPick.value) || null;
+
+// Zaehlt die Scanzeit als Vorher- oder Nachher-Scan? (Regel wie /scans/event-compare)
+function renderEventInfo() {
+  const ev = pickedEvent();
+  document.getElementById('evEditBtn').hidden = !(ev && ev.kind === 'alliance');
+  const info = document.getElementById('evPickInfo');
+  info.className = 'event-bar-info';
+  if (!ev) { info.textContent = ''; return; }
+  const ms = scanTimeMs() || Date.now();
+  const start = evMs(ev.event_date, ev.start);
+  const end = evEndMs(ev);
+  const when = scanTimeMs() ? 'Scanzeit' : 'Jetzt';
+  if (ms <= start && ms >= start - 12 * 3600000) {
+    info.textContent = `✅ ${when} ${serverTimeHm(ms)} ST → zählt als VORHER-Scan (Start ${evStMs(ev.event_date, ev.start)} ST)`;
+    info.classList.add('ok');
+  } else if (ms > start && ms <= end + 90 * 60000) {
+    info.textContent = `✅ ${when} ${serverTimeHm(ms)} ST → zählt als NACHHER-Scan (Ende ${evStMs(ev.event_date, ev.end)} ST, bis 90 Min. danach)`;
+    info.classList.add('ok');
+  } else {
+    info.textContent = `⚠️ ${when} ${serverTimeHm(ms)} ST liegt außerhalb dieses Events (vorher: bis 12 Std. vor dem Start, nachher: bis 90 Min. nach dem Ende)`;
+    info.classList.add('warn');
+  }
+}
+evPick.addEventListener('change', () => {
+  try { localStorage.setItem(EV_PICK_KEY, evPick.value); } catch (_) {}
+  evForm.hidden = true;
+  renderEventInfo();
+});
+document.addEventListener('scantime:change', renderEventInfo);
+setInterval(() => { if (!scanTimeMs()) renderEventInfo(); }, 30000); // "Jetzt" mitlaufen lassen
+
+function updateFormSt() {
+  const d = document.getElementById('evFDate').value;
+  for (const [inp, out] of [['evFStart', 'evFStartSt'], ['evFEnd', 'evFEndSt']]) {
+    const v = document.getElementById(inp).value;
+    document.getElementById(out).textContent = d && v ? `= ${evStMs(d, v)} ST` : '';
+  }
+}
+for (const id of ['evFDate', 'evFStart', 'evFEnd']) document.getElementById(id).addEventListener('input', updateFormSt);
+
+function openEventForm(ev) {
+  evForm.hidden = false;
+  evForm.dataset.id = ev?.id || '';
+  const now = new Date();
+  const day = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  // Vorschlag fuer ein neues Event: naechste volle Stunde, eine Stunde lang
+  const nextHour = `${pad2((now.getHours() + 1) % 24)}:00`;
+  const after = `${pad2((now.getHours() + 2) % 24)}:00`;
+  document.getElementById('evFTitle').value = ev?.title || '';
+  document.getElementById('evFDate').value = ev?.event_date || day;
+  document.getElementById('evFStart').value = ev?.start || nextHour;
+  document.getElementById('evFEnd').value = ev?.end || after;
+  document.getElementById('evFDelete').hidden = !ev;
+  updateFormSt();
+  document.getElementById('evFTitle').focus();
+}
+document.getElementById('evNewBtn').addEventListener('click', () => openEventForm(null));
+document.getElementById('evEditBtn').addEventListener('click', () => openEventForm(pickedEvent()));
+document.getElementById('evFCancel').addEventListener('click', () => { evForm.hidden = true; });
+
+async function postAllianceEvent(body) {
+  const alliance = document.getElementById('allianceSelect').value;
+  const discordId = LwhubAccess.readStorageJson('iny_auth_state_v1')?.discord_id || '';
+  const resp = await fetch(`${activeApiUrl}/alliance-events?alliance=${encodeURIComponent(alliance)}`, {
+    method: 'POST',
+    headers: { ...LwhubAccess.authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, alliance, discord_id: discordId }),
+  });
+  const d = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(d.error || `HTTP ${resp.status}`);
+  return { d, alliance };
+}
+evForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = {
+    title: document.getElementById('evFTitle').value.trim(),
+    event_date: document.getElementById('evFDate').value,
+    start: document.getElementById('evFStart').value,
+    end: document.getElementById('evFEnd').value,
+  };
+  if (evForm.dataset.id) body.id = Number(evForm.dataset.id);
+  try {
+    const { d, alliance } = await postAllianceEvent(body);
+    evForm.hidden = true;
+    applyScanEvents(d, alliance, d.saved_id ? `a:${d.saved_id}` : '');
+    try { localStorage.setItem(EV_PICK_KEY, evPick.value); } catch (_) {}
+    log(`🎯 Event „${body.title}“ gespeichert (${evDayLabel(body.event_date)} ${body.start}–${body.end}, ${evStMs(body.event_date, body.start)}–${evStMs(body.event_date, body.end)} ST).`);
+  } catch (err) {
+    alert(`Event nicht gespeichert: ${err.message}`);
+  }
+});
+document.getElementById('evFDelete').addEventListener('click', async () => {
+  const id = Number(evForm.dataset.id);
+  if (!id || !confirm('Dieses Event löschen? Die Scans bleiben, nur der Eintrag in der Event-Auswertung verschwindet.')) return;
+  try {
+    const { d, alliance } = await postAllianceEvent({ id, delete: true });
+    evForm.hidden = true;
+    applyScanEvents(d, alliance, '');
+  } catch (err) {
+    alert(`Nicht gelöscht: ${err.message}`);
+  }
+});
+document.getElementById('allianceSelect').addEventListener('change', () => loadScanEvents(''));
+
+// 8. Sync nach LWHub
+document.getElementById('btnSyncToLwHub').addEventListener('click', async () => {
+  const alliance = document.getElementById('allianceSelect').value;
+  const assigned = window.cockpit.assigned;
+  const newPlayers = window.cockpit.newPlayers;
+  const toArchive = Array.from(window.cockpit.markedForArchive);
+
+  // Ein Knopf fuer alles: Mitglieder/Werte und – wenn bereit – die Wueste-Haekchen
+  const hasMembers = assigned.size > 0 || newPlayers.length > 0 || toArchive.length > 0;
+  const desertBlock = desertHasData() ? desertBlockReason() : null;
+  const hasDesert = desertHasData() && !desertBlock;
+
+  if (!hasMembers && !hasDesert) {
+    alert(desertBlock
+      ? `Nichts zu übertragen. Wüste-Häkchen gehen noch nicht mit: ${desertBlock}`
+      : 'Keine Änderungen zum Synchronisieren vorhanden. Bitte erst scannen oder Kacheln zuordnen.');
+    return;
+  }
+
+  const recordedAt = scanTimeIso();
+  let confirmMsg = `Nach LWHub (${alliance}) übertragen?\n`;
+  if (hasMembers) confirmMsg += `\n🕒 Scanzeit: ${scanTimeLabel(new Date(recordedAt).getTime())}\n`;
+  if (hasMembers) {
+    confirmMsg += `\n📋 Mitglieder und Werte\n` +
+      `• ${assigned.size} Mitglieder aktualisieren\n` +
+      `• ${newPlayers.length} neue Spieler anlegen\n`;
+    if (toArchive.length > 0) confirmMsg += `• ⚠️ ${toArchive.length} Spieler ARCHIVIEREN\n`;
+  }
+  if (hasDesert) {
+    confirmMsg += `\n🏜 Wüste-Häkchen\n${desertSummary()}\nAndere Häkchen (VS, Spenden, Wache …) bleiben unverändert.\n`;
+  } else if (desertBlock) {
+    confirmMsg += `\n🏜 Wüste-Häkchen gehen noch nicht mit: ${desertBlock}\n`;
+  }
+  if (!confirm(confirmMsg)) return;
+
+  const btn = document.getElementById('btnSyncToLwHub');
+  btn.disabled = true;
+  try {
+    if (hasMembers) {
+      const res = await MatchingEngine.syncToLwHub(activeApiUrl, alliance, assigned, newPlayers, toArchive, LwhubAccess.discordToken(), recordedAt);
+      showSyncResult(res, alliance);
+      loadLastUploads();
+      await loadMembers();
+    }
+    if (hasDesert) {
+      try {
+        const d = await uploadDesertFlags(alliance);
+        if (!hasMembers) alert(`🏜 Wüste-Häkchen übertragen: ${d.changed} geändert, ${d.unchanged} schon richtig${d.skipped ? `, ${d.skipped} übersprungen` : ''}.`);
+      } catch (err) {
+        log(`⚠️ Wüste-Häkchen nicht übertragen: ${err.message}`);
+        alert(`Wüste-Häkchen nicht übertragen: ${err.message}`);
+      }
+    }
+  } catch (err) {
+    alert(`Fehler beim Sync: ${err.message}`);
+  } finally {
+    btn.disabled = !accessOk;
+  }
+});
+
+// Gruende aus handleSyncScans() (api/src/members.php) als Text fuer R4/R5
+const UNMATCHED_REASONS = {
+  'no-exact-name': 'Kein Mitglied mit genau diesem Namen in der Allianz',
+  'ambiguous-name': 'Name gibt es mehrfach in der Allianz – nicht eindeutig',
+  'unknown-player-id': 'Spieler-ID unbekannt oder nicht mehr aktiv',
+};
+function conflictText(c) {
+  const ranks = c.scanned_rank != null ? ` (gescannt R${c.scanned_rank}, bleibt R${c.kept_rank})` : '';
+  switch (c.reason) {
+    case 'transfer-needs-r5': return `Spieler ist noch in ${c.from_alliance || 'einer anderen Allianz'} – Verschieben darf nur R4/R5`;
+    case 'ambiguous-other-alliance': return `Name gibt es in mehreren anderen Allianzen (${(c.alliances || []).join(', ')}) – nicht übernommen`;
+    case 'protected-r4-member': return `Geschützter R4 – Rang wird nicht geändert${ranks}`;
+    case 'honor-role-not-in-game': return 'Hat hier eine Ehrenrolle und ist im Spiel nicht in der Allianz – nicht übernommen';
+    case 'honor-member-read-only': return `Ehrenmitglied – Rang wird nicht geändert${ranks}`;
+    case 'honor-not-archivable': return 'Ehrenmitglied – wird nicht archiviert';
+    case 'scanner-no-archive': return `${c.count || 0} Spieler nicht archiviert – das darf ein Scanner-Zugang nicht`;
+    default: return c.reason || 'Unbekannter Konflikt';
+  }
+}
+
+// Namen einer Liste in die Zwischenablage (wie "Namen kopieren" in event.html)
+async function copyNames(btn, names) {
+  const label = btn.textContent;
+  try { await navigator.clipboard.writeText(names.join('\n')); btn.textContent = '✅ Kopiert'; }
+  catch { prompt('Namen zum Kopieren:', names.join(', ')); }
+  setTimeout(() => { btn.textContent = label; }, 1500);
+}
+
+function syncResultSection(title, items, warning) {
+  const box = document.createElement('details');
+  box.className = 'sync-section' + (warning ? ' warning' : '');
+  const head = document.createElement('summary');
+  head.textContent = `${title} (${items.length})`;
+  const list = document.createElement('ul');
+  list.className = 'sync-list';
+  for (const { name, text } of items) {
+    const li = document.createElement('li');
+    if (name) {
+      const n = document.createElement('span');
+      n.className = 'sync-name';
+      n.textContent = name;
+      li.appendChild(n);
+    }
+    const r = document.createElement('span');
+    r.className = 'sync-reason';
+    r.textContent = text;
+    li.appendChild(r);
+    list.appendChild(li);
+  }
+  box.append(head);
+  const names = [...new Set(items.map((i) => i.name).filter(Boolean))];
+  if (names.length) {
+    const actions = document.createElement('div');
+    actions.className = 'sync-section-actions';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-sm btn-secondary';
+    btn.textContent = '📋 Namen kopieren';
+    btn.addEventListener('click', () => copyNames(btn, names));
+    actions.appendChild(btn);
+    box.append(actions);
+  }
+  box.append(list);
+  return box;
+}
+
+// Berufe-Rangcheck (S2): Liste "Beruf passt nicht zum Rang" + Kopiertext fuer den R4-Chat
+const BERUF_WORD = { ingenieur: 'Ingenieur', kriegsherr: 'Kriegsherr' };
+function berufLine(m) {
+  const placed = m.beruf ? `eingeteilt als ${BERUF_WORD[m.beruf] || m.beruf}` : `noch nicht eingeteilt (soll ${BERUF_WORD[m.expected] || m.expected})`;
+  const changed = m.rank_changed && m.old_rank ? ` (Rang neu, vorher R${m.old_rank})` : '';
+  return `R${m.rank}, ${placed}${changed}`;
+}
+function berufCopyText(list, rc, alliance) {
+  const day = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  const lines = [`Berufe-Check ${alliance} (Scan ${day})`];
+  if (rc) lines.push(`R2 = ${BERUF_WORD[rc.r2]} · R3 = ${BERUF_WORD[rc.r3]}`);
+  for (const m of list) lines.push(`${m.beruf ? '⚠' : '⏳'} ${m.name} – ${berufLine(m)}`);
+  return lines.join('\n');
+}
+function berufSection(list, rc, alliance) {
+  const box = syncResultSection('Beruf passt nicht zum Rang', list.map((m) => ({ name: m.name, text: berufLine(m) })), true);
+  box.open = true;
+  // Statt "Namen kopieren": die ganze Liste im Chat-Format
+  const actions = box.querySelector('.sync-section-actions');
+  if (actions) {
+    actions.replaceChildren();
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-sm btn-secondary';
+    btn.textContent = '📋 Liste kopieren';
+    btn.addEventListener('click', async () => {
+      const text = berufCopyText(list, rc, alliance);
+      const label = btn.textContent;
+      try { await navigator.clipboard.writeText(text); btn.textContent = '✅ Kopiert'; }
+      catch { prompt('Liste zum Kopieren:', text); }
+      setTimeout(() => { btn.textContent = label; }, 1500);
+    });
+    actions.appendChild(btn);
+  }
+  const hint = document.createElement('p');
+  hint.className = 'sync-dialog-note';
+  hint.style.padding = '0 10px 8px';
+  hint.textContent = 'Nur ein Hinweis: Der Upload ist vollständig. Den Beruf stellst du im Berufeplaner von LWHub um.';
+  box.append(hint);
+  return box;
+}
+
+function showSyncResult(res, alliance) {
+  const sum = res.summary || {};
+  const unmatched = res.unmatched || [];
+  const conflicts = res.conflicts || [];
+  const berufList = res.beruf_mismatches || [];
+  document.getElementById('syncResultTitle').textContent = res.dry_run
+    ? `🧪 Probelauf ${alliance} – nichts gespeichert`
+    : `✅ Nach LWHub (${alliance}) übertragen`;
+
+  // Hauptzahlen immer, der Rest nur, wenn etwas passiert ist
+  const stats = [
+    ['Aktualisiert', sum.updated, true],
+    ['Neu angelegt', sum.created, true],
+    ['Archiviert', sum.archived, true],
+    ['Wiederhergestellt', sum.restored],
+    ['Verschoben', sum.transferred],
+    ['Rang geändert', sum.rank_changes],
+    ['VS-Werte', sum.vs],
+    ['Kills', sum.kills],
+    ['Spenden', sum.donation],
+    ['Fremde Allianz', sum.ignored_other_alliance, false, true],
+    ['Nicht zugeordnet', unmatched.length, false, true],
+    ['Konflikte', conflicts.length, false, true],
+    ['Beruf ≠ Rang', berufList.length, false, true],
+  ];
+  const statBox = document.getElementById('syncResultStats');
+  statBox.replaceChildren();
+  for (const [label, value, always, warn] of stats) {
+    const v = value || 0;
+    if (!v && !always) continue;
+    const tile = document.createElement('div');
+    tile.className = 'sync-stat' + (warn ? ' warning' : '');
+    const b = document.createElement('b');
+    b.textContent = v.toLocaleString('de-DE');
+    const s = document.createElement('span');
+    s.textContent = label;
+    tile.append(b, s);
+    statBox.appendChild(tile);
+  }
+
+  const note = document.getElementById('syncResultNote');
+  note.hidden = !sum.ignored_other_alliance;
+  note.textContent = sum.ignored_other_alliance
+    ? `${sum.ignored_other_alliance} Einträge mit dem Kürzel einer anderen Allianz wurden nicht übernommen.`
+    : '';
+
+  const lists = document.getElementById('syncResultLists');
+  lists.replaceChildren();
+  if (unmatched.length) {
+    lists.appendChild(syncResultSection('Nicht zugeordnet', unmatched.map((u) => ({
+      name: u.name, text: UNMATCHED_REASONS[u.reason] || u.reason || 'Kein passendes Mitglied gefunden',
+    })), true));
+  }
+  if (conflicts.length) {
+    lists.appendChild(syncResultSection('Konflikte', conflicts.map((c) => ({ name: c.name, text: conflictText(c) })), true));
+  }
+  if (berufList.length) lists.appendChild(berufSection(berufList, res.beruf_rangcheck, alliance));
+  lists.hidden = !lists.childElementCount;
+
+  const dialog = document.getElementById('syncResultDialog');
+  if (!dialog.open) dialog.showModal();
+}
+
+// Versionsstand ins Protokoll (zeigt sofort, ob noch ein alter Stand aus dem Browser-Cache laeuft)
+let scannerVersion = null;
+fetch('../deploy-version.json', { cache: 'no-store' }).then(r => r.json()).then(v => {
+  scannerVersion = v;
+  const when = v.deployed_at && !v.deployed_at.startsWith('1970') ? ` vom ${new Date(v.deployed_at).toLocaleString('de-DE')}` : '';
+  log(`Scanner-Stand ${String(v.version || '?').slice(0, 7)}${when}.`);
+}).catch(() => {});
+
+// 9. Aufnahmen fuer die Nacharbeit sammeln: Originalbild + Erkennungsergebnis (Textzeilen mit Position,
+//    Modus, VS-Tag, Zeilen) je Ansicht, als ZIP herunterladbar. Bleibt im Browser, nichts wird hochgeladen.
+const KEEP_CAPTURES_KEY = 'lwhub.scanner.keepCaptures';
+const keepBox = document.getElementById('keepCaptures');
+const btnDownloadCaptures = document.getElementById('btnDownloadCaptures');
+const btnDiscardCaptures = document.getElementById('btnDiscardCaptures');
+let keptCaptures = [];
+let keptSeq = 0;
+try { keepBox.checked = localStorage.getItem(KEEP_CAPTURES_KEY) === '1'; } catch (_) {}
+keepBox.addEventListener('change', () => {
+  try { localStorage.setItem(KEEP_CAPTURES_KEY, keepBox.checked ? '1' : '0'); } catch (_) {}
+});
+const keepCaptureEnabled = () => keepBox.checked;
+
+function updateCaptureButtons2() {
+  btnDownloadCaptures.disabled = btnDiscardCaptures.disabled = keptCaptures.length === 0;
+  btnDownloadCaptures.textContent = `📦 Aufnahmen herunterladen (${keptCaptures.length})`;
+}
+
+function keepCapture(label, imageBlob, result) {
+  if (!keepBox.checked) return;
+  const seq = ++keptSeq;
+  const at = new Date().toISOString();
+  const alliance = document.getElementById('allianceSelect').value;
+  Promise.resolve(imageBlob).then((blob) => {
+    if (!blob) return;
+    keptCaptures.push({ seq, label, blob, result, at, alliance });
+    updateCaptureButtons2();
+  });
+}
+
+btnDownloadCaptures.addEventListener('click', async () => {
+  const items = [...keptCaptures].sort((a, b) => a.seq - b.seq);
+  const safe = (s) => String(s).replace(/\.[a-z0-9]+$/i, '').replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 60);
+  const files = [];
+  for (const k of items) {
+    const base = `${String(k.seq).padStart(3, '0')}_${safe(k.label)}`;
+    const ext = /png/.test(k.blob.type) ? 'png' : /jpe?g/.test(k.blob.type) ? 'jpg' : 'img';
+    files.push({ name: `${base}.${ext}`, data: k.blob });
+    files.push({ name: `${base}.json`, data: JSON.stringify({ label: k.label, at: k.at, alliance: k.alliance, result: k.result }, null, 1) });
+  }
+  files.push({ name: 'manifest.json', data: JSON.stringify({
+    created: new Date().toISOString(),
+    count: items.length,
+    alliance: document.getElementById('allianceSelect').value,
+    scanner: scannerVersion,
+    ocr: document.getElementById('ocrStatusBadge').textContent,
+    userAgent: navigator.userAgent,
+  }, null, 1) });
+  log(`Packe ${items.length} Aufnahmen…`);
+  const zip = await ZipStore.build(files);
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(zip);
+  a.download = `scanner-aufnahmen-${document.getElementById('allianceSelect').value}-${stamp}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  log(`${items.length} Aufnahmen als ZIP heruntergeladen (${(zip.size / 1e6).toFixed(1)} MB).`);
+});
+
+btnDiscardCaptures.addEventListener('click', () => {
+  if (!confirm(`${keptCaptures.length} gesammelte Aufnahmen verwerfen?`)) return;
+  keptCaptures = [];
+  updateCaptureButtons2();
+});
+
+// Initialer Start
+startOcrEngine();
+initAlliances();

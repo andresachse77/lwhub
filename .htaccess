@@ -41,7 +41,7 @@
   # Content-Security-Policy, NUR im Beobachtungsmodus: blockiert nichts, meldet Verstoesse in der
   # Browser-Konsole. Das ist die Zielrichtlinie nach Konzept A. Inline-<script> und onclick= tauchen
   # dort als Meldung auf, bis sie umgebaut sind.
-  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; connect-src 'self' https://discord.com https://unavatar.io https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' blob: https://cdn.jsdelivr.net 'wasm-unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; connect-src 'self' https://discord.com https://unavatar.io https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
 </IfModule>
 
 # ── 4. Links auf Unterseiten (Konzept Schritt 2) ──
@@ -57,6 +57,8 @@ DirectoryIndex index.php
 </FilesMatch>
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  # views/ sind nur Bausteine fuer index.php (zusaetzlich zu views/.htaccess)
+  RewriteRule ^views/ - [F,L]
   # Frueher hiess die Seite index.html: alte Links und Lesezeichen auf die Hauptadresse
   RewriteRule ^index\.html$ / [R=301,L]
   RewriteRule ^(me|teams|points|train|events|jobs|stats|list|members|scan|admin)(/.*)?$ index.php [L]

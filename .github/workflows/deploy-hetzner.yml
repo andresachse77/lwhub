@@ -66,10 +66,16 @@ jobs:
           esac
           echo "server_dir=$dir" >> "$GITHUB_OUTPUT"
 
-      # Pass 1: everything except the entry page and the version file. Assets with a new hash must be on the
-      # server before any page links to them (they are cached for a year, see .htaccess).
-      # Own state file whenever this exclude list changes: files listed in an older state must not count as
-      # "deleted" here. index.html is the old entry page (now index.php), excluded so it is never deleted mid-deploy.
+      # The entry page (index.php), the root .htaccess (rewrites to index.php) and the version file go up LAST,
+      # so no page ever links to assets that are not on the server yet (assets are cached for a year).
+      # They are moved out of the upload folder instead of using "exclude": the action matches exclude
+      # patterns with matchBase, so "index.html" or ".htaccess" would also skip web-scanner-onnx/index.html,
+      # views/.htaccess etc. The state file never lists these three files, so pass 1 never deletes them.
+      - name: Hold back entry files for pass 2
+        run: |
+          mkdir -p "$RUNNER_TEMP/entry"
+          mv index.php .htaccess deploy-version.json "$RUNNER_TEMP/entry/"
+
       - name: Deploy via FTP/FTPS (pass 1, assets first)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -82,6 +88,7 @@ jobs:
           security: loose
           local-dir: ./
           server-dir: ${{ steps.normalize_remote_dir.outputs.server_dir }}
+          # Patterns without "/" match in EVERY folder (matchBase), so only list what must never be uploaded.
           exclude: |
             **/.git*/**
             **/.github/**
@@ -90,14 +97,8 @@ jobs:
             **/*.log
             **/.DS_Store
             **/Thumbs.db
-            index.html
-            index.php
-            .htaccess
-            deploy-version.json
 
-      # Pass 2: entry page, root .htaccess (rewrites to index.php) and version file last. Only now do browsers
-      # see the new asset links, and deploy-refresh.js only now tells open tabs to reload.
-      - name: Deploy entry page last (pass 2)
+      - name: Deploy entry files last (pass 2)
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER || secrets.SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME || secrets.USERNAME }}
@@ -111,8 +112,8 @@ jobs:
             ./*) path="${dir#./}" ;;
             *) path="$dir" ;;
           esac
+          cd "$RUNNER_TEMP/entry"
           for f in index.php .htaccess deploy-version.json; do
-            curl --fail --silent --show-error --ssl-reqd --insecure --ftp-pasv --retry 3 \
-              --user "$FTP_USERNAME:$FTP_PASSWORD" -T "$f" "ftp://$FTP_SERVER:$FTP_PORT/$path"
+            curl --fail --silent --show-error --ssl-reqd --insecure --ftp-pasv --retry 3               --user "$FTP_USERNAME:$FTP_PASSWORD" -T "$f" "ftp://$FTP_SERVER:$FTP_PORT/$path"
             echo "uploaded $f"
           done

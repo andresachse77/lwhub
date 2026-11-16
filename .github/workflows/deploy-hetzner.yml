@@ -27,20 +27,20 @@ jobs:
           }
           EOF
 
-      - name: Version asset links in index.html
+      - name: Version asset links in index.php
         # assets/css/x.css?v=dev -> assets/css/x.css?v=<sha256 of the file, 12 chars>.
         # Unchanged files keep their link, so browsers keep them cached (see .htaccess, section 2).
         run: |
-          for f in $(grep -oE 'assets/(css|js)/[A-Za-z0-9._/-]+\?v=dev' index.html | sed 's/?v=dev$//' | sort -u); do
+          for f in $(grep -oE 'assets/(css|js)/[A-Za-z0-9._/-]+\?v=dev' index.php | sed 's/?v=dev$//' | sort -u); do
             test -f "$f" || { echo "missing asset: $f"; exit 1; }
             h="$(sha256sum "$f" | cut -c1-12)"
-            sed -i "s|$f?v=dev|$f?v=$h|g" index.html
+            sed -i "s|$f?v=dev|$f?v=$h|g" index.php
             echo "$f -> v=$h"
           done
-          if grep -q '?v=dev' index.html; then echo "unversioned ?v=dev left in index.html"; exit 1; fi
+          if grep -q '?v=dev' index.php; then echo "unversioned ?v=dev left in index.php"; exit 1; fi
           # build shown next to the logo (deploy-refresh.js, ?showversion=1)
-          sed -i "s|<meta name=\"lwhub-build\" content=\"dev\">|<meta name=\"lwhub-build\" content=\"${GITHUB_SHA}\">|" index.html
-          grep -q "lwhub-build\" content=\"${GITHUB_SHA}\"" index.html || { echo "lwhub-build meta not set"; exit 1; }
+          sed -i "s|<meta name=\"lwhub-build\" content=\"dev\">|<meta name=\"lwhub-build\" content=\"${GITHUB_SHA}\">|" index.php
+          grep -q "lwhub-build\" content=\"${GITHUB_SHA}\"" index.php || { echo "lwhub-build meta not set"; exit 1; }
 
       - name: Validate required FTP secrets
         env:
@@ -68,11 +68,12 @@ jobs:
 
       # Pass 1: everything except the entry page and the version file. Assets with a new hash must be on the
       # server before any page links to them (they are cached for a year, see .htaccess).
-      # Own state file: the old one still lists the entry page, which must not count as "deleted" here.
+      # Own state file whenever this exclude list changes: files listed in an older state must not count as
+      # "deleted" here. index.html is the old entry page (now index.php), excluded so it is never deleted mid-deploy.
       - name: Deploy via FTP/FTPS (pass 1, assets first)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          state-name: .ftp-deploy-sync-state-v2.json
+          state-name: .ftp-deploy-sync-state-v3.json
           server: ${{ secrets.FTP_SERVER || secrets.SERVER }}
           username: ${{ secrets.FTP_USERNAME || secrets.USERNAME }}
           password: ${{ secrets.FTP_PASSWORD || secrets.PASSWORD }}
@@ -90,10 +91,12 @@ jobs:
             **/.DS_Store
             **/Thumbs.db
             index.html
+            index.php
+            .htaccess
             deploy-version.json
 
-      # Pass 2: entry page and version file last. Only now do browsers see the new asset links,
-      # and deploy-refresh.js only now tells open tabs to reload.
+      # Pass 2: entry page, root .htaccess (rewrites to index.php) and version file last. Only now do browsers
+      # see the new asset links, and deploy-refresh.js only now tells open tabs to reload.
       - name: Deploy entry page last (pass 2)
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER || secrets.SERVER }}
@@ -108,7 +111,7 @@ jobs:
             ./*) path="${dir#./}" ;;
             *) path="$dir" ;;
           esac
-          for f in index.html deploy-version.json; do
+          for f in index.php .htaccess deploy-version.json; do
             curl --fail --silent --show-error --ssl-reqd --insecure --ftp-pasv --retry 3 \
               --user "$FTP_USERNAME:$FTP_PASSWORD" -T "$f" "ftp://$FTP_SERVER:$FTP_PORT/$path"
             echo "uploaded $f"

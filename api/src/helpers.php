@@ -148,7 +148,7 @@ function openDb(string $host, int $port, string $db, string $user, string $pass,
 
 
 // ── Berufe-Rangcheck (S1) ──────────────────────────────────────────────────────
-// Gleiche Regel wie im Browser (index.html: bpExpectedBeruf / bpBerufStatus). Aenderungen bitte an beiden Stellen.
+// Gleiche Regel wie im Browser (assets/js/pages/jobs.js: bpExpectedBeruf / bpBerufStatus). Aenderungen bitte an beiden Stellen.
 
 /** Rangcheck-Einstellung der Allianz: null = aus, sonst Beruf, den R2 bedeutet ('ingenieur' | 'kriegsherr').
  *  Liest nur (kein CREATE TABLE), darf also auch in einer laufenden Transaktion aufgerufen werden. */

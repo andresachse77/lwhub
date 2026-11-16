@@ -1,0 +1,2 @@
+# Nur Bausteine fuer index.php, nicht direkt aufrufbar
+Require all denied

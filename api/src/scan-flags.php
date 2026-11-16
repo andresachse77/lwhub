@@ -4,7 +4,7 @@ declare(strict_types=1);
 // ─── VS- und Spenden-Haekchen direkt beim Scanner-Upload ─────────────────────────────────────────
 // Nach jedem Sync mit VS- bzw. Spenden-Werten rechnet der Hub die Haekchen der betroffenen KW neu – die
 // gleichen Regeln wie "Aus Scanner uebernehmen" (vsImportFromScanner / spendeImportFromScanner in
-// index.html, dort bei Aenderungen mitziehen). Jeder gescannte Spieler bekommt einen Wocheneintrag, auch
+// assets/js/pages/events.js, dort bei Aenderungen mitziehen). Jeder gescannte Spieler bekommt einen Wocheneintrag, auch
 // ohne Haekchen, damit er im Dashboard als erfasst zaehlt.
 // Hat ein R4/R5 die Haekchen einer Kategorie bei einem Spieler von Hand gesetzt (Kachel im Event), steht
 // eine Sperre in scan_flag_locks: diese Kategorie ruehrt der Upload bei ihm in der KW nicht mehr an.
@@ -19,7 +19,7 @@ const SCAN_VS_SPAR_MAX_PER_DAY = 10000000;
 const SCAN_DONATION_MIN_POINTS = 35000;
 const SCAN_DONATION_TOP = 20;
 // Hilfsaccounts von Thomas (Test-Accounts in NxU1/NxU2): bekommen nie Event-Haekchen aus dem Scanner.
-// Gleiche Liste in index.html (SCAN_FLAG_SKIP_NAMES).
+// Gleiche Liste in assets/js/pages/events.js (SCAN_FLAG_SKIP_NAMES).
 const SCAN_FLAG_SKIP_NAMES = ['Thomas1', 'Thomas2'];
 
 function ensureScanFlagLocksTable(PDO $pdo): void {

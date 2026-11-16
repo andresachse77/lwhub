@@ -45,12 +45,21 @@
 </IfModule>
 
 # ── 4. Links auf Unterseiten (Konzept Schritt 2) ──
-# /me, /train/plan, /members … gibt es nicht als Datei: der Server liefert index.html, die App zeigt die Seite.
-# Bewusst nur diese Namen (Liste wie LW_ROUTES in index.html), damit fehlende Dateien in img/, docs/ oder
-# web-scanner-onnx/ weiter ein echtes 404 bekommen statt der Startseite.
+# /me, /train/plan, /members … gibt es nicht als Datei: der Server liefert index.php, die App zeigt die Seite.
+# Bewusst nur diese Namen (Liste wie LW_ROUTES in assets/js/core/router.js), damit fehlende Dateien in img/,
+# docs/ oder web-scanner-onnx/ weiter ein echtes 404 bekommen statt der Startseite.
+# Seit 16.11.2026 ist die Einstiegsseite index.php (setzt og:title je Adresse, Seiten-HTML aus views/).
+DirectoryIndex index.php
+
+# Statusdateien der FTP-Deploy-Aktion (Liste aller Dateien mit Pruefsummen) nicht ausliefern
+<FilesMatch "^\.ftp-deploy-sync-state.*\.json$">
+  Require all denied
+</FilesMatch>
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^(me|teams|points|train|events|jobs|stats|list|members|scan|admin)(/.*)?$ index.html [L]
+  # Frueher hiess die Seite index.html: alte Links und Lesezeichen auf die Hauptadresse
+  RewriteRule ^index\.html$ / [R=301,L]
+  RewriteRule ^(me|teams|points|train|events|jobs|stats|list|members|scan|admin)(/.*)?$ index.php [L]
   # Alte Einzelseiten von frueher
-  RewriteRule ^(me|me2|me3|punkte)\.html$ index.html [L]
+  RewriteRule ^(me|me2|me3|punkte)\.html$ index.php [L]
 </IfModule>

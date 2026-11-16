@@ -26,22 +26,35 @@
 
   function short(v) { return v ? String(v).slice(0, 7) : '?'; }
 
-  function readShowSwitch() {
+  // Liest ?showversion und entfernt es zusammen mit ?__deploy (vom Neuladen nach einem Update) aus der
+  // Adresse, damit beides nicht in geteilten Links landet. Laeuft vor dem App-Code (siehe index.html).
+  function readUrlSwitches() {
+    let show = false;
+    try { show = localStorage.getItem(SHOW_KEY) === '1'; } catch (_) {}
     try {
       const url = new URL(window.location.href);
       const flag = url.searchParams.get('showversion');
-      if (flag === null) return localStorage.getItem(SHOW_KEY) === '1';
-      if (flag === '1') localStorage.setItem(SHOW_KEY, '1');
-      else localStorage.removeItem(SHOW_KEY);
+      if (flag !== null) {
+        show = flag === '1';
+        if (show) localStorage.setItem(SHOW_KEY, '1');
+        else localStorage.removeItem(SHOW_KEY);
+      }
+      if (flag === null && !url.searchParams.has(PARAM_KEY)) return show;
       url.searchParams.delete('showversion');
+      url.searchParams.delete(PARAM_KEY);
       history.replaceState(history.state, '', url.pathname + url.search + url.hash);
-      return flag === '1';
-    } catch (_) {
-      return false;
-    }
+    } catch (_) {}
+    return show;
   }
 
-  const SHOW_VERSION = readShowSwitch();
+  const SHOW_VERSION = readUrlSwitches();
+
+  // Schon einmal fuer genau diese Server-Version neu geladen, und die Seite ist trotzdem alt?
+  // Dann nicht nochmal automatisch neu laden (sonst Endlosschleife, z. B. bei einem haengenden Cache).
+  const TRIED_KEY = 'lwhub_deploy_reload_tried';
+  function reloadAlreadyTried(version) {
+    try { return sessionStorage.getItem(TRIED_KEY) === version; } catch (_) { return false; }
+  }
 
   function renderVersionBadge() {
     if (!SHOW_VERSION) return;
@@ -196,6 +209,7 @@
     clearReloadTimers();
     try {
       localStorage.setItem(STORAGE_KEY, version);
+      sessionStorage.setItem(TRIED_KEY, version);
     } catch (_) {}
 
     const next = new URL(window.location.href);
@@ -211,6 +225,16 @@
     lastCheckAt = new Date();
     renderVersionBadge();
     if (!version) return;
+
+    // Vergleich mit der Version, mit der DIESE Seite geladen wurde (meta lwhub-build). So merkt jeder Tab
+    // selbst, ob er alt ist, und eine frisch geladene Seite laedt nicht unnoetig nochmal.
+    // Lokal (Build "dev") wie frueher ueber die gemerkte Version.
+    if (BUILD && BUILD !== 'dev') {
+      try { localStorage.setItem(STORAGE_KEY, version); } catch (_) {}
+      if (BUILD === version || pendingVersion === version || reloadAlreadyTried(version)) return;
+      showReloadNotice(version);
+      return;
+    }
 
     const current = localStorage.getItem(STORAGE_KEY) || '';
     if (!current) {

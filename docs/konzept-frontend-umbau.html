@@ -95,9 +95,9 @@
 <section>
   <h2>1. Wo wir stehen</h2>
   <div class="stats">
-    <div class="stat"><div class="num">8.231</div><div class="lbl">Zeilen in index.html (am 10.11. noch 10.272 mit CSS und Kern)</div></div>
-    <div class="stat"><div class="num">≈ 405 KB</div><div class="lbl">index.html (ungepackt), vorher ≈ 496 KB</div></div>
-    <div class="stat"><div class="num">≈ 337 KB</div><div class="lbl">JavaScript noch in index.html, dazu ≈ 47 KB Kern in <code>assets/js/core/</code></div></div>
+    <div class="stat"><div class="num">6.116</div><div class="lbl">Zeilen in index.html (am 10.11. noch 10.272)</div></div>
+    <div class="stat"><div class="num">≈ 298 KB</div><div class="lbl">index.html (ungepackt), vorher ≈ 496 KB</div></div>
+    <div class="stat"><div class="num">≈ 230 KB</div><div class="lbl">JavaScript noch in index.html, dazu ≈ 47 KB Kern in <code>assets/js/core/</code> und ≈ 105 KB Seiten in <code>assets/js/pages/</code></div></div>
     <div class="stat"><div class="num">≈ 71 KB</div><div class="lbl">CSS, seit 16.11.2026 eigene Datei <code>assets/css/app.css</code></div></div>
     <div class="stat"><div class="num">≈ 330</div><div class="lbl">Funktionen, fast alle global</div></div>
     <div class="stat"><div class="num">0</div><div class="lbl">Inline-Handler (<code>on…=</code>) im HTML, vorher 231 (davon 168 <code>onclick=</code>), umgebaut am 08.11.2026</div></div>
@@ -301,7 +301,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
     <li><strong>Router und Links: erledigt am 10.11.2026</strong> (noch in der großen Datei). Jede Seite hat ihre Adresse, Zurück/Vor funktioniert, nach dem Discord-Login geht es zum Link zurück, dazu der „Link teilen“-Knopf. Unteradressen (Tag, Mitglied, KW) und <code>og:title</code> folgen, Details in Abschnitt 2.</li>
     <li><strong>CSS auslagern: erledigt am 16.11.2026</strong>. Das ganze CSS steht jetzt in <code>assets/css/app.css</code>, die Schrift kommt als eigener <code>&lt;link&gt;</code>. Beim Deploy bekommt der Link einen Hash der Datei (<code>app.css?v=5883dadfd6f5</code>), damit darf der Browser sie ein Jahr behalten und lädt sie nur nach einer echten Änderung neu. Das Aufteilen in <code>base.css</code> und Seiten-CSS machen wir zusammen mit den Seiten-Modulen: vorher brächte es nur mehr Anfragen.</li>
     <li><strong>Kern auslagern: erledigt am 16.11.2026.</strong> Unter <code>assets/js/core/</code> liegen jetzt <code>actions.js</code> (Verteiler), <code>api.js</code> (<code>fetchJson</code>, <code>api</code>), <code>auth.js</code> (Discord-Login), <code>points.js</code> (Formeln, Kategorien, KW) und <code>state.js</code>, jede mit eigener Hash-Version. Es sind noch normale Scripts mit globalen Funktionen; zu Modulen mit <code>export</code> werden sie erst, wenn die Seiten selbst Module sind. <code>i18n.js</code> lag schon vorher in einer eigenen Datei.</li>
-    <li><strong>Seiten einzeln herauslösen</strong>, die großen und abgeschlossenen zuerst: Berufeplaner und Zug (beide schon eigene IIFEs), dann Admin, Verwaltung, Auswertungen. Zum Schluss Mein Bereich und Teams.</li>
+    <li><strong>Seiten einzeln herauslösen</strong>, die großen und abgeschlossenen zuerst. <strong>Zug und Berufeplaner: erledigt am 16.11.2026</strong>, sie liegen jetzt in <code>assets/js/pages/train.js</code> und <code>jobs.js</code>. Gestartet wird die App danach aus <code>assets/js/start.js</code>, damit beim Start alle Seiten da sind. Als Nächstes Admin, Verwaltung, Auswertungen, zum Schluss Mein Bereich und Teams.</li>
     <li><strong>Lazy Loading einschalten</strong>, sobald eine Seite ihr eigenes Modul hat.</li>
     <li><strong>Inline-Handler abbauen: erledigt am 08.11.2026.</strong> Alle 231 <code>on…=</code> in <code>index.html</code> und <code>api/partials/</code> sind ersetzt (dazu 5 im Scanner). Im HTML steht nur noch, <em>was</em> passieren soll:
       <pre>&lt;button data-action="showPage" data-args='["m"]'&gt;

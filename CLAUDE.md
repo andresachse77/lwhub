@@ -75,6 +75,11 @@ Vorschau in Discord.
 - In `views/` nur HTML, keine Datenbank-Abfragen: die Seite muss auch ohne Anmeldung gleich aussehen.
 - Das Deploy lädt `index.php`, die Root-`.htaccess` und `deploy-version.json` **zuletzt** hoch (Durchgang 2),
   damit nie eine neue Seite auf Dateien zeigt, die noch nicht oben sind.
+- `exclude` der FTP-Aktion gilt mit `matchBase`: ein Muster **ohne** `/` (z. B. `index.html`, `.htaccess`)
+  trifft diesen Namen in **jedem** Ordner. Dateien, die später kommen sollen, nicht per `exclude` ausnehmen,
+  sondern wie im Schritt „Hold back entry files“ vorher aus dem Upload-Ordner legen.
+- `DirectoryIndex` in der Root-`.htaccess` gilt für alle Unterordner (`docs/handbuch/`, `iny/`, Scanner
+  haben `index.html`), deshalb `index.php index.html`.
 
 ## Frontend: CSS/JS unter assets/
 

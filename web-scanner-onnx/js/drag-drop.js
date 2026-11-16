@@ -113,7 +113,6 @@ class CockpitState {
     }
 
     this.render();
-    console.log(`Rematch durchgeführt für ${poolSnapshot.length} Kacheln gegen ${this.members.length} Mitglieder.`);
   }
 
   // Setzt die gesamte Scan-Session zurück

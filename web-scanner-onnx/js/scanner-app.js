@@ -8,12 +8,17 @@ ocr.onNotice = (text) => log(text);
 
 // Logger
 const logBox = document.getElementById('logBox');
-function log(msg) {
+// Alles ins Protokollfeld der Seite. In die Browser-Konsole nur Fehler und Warnungen, keine normalen
+// Meldungen ("API erreichbar", "Mitglieder geladen" …). level: 'error' | 'warn', sonst am Text erkannt.
+const LOG_ERROR_RE = /^FEHLER|^Fehler\b|konnte nicht|abgebrochen/i;
+const LOG_WARN_RE = /^⚠|^HINWEIS|nicht gestartet|nicht lesbar|unbekannt|verworfen|Warteschlange voll/i;
+function log(msg, level = '') {
   const line = document.createElement('div');
   line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
   logBox.appendChild(line);
   logBox.scrollTop = logBox.scrollHeight;
-  console.log(msg);
+  if (level === 'error' || (!level && LOG_ERROR_RE.test(msg))) console.error(msg);
+  else if (level === 'warn' || (!level && LOG_WARN_RE.test(msg))) console.warn(msg);
 }
 
 // 0. OCR-Engine im Browser starten
@@ -57,7 +62,7 @@ async function startOcrEngine() {
   } catch (err) {
     if (backend === 'webgpu') {
       // A GPU/driver that WebGPU cannot use: fall back to the CPU for this visit (choice not stored).
-      log(`WebGPU konnte nicht gestartet werden (${err.message}) – verwende CPU.`);
+      log(`WebGPU konnte nicht gestartet werden (${err.message}) – verwende CPU.`, 'warn');
       backendSelect.value = 'wasm';
       return startOcrEngine();
     }
@@ -914,7 +919,7 @@ async function processVideos(files) {
       try {
         video = await openVideo(file);
       } catch (err) {
-        log(`${file.name}: ${err.message}`);
+        log(`${file.name}: ${err.message}`, 'error');
         continue;
       }
       try {
@@ -971,7 +976,7 @@ async function processVideos(files) {
         onProgress();
         log(`Video ${file.name}: ${kept} Ansichten an die Texterkennung übergeben.`);
       } catch (err) {
-        log(`${file.name}: ${err.message}`);
+        log(`${file.name}: ${err.message}`, 'error');
       } finally {
         closeVideo(video);
       }

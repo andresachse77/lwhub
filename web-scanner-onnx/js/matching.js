@@ -286,7 +286,6 @@ const MatchingEngine = {
       archive_player_ids: archivePlayerIds
     };
 
-    console.log('Synchronisiere mit LWHub:', payload);
     const headers = { 'Content-Type': 'application/json' };
     if (discordToken) headers.Authorization = `Bearer ${discordToken}`;
     const resp = await fetch(`${apiUrl}/scans/sync`, {

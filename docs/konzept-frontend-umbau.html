@@ -95,14 +95,14 @@
 <section>
   <h2>1. Wo wir stehen</h2>
   <div class="stats">
-    <div class="stat"><div class="num">9.343</div><div class="lbl">Zeilen in index.html (am 10.11. noch 10.272 mit CSS)</div></div>
-    <div class="stat"><div class="num">≈ 442 KB</div><div class="lbl">index.html (ungepackt), vorher ≈ 496 KB</div></div>
-    <div class="stat"><div class="num">≈ 384 KB</div><div class="lbl">davon JavaScript, alles in einem &lt;script&gt;</div></div>
+    <div class="stat"><div class="num">8.231</div><div class="lbl">Zeilen in index.html (am 10.11. noch 10.272 mit CSS und Kern)</div></div>
+    <div class="stat"><div class="num">≈ 405 KB</div><div class="lbl">index.html (ungepackt), vorher ≈ 496 KB</div></div>
+    <div class="stat"><div class="num">≈ 337 KB</div><div class="lbl">JavaScript noch in index.html, dazu ≈ 47 KB Kern in <code>assets/js/core/</code></div></div>
     <div class="stat"><div class="num">≈ 71 KB</div><div class="lbl">CSS, seit 16.11.2026 eigene Datei <code>assets/css/app.css</code></div></div>
     <div class="stat"><div class="num">≈ 330</div><div class="lbl">Funktionen, fast alle global</div></div>
     <div class="stat"><div class="num">0</div><div class="lbl">Inline-Handler (<code>on…=</code>) im HTML, vorher 231 (davon 168 <code>onclick=</code>), umgebaut am 08.11.2026</div></div>
   </div>
-  <p>Grob, wo das JavaScript liegt (Zeilen in <code>index.html</code>, Stand 10.11.2026; seit das CSS ausgelagert ist, steht alles rund 1.345 Zeilen weiter oben):</p>
+  <p>Grob, wo das JavaScript liegt (Zeilen in <code>index.html</code>, Stand 10.11.2026. Seitdem sind CSS und Kern ausgelagert, die Zeilen stimmen also nicht mehr. Die ersten beiden Zeilen der Tabelle liegen inzwischen in <code>assets/js/core/</code>):</p>
   <div class="table-wrap"><table>
     <tr><th>Bereich</th><th>Zeilen</th><th>Wer braucht ihn?</th></tr>
     <tr><td>Konfiguration, Discord-Login, Punkte-Formeln</td><td>2084–2965 (≈ 880)</td><td>alle</td></tr>
@@ -300,7 +300,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
     <li><strong>Server-Einstellungen: erledigt am 08.11.2026.</strong> gzip, Cache-Header und Sicherheits-Header in der <code>.htaccess</code> (siehe „Schnelle Gewinne“). Kein Code-Umbau, der größte Gewinn für R4.</li>
     <li><strong>Router und Links: erledigt am 10.11.2026</strong> (noch in der großen Datei). Jede Seite hat ihre Adresse, Zurück/Vor funktioniert, nach dem Discord-Login geht es zum Link zurück, dazu der „Link teilen“-Knopf. Unteradressen (Tag, Mitglied, KW) und <code>og:title</code> folgen, Details in Abschnitt 2.</li>
     <li><strong>CSS auslagern: erledigt am 16.11.2026</strong>. Das ganze CSS steht jetzt in <code>assets/css/app.css</code>, die Schrift kommt als eigener <code>&lt;link&gt;</code>. Beim Deploy bekommt der Link einen Hash der Datei (<code>app.css?v=5883dadfd6f5</code>), damit darf der Browser sie ein Jahr behalten und lädt sie nur nach einer echten Änderung neu. Das Aufteilen in <code>base.css</code> und Seiten-CSS machen wir zusammen mit den Seiten-Modulen: vorher brächte es nur mehr Anfragen.</li>
-    <li><strong>Kern auslagern:</strong> <code>api.js</code> (<code>fetchJson</code>, <code>API_BASE_CANDIDATES</code>), <code>auth.js</code>, <code>state.js</code>, <code>i18n.js</code>.</li>
+    <li><strong>Kern auslagern: erledigt am 16.11.2026.</strong> Unter <code>assets/js/core/</code> liegen jetzt <code>actions.js</code> (Verteiler), <code>api.js</code> (<code>fetchJson</code>, <code>api</code>), <code>auth.js</code> (Discord-Login), <code>points.js</code> (Formeln, Kategorien, KW) und <code>state.js</code>, jede mit eigener Hash-Version. Es sind noch normale Scripts mit globalen Funktionen; zu Modulen mit <code>export</code> werden sie erst, wenn die Seiten selbst Module sind. <code>i18n.js</code> lag schon vorher in einer eigenen Datei.</li>
     <li><strong>Seiten einzeln herauslösen</strong>, die großen und abgeschlossenen zuerst: Berufeplaner und Zug (beide schon eigene IIFEs), dann Admin, Verwaltung, Auswertungen. Zum Schluss Mein Bereich und Teams.</li>
     <li><strong>Lazy Loading einschalten</strong>, sobald eine Seite ihr eigenes Modul hat.</li>
     <li><strong>Inline-Handler abbauen: erledigt am 08.11.2026.</strong> Alle 231 <code>on…=</code> in <code>index.html</code> und <code>api/partials/</code> sind ersetzt (dazu 5 im Scanner). Im HTML steht nur noch, <em>was</em> passieren soll:

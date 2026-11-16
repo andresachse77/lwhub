@@ -20,7 +20,7 @@
   <FilesMatch "\.(svg|png|jpe?g|webp|gif|ico)$">
     Header set Cache-Control "max-age=86400"
   </FilesMatch>
-  <If "%{REQUEST_URI} =~ m#/assets/(css|js)/[^/]+\.(css|js)$# && %{QUERY_STRING} =~ /(^|&)v=[0-9a-f]{12}(&|$)/">
+  <If "%{REQUEST_URI} =~ m#/assets/(css|js)/[A-Za-z0-9._/-]+\.(css|js)$# && %{QUERY_STRING} =~ /(^|&)v=[0-9a-f]{12}(&|$)/">
     Header set Cache-Control "max-age=31536000, immutable"
   </If>
 </IfModule>

@@ -8,8 +8,8 @@ Ziel ist eine strenge CSP mit `script-src-attr 'none'` (siehe `.htaccess` und
 
 - **Nie** `onclick=`, `onchange=`, `oninput=`, `ondrop=`, `onload=` … schreiben, auch nicht in
   Template-Strings oder PHP.
-- Stattdessen den zentralen Verteiler in `index.html` nutzen (Block „AKTIONEN statt
-  Inline-Handlern“ am Anfang des Haupt-Scripts):
+- Stattdessen den zentralen Verteiler in `assets/js/core/actions.js` nutzen (Block „AKTIONEN statt
+  Inline-Handlern“, dort steht auch `LW_ACTIONS`):
   - Klick: `data-action="fn"` und optional `data-args='["a", 1]'`
   - andere Events: `data-on-change="fn"` und `data-args-change='[…]'`
     (ebenso `input`, `keydown`, `focus`, `mousedown`, `mouseover`, `mouseout`,
@@ -66,6 +66,17 @@ kommt man im Vollbild (iPad) nicht zurück und kann nichts teilen.
 
 Seit dem 16.11.2026 steht das CSS der Hauptseite in `assets/css/app.css` (nicht mehr im `<style>` von
 `index.html`). Neue Styles dort eintragen.
+
+Seit dem 16.11.2026 liegt der Kern des Scripts in `assets/js/core/` (normale Scripts, **keine** Module,
+alles bleibt global): `actions.js` (Verteiler, `LW_ACTIONS`), `api.js` (Adresse, `fetchJson`, `api`,
+`apiPost`), `auth.js` (Discord-Login), `points.js` (Formeln, Kategorien, `escHtml`, KW-Helfer),
+`state.js` (globale Variablen wie `members`, `kw`, `entries`). Sie laden in dieser Reihenfolge vor dem
+großen `<script>` in `index.html`.
+
+- Code oben in diesen Dateien (außerhalb von Funktionen) darf nur Dinge aus derselben oder einer
+  früher geladenen Datei aufrufen, nicht aus `index.html`: die ist beim Laden noch nicht da.
+- Eine Variable nie zweimal mit `let`/`const` anlegen, auch nicht in verschiedenen Dateien
+  (das bricht die ganze Seite mit einem SyntaxError).
 
 - Dateien unter `assets/css/` und `assets/js/` in `index.html` **immer** mit `?v=dev` einbinden:
   `<link rel="stylesheet" href="assets/css/x.css?v=dev">`, `<script src="assets/js/x.js?v=dev">`.

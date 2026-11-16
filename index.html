@@ -753,6 +753,8 @@
 </div>
 
 <script src="i18n.js"></script>
+<!-- vor dem App-Code: liest ?showversion, bevor der Router die Adresse neu schreibt -->
+<script src="deploy-refresh.js"></script>
 <script src="assets/js/core/actions.js?v=dev"></script>
 <script src="assets/js/core/api.js?v=dev"></script>
 <script src="assets/js/core/auth.js?v=dev"></script>
@@ -6110,7 +6112,6 @@ async function revokeApiToken(tokenId, clientName) {
 <script src="assets/js/pages/jobs.js?v=dev"></script>
 <script src="assets/js/start.js?v=dev"></script>
 <script src="char-switcher.js"></script>
-<script src="deploy-refresh.js"></script>
 </body>
 </html>
 

@@ -79,8 +79,9 @@ großen `<script>` in `index.html`.
   (das bricht die ganze Seite mit einem SyntaxError).
 
 Seiten, die schon eigene Dateien haben, liegen in `assets/js/pages/` (seit 16.11.2026: `train.js` = Zug,
-`jobs.js` = Berufeplaner). Ladereihenfolge in `index.html`: Kern → großes `<script>` → `pages/*.js` →
-`assets/js/start.js` (ruft `initApp()` auf) → `char-switcher.js`, `deploy-refresh.js`.
+`jobs.js` = Berufeplaner). Ladereihenfolge in `index.html`: `i18n.js`, `deploy-refresh.js` → Kern → großes `<script>` →
+`pages/*.js` → `assets/js/start.js` (ruft `initApp()` auf) → `char-switcher.js`. `deploy-refresh.js` steht
+bewusst vor dem App-Code: es liest `?showversion`, bevor der Router die Adresse neu schreibt.
 
 - Eine neue Seiten-Datei kommt **vor** `start.js`, sonst ist sie beim Start der App noch nicht da.
 - Code im großen `<script>` darf beim Laden (außerhalb von Funktionen) nichts aus `pages/` aufrufen.

@@ -66,9 +66,13 @@ jobs:
           esac
           echo "server_dir=$dir" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy via FTP/FTPS
+      # Pass 1: everything except the entry page and the version file. Assets with a new hash must be on the
+      # server before any page links to them (they are cached for a year, see .htaccess).
+      # Own state file: the old one still lists the entry page, which must not count as "deleted" here.
+      - name: Deploy via FTP/FTPS (pass 1, assets first)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
+          state-name: .ftp-deploy-sync-state-v2.json
           server: ${{ secrets.FTP_SERVER || secrets.SERVER }}
           username: ${{ secrets.FTP_USERNAME || secrets.USERNAME }}
           password: ${{ secrets.FTP_PASSWORD || secrets.PASSWORD }}
@@ -85,3 +89,27 @@ jobs:
             **/*.log
             **/.DS_Store
             **/Thumbs.db
+            index.html
+            deploy-version.json
+
+      # Pass 2: entry page and version file last. Only now do browsers see the new asset links,
+      # and deploy-refresh.js only now tells open tabs to reload.
+      - name: Deploy entry page last (pass 2)
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER || secrets.SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME || secrets.USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD || secrets.PASSWORD }}
+          FTP_PORT: ${{ secrets.FTP_PORT || 21 }}
+          SERVER_DIR: ${{ steps.normalize_remote_dir.outputs.server_dir }}
+        run: |
+          dir="$SERVER_DIR"
+          case "$dir" in
+            /*) path="%2F${dir#/}" ;;   # absolute path on the FTP server
+            ./*) path="${dir#./}" ;;
+            *) path="$dir" ;;
+          esac
+          for f in index.html deploy-version.json; do
+            curl --fail --silent --show-error --ssl-reqd --insecure --ftp-pasv --retry 3 \
+              --user "$FTP_USERNAME:$FTP_PASSWORD" -T "$f" "ftp://$FTP_SERVER:$FTP_PORT/$path"
+            echo "uploaded $f"
+          done

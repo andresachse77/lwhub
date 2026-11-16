@@ -61,3 +61,15 @@ Jede Seite unter `docs/` (Konzepte, Aufgabenlisten, Handbuch) bekommt oben recht
 **← Zur App**: den Link `<a class="back-to-app" href="../">` mit `backToApp()`-Listener (kein `onclick=`)
 und am Ende `<script src="doc-share.js"></script>` (im Handbuch `../doc-share.js`). Ohne diese Knöpfe
 kommt man im Vollbild (iPad) nicht zurück und kann nichts teilen.
+
+## Frontend: CSS/JS unter assets/
+
+Seit dem 16.11.2026 steht das CSS der Hauptseite in `assets/css/app.css` (nicht mehr im `<style>` von
+`index.html`). Neue Styles dort eintragen.
+
+- Dateien unter `assets/css/` und `assets/js/` in `index.html` **immer** mit `?v=dev` einbinden:
+  `<link rel="stylesheet" href="assets/css/x.css?v=dev">`, `<script src="assets/js/x.js?v=dev">`.
+  Das Deploy ersetzt `dev` durch einen Hash der Datei, die `.htaccess` erlaubt dann ein Jahr Cache.
+  Ohne `?v=dev` bleibt die Datei bei `no-cache` (geht, ist nur langsamer); bricht das Deploy ab,
+  steht irgendwo noch ein `?v=dev` ohne passende Datei.
+- Die Zeichenfolge `?v=dev` sonst nirgends in `index.html` schreiben (auch nicht in Kommentaren).

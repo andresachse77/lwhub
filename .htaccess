@@ -10,7 +10,9 @@
 
 # ── 2. Cache ──
 # Seiten, Skripte, Styles, JSON: immer beim Server nachfragen (ETag -> 304, wenn unveraendert).
-# Lange Cache-Zeiten erst, wenn die Dateien eine ?v=-Version im Link haben (Konzept A).
+# Ausnahme: Dateien unter assets/css/ und assets/js/ mit Hash-Version im Link (?v=<12 Hex-Zeichen>)
+# duerfen ein Jahr im Browser bleiben. Das Deploy setzt den Hash je Datei in index.html ein; aendert sich
+# die Datei, aendert sich der Link. Lokal steht ?v=dev, das passt nicht und bleibt bei no-cache.
 <IfModule mod_headers.c>
   <FilesMatch "\.(html|js|css|json)$">
     Header set Cache-Control "no-cache"
@@ -18,6 +20,9 @@
   <FilesMatch "\.(svg|png|jpe?g|webp|gif|ico)$">
     Header set Cache-Control "max-age=86400"
   </FilesMatch>
+  <If "%{REQUEST_URI} =~ m#/assets/(css|js)/[^/]+\.(css|js)$# && %{QUERY_STRING} =~ /(^|&)v=[0-9a-f]{12}(&|$)/">
+    Header set Cache-Control "max-age=31536000, immutable"
+  </If>
 </IfModule>
 
 # ── 3. Sicherheits-Header ──

@@ -27,6 +27,18 @@ jobs:
           }
           EOF
 
+      - name: Version asset links in index.html
+        # assets/css/x.css?v=dev -> assets/css/x.css?v=<sha256 of the file, 12 chars>.
+        # Unchanged files keep their link, so browsers keep them cached (see .htaccess, section 2).
+        run: |
+          for f in $(grep -oE 'assets/(css|js)/[A-Za-z0-9._/-]+\?v=dev' index.html | sed 's/?v=dev$//' | sort -u); do
+            test -f "$f" || { echo "missing asset: $f"; exit 1; }
+            h="$(sha256sum "$f" | cut -c1-12)"
+            sed -i "s|$f?v=dev|$f?v=$h|g" index.html
+            echo "$f -> v=$h"
+          done
+          if grep -q '?v=dev' index.html; then echo "unversioned ?v=dev left in index.html"; exit 1; fi
+
       - name: Validate required FTP secrets
         env:
           FTP_SERVER_EFFECTIVE: ${{ secrets.FTP_SERVER || secrets.SERVER }}

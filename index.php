@@ -4,6 +4,15 @@
 // JS: assets/js/ (Reihenfolge der <script>-Tags unten = Ladereihenfolge), CSS: assets/css/app.css.
 header('Content-Type: text/html; charset=UTF-8');
 header('Cache-Control: no-cache');
+// Content-Security-Policy, SCHARF (blockiert) nur fuer die App-Seiten: nur eigene Scripts, keine Inline-Scripts,
+// keine on…=-Attribute. Externe Ziele: Discord (Anmeldung, Avatare), unavatar.io, Google Fonts.
+// Scanner, docs/ und iny/ haben eigene Bedürfnisse und bleiben bei der Beobachtungs-Regel aus /.htaccess.
+// Neue externe Quelle (Bild, API, Script)? Hier eintragen, sonst blockiert der Browser sie.
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; script-src-attr 'none'; "
+    . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; "
+    . "img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; "
+    . "connect-src 'self' https://discord.com https://unavatar.io; frame-src 'self'; frame-ancestors 'self'; "
+    . "base-uri 'self'; form-action 'self'; object-src 'none'");
 ?>
 <!DOCTYPE html>
 <html lang="de">

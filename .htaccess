@@ -49,7 +49,8 @@
 # Bewusst nur diese Namen (Liste wie LW_ROUTES in assets/js/core/router.js), damit fehlende Dateien in img/,
 # docs/ oder web-scanner-onnx/ weiter ein echtes 404 bekommen statt der Startseite.
 # Seit 16.11.2026 ist die Einstiegsseite index.php (setzt og:title je Adresse, Seiten-HTML aus views/).
-DirectoryIndex index.php
+# Unterordner wie docs/handbuch/, iny/ und web-scanner-onnx/ haben index.html
+DirectoryIndex index.php index.html
 
 # Statusdateien der FTP-Deploy-Aktion (Liste aller Dateien mit Pruefsummen) nicht ausliefern
 <FilesMatch "^\.ftp-deploy-sync-state.*\.json$">

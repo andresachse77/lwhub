@@ -301,18 +301,8 @@
       const opening = !trigger.classList.contains('open');
       trigger.classList.toggle('open');
       dropdown.classList.toggle('open');
-      if (opening) {
-        rebuildNavSection();
-        updateAdminMenuItem();
-      }
+      if (opening) rebuildNavSection();
     });
-
-    // "Allianz-Verwaltung" nur zeigen, wenn die Admin-Seite wirklich da ist. Die liefert der Server
-    // nur an R5 und Betreiber (api/partials/admin-pages.php); fuer alle anderen gibt es den Punkt nicht.
-    function updateAdminMenuItem() {
-      const item = document.getElementById('cs-admin-btn');
-      if (item) item.style.display = document.getElementById('page-a') ? '' : 'none';
-    }
     document.addEventListener('click', () => {
       trigger.classList.remove('open');
       dropdown.classList.remove('open');
@@ -508,10 +498,8 @@
                  </div>
                </div>`;
     }
-    const activeRank = chars.find(c => c.is_active)?.rank ?? myCurrentChar?.rank ?? 0;
-    if (activeRank >= 4) {
-      html += `<button class="cs-menu-item" id="cs-admin-btn" style="color:#f0a500">⚙ ${escHtml(tr('Allianz-Verwaltung'))}</button>`;
-    }
+    // Kein eigener Admin-Punkt mehr: Admin ist ein Reiter (⚙ Admin) und steht bei eingeklappter
+    // Leiste ohnehin unten in diesem Menue (rebuildNavSection).
     html += `<button class="cs-menu-item" id="cs-logout-btn">⏻ ${escHtml(tr('Logout'))}</button>`;
 
     // Nav actions section is rebuilt dynamically on dropdown open – see rebuildNavSection()
@@ -630,15 +618,6 @@
 
       renameCancel?.addEventListener('click', () => renameForm.classList.remove('show'));
     }
-
-    // Admin button
-    document.getElementById('cs-admin-btn')?.addEventListener('click', () => {
-      dropdown.classList.remove('open');
-      document.getElementById('cs-trigger')?.classList.remove('open');
-      if (typeof window.showPage === 'function') {
-        window.showPage('a');
-      }
-    });
 
     // Logout
     document.getElementById('cs-logout-btn')?.addEventListener('click', () => {

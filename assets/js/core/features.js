@@ -4,6 +4,9 @@
 
 // ── FEATURE CONFIG (per alliance, stored server-side) ──
 let flagConfig = {}; // in-memory cache populated by loadFlagConfig()
+// Erst true, wenn die Schalter der Allianz einmal geladen sind. Vorher gilt jedes Feature als aus; die
+// Sichtbarkeits-Funktionen duerfen dann nicht von der Seite aus dem Link (z. B. /train) wegspringen.
+let flagConfigLoaded = false;
 let allianceFeatureModalAlliance = '';
 
 const FEATURE_CAT_DEFS = [
@@ -247,6 +250,7 @@ async function loadFlagConfig(allianceOverride) {
     const data = await fetchJson(path);
     flagConfig = data.config || {};
     if (flagConfig.zugplan === true && flagConfig.zug !== true) flagConfig.zug = true;
+    flagConfigLoaded = true;
     updateEventTabVisibility();
     updateFeatureTabVisibility();
     updatePointsGuideVisibility();

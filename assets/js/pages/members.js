@@ -69,7 +69,7 @@ function updateEventTabVisibility() {
   });
   setTabVisible('tab-w', eventVisible);
   setElementVisible('page-w', eventVisible);
-  if (!eventVisible && document.getElementById('page-w')?.classList.contains('active')) {
+  if (flagConfigLoaded && !eventVisible && document.getElementById('page-w')?.classList.contains('active')) {
     showPage(startPageId(), { remember: false });
   }
   // Keep mobile dropdown navigation in sync with current tab visibility.
@@ -86,8 +86,8 @@ function updateFeatureTabVisibility() {
   setElementVisible('page-m', myAreaVisible);
   setElementVisible('page-t', myTeamsVisible);
 
-  if ((!myAreaVisible && document.getElementById('page-m')?.classList.contains('active')) ||
-      (!myTeamsVisible && document.getElementById('page-t')?.classList.contains('active'))) {
+  if (flagConfigLoaded && ((!myAreaVisible && document.getElementById('page-m')?.classList.contains('active')) ||
+      (!myTeamsVisible && document.getElementById('page-t')?.classList.contains('active')))) {
     showPage(startPageId(), { remember: false });
   }
 
@@ -115,10 +115,10 @@ function updateFeatureTabVisibility() {
   setElementVisible('page-zv', isFeatureEnabled('zug'));
   setElementVisible('page-bp', isFeatureEnabled('berufe'));
   setElementVisible('page-sc', isFeatureEnabled('scanner'));
-  if ((!isFeatureEnabled('zug') && document.getElementById('page-z')?.classList.contains('active')) ||
+  if (flagConfigLoaded && ((!isFeatureEnabled('zug') && document.getElementById('page-z')?.classList.contains('active')) ||
       (!isFeatureEnabled('zug') && document.getElementById('page-zv')?.classList.contains('active')) ||
       (!isFeatureEnabled('berufe') && document.getElementById('page-bp')?.classList.contains('active')) ||
-      (!isFeatureEnabled('scanner') && document.getElementById('page-sc')?.classList.contains('active'))) {
+      (!isFeatureEnabled('scanner') && document.getElementById('page-sc')?.classList.contains('active')))) {
     showPage(startPageId(), { remember: false });
   }
   // Keep mobile dropdown navigation in sync with current tab visibility.
@@ -198,7 +198,7 @@ function updatePointsGuideVisibility() {
 
   guideEl.style.display = anyVisible ? '' : 'none';
   setTabVisible('tab-p', anyVisible);
-  if (!anyVisible && document.getElementById('page-p')?.classList.contains('active')) {
+  if (flagConfigLoaded && !anyVisible && document.getElementById('page-p')?.classList.contains('active')) {
     showPage(startPageId(), { remember: false });
   }
 }

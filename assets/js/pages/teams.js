@@ -67,19 +67,19 @@ async function fetchFirstOkJson(urls) {
 }
 
 async function loadHeroCatalogs() {
+  // Ordner unter assets/heroes/ (englisch). Frueher wurden auch flugzeug/air/rakete probiert:
+  // die gibt es nicht, das gab bei jedem Laden 404-Meldungen in der Konsole.
   const folderCandidatesByType = {
-    panzer: ['tank', 'panzer'],
-    flugzeug: ['flugzeug', 'air', 'aircraft'],
-    rakete: ['rakete', 'rocket', 'missile'],
+    panzer: ['tank'],
+    flugzeug: ['aircraft'],
+    rakete: ['rocket'],
   };
 
   const loadOne = async (type) => {
     const folders = folderCandidatesByType[type] || [type];
     for (const folder of folders) {
-      const data = await fetchFirstOkJson([
-        `/assets/heroes/${folder}/manifest.json`,
-        `assets/heroes/${folder}/manifest.json`,
-      ]);
+      // relativ zu <base href="/">, also immer /assets/heroes/…
+      const data = await fetchFirstOkJson([`assets/heroes/${folder}/manifest.json`]);
       if (!data) continue;
       const list = Array.isArray(data?.heroes) ? data.heroes : [];
       heroCatalogByType[type] = list.map((h) => ({

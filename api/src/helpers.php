@@ -104,8 +104,11 @@ function normalizeHonorHome(mixed $value): ?string {
 function normalizePreferredLanguage(mixed $value): string {
     $lang = strtolower(trim((string)($value ?? '')));
     if ($lang === '') return 'de';
-    if (!in_array($lang, ['de', 'en', 'it'], true)) {
-        throw new InvalidArgumentException('Ungueltige Sprache. Erlaubt: de, en, it');
+    // Gleiche Liste wie SUPPORTED in i18n.js (je Sprache eine Datei in locales/). Vorher nur de/en/it:
+    // wer fr, pl, es oder zh waehlte, bekam beim Speichern 400 und die Sprache wurde nicht gemerkt.
+    $supported = ['de', 'en', 'it', 'fr', 'pl', 'es', 'zh'];
+    if (!in_array($lang, $supported, true)) {
+        throw new InvalidArgumentException('Ungueltige Sprache. Erlaubt: ' . implode(', ', $supported));
     }
     return $lang;
 }

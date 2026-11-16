@@ -78,8 +78,8 @@ großen `<script>` in `index.html`.
 - Eine Variable nie zweimal mit `let`/`const` anlegen, auch nicht in verschiedenen Dateien
   (das bricht die ganze Seite mit einem SyntaxError).
 
-Seiten, die schon eigene Dateien haben, liegen in `assets/js/pages/` (seit 16.11.2026: `train.js` = Zug,
-`jobs.js` = Berufeplaner). Ladereihenfolge in `index.html`: `i18n.js`, `deploy-refresh.js` → Kern → großes `<script>` →
+Seiten, die schon eigene Dateien haben, liegen in `assets/js/pages/` (seit 16.11.2026: `events.js` = Events
+mit Wache/Wüste/Spezial/VS/Spenden, `admin.js` = Admin, `train.js` = Zug, `jobs.js` = Berufeplaner). Ladereihenfolge in `index.html`: `i18n.js`, `deploy-refresh.js` → Kern → großes `<script>` →
 `pages/*.js` → `assets/js/start.js` (ruft `initApp()` auf) → `char-switcher.js`. `deploy-refresh.js` steht
 bewusst vor dem App-Code: es liest `?showversion`, bevor der Router die Adresse neu schreibt.
 

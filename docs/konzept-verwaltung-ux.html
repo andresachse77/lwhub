@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LWHub &bull; Verwaltung: einheitlich bearbeiten – Konzept</title>
+<style>
+  :root {
+    --bg-primary: #0e1117; --bg-secondary: #161b22; --bg-tertiary: #21262d; --bg-card: #1c2128;
+    --border-color: #30363d; --accent: #58a6ff; --success: #3fb950; --warning: #d29922; --danger: #f85149;
+    --text-primary: #f0f6fc; --text-secondary: #8b949e; --text-muted: #6e7681;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    /* Farben der App (assets/css/app.css), fuer die Mockups */
+    --app-bg: #0c0e14; --app-card: #141720; --app-card2: #1c2030; --app-line: rgba(255,255,255,0.07);
+    --app-line2: rgba(255,255,255,0.13); --app-gold: #f0a500; --app-red: #e05545; --app-green: #2ecb7a;
+    --app-blue: #4a9eff; --app-purple: #9b6dff; --app-text: #dde1ec; --app-soft: #7a8498; --app-softer: #3e4558;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); line-height: 1.6; padding: 32px 16px; display: flex; justify-content: center; }
+  .container { max-width: 1040px; width: 100%; min-width: 0; }
+  .header { border-bottom: 1px solid var(--border-color); padding-bottom: 24px; margin-bottom: 36px; display: flex; flex-direction: column; gap: 12px; }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; padding: 3px 9px; border-radius: 20px; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); text-decoration: none; }
+  .badge.blue { background: rgba(88,166,255,.15); color: var(--accent); border-color: rgba(88,166,255,.3); }
+  .badge.green { background: rgba(63,185,80,.15); color: var(--success); border-color: rgba(63,185,80,.3); }
+  .badge.amber { background: rgba(210,153,34,.15); color: var(--warning); border-color: rgba(210,153,34,.3); }
+  h1 { font-size: 28px; font-weight: 700; color: #fff; line-height: 1.25; }
+  .subtitle { color: var(--text-secondary); font-size: 15px; }
+  section { margin-bottom: 48px; }
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+  h3 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; }
+  p { color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; }
+  ul, ol { margin: 0 0 16px 24px; color: var(--text-secondary); font-size: 14px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text-primary); }
+  code { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-tertiary); padding: 1px 6px; border-radius: 4px; color: var(--text-primary); word-break: break-word; }
+  .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+  .card.rec { border-color: rgba(63,185,80,.55); box-shadow: 0 0 0 1px rgba(63,185,80,.2) inset; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .card-head h3 { margin: 0; font-size: 18px; }
+  .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
+  .pc h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .pc .pro h4 { color: var(--success); }
+  .pc .con h4 { color: var(--danger); }
+  @media (max-width: 640px) { .pc { grid-template-columns: 1fr; } }
+  .table-wrap { overflow-x: auto; margin-bottom: 16px; border: 1px solid var(--border-color); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 620px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border-color); vertical-align: top; color: var(--text-secondary); }
+  th { background: var(--bg-secondary); color: var(--text-primary); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td.good { color: var(--success); } td.mid { color: var(--warning); } td.bad { color: var(--danger); }
+  .note { background: rgba(88,166,255,.08); border: 1px solid rgba(88,166,255,.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; }
+  .note p:last-child { margin-bottom: 0; }
+  .note.warn { background: rgba(210,153,34,.08); border-color: rgba(210,153,34,.35); }
+  .rule { font-size: 18px; font-weight: 600; color: #fff; text-align: center; padding: 18px 14px; border: 1px dashed rgba(240,165,0,.5); border-radius: 12px; margin-bottom: 16px; }
+  .rule small { display: block; font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-top: 6px; }
+  .footer { color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border-color); padding-top: 16px; }
+  .back-to-app { position: fixed; top: 12px; right: 12px; z-index: 1000; padding: 7px 14px; border-radius: 999px;
+    background: rgba(13,17,23,.92); border: 1px solid rgba(240,165,0,.45); color: #f0a500; font: 600 13px/1 system-ui, sans-serif;
+    text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .back-to-app:hover { background: rgba(240,165,0,.15); }
+
+  /* ── Mockups: sehen aus wie die App ── */
+  .mk { background: var(--app-bg); border: 1px solid var(--app-line2); border-radius: 14px; padding: 14px; color: var(--app-text);
+    font-family: Inter, var(--font-sans); font-size: 13px; margin: 12px 0 6px; position: relative; overflow: hidden; }
+  .mk-label { position: absolute; top: 0; right: 0; font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+    background: rgba(240,165,0,.15); color: var(--app-gold); padding: 3px 10px; border-bottom-left-radius: 10px; }
+  .mk-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; }
+  .mk-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--app-card); border: 1px solid var(--app-line); border-radius: 10px; }
+  .mk-row + .mk-row { margin-top: 6px; }
+  .mk-av { width: 32px; height: 32px; border-radius: 50%; background: var(--app-card2); display: grid; place-items: center; font-weight: 700; font-size: 12px; color: var(--app-soft); flex-shrink: 0; }
+  .mk-name { font-weight: 600; flex: 1; min-width: 0; }
+  .mk-name small { display: block; font-weight: 400; font-size: 11px; color: var(--app-soft); }
+  .mk-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--app-line2); color: var(--app-soft); white-space: nowrap; }
+  .mk-pill.r3 { color: var(--app-green); border-color: rgba(46,203,122,.35); }
+  .mk-pill.r4 { color: var(--app-red); border-color: rgba(224,85,69,.4); }
+  .mk-pill.ok { color: var(--app-green); border-color: rgba(46,203,122,.3); }
+  .mk-pill.warn { color: var(--app-gold); border-color: rgba(240,165,0,.35); }
+  .mk-pill.afk { color: var(--app-purple); border-color: rgba(155,109,255,.4); }
+  .mk-detail { background: var(--app-card); border: 1px solid rgba(240,165,0,.35); border-top: none; border-radius: 0 0 10px 10px; padding: 12px; margin-top: -6px; }
+  .mk-row.open { border-color: rgba(240,165,0,.35); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .mk-block { border: 1px solid var(--app-line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; background: rgba(255,255,255,.015); }
+  .mk-block-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .mk-block-title { font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--app-soft); }
+  .mk-block-title b { color: var(--app-gold); font-weight: 700; }
+  .mk-state { margin-left: auto; font-size: 11px; color: var(--app-soft); min-height: 1em; }
+  .mk-state.saved { color: var(--app-green); }
+  .mk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mk-chip { font: inherit; font-size: 12px; padding: 5px 11px; border-radius: 8px; border: 1px solid var(--app-line2); background: transparent; color: var(--app-soft); cursor: pointer; }
+  .mk-chip:hover { color: var(--app-text); border-color: rgba(255,255,255,.25); }
+  .mk-chip.on { color: #80b8ff; background: rgba(74,158,255,.12); border-color: rgba(74,158,255,.4); }
+  .mk-chip.on.red { color: #f09080; background: rgba(224,85,69,.15); border-color: rgba(224,85,69,.5); }
+  .mk-chip.on.gold { color: var(--app-gold); background: rgba(240,165,0,.12); border-color: rgba(240,165,0,.4); }
+  .mk-chip.on.purple { color: var(--app-purple); background: rgba(155,109,255,.15); border-color: rgba(155,109,255,.5); }
+  .mk-chip.on.green { color: var(--app-green); background: rgba(46,203,122,.12); border-color: rgba(46,203,122,.4); }
+  .mk-chip:disabled { opacity: .4; cursor: not-allowed; }
+  .mk-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--app-line2); }
+  .mk-field { display: flex; flex-direction: column; gap: 3px; min-width: 150px; flex: 1; }
+  .mk-field label { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--app-soft); }
+  .mk-input, .mk-select { font: inherit; font-size: 13px; background: var(--app-card2); border: 1px solid var(--app-line2); border-radius: 7px; color: var(--app-text); padding: 6px 9px; width: 100%; }
+  .mk-input:focus, .mk-select:focus { outline: none; border-color: rgba(240,165,0,.6); }
+  .mk-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 600px) { .mk-grid2 { grid-template-columns: 1fr; } }
+  .mk-sub .mk-select { width: auto; min-width: 200px; }
+  .mk-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--app-text); cursor: pointer; }
+  .mk-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--app-soft); margin-bottom: 10px; }
+  .mk-meta span b { color: var(--app-text); font-weight: 600; }
+  .mk-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .mk-btn { font: inherit; font-size: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--app-line2); background: var(--app-card2); color: var(--app-text); cursor: pointer; }
+  .mk-btn:hover { border-color: rgba(255,255,255,.25); }
+  .mk-btn.gold { background: var(--app-gold); color: #111; border-color: var(--app-gold); font-weight: 700; }
+  .mk-btn.ghost { background: transparent; }
+  .mk-btn.danger { color: #f09080; border-color: rgba(224,85,69,.4); background: transparent; }
+  .mk-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .mk-danger-zone { border-color: rgba(224,85,69,.25); }
+  .mk-mt { margin-top: 10px; }
+  .mk-off { font-size: 11px; color: var(--app-soft); border: 1px dashed var(--app-line2); border-radius: 8px; padding: 6px 10px; margin-bottom: 10px; }
+  .mk-off b { color: var(--app-text); }
+  .mk-toast { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
+    background: #232838; border: 1px solid var(--app-line2); border-radius: 10px; padding: 7px 8px 7px 14px; font-size: 12px; display: flex; gap: 10px; align-items: center;
+    transition: .2s; box-shadow: 0 6px 20px rgba(0,0,0,.4); white-space: nowrap; }
+  .mk-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .mk-toast button { font: inherit; font-size: 12px; font-weight: 700; color: var(--app-gold); background: none; border: none; cursor: pointer; padding: 2px 6px; }
+  .mk-pad-toast { height: 44px; }
+  /* Variante B: Leiste mit offenen Aenderungen */
+  .mk-bar { position: sticky; bottom: 0; display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 12px; border-radius: 10px;
+    background: #232838; border: 1px solid var(--app-line2); }
+  .mk-bar.dirty { border-color: rgba(240,165,0,.55); }
+  .mk-bar-text { flex: 1; font-size: 12px; color: var(--app-soft); }
+  .mk-bar.dirty .mk-bar-text { color: var(--app-gold); font-weight: 600; }
+  /* Variante C: Liste + Detail */
+  .mk-split { display: grid; grid-template-columns: minmax(200px, 280px) 1fr; gap: 12px; min-height: 420px; }
+  @media (max-width: 760px) { .mk-split { grid-template-columns: 1fr; } }
+  .mk-list { display: flex; flex-direction: column; gap: 6px; }
+  .mk-filter { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+  .mk-filter .mk-chip { font-size: 11px; padding: 3px 8px; }
+  .mk-list .mk-row { cursor: pointer; padding: 8px 10px; }
+  .mk-list .mk-row.sel { border-color: rgba(240,165,0,.55); background: rgba(240,165,0,.06); }
+  .mk-panel { background: var(--app-card); border: 1px solid var(--app-line2); border-radius: 12px; padding: 12px; min-width: 0; }
+  .mk-panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .mk-panel-head .mk-av { width: 40px; height: 40px; font-size: 14px; }
+  .mk-panel-title { font-family: Rajdhani, var(--font-sans); font-size: 20px; font-weight: 700; color: var(--app-gold); line-height: 1.1; }
+  .mk-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--app-line2); margin-bottom: 10px; overflow-x: auto; }
+  .mk-tab { font: inherit; font-size: 12px; font-weight: 600; padding: 7px 11px; background: none; border: none; color: var(--app-soft); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .mk-tab.on { color: var(--app-gold); border-bottom-color: var(--app-gold); }
+  .mk-tabpane[hidden] { display: none; }
+  .mk-hist { font-size: 12px; color: var(--app-soft); }
+  .mk-hist li { margin-bottom: 3px; }
+  .mk-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 10px; }
+  .mk-kpi { background: var(--app-card2); border-radius: 8px; padding: 8px 10px; }
+  .mk-kpi b { display: block; font-size: 16px; color: var(--app-text); }
+  .mk-kpi span { font-size: 10.5px; color: var(--app-soft); text-transform: uppercase; letter-spacing: .4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div class="badge-row">
+    <span class="badge blue">Konzept</span>
+    <span class="badge amber">Entwurf · zum Aussuchen</span>
+    <span class="badge">Stand 17.11.2026</span>
+    <a class="badge green" href="#mockups">▶ Mockups zum Klicken</a>
+    <a class="badge blue" href="#empfehlung">▶ Empfehlung</a>
+  </div>
+  <h1>Verwaltung: ein Mitglied, eine Art zu bearbeiten</h1>
+  <p class="subtitle">Heute speichert die Verwaltung auf drei verschiedene Arten: mal sofort, mal mit „Beruf speichern“, mal erst nach „Bearbeiten“ und „Speichern“. Hier steht, was genau passiert, eine einfache Regel für alles und drei Varianten als Mockup zum Ausprobieren.</p>
+</div>
+
+<!-- ───────────────────────────────── -->
+<section>
+  <h2>1. Was heute passiert</h2>
+  <p>Ein aufgeklapptes Mitglied in der Verwaltung, Stück für Stück durchgegangen:</p>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Bereich</th><th>Bedienung</th><th>Wann wird gespeichert?</th><th>Problem</th></tr>
+      <tr><td><strong>Strafe / Bonus / AFK</strong></td><td>Knöpfe</td><td class="good">sofort beim Klick</td><td>gilt nur für die gewählte KW, die steht aber weit oben im Kopf der Liste</td></tr>
+      <tr><td><strong>Beruf</strong> (Kein / Ingenieur / Kriegsanführer)</td><td>Knöpfe</td><td class="good">sofort beim Klick</td><td>–</td></tr>
+      <tr><td><strong>Med. Hilfe, Win-Win</strong> (nur Ingenieur)</td><td>Häkchen, Auswahlliste</td><td class="bad">erst mit „✓ Beruf speichern“</td><td>im selben Kasten wie die Beruf-Knöpfe, die sofort speichern</td></tr>
+      <tr><td><strong>Name, Discord-ID, Rang, Rolle, Heimat-Allianz</strong></td><td>erst „✏ Bearbeiten“, dann Felder</td><td class="bad">erst mit „✓ Speichern“</td><td>eigener Modus. Die Flags darunter speichern währenddessen weiter sofort</td></tr>
+      <tr><td><strong>Rang</strong></td><td>beim Anlegen Knöpfe, beim Bearbeiten Auswahlliste</td><td class="mid">je nachdem</td><td>zweimal anders für dieselbe Sache</td></tr>
+      <tr><td><strong>Ehren-R4</strong></td><td>beim Anlegen ein Rang-Knopf, beim Bearbeiten eine eigene „Rolle“</td><td class="mid">je nachdem</td><td>gleiche Sache, zwei Orte</td></tr>
+      <tr><td><strong>Entfernen</strong></td><td>Knopf neben „Bearbeiten“</td><td class="mid">nach Rückfrage</td><td>steht gleichrangig neben harmlosen Knöpfen</td></tr>
+      <tr><td><strong>Eintragen-Liste</strong> (Dialog)</td><td>Flags, Rang</td><td class="good">seit heute sofort</td><td>„alle Flags weg“ heißt dort „0 Punkte“, in der Verwaltung „nicht erfasst“</td></tr>
+      <tr><td><strong>Feature-Konfiguration</strong></td><td>nur Anzeige</td><td>–</td><td>reine Anzeige, die Schalter gibt es im Admin. Braucht in der Verwaltung keinen Platz</td></tr>
+    </table>
+  </div>
+  <p><strong>Was der LWHub schon weiß, aber in der Verwaltung nicht zeigt:</strong> frühere Namen (Namens-Historie), Power und HQ-Stufe aus dem Scanner, wann zuletzt gescannt wurde, die eingestellte Sprache. Das hilft beim Pflegen (z. B. „wer ist das, der sich umbenannt hat?“) und kommt in den Mockups vor.</p>
+  <div class="note warn"><p><strong>Inaktive Features:</strong> Strafe, Bonus, AFK, Berufe und Scanner lassen sich je Allianz abschalten. Dann verschwinden die Kästen ganz. In den Mockups sind <strong>alle eingeschaltet</strong>, damit man sieht, wie es mit allem zusammen aussieht. Wie ein abgeschaltetes Feature aussehen kann, zeigt Variante A unten (Hinweis statt Kasten).</p></div>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section>
+  <h2>2. Eine Regel für alles</h2>
+  <div class="rule">Was man anklickt oder auswählt, gilt sofort.<small>Nur was Folgen hat, fragt nach: Umbenennen und Entfernen. Alles andere lässt sich mit „Rückgängig“ zurücknehmen.</small></div>
+  <ul>
+    <li><strong>Knöpfe, Häkchen, Auswahllisten:</strong> speichern beim Klick. Rechts im Kasten steht kurz „speichert…“ und dann „✓ gespeichert“.</li>
+    <li><strong>Textfelder</strong> (Discord-ID, Heimat-Allianz): speichern beim Verlassen des Felds oder mit Enter. Esc nimmt die Eingabe zurück.</li>
+    <li><strong>Umbenennen:</strong> eigener Knopf mit kurzer Rückfrage, weil der Name in Verlauf, Teams und Links steckt. Der alte Name bleibt in der Namens-Historie, alte Links funktionieren weiter.</li>
+    <li><strong>Entfernen:</strong> ganz unten, rot abgesetzt, mit Rückfrage.</li>
+    <li><strong>Rückgängig:</strong> Nach jeder Änderung erscheint unten kurz „AFK gesetzt · Rückgängig“. Das ersetzt die meisten Rückfragen und ist schneller.</li>
+    <li><strong>Gleiche Bausteine überall:</strong> Rang immer als Knöpfe, Ehren-R4 immer als „Rolle“. Das gilt beim Anlegen, in der Verwaltung und im Dialog der Eintragen-Liste.</li>
+  </ul>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section id="mockups">
+  <h2>3. Drei Varianten zum Ausprobieren</h2>
+  <p>Alles ist klickbar, gespeichert wird natürlich nichts. Die Daten sind ausgedacht.</p>
+
+  <!-- ═══ Variante A ═══ -->
+  <div class="card rec">
+    <div class="card-head"><h3>A · Aufklappen wie heute, alles speichert sofort</h3><span class="badge green">Empfehlung</span></div>
+    <p>Die Liste bleibt, wie sie ist. Das aufgeklappte Mitglied bekommt klar getrennte Kästen: <strong>Diese Woche</strong> (mit KW im Titel), <strong>Beruf</strong>, <strong>Profil</strong>, und ganz unten die <strong>Gefahrenzone</strong>. Es gibt keinen Bearbeiten-Modus und keinen Speichern-Knopf mehr.</p>
+    <div class="mk" id="mkA">
+      <span class="mk-label">Mockup A</span>
+      <div class="mk-row open">
+        <div class="mk-av">BO</div>
+        <div class="mk-name">Boby1933<small>früher: bobby_1933 · zuletzt da 16.11. 21:04</small></div>
+        <span class="mk-pill ok">Discord ✓</span>
+        <span class="mk-pill r3" data-a-rankpill>3 · Elite</span>
+      </div>
+      <div class="mk-detail">
+        <div class="mk-meta"><span>Power <b>48,2 Mio</b></span><span>HQ <b>27</b></span><span>Scan <b>15.11.</b></span><span>Sprache <b>DE</b></span><span>Spieler-ID <b>8f3a…</b></span></div>
+
+        <div class="mk-block" data-autosave>
+          <div class="mk-block-head"><span class="mk-block-title">Diese Woche · <b>KW 47</b></span><span class="mk-state"></span></div>
+          <div class="mk-chips">
+            <button class="mk-chip" data-toggle data-color="red" data-undo="Strafe: kein Kampf">❌ Kein Kampf</button>
+            <button class="mk-chip" data-toggle data-color="red" data-undo="Strafe: Spende fehlt">❌ Spende fehlt</button>
+            <button class="mk-chip" data-toggle data-color="gold" data-undo="Bonus: Helfer">⭐ Helfer</button>
+            <button class="mk-chip" data-toggle data-color="purple" data-undo="AFK">⏸ AFK</button>
+          </div>
+        </div>
+
+        <div class="mk-block" data-autosave>
+          <div class="mk-block-head"><span class="mk-block-title">👷 Beruf</span><span class="mk-state"></span></div>
+          <div class="mk-chips" data-radio>
+            <button class="mk-chip" data-color="blue" data-undo="Beruf: kein">— Kein</button>
+            <button class="mk-chip on" data-color="blue" data-undo="Beruf: Ingenieur" data-shows="a-ing">👷 Ingenieur</button>
+            <button class="mk-chip" data-color="blue" data-undo="Beruf: Kriegsanführer">⚔ Kriegsanführer</button>
+          </div>
+          <div class="mk-sub" id="a-ing">
+            <label class="mk-toggle"><input type="checkbox" data-undo="Med. Hilfe"> 🏥 Med. Hilfe</label>
+            <select class="mk-select" data-undo="Win-Win"><option>— kein Win-Win —</option><option selected>Kasimir</option><option>Nebelkrähe</option></select>
+          </div>
+        </div>
+
+        <div class="mk-block" data-autosave>
+          <div class="mk-block-head"><span class="mk-block-title">Profil</span><span class="mk-state"></span></div>
+          <div class="mk-field"><label>Rang</label>
+            <div class="mk-chips" data-radio data-rank>
+              <button class="mk-chip" data-color="green" data-undo="Rang 1">1 · Rookie</button>
+              <button class="mk-chip" data-color="green" data-undo="Rang 2">2 · Pro</button>
+              <button class="mk-chip on green" data-color="green" data-undo="Rang 3">3 · Elite</button>
+              <button class="mk-chip" data-color="red" data-undo="Rang 4">4 · Leader</button>
+              <button class="mk-chip" data-color="red" data-undo="Rang 5">5 · Chef</button>
+            </div>
+          </div>
+          <div class="mk-field"><label>Rolle</label>
+            <div class="mk-chips" data-radio>
+              <button class="mk-chip on" data-color="blue" data-undo="Rolle: aktiv">Aktives Mitglied</button>
+              <button class="mk-chip" data-color="blue" data-undo="Rolle: Ehrenmitglied">Ehrenmitglied</button>
+              <button class="mk-chip" data-color="blue" data-undo="Rolle: Ehren-R4">👁 Ehren-R4</button>
+            </div>
+          </div>
+          <div class="mk-grid2">
+            <div class="mk-field"><label>Discord-ID <span>(Enter oder Feld verlassen speichert)</span></label><input class="mk-input" value="412345678901234567" data-undo="Discord-ID"></div>
+            <div class="mk-field"><label>Name</label>
+              <div class="mk-actions"><span class="mk-input" data-a-name>Boby1933</span><button class="mk-btn" data-a-rename>✎ Umbenennen…</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mk-off">⏸ <b>Beispiel abgeschaltetes Feature:</b> „Scanner ist für diese Allianz aus.“ Ein Satz statt eines leeren Kastens. Einschalten geht weiter nur im Admin. Alternative: Abgeschaltetes einfach weglassen wie heute.</div>
+
+        <div class="mk-actions">
+          <button class="mk-btn">⚔ Teams</button>
+          <button class="mk-btn">👁 Me-Ansicht</button>
+          <button class="mk-btn">🔗 Link</button>
+        </div>
+        <div class="mk-block mk-danger-zone mk-mt">
+          <div class="mk-block-head"><span class="mk-block-title">Gefahrenzone</span></div>
+          <div class="mk-actions"><button class="mk-btn danger" data-confirm="Boby1933 wirklich entfernen? Verlauf und Punkte bleiben im Archiv.">🗑 Entfernen…</button></div>
+        </div>
+      </div>
+      <div class="mk-pad-toast"></div>
+      <div class="mk-toast"><span class="mk-toast-text"></span><button type="button">Rückgängig</button></div>
+    </div>
+    <p class="mk-hint">Probier: AFK anklicken, Beruf wechseln, Rang ändern, die Discord-ID ändern und das Feld verlassen.</p>
+    <div class="pc">
+      <div class="pro"><h4>Vorteile</h4><ul><li>eine Regel, nichts geht verloren, kein „hab ich gespeichert?“</li><li>am wenigsten Umbau, die Liste bleibt vertraut</li><li>funktioniert auf dem Handy genauso</li><li>dieselben Bausteine passen in den Dialog der Eintragen-Liste</li></ul></div>
+      <div class="con"><h4>Nachteile</h4><ul><li>aufgeklappt wird es länger (dafür klar gegliedert)</li><li>versehentliche Klicks sind sofort gespeichert, deshalb braucht es „Rückgängig“</li></ul></div>
+    </div>
+  </div>
+
+  <!-- ═══ Variante B ═══ -->
+  <div class="card">
+    <div class="card-head"><h3>B · Ein Formular, ein Speichern-Knopf</h3><span class="badge">Alternative</span></div>
+    <p>Das Gegenteil: <strong>nichts</strong> speichert sofort, auch die Flags und der Beruf nicht. Unten klebt eine Leiste: „3 Änderungen · Verwerfen · Speichern“. Wer zuklappt oder die Seite verlässt, wird gefragt.</p>
+    <div class="mk" id="mkB">
+      <span class="mk-label">Mockup B</span>
+      <div class="mk-row open">
+        <div class="mk-av">KA</div>
+        <div class="mk-name">Kasimir<small>zuletzt da 17.11. 08:12</small></div>
+        <span class="mk-pill ok">Discord ✓</span>
+        <span class="mk-pill r3">3 · Elite</span>
+      </div>
+      <div class="mk-detail">
+        <div class="mk-block">
+          <div class="mk-block-head"><span class="mk-block-title">Diese Woche · <b>KW 47</b></span></div>
+          <div class="mk-chips">
+            <button class="mk-chip" data-toggle data-color="red">❌ Kein Kampf</button>
+            <button class="mk-chip" data-toggle data-color="red">❌ Spende fehlt</button>
+            <button class="mk-chip" data-toggle data-color="gold">⭐ Helfer</button>
+            <button class="mk-chip" data-toggle data-color="purple">⏸ AFK</button>
+          </div>
+        </div>
+        <div class="mk-block">
+          <div class="mk-block-head"><span class="mk-block-title">👷 Beruf</span></div>
+          <div class="mk-chips" data-radio>
+            <button class="mk-chip" data-color="blue">— Kein</button>
+            <button class="mk-chip" data-color="blue">👷 Ingenieur</button>
+            <button class="mk-chip on" data-color="blue">⚔ Kriegsanführer</button>
+          </div>
+        </div>
+        <div class="mk-block">
+          <div class="mk-block-head"><span class="mk-block-title">Profil</span></div>
+          <div class="mk-grid2">
+            <div class="mk-field"><label>Name</label><input class="mk-input" value="Kasimir"></div>
+            <div class="mk-field"><label>Discord-ID</label><input class="mk-input" value="398765432109876543"></div>
+          </div>
+          <div class="mk-field"><label>Rang</label>
+            <div class="mk-chips" data-radio>
+              <button class="mk-chip" data-color="green">1</button><button class="mk-chip" data-color="green">2</button>
+              <button class="mk-chip on green" data-color="green">3</button><button class="mk-chip" data-color="red">4</button><button class="mk-chip" data-color="red">5</button>
+            </div>
+          </div>
+        </div>
+        <div class="mk-bar"><span class="mk-bar-text">Keine Änderungen</span><button class="mk-btn ghost" data-b-reset disabled>Verwerfen</button><button class="mk-btn gold" data-b-save disabled>✓ Speichern</button></div>
+      </div>
+      <div class="mk-pad-toast"></div>
+      <div class="mk-toast"><span class="mk-toast-text"></span><button type="button">OK</button></div>
+    </div>
+    <div class="pc">
+      <div class="pro"><h4>Vorteile</h4><ul><li>auch eine einzige Regel</li><li>man kann in Ruhe alles einstellen und dann einmal speichern</li><li>Fehlklicks passieren nicht sofort</li></ul></div>
+      <div class="con"><h4>Nachteile</h4><ul><li>vergessenes Speichern ist der häufigste Fehler (genau das nervt heute)</li><li>für den häufigsten Fall, „AFK für diese Woche setzen“, braucht es zwei Klicks und ein Zuklappen</li><li>passt nicht zur Eintragen-Liste, die seit heute sofort speichert</li></ul></div>
+    </div>
+  </div>
+
+  <!-- ═══ Variante C ═══ -->
+  <div class="card">
+    <div class="card-head"><h3>C · Liste links, Mitglied rechts (wie A, nur breiter)</h3><span class="badge">für später / PC</span></div>
+    <p>Gleiche Regel wie A (alles sofort), aber auf dem PC steht die Liste links und das gewählte Mitglied rechts mit Reitern: <strong>Woche</strong>, <strong>Beruf</strong>, <strong>Profil</strong>, <strong>Verlauf</strong>. Die Zahlen der Übersicht werden zu Filtern („Discord fehlt“, „AFK diese Woche“, „Ehrenrollen“). Auf dem Handy öffnet das Mitglied als ganze Seite, Zurück führt in die Liste.</p>
+    <div class="mk" id="mkC">
+      <span class="mk-label">Mockup C</span>
+      <div class="mk-split">
+        <div class="mk-list">
+          <div class="mk-filter">
+            <button class="mk-chip on" data-c-filter="all">Alle 6</button>
+            <button class="mk-chip" data-c-filter="nodiscord">Discord fehlt 1</button>
+            <button class="mk-chip" data-c-filter="afk">AFK 1</button>
+            <button class="mk-chip" data-c-filter="honor">Ehrenrollen 1</button>
+          </div>
+          <div class="mk-row sel" data-c-member="Boby1933"><div class="mk-av">BO</div><div class="mk-name">Boby1933<small>Ingenieur</small></div><span class="mk-pill r3">R3</span></div>
+          <div class="mk-row" data-c-member="Kasimir"><div class="mk-av">KA</div><div class="mk-name">Kasimir<small>Kriegsanführer</small></div><span class="mk-pill r3">R3</span></div>
+          <div class="mk-row" data-c-member="Mira" data-c-tags="afk"><div class="mk-av">MI</div><div class="mk-name">Mira<small>AFK diese Woche</small></div><span class="mk-pill afk">AFK</span></div>
+          <div class="mk-row" data-c-member="Nebelkrähe" data-c-tags="nodiscord"><div class="mk-av">NE</div><div class="mk-name">Nebelkrähe<small>kein Discord</small></div><span class="mk-pill warn">!</span></div>
+          <div class="mk-row" data-c-member="Lion Tooth"><div class="mk-av">LT</div><div class="mk-name">Lion Tooth<small>R4</small></div><span class="mk-pill r4">R4</span></div>
+          <div class="mk-row" data-c-member="Gast aus IvX" data-c-tags="honor"><div class="mk-av">IV</div><div class="mk-name">Gast aus IvX<small>Ehren-R4</small></div><span class="mk-pill">👁</span></div>
+        </div>
+        <div class="mk-panel">
+          <div class="mk-panel-head"><div class="mk-av" data-c-av>BO</div><div><div class="mk-panel-title" data-c-name>Boby1933</div><div class="mk-meta"><span>R3 · Elite</span><span>Discord ✓</span><span>zuletzt da 16.11.</span></div></div></div>
+          <div class="mk-tabs">
+            <button class="mk-tab on" data-c-tab="week">Woche</button>
+            <button class="mk-tab" data-c-tab="job">Beruf</button>
+            <button class="mk-tab" data-c-tab="profile">Profil</button>
+            <button class="mk-tab" data-c-tab="history">Verlauf</button>
+          </div>
+          <div class="mk-tabpane" data-c-pane="week">
+            <div class="mk-block" data-autosave>
+              <div class="mk-block-head"><span class="mk-block-title">KW <b>47</b> ‹ ›</span><span class="mk-state"></span></div>
+              <div class="mk-chips">
+                <button class="mk-chip" data-toggle data-color="red" data-undo="Strafe: kein Kampf">❌ Kein Kampf</button>
+                <button class="mk-chip" data-toggle data-color="gold" data-undo="Bonus: Helfer">⭐ Helfer</button>
+                <button class="mk-chip" data-toggle data-color="purple" data-undo="AFK">⏸ AFK</button>
+              </div>
+            </div>
+            <div class="mk-kpis"><div class="mk-kpi"><b>212</b><span>Punkte KW 47</span></div><div class="mk-kpi"><b>3/3</b><span>Wache</span></div><div class="mk-kpi"><b>✓</b><span>Spende</span></div></div>
+          </div>
+          <div class="mk-tabpane" data-c-pane="job" hidden>
+            <div class="mk-block" data-autosave>
+              <div class="mk-block-head"><span class="mk-block-title">👷 Beruf</span><span class="mk-state"></span></div>
+              <div class="mk-chips" data-radio>
+                <button class="mk-chip" data-color="blue" data-undo="Beruf: kein">— Kein</button>
+                <button class="mk-chip on" data-color="blue" data-undo="Beruf: Ingenieur">👷 Ingenieur</button>
+                <button class="mk-chip" data-color="blue" data-undo="Beruf: Kriegsanführer">⚔ Kriegsanführer</button>
+              </div>
+              <div class="mk-sub"><label class="mk-toggle"><input type="checkbox" checked data-undo="Med. Hilfe"> 🏥 Med. Hilfe</label><select class="mk-select" data-undo="Win-Win"><option>— kein Win-Win —</option><option selected>Kasimir</option></select></div>
+            </div>
+          </div>
+          <div class="mk-tabpane" data-c-pane="profile" hidden>
+            <div class="mk-block" data-autosave>
+              <div class="mk-block-head"><span class="mk-block-title">Profil</span><span class="mk-state"></span></div>
+              <div class="mk-field"><label>Rang</label><div class="mk-chips" data-radio><button class="mk-chip" data-color="green" data-undo="Rang 2">2 · Pro</button><button class="mk-chip on green" data-color="green" data-undo="Rang 3">3 · Elite</button><button class="mk-chip" data-color="red" data-undo="Rang 4">4 · Leader</button></div></div>
+              <div class="mk-grid2"><div class="mk-field"><label>Discord-ID</label><input class="mk-input" value="412345678901234567" data-undo="Discord-ID"></div><div class="mk-field"><label>Heimat-Allianz</label><input class="mk-input" placeholder="nur bei Ehrenrolle" data-undo="Heimat-Allianz"></div></div>
+            </div>
+            <div class="mk-actions"><button class="mk-btn">✎ Umbenennen…</button><button class="mk-btn danger" data-confirm="Wirklich entfernen?">🗑 Entfernen…</button></div>
+          </div>
+          <div class="mk-tabpane" data-c-pane="history" hidden>
+            <div class="mk-kpis"><div class="mk-kpi"><b>48,2 Mio</b><span>Power (Scan 15.11.)</span></div><div class="mk-kpi"><b>27</b><span>HQ</span></div><div class="mk-kpi"><b>DE</b><span>Sprache</span></div></div>
+            <ul class="mk-hist"><li>Name „bobby_1933“ bis KW 41, seitdem „Boby1933“</li><li>Rang 2 → 3 in KW 44</li><li>Beruf Ingenieur seit KW 40</li><li>Zuletzt da: 16.11. 21:04</li></ul>
+          </div>
+        </div>
+      </div>
+      <div class="mk-pad-toast"></div>
+      <div class="mk-toast"><span class="mk-toast-text"></span><button type="button">Rückgängig</button></div>
+    </div>
+    <div class="pc">
+      <div class="pro"><h4>Vorteile</h4><ul><li>auf dem PC viel schneller: Mitglied für Mitglied durchklicken, ohne Auf- und Zuklappen</li><li>Platz für Verlauf und Scanner-Daten</li><li>Übersicht wird zum Filter</li></ul></div>
+      <div class="con"><h4>Nachteile</h4><ul><li>größter Umbau, Handy-Ansicht braucht eigene Arbeit</li><li>neue Gewohnheit für alle R4</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section>
+  <h2>4. Was außerdem besser wird (in jeder Variante)</h2>
+  <ul>
+    <li><strong>„Alle Flags weg“ heißt überall dasselbe.</strong> Vorschlag: Das Mitglied bleibt <em>erfasst mit 0 Punkten</em>. „Nicht erfasst“ wird ein eigener Knopf („Eintrag der Woche löschen“), damit es nicht aus Versehen passiert.</li>
+    <li><strong>KW sichtbar, wo sie wirkt:</strong> im Kasten „Diese Woche“ statt nur oben im Kopf der Liste.</li>
+    <li><strong>Übersicht klickbar:</strong> „Discord noch offen: 5“ filtert die Liste auf genau diese fünf.</li>
+    <li><strong>Suche</strong> findet auch frühere Namen und den Discord-Namen.</li>
+    <li><strong>Mitglied anlegen</strong> mit denselben Bausteinen (Rang-Knöpfe, Rolle). Nach dem Anlegen klappt das neue Mitglied gleich auf.</li>
+    <li><strong>Feature-Konfiguration raus:</strong> Der Kasten zeigt nur an, was im Admin eingestellt ist. Die Schalter bleiben im Admin (Allianzen → Features), in der Verwaltung entfällt der Kasten. Was aus ist, sieht man daran, dass der Kasten im Mitglied fehlt.</li>
+    <li><strong>Eintragen-Liste:</strong> Der Dialog bekommt dieselben Kästen „Diese Woche“ und „Rang“ wie die Verwaltung, nur ohne Profil.</li>
+  </ul>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section id="empfehlung">
+  <h2>5. Empfehlung</h2>
+  <div class="note">
+    <p><strong>Variante A</strong> mit der Regel aus Abschnitt 2 und den Punkten aus Abschnitt 4. Sie löst das eigentliche Ärgernis (drei Arten zu speichern) mit dem kleinsten Umbau. Variante C kann später darauf aufsetzen, weil die Kästen dieselben sind, sie stehen dann nur nebeneinander statt untereinander.</p>
+  </div>
+  <h3>Reihenfolge</h3>
+  <ol>
+    <li>Bausteine bauen: Kasten mit „✓ gespeichert“, Rückgängig-Hinweis, Rang- und Rollen-Knöpfe.</li>
+    <li>Verwaltung auf Variante A umstellen: Bearbeiten-Modus und „Beruf speichern“ fallen weg, Umbenennen und Entfernen bekommen ihre Rückfrage.</li>
+    <li>„Alle Flags weg“ vereinheitlichen, Eintragen-Liste mit denselben Kästen.</li>
+    <li>Übersicht als Filter, Suche mit früheren Namen, Verlauf und Scanner-Daten anzeigen.</li>
+    <li>Kasten „Feature-Konfiguration“ aus der Verwaltung entfernen (Schalter bleiben im Admin).</li>
+  </ol>
+  <h3>Offene Fragen</h3>
+  <ul>
+    <li>Welche Variante soll es werden? A, B, C oder eine Mischung?</li>
+    <li>„Alle Flags weg“: wie vorgeschlagen <em>0 Punkte, erfasst</em>?</li>
+    <li>Soll ein Rang-Wechsel auf R4/R5 nachfragen? (Er gibt Zugriff auf alle R4-Seiten.)</li>
+  </ul>
+</section>
+
+<div class="footer">LWHub · Konzept Verwaltung · Fragen an Lion Tooth (Server 776)</div>
+</div>
+<a class="back-to-app" href="../">&larr; Zur App</a>
+<script>
+  function backToApp() {
+    try { window.close(); } catch (e) {}
+    setTimeout(function () { location.href = '../'; }, 150);
+    return false;
+  }
+  document.querySelector('.back-to-app').addEventListener('click', function (e) { e.preventDefault(); backToApp(); });
+
+  // ── Mockups: nur Anzeige, gespeichert wird nichts ──
+  function showToast(mk, text, onUndo) {
+    var t = mk.querySelector('.mk-toast');
+    if (!t) return;
+    t.querySelector('.mk-toast-text').textContent = text;
+    var btn = t.querySelector('button');
+    btn.onclick = function () { t.classList.remove('show'); if (onUndo) onUndo(); };
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.remove('show'); }, 3500);
+  }
+  function setChip(chip, on) {
+    chip.classList.toggle('on', on);
+    ['red', 'gold', 'purple', 'green'].forEach(function (c) { chip.classList.remove(c); });
+    if (on && chip.dataset.color && chip.dataset.color !== 'blue') chip.classList.add(chip.dataset.color);
+  }
+  // Variante A und C: Kasten zeigt „speichert…“ → „✓ gespeichert“, unten „Rückgängig“
+  function autosaveFlash(block) {
+    var st = block && block.querySelector('.mk-state');
+    if (!st) return;
+    st.classList.remove('saved'); st.textContent = 'speichert…';
+    clearTimeout(st._t);
+    st._t = setTimeout(function () { st.classList.add('saved'); st.textContent = '✓ gespeichert'; }, 450);
+  }
+  function wireAutosave(mk) {
+    mk.addEventListener('click', function (e) {
+      var chip = e.target.closest('.mk-chip');
+      if (!chip || chip.closest('.mk-filter')) return;
+      var block = chip.closest('[data-autosave]');
+      var group = chip.closest('[data-radio]');
+      var before = group ? group.querySelector('.mk-chip.on') : null;
+      var wasOn = chip.classList.contains('on');
+      if (group) {
+        if (wasOn) return;
+        group.querySelectorAll('.mk-chip').forEach(function (c) { setChip(c, c === chip); });
+      } else if (chip.hasAttribute('data-toggle')) {
+        setChip(chip, !wasOn);
+      } else return;
+      updateShows(mk);
+      if (!block) return;
+      autosaveFlash(block);
+      var label = (chip.dataset.undo || chip.textContent.trim()) + (group ? '' : (wasOn ? ' entfernt' : ' gesetzt'));
+      showToast(mk, label, function () {
+        if (group) group.querySelectorAll('.mk-chip').forEach(function (c) { setChip(c, c === before); });
+        else setChip(chip, wasOn);
+        updateShows(mk);
+        autosaveFlash(block);
+      });
+    });
+    mk.addEventListener('change', function (e) {
+      var el = e.target;
+      var block = el.closest('[data-autosave]');
+      if (!block || !el.matches('select, input')) return;
+      autosaveFlash(block);
+      showToast(mk, (el.dataset.undo || 'Wert') + ' gespeichert', function () { autosaveFlash(block); });
+    });
+    mk.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.matches('input.mk-input')) e.target.blur();
+    });
+    mk.querySelectorAll('[data-confirm]').forEach(function (b) {
+      b.addEventListener('click', function () { window.confirm(b.dataset.confirm + '\n\n(Mockup: es passiert nichts)'); });
+    });
+  }
+  function updateShows(mk) {
+    mk.querySelectorAll('[data-shows]').forEach(function (c) {
+      var target = document.getElementById(c.dataset.shows);
+      if (target) target.hidden = !c.classList.contains('on');
+    });
+  }
+  var mkA = document.getElementById('mkA');
+  wireAutosave(mkA);
+  updateShows(mkA);
+  var renameBtn = mkA.querySelector('[data-a-rename]');
+  renameBtn.addEventListener('click', function () {
+    var nameEl = mkA.querySelector('[data-a-name]');
+    var neu = window.prompt('Neuer Name für ' + nameEl.textContent + '?\nDer alte Name bleibt in der Namens-Historie, alte Links funktionieren weiter.', nameEl.textContent);
+    if (neu && neu.trim() && neu.trim() !== nameEl.textContent) {
+      nameEl.textContent = neu.trim();
+      autosaveFlash(renameBtn.closest('[data-autosave]'));
+    }
+  });
+  // Rang-Pille im Kopf folgt dem Rang
+  mkA.querySelector('[data-rank]').addEventListener('click', function () {
+    setTimeout(function () {
+      var on = mkA.querySelector('[data-rank] .mk-chip.on');
+      var pill = mkA.querySelector('[data-a-rankpill]');
+      if (on && pill) { pill.textContent = on.textContent; pill.className = 'mk-pill ' + (/^[45]/.test(on.textContent) ? 'r4' : 'r3'); }
+    }, 0);
+  });
+
+  // Variante B: alles sammeln, dann Speichern oder Verwerfen
+  (function () {
+    var mk = document.getElementById('mkB');
+    var bar = mk.querySelector('.mk-bar');
+    var text = bar.querySelector('.mk-bar-text');
+    var save = bar.querySelector('[data-b-save]');
+    var reset = bar.querySelector('[data-b-reset]');
+    var initial = snapshot();
+    function snapshot() {
+      return Array.prototype.map.call(mk.querySelectorAll('.mk-chip, .mk-input'), function (el) {
+        return el.matches('input') ? el.value : el.classList.contains('on');
+      });
+    }
+    function count() {
+      var now = snapshot(), n = 0;
+      for (var i = 0; i < now.length; i++) if (now[i] !== initial[i]) n++;
+      bar.classList.toggle('dirty', n > 0);
+      text.textContent = n ? n + (n === 1 ? ' Änderung, noch nicht gespeichert' : ' Änderungen, noch nicht gespeichert') : 'Keine Änderungen';
+      save.disabled = reset.disabled = !n;
+    }
+    mk.addEventListener('click', function (e) {
+      var chip = e.target.closest('.mk-chip');
+      if (!chip) return;
+      var group = chip.closest('[data-radio]');
+      if (group) group.querySelectorAll('.mk-chip').forEach(function (c) { setChip(c, c === chip); });
+      else setChip(chip, !chip.classList.contains('on'));
+      count();
+    });
+    mk.addEventListener('input', count);
+    save.addEventListener('click', function () { initial = snapshot(); count(); showToast(mk, 'Gespeichert'); });
+    reset.addEventListener('click', function () {
+      var els = mk.querySelectorAll('.mk-chip, .mk-input');
+      Array.prototype.forEach.call(els, function (el, i) { if (el.matches('input')) el.value = initial[i]; else setChip(el, initial[i]); });
+      count();
+    });
+  })();
+
+  // Variante C: Liste links, Reiter rechts
+  (function () {
+    var mk = document.getElementById('mkC');
+    wireAutosave(mk);
+    mk.querySelectorAll('[data-c-tab]').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        mk.querySelectorAll('[data-c-tab]').forEach(function (t) { t.classList.toggle('on', t === tab); });
+        mk.querySelectorAll('[data-c-pane]').forEach(function (p) { p.hidden = p.dataset.cPane !== tab.dataset.cTab; });
+      });
+    });
+    mk.querySelectorAll('[data-c-member]').forEach(function (row) {
+      row.addEventListener('click', function () {
+        mk.querySelectorAll('[data-c-member]').forEach(function (r) { r.classList.toggle('sel', r === row); });
+        mk.querySelector('[data-c-name]').textContent = row.dataset.cMember;
+        mk.querySelector('[data-c-av]').textContent = row.querySelector('.mk-av').textContent;
+      });
+    });
+    mk.querySelectorAll('[data-c-filter]').forEach(function (f) {
+      f.addEventListener('click', function () {
+        mk.querySelectorAll('[data-c-filter]').forEach(function (x) { x.classList.toggle('on', x === f); });
+        var want = f.dataset.cFilter;
+        mk.querySelectorAll('[data-c-member]').forEach(function (r) {
+          var tags = (r.dataset.cTags || '').split(' ');
+          r.hidden = want !== 'all' && tags.indexOf(want) < 0;
+        });
+      });
+    });
+  })();
+</script>
+<script src="doc-share.js"></script>
+</body>
+</html>

@@ -571,6 +571,7 @@ $auNav = function (string $active) use ($member): string {
       <a class="wt-btn v-doc-btn" href="docs/konzept-berufe-rangcheck-aufgaben.html" target="_blank" rel="noopener">✅ <span data-i18n="s_docs_bp_tasks">Aufgaben Berufe</span></a>
       <a class="wt-btn v-doc-btn" href="docs/konzept-berufe-mobil.html" target="_blank" rel="noopener">📱 <span data-i18n="s_docs_bp_mobile">Berufeplaner mobil</span></a>
       <a class="wt-btn v-doc-btn" href="docs/konzept-frontend-umbau.html" target="_blank" rel="noopener">🧩 <span data-i18n="s_docs_frontend">Umbau Startseite</span></a>
+      <a class="wt-btn v-doc-btn" href="docs/konzept-verwaltung-ux.html" target="_blank" rel="noopener">🧑‍💼 <span data-i18n="s_docs_admin_ux">Verwaltung neu</span></a>
     </div>
   </div>
 

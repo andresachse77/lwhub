@@ -323,3 +323,13 @@ async function apiPost(data) {
   }
 }
 
+
+// API-Aufruf mit Anmelde-Kopfzeilen, Fehler als Exception. Heisst „admin“, weil es aus der Admin-Seite kommt;
+// gebraucht wird es auch vor der Anmeldung (offene Allianzen) und im Einstellungen-Dialog.
+async function adminApi(path, options = {}) {
+  const base = window.getApiBase();
+  const res = await fetch(base + path, { ...options, headers: { ...lwhubAuthHeaders(), ...(options.headers || {}) } });
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+  if (!res.ok) throw lwhubAuthProblem(res.status, data) || new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}

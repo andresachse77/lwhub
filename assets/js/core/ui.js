@@ -13,6 +13,14 @@ function toast(msg, type = '') {
 function tr(msg) {
   return typeof window.trText === 'function' ? window.trText(msg) : msg;
 }
+// Uebersetzung mit Platzhaltern: trf('KW {kw} …', { kw: 42 })
+function trf(de, vars = {}) {
+  return Object.entries(vars).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), tr(de));
+}
+
+// Dialoge (.modal mit Klasse hidden) auf- und zumachen
+function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
+function openModal(id)  { document.getElementById(id)?.classList.remove('hidden'); }
 
 let battleLoaderDepth = 0;
 let battleLoaderShowTimer = null;

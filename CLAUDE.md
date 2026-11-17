@@ -117,16 +117,24 @@ Ladereihenfolge:
    (`toast`, `tr`, Ladeanimation), `data.js` (Daten laden/speichern, Bearbeiten-Dialog, KW-Wechsel)
 3. `pages/me.js` (Mein Bereich), dann `core/router.js` (Navigation, R4-/Admin-Reiter, `LW_ROUTES`,
    `showPage`, `renderAll`, Ansichten der Auswertungen)
-4. Seiten `assets/js/pages/`: `teams.js`, `entries.js` (Eintragen-Liste `/list`), `dashboard.js`
-   (Dashboard, Ranking-Tabelle), `members.js` (Verwaltung), `stats.js` (SE-Inaktiv, Ergebnis), `events.js`
-   (Wache/Wüste/Spezial/VS/Spenden), `admin.js`, `train.js` (Zug), `jobs.js` (Berufeplaner)
+4. Seiten für alle `assets/js/pages/`: `teams.js`, `train.js` (Zug, enthält auch den R4-Planer)
 5. `assets/js/start.js` (Sync, Presence, `initApp()` und der Startaufruf), danach `char-switcher.js`
+6. **Erst für R4/R5** (seit 17.11.2026, `lwLoadR4Scripts()` in `router.js`, aufgerufen von `injectR4Tabs()`):
+   `entries.js` (Eintragen-Liste `/list`), `dashboard.js` (Dashboard, Ranking-Tabelle), `members.js`
+   (Verwaltung), `stats.js` (SE-Inaktiv, Ergebnis), `events.js` (Wache/Wüste/Spezial/VS/Spenden), `admin.js`,
+   `jobs.js` (Berufeplaner). Sie stehen in `index.php` im `<template id="lw-r4-scripts">`; dort lädt der
+   Browser nichts, R1–R3 bekommen sie nie. Ihr Code läuft erst nach `start.js` und nach `DOMContentLoaded`
+   (also kein `DOMContentLoaded`-Listener darin).
 
 - Code oben in einer Datei (außerhalb von Funktionen) darf nur Dinge aus derselben oder einer **früher**
   geladenen Datei benutzen. Innerhalb von Funktionen ist alles erlaubt, die laufen erst nach dem Start.
 - Eine Variable nie zweimal mit `let`/`const` anlegen, auch nicht in verschiedenen Dateien
   (das bricht die ganze Seite mit einem SyntaxError).
-- Neue Seite → eigene Datei in `pages/`, Tag **vor** `start.js` eintragen.
+- Neue Seite → eigene Datei in `pages/`. Für alle: Tag **vor** `start.js`. Nur R4/R5: ins `<template id="lw-r4-scripts">`.
+- Was gemeinsamer Code (Kern, `me.js`, `teams.js`, `train.js`, `start.js`) aufruft, gehört **nicht** in eine R4-Datei,
+  sonst fehlt es bei R1–R3 (z. B. `trf`, `openModal`/`closeModal` in `ui.js`, `adminApi` in `api.js`,
+  Reiter-Sichtbarkeit in `features.js`). Aufrufe von R4-Funktionen aus dem Kern nur auf R4-Seiten oder mit
+  `typeof fn === 'function'` bzw. `window.fn?.()`.
 
 HTML, das nur R4/R5 oder nur R5 sehen dürfen, steht **nicht** in `index.php`/`views/`, sondern kommt vom Server
 (`/tab-html`, `api/src/members.php`): `api/partials/r4-pages.php` (R4-Seiten und Berufeplaner-Dialoge,

@@ -15,14 +15,6 @@ function adminRankColor(r) {
   return { 1:'#f0a500', 2:'#2ecb7a', 3:'#4a9eff', 4:'#e05545', 5:'#9b6dff' }[r] || '#7a8498';
 }
 
-async function adminApi(path, options = {}) {
-  const base = window.getApiBase();
-  const res = await fetch(base + path, { ...options, headers: { ...lwhubAuthHeaders(), ...(options.headers || {}) } });
-  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-  if (!res.ok) throw lwhubAuthProblem(res.status, data) || new Error(data.error || `HTTP ${res.status}`);
-  return data;
-}
-
 async function adminInitPage() {
   if (adminLoaded) return;
   adminLoaded = true;
@@ -41,12 +33,6 @@ function adminShowTab(name, btn) {
   if (name === 'tokens') adminInitApiTokensTab();
   lwSubChanged('a');
 }
-
-// ── Admin Feature Config ──
-let adminFlagConfigCache = {}; // { allianceName: {key: bool, ...} }
-
-function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
-function openModal(id)  { document.getElementById(id)?.classList.remove('hidden'); }
 
 // ── Alliances ──
 async function loadAlliances() {

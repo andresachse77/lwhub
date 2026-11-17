@@ -698,10 +698,7 @@ window.spezialImportFromScanner = spezialImportFromScanner;
 // 10 Mio ist ok, darueber gibt es keinen Bonus. Keine Top-10/Top-30-Boni, keine Strafe unter 43,2 Mio.
 // Festgelegt je Allianz und KW (alliance_config "vs_sparwochen", R4/R5 ueber POST /scans/sparwoche).
 const VS_SPAR_MAX_PER_DAY = 10000000;
-// Uebersetzung mit Platzhaltern: trf('KW {kw} …', { kw: 42 }); Zahlen und Wochentage in der UI-Sprache
-function trf(de, vars = {}) {
-  return Object.entries(vars).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), tr(de));
-}
+// Zahlen und Wochentage in der UI-Sprache (trf steht in core/ui.js)
 const uiLang = () => document.documentElement.lang || 'de';
 const fmtMio = v => (v / 1e6).toLocaleString(uiLang(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const vsDayName = d => new Date(Date.UTC(2024, 0, d)).toLocaleDateString(uiLang(), { weekday: 'short', timeZone: 'UTC' }); // 1.1.2024 = Montag

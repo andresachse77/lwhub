@@ -74,9 +74,31 @@ function updateNavCompact() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
   else attach();
 })();
+// Seiten-Dateien fuer R4/R5 (Dashboard, Liste, Verwaltung, Auswertungen, Events, Admin, Berufe) nachladen.
+// Die Adressen samt Hash-Version stehen im <template id="lw-r4-scripts"> in index.php. async = false: Der Browser
+// laedt parallel, fuehrt aber in der Reihenfolge aus. Einmal je Seitenaufruf, danach dasselbe Promise.
+let lwR4ScriptsPromise = null;
+function lwLoadR4Scripts() {
+  if (lwR4ScriptsPromise) return lwR4ScriptsPromise;
+  const tpl = document.getElementById('lw-r4-scripts');
+  const srcs = tpl ? [...tpl.content.querySelectorAll('script[src]')].map((s) => s.getAttribute('src')) : [];
+  lwR4ScriptsPromise = Promise.all(srcs.map((src) => new Promise((resolve) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.async = false;
+    el.addEventListener('load', resolve);
+    el.addEventListener('error', () => { console.error('[lwhub] Seiten-Datei nicht geladen:', src); resolve(); });
+    document.body.appendChild(el);
+  })));
+  return lwR4ScriptsPromise;
+}
+
 async function injectR4Tabs(discordId) {
   try {
+    // Scripts und Seiten-HTML gleichzeitig holen; eingesetzt wird erst, wenn beides da ist
+    const scriptsReady = lwLoadR4Scripts();
     const data = await fetchJson(`/tab-html?section=r4&discord_id=${encodeURIComponent(discordId)}`);
+    await scriptsReady;
     if (!data.ok) return;
     document.getElementById('r4-tab-btns').innerHTML = data.tabBtns;
     document.getElementById('r4-pages-container').innerHTML = data.pages;

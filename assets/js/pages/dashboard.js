@@ -162,5 +162,3 @@ function initFilterBars() {
     });
   }
 }
-// Also init any filter bars that exist at load (none until R4 inject, but safe to call)
-document.addEventListener('DOMContentLoaded', initFilterBars);

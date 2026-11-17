@@ -65,16 +65,20 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self'; script-s
 <script src="assets/js/pages/me.js?v=dev"></script>
 <script src="assets/js/core/router.js?v=dev"></script>
 <script src="assets/js/pages/teams.js?v=dev"></script>
+<script src="assets/js/pages/train.js?v=dev"></script>
+<script src="assets/js/start.js?v=dev"></script>
+<script src="char-switcher.js"></script>
+<!-- Seiten nur fuer R4/R5: werden erst geladen, wenn die R4-Reiter kommen (lwLoadR4Scripts in core/router.js).
+     Im <template> laedt der Browser nichts; R1–R3 sparen so rund 210 KB. Reihenfolge = Ausfuehrungsreihenfolge. -->
+<template id="lw-r4-scripts">
 <script src="assets/js/pages/entries.js?v=dev"></script>
 <script src="assets/js/pages/dashboard.js?v=dev"></script>
 <script src="assets/js/pages/members.js?v=dev"></script>
 <script src="assets/js/pages/stats.js?v=dev"></script>
 <script src="assets/js/pages/events.js?v=dev"></script>
 <script src="assets/js/pages/admin.js?v=dev"></script>
-<script src="assets/js/pages/train.js?v=dev"></script>
 <script src="assets/js/pages/jobs.js?v=dev"></script>
-<script src="assets/js/start.js?v=dev"></script>
-<script src="char-switcher.js"></script>
+</template>
 </body>
 </html>
 

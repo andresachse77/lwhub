@@ -2097,7 +2097,7 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
 .vm-sec { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px 12px; margin-bottom: 10px; background: rgba(255,255,255,0.015); }
 .vm-sec-head { display: flex; align-items: center; gap: 8px; min-height: 32px; margin-bottom: 8px; }
 .vm-sec-title { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--soft); }
-.vm-sec-title b { color: var(--gold); }
+.vm-sec-title b { color: var(--gold); white-space: nowrap; }
 .vm-saved { margin-left: auto; font-size: 12px; color: var(--green); opacity: 0; transition: opacity 0.25s; white-space: nowrap; }
 .vm-saved.on { opacity: 1; }
 .vm-kw { display: flex; gap: 4px; }
@@ -2138,7 +2138,9 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
   .vm-layout { grid-template-columns: 1fr; }
   .vm-layout:not(.has-sel) .vm-detail { display: none; }
   .vm-layout.has-sel .vm-list { display: none; }
-  .vm-detail { position: static; max-height: none; overflow: visible; padding: 12px; }
+  /* Handy: kein Rahmen im Rahmen. Das Mitglied liegt direkt im Kasten der Liste, der dafuer weniger Innenabstand hat. */
+  .vm-detail { position: static; max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; border-radius: 0; }
+  #page-v.v-member-open .v-member-panel { padding: 10px; }
   .vm-back { display: inline-flex; }
   /* Handy: schlanke Zeilen, nur Name, Unterzeile und Rang (dass Discord fehlt, steht in der Unterzeile) */
   .vm-row .vm-chev, .vm-row .vm-warn { display: none; }

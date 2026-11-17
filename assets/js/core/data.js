@@ -32,6 +32,7 @@ async function loadMembers() {
       beruf: m.beruf || null,
       berufMedHilfe: !!m.beruf_med_hilfe,
       berufWinwin: m.beruf_winwin || null,
+      aliases: Array.isArray(m.aliases) ? m.aliases : [], // fruehere Namen, fuer Links wie /members/alter-name
     };
     if (!honorRole && (m.role === 'r4' || m.rank === 4)) R4.add(m.name);
     if (!honorRole && (m.role === 'r5' || m.rank === 5)) R5.add(m.name);
@@ -309,6 +310,7 @@ async function kwChanged(){
       try { await loadEntries(); } catch(e) {}
     }
     renderAll();
+    lwKwChanged();
   }, 0);
 }
 
@@ -324,6 +326,7 @@ async function changeYearWeek(delta) {
       try { await loadEntries(); } catch(e) {}
     }
     renderAll();
+    lwKwChanged();
   }, 0);
 }
 window.changeYearWeek = changeYearWeek;

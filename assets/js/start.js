@@ -99,6 +99,8 @@ async function initApp(){
     if (typeof window.initCharSwitcher === 'function') {
       await window.initCharSwitcher(currentDiscordUser, authMember);
       authMember = readAuthState() || authMember;
+      // Link einer anderen Allianz? Dann fragen; beim Wechsel laedt die Seite neu
+      if (await lwCheckLinkAlliance()) return;
       if (typeof window.setAppLanguage === 'function' && authMember?.preferred_language) {
         await window.setAppLanguage(authMember.preferred_language, { persistLocal: true, persistServer: false });
       }

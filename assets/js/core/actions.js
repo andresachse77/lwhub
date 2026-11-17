@@ -38,7 +38,7 @@ const LW_ACTIONS = new Set([
   'zugCancelNoShow', 'zugCloseEventForm', 'zugConfirmNoShow', 'zugCopyMail', 'zugDayClick', 'zugDayHover',
   'zugDeleteEntry', 'zugDragLeave', 'zugDragOver', 'zugDragStart', 'zugEditExisting', 'zugHandleDrop',
   'zugMarkCompleted', 'zugNavToday', 'zugNavWeek', 'zugOpenNoShowForm', 'zugQueueDragLeave', 'zugQueueDragOver',
-  'zugQueueDrop', 'zugRoNavToday', 'zugRoNavWeek', 'zugSaveEntry', 'zugSyncQueue',
+  'zugQueueDrop', 'zugRoNavToday', 'zugRoNavWeek', 'zugRoPickDay', 'zugSaveEntry', 'zugSyncQueue',
 ]);
 const LW_EL = Object.freeze({ $: 'el' });
 const LW_EVENT = Object.freeze({ $: 'event' });

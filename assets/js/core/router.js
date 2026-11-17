@@ -138,6 +138,59 @@ const LW_LEGACY_HASH = { me: 'm', me2: 'm', me3: 'm', punkte: 'p', zug: 'zv' };
 const LW_ROUTES_LONGEST_FIRST = Object.entries(LW_ROUTES).sort((a, b) => b[1].length - a[1].length);
 let lwApplyingRoute = false; // true, solange der Router selbst eine Ansicht umschaltet (dann kein neuer Verlaufseintrag)
 
+// Unteradressen: ein Teil hinter der Seite, der etwas Bestimmtes oeffnet.
+//   /train/2026-11-12        → Zug, dieser Tag ist markiert
+//   /members/lion%20tooth    → Verwaltung, dieses Mitglied aufgeklappt (Gross/Klein egal, alte Namen gehen auch)
+//   ?w=2646 (oder ?w=46)     → Dashboard, Eintragen-Liste und Events in dieser KW
+const LW_DETAIL_PAGES = new Set(['zv', 'v']);
+const LW_KW_PAGES = new Set(['d', 'e', 'w']);
+let lwPendingDetail = null; // { id, value }: Mitglied aus dem Link, bis die Verwaltung geladen ist
+
+// ?w= aus der Adresse: 2646 (JahrWoche wie in der App) oder nur 46 (dann dieses Jahr). null wenn keins/ungueltig.
+function lwKwFromSearch(search) {
+  const raw = String(new URLSearchParams(search || '').get('w') || '').trim();
+  if (!/^\d{1,4}$/.test(raw)) return null;
+  if (raw.length === 4) return parseYearWeek(raw);
+  const yy = Math.floor(currentYearWeek() / 100);
+  return parseYearWeek(String(yy).padStart(2, '0') + raw.padStart(2, '0'));
+}
+
+// Aktuell geoeffneter Teil einer Seite (Tag, Mitglied) oder ''
+function lwCurrentDetail(id) {
+  if (id === 'zv') return window.zugRoGetFocusDate?.() || '';
+  if (id === 'v') {
+    if (lwPendingDetail?.id === 'v') return lwPendingDetail.value;
+    return typeof vDetailOpen === 'string' && vDetailOpen ? vDetailOpen.toLowerCase() : '';
+  }
+  return '';
+}
+
+// Teil aus dem Link vormerken bzw. setzen ('' = nichts geoeffnet)
+function lwApplyDetail(id, detail) {
+  if (id === 'zv') window.zugRoSetFocusDate?.(detail || '');
+  if (id === 'v') lwPendingDetail = { id, value: detail || '' };
+}
+
+// KW aus dem Link setzen. true, wenn sie sich geaendert hat (dann muessen die Eintraege neu geladen werden).
+function lwApplyKw(id, yw) {
+  if (!LW_KW_PAGES.has(id) || !yw || yw === kw) return false;
+  kw = yw;
+  updateKwDisplays();
+  return true;
+}
+
+// KW per ‹ › gewechselt: Adresse mitziehen
+function lwKwChanged() {
+  const active = [...LW_KW_PAGES].find((id) => document.getElementById('page-' + id)?.classList.contains('active'));
+  if (active) lwSyncUrl(active, { replaceUrl: true });
+}
+
+// Tag oder Mitglied geoeffnet/geschlossen: Adresse mitziehen
+function lwDetailChanged(id, replace = false) {
+  if (lwApplyingRoute) return;
+  lwSyncUrl(id, { replaceUrl: replace });
+}
+
 // Aktuell gezeigte Ansicht einer Seite (interner Name)
 function lwCurrentSub(id) {
   if (id === 'r') return auView;
@@ -149,7 +202,8 @@ function lwCurrentSub(id) {
 function lwPathForPage(id) {
   const sub = lwCurrentSub(id);
   const slug = sub ? Object.keys(LW_SUBVIEWS[id] || {}).find((k) => LW_SUBVIEWS[id][k] === sub) : '';
-  return LW_APP_BASE.pathname + (LW_ROUTES[id] || '') + (slug ? '/' + slug : '');
+  const detail = lwCurrentDetail(id);
+  return LW_APP_BASE.pathname + (LW_ROUTES[id] || '') + (slug ? '/' + slug : '') + (detail ? '/' + encodeURIComponent(detail) : '');
 }
 
 // Seite und Ansicht aus der Adresse: { id, sub } oder null (Hauptadresse / unbekannt)
@@ -170,10 +224,16 @@ function lwRouteFromLocation() {
   const hit = LW_ROUTES_LONGEST_FIRST.find(([, path]) => rest === path || rest.startsWith(path + '/'));
   if (!hit) return null;
   const [id, path] = hit;
-  const sub = LW_SUBVIEWS[id]?.[rest.slice(path.length + 1).split('/')[0]];
+  const tail = rest.slice(path.length + 1);
+  const sub = LW_SUBVIEWS[id]?.[tail.split('/')[0]];
+  // ?w= gilt nur fuer Seiten mit KW-Wahl; ohne ?w= die aktuelle Woche (wichtig fuer Zurueck/Vor)
+  const kwOf = (pageId) => LW_KW_PAGES.has(pageId) ? (lwKwFromSearch(window.location.search) || currentYearWeek()) : null;
   // /stats ohne Ansicht: wie der Reiter „Auswertungen“ das Dashboard
-  if (id === 'r' && !sub) return { id: 'd' };
-  return { id, sub };
+  if (id === 'r' && !sub) return { id: 'd', kw: kwOf('d') };
+  let detail = '';
+  if (id === 'zv' && /^\d{4}-\d{2}-\d{2}$/.test(tail)) detail = tail;
+  if (id === 'v') detail = tail.trim();
+  return { id, sub, detail, kw: kwOf(id) };
 }
 function lwPageFromLocation() { return lwRouteFromLocation()?.id || null; }
 
@@ -188,8 +248,15 @@ function lwInitialPage() {
 
 function lwShowInitialPage(options = {}) {
   const start = lwInitialPage();
-  return showPage(start.id, { ...options, sub: start.sub, fromUrl: start.fromUrl, replaceUrl: true });
+  const fromLink = start.fromUrl ? { detail: start.detail || '', kw: start.kw } : {};
+  return showPage(start.id, { ...options, sub: start.sub, ...fromLink, fromUrl: start.fromUrl, replaceUrl: true });
 }
+
+// KW aus dem Link schon jetzt setzen: die ersten Eintraege werden beim Start geladen, bevor die Seite aufgeht
+(function lwApplyKwFromUrlAtStart() {
+  const route = lwRouteFromLocation();
+  if (route?.kw && LW_KW_PAGES.has(route.id)) kw = route.kw;
+})();
 
 // Ansicht aus der Adresse einstellen. render = true: Seite ist schon offen, also gleich neu zeichnen.
 function lwApplySub(id, sub, render = false) {
@@ -215,8 +282,7 @@ function lwApplySub(id, sub, render = false) {
   }
 }
 
-// Adresse an die gezeigte Seite und Ansicht anpassen. Steht schon ein tieferer Pfad da
-// (z. B. spaeter /train/2026-11-12), bleibt er stehen.
+// Adresse an die gezeigte Seite, Ansicht, Tag/Mitglied und KW anpassen.
 function lwSyncUrl(id, options = {}) {
   if (options.fromHistory || !LW_ROUTES[id]) return;
   if (!document.getElementById('page-' + id)?.classList.contains('active')) return;
@@ -226,8 +292,11 @@ function lwSyncUrl(id, options = {}) {
   const hasOldHash = /^#[a-z0-9]+$/i.test(window.location.hash || '');
   // Nur eine schon saubere Adresse stehen lassen; /TRAIN, /me.html oder /#zv werden umgeschrieben.
   // ?date=… aus einem geteilten Link bleibt stehen, bis die Auswertung ihren Stand meldet.
-  const sameQuery = !query || window.location.search === query;
-  if (lwPageFromLocation() === id && !hasOldHash && ((path === target && sameQuery) || path.startsWith(target + '/'))) return;
+  const sameQuery = window.location.search === query || (!query && id === 'r');
+  // Pfad vergleichen wie ihn der Browser liefert (%20 bleibt %20, aber Gross/Klein in %C3%A4 kann abweichen)
+  let samePath = path === target;
+  try { samePath = samePath || decodeURIComponent(path) === decodeURIComponent(target); } catch (_) {}
+  if (lwPageFromLocation() === id && !hasOldHash && samePath && sameQuery) return;
   const replace = options.replaceUrl || options.remember === false;
   try {
     if (replace) history.replaceState({ page: id }, '', target + query);
@@ -239,9 +308,13 @@ function lwSyncUrl(id, options = {}) {
 // ?date=…&start=…&end=… in die LWHub-Adresse, damit „Link teilen“ genau diese Auswertung verschickt.
 const LW_FRAME_PARAMS = ['alliance', 'date', 'start', 'end'];
 const lwFrameQuery = {}; // Ansicht → letzter gemeldeter Stand ('date=…&start=…')
-function lwQueryForPage(id) {
-  const q = id === 'r' ? lwFrameQuery[auView] : '';
-  return q ? '?' + q : '';
+// options.share: fuer „Link teilen“ steht die KW immer drin, in der Adresszeile nur, wenn es nicht die aktuelle ist
+// (sonst zeigt ein Lesezeichen auf /stats/dash fuer immer dieselbe alte Woche).
+function lwQueryForPage(id, options = {}) {
+  const parts = [];
+  if (id === 'r' && lwFrameQuery[auView]) parts.push(lwFrameQuery[auView]);
+  if (LW_KW_PAGES.has(id) && (options.share || kw !== currentYearWeek())) parts.push('w=' + formatYearWeek(kw));
+  return parts.length ? '?' + parts.join('&') : '';
 }
 // Stand aus der LWHub-Adresse fuer den Rahmen (nur wenn die Adresse genau diese Ansicht meint)
 function lwFrameParamsFromUrl(view) {
@@ -272,6 +345,32 @@ function lwSubChanged(id, replace = false) {
   lwSyncUrl(id, { replaceUrl: replace });
 }
 
+// Link aus einer anderen Allianz (?a=… setzt „Link teilen“): fragen, ob zum eigenen Charakter dort gewechselt
+// werden soll, statt still die Daten der falschen Allianz zu zeigen. ?a= verschwindet danach aus der Adresse.
+// true: Wechsel laeuft, die Seite laedt gleich neu (dann ist ?a= gleich der aktiven Allianz und es kommt keine Frage).
+async function lwCheckLinkAlliance() {
+  const params = new URLSearchParams(window.location.search);
+  const want = String(params.get('a') || '').trim();
+  if (!want) return false;
+  params.delete('a');
+  const rest = params.toString().replace(/%3A/gi, ':');
+  const dropParam = () => {
+    try { history.replaceState(history.state, '', window.location.pathname + (rest ? '?' + rest : '')); } catch (_) {}
+  };
+  const current = getEffectiveAllianceForApi();
+  if (want.toLowerCase() === current.toLowerCase()) { dropParam(); return false; }
+  const target = (window.csGetChars?.() || []).find((c) => String(c.alliance || '').toLowerCase() === want.toLowerCase());
+  if (!target) {
+    dropParam();
+    toast(tr('s_link_other_alliance_none').replace('{a}', want));
+    return false;
+  }
+  const ask = tr('s_link_other_alliance_switch').replace('{a}', target.alliance).replace('{c}', target.name);
+  if (window.confirm(ask) && window.csSwitchTo?.(target.alliance, target.player_id)) return true;
+  dropParam();
+  return false;
+}
+
 // Link fuehrt auf eine Seite, die diese Person nicht sehen kann: kurz sagen warum
 function lwNotifyUnavailable(id) {
   const r4 = LW_R4_PAGES.has(id) && !authMember?.can_manage;
@@ -282,17 +381,28 @@ function lwNotifyUnavailable(id) {
 window.addEventListener('popstate', () => {
   if (!authMember || document.getElementById('login-screen')?.style.display === 'flex') return;
   const route = lwRouteFromLocation() || { id: startPageId() };
+  const active = document.getElementById('page-' + route.id)?.classList.contains('active');
+  const sameDetail = !LW_DETAIL_PAGES.has(route.id) || (route.detail || '') === lwCurrentDetail(route.id);
+  const sameKw = !route.kw || route.kw === kw;
   // Nur die Ansicht wechselt (z. B. /events/vs → /events/guard1): Seite nicht neu laden
-  if (route.sub && document.getElementById('page-' + route.id)?.classList.contains('active')) {
+  if (route.sub && active && sameDetail && sameKw) {
     lwApplySub(route.id, route.sub, true);
     return;
   }
-  showPage(route.id, { fromHistory: true, sub: route.sub });
+  showPage(route.id, { fromHistory: true, sub: route.sub, detail: route.detail || '', kw: route.kw });
 });
 
 // „Link teilen“: Handy → Teilen-Menue, PC → Zwischenablage
 async function lwShareLink() {
-  const url = window.location.origin + window.location.pathname + window.location.search;
+  // Link mit KW (falls die Seite eine hat) und Allianz: so sieht der Empfaenger genau diese Woche, und wer
+  // mehrere Charaktere hat, wird gefragt, ob er zur passenden Allianz wechseln will (lwCheckLinkAlliance).
+  const id = lwPageFromLocation();
+  const params = new URLSearchParams(window.location.search);
+  if (id && LW_KW_PAGES.has(id)) params.set('w', formatYearWeek(kw));
+  const alliance = getEffectiveAllianceForApi();
+  if (alliance) params.set('a', alliance);
+  const query = params.toString().replace(/%3A/gi, ':');
+  const url = window.location.origin + window.location.pathname + (query ? '?' + query : '');
   const title = document.querySelector('#main-tabs .tab.active, #r4-tab-btns .tab.active, #admin-tab-btns .tab.active')?.textContent?.trim();
   const isTouch = window.matchMedia?.('(pointer: coarse)').matches;
   if (isTouch && navigator.share) {
@@ -336,6 +446,9 @@ async function showPage(id, options = {}) {
   }
   if (options?.fromUrl && safeId !== id) lwNotifyUnavailable(id);
   if (safeId === id) lwApplySub(safeId, options?.sub);
+  // Tag/Mitglied und KW aus Link oder Zurueck/Vor; ein normaler Klick auf den Reiter laesst beides, wie es ist
+  if (safeId === id && options?.detail !== undefined) lwApplyDetail(safeId, options.detail);
+  const kwFromLink = safeId === id && lwApplyKw(safeId, options?.kw);
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pageEl = document.getElementById('page-' + safeId);
@@ -346,6 +459,7 @@ async function showPage(id, options = {}) {
   // Dashboard gehoert zum Reiter "Auswertungen" (tab-r)
   const tabEl = document.getElementById('tab-' + (safeId === 'd' ? 'r' : safeId));
   if (tabEl) tabEl.classList.add('active');
+  if (kwFromLink) await runWithBattleLoader(async () => { try { await loadEntries(); } catch (_) {} }, 0);
   if (safeId === 'sc') {
     // Scanner erst beim ersten Oeffnen laden (OCR-Modelle ~30 MB)
     const frame = document.getElementById('scanner-frame');
@@ -421,7 +535,15 @@ async function showPage(id, options = {}) {
   if (id === 'e') renderList();
   if (id === 't') await renderTeamsPage();
   if (id === 'r') await auLoadView(auView, { skipBattleLoader });
-  if (id === 'v') { await loadMembers(); await refreshEntriesIfNeeded({background:true}); await loadAccessRequests(); renderVerwaltung(); renderFlagsAdmin(); }
+  if (id === 'v') {
+    await loadMembers(); await refreshEntriesIfNeeded({background:true}); await loadAccessRequests();
+    // Mitglied aus dem Link aufklappen (zeichnet die Liste selbst), sonst nur zeichnen
+    const pending = lwPendingDetail?.id === 'v' ? lwPendingDetail : null;
+    lwPendingDetail = null;
+    if (pending) { vOpenMemberFromLink(pending.value); lwSyncUrl('v', { replaceUrl: true }); }
+    else renderVerwaltung();
+    renderFlagsAdmin();
+  }
   if (id === 'a') adminInitPage();
   if (id !== 'v' && id !== 'm' && id !== 'p' && id !== 't' && id !== 'a' && id !== 'w' && id !== 'z' && id !== 'zv' && id !== 'bp' && id !== 'sc') {
     refreshEntriesIfNeeded({ background: true });

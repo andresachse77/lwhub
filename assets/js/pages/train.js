@@ -753,6 +753,17 @@
   let zugRoWindowStart  = null;  // 'YYYY-MM-DD' Monday of first visible week
   let zugRoSchedule     = [];
   let zugRoActiveRuleset = 'standard';
+  let zugRoFocusDate    = '';    // 'YYYY-MM-DD': markierter Tag, steht im Link (/train/2026-11-12)
+
+  window.zugRoGetFocusDate = () => zugRoFocusDate;
+  window.zugRoSetFocusDate = (d) => { zugRoFocusDate = /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : ''; };
+
+  // Tag angetippt: markieren (nochmal tippen hebt es auf). Die Adresse zeigt den Tag, „Link teilen“ schickt ihn.
+  window.zugRoPickDay = function(dateStr) {
+    zugRoFocusDate = zugRoFocusDate === dateStr ? '' : dateStr;
+    zugRoRenderCalendar();
+    lwDetailChanged('zv', true);
+  };
 
   // How many week columns fit in the read-only calendar at current width
   function zugRoCalWeekCount() {
@@ -785,6 +796,16 @@
         if (!seen.has(k)) { seen.add(k); zugRoSchedule.push(e); }
       }
     }
+  }
+
+  // Fenster so legen, dass der Tag aus dem Link sichtbar ist (an derselben Stelle wie sonst der letzte geplante Tag)
+  function zugRoAlignWindowTo(dateStr, weekCount) {
+    const rightGapCols = weekCount >= 2 ? 1 : 0;
+    const colsBefore = Math.max(0, weekCount - 1 - rightGapCols);
+    const d = new Date(getMondayOfWeek(dateStr) + 'T00:00:00');
+    d.setDate(d.getDate() - colsBefore * 7);
+    const _p = n => String(n).padStart(2,'0');
+    zugRoWindowStart = `${d.getFullYear()}-${_p(d.getMonth()+1)}-${_p(d.getDate())}`;
   }
 
   function zugRoAlignWindowToLatest(weekCount) {
@@ -875,12 +896,13 @@
         const entry = byDate[dateStr];
         const bgColor = entry ? STATUS_COLOR[entry.status] || STATUS_COLOR.planned : 'transparent';
         const border  = isToday ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.06)';
+        const isFocus = dateStr === zugRoFocusDate;
         let inner = '<div style="font-size:11px;font-weight:600;color:' + (isToday ? 'var(--gold)' : 'var(--soft)') + '">' + dayNum + '</div>';
         if (entry) {
           inner += '<div style="font-size:10px;line-height:1.3;margin-top:2px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
           if (entry.vip_name) inner += '<div style="font-size:9px;color:var(--gold-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.vip_name) + '">\u2b50 ' + escHtml(entry.vip_name) + '</div>';
         }
-        html += '<td style="background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:5px;vertical-align:top;">' + inner + '</td>';
+        html += '<td class="zug-ro-day' + (isFocus ? ' is-focus' : '') + '" data-date="' + dateStr + '" data-action="zugRoPickDay" data-args="' + lwArgs(dateStr) + '" style="background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:5px;vertical-align:top;">' + inner + '</td>';
       }
       html += '</tr>';
     }
@@ -890,16 +912,32 @@
 
   window.zugRoLoadPage = async function() {
     zugRoActiveRuleset = 'standard';
-    if (!zugRoWindowStart) zugRoWindowStart = getMondayOfWeek(todayStr());
     const weekCount = zugRoCalWeekCount();
-    await Promise.all([zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount)]);
-    zugRoAlignWindowToLatest(weekCount);
+    if (zugRoFocusDate) {
+      // Tag aus dem Link: gleich das passende Fenster laden
+      zugRoAlignWindowTo(zugRoFocusDate, weekCount);
+    } else {
+      if (!zugRoWindowStart) zugRoWindowStart = getMondayOfWeek(todayStr());
+      await Promise.all([zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount)]);
+      zugRoAlignWindowToLatest(weekCount);
+    }
     await Promise.all([zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount)]);
     zugArrangePanels();
     zugRoRenderCalendar();
+    if (zugRoFocusDate) {
+      requestAnimationFrame(() => document.querySelector('#zug-ro-cal-grid .zug-ro-day.is-focus')?.scrollIntoView({ block: 'nearest', inline: 'center' }));
+    }
   };
 
+  // Andere Wochen angezeigt: die Markierung geht mit aus der Adresse (sie waere sonst evtl. gar nicht sichtbar)
+  function zugRoClearFocus() {
+    if (!zugRoFocusDate) return;
+    zugRoFocusDate = '';
+    lwDetailChanged('zv', true);
+  }
+
   window.zugRoNavWeek = async function(delta) {
+    zugRoClearFocus();
     const d = new Date(zugRoWindowStart + 'T00:00:00');
     d.setDate(d.getDate() + delta * 7);
     const _p = n => String(n).padStart(2,'0');
@@ -910,6 +948,7 @@
   };
 
   window.zugRoNavToday = async function() {
+    zugRoClearFocus();
     zugRoWindowStart = getMondayOfWeek(todayStr());
     const weekCount = zugRoCalWeekCount();
     await zugRoLoadScheduleForWindow(zugRoWindowStart, weekCount);

@@ -774,6 +774,17 @@
 
   window.refreshCharSwitcherI18n = refreshCharSwitcherI18n;
 
+  // Fuer Links einer anderen Allianz (lwCheckLinkAlliance in assets/js/core/router.js): eigene Charaktere
+  // abfragen und wie per Klick wechseln (laedt die Seite neu). false, wenn es den Charakter nicht gibt.
+  window.csGetChars = () => csCachedChars.slice();
+  window.csSwitchTo = (alliance, playerId) => {
+    const item = [...document.querySelectorAll('#cs-chars-list .cs-char-item')]
+      .find((i) => i.dataset.alliance === alliance && i.dataset.player === playerId);
+    if (!item || item.classList.contains('active')) return false;
+    item.click();
+    return true;
+  };
+
   document.addEventListener('i18n:language-changed', () => {
     refreshCharSwitcherI18n();
   });

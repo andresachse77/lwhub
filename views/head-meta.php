@@ -10,6 +10,10 @@ $lwTitles = [
 ];
 $lwParts = explode('/', strtolower($lwPath));
 $lwPage = $lwTitles[implode('/', array_slice($lwParts, 0, 2))] ?? $lwTitles[$lwParts[0]] ?? null;
+// Zug an einem bestimmten Tag (/train/2026-11-12): Datum im Titel
+if (preg_match('#^train/(\d{4})-(\d{2})-(\d{2})$#', strtolower($lwPath), $lwDay)) {
+    $lwPage = 'Zug · ' . $lwDay[3] . '.' . $lwDay[2] . '.' . $lwDay[1];
+}
 $lwOgTitle = $lwPage ? 'LWHub · ' . $lwPage : 'LWHub';
 $lwHost = preg_match('/^[a-z0-9.-]+(:\d+)?$/i', $_SERVER['HTTP_HOST'] ?? '') ? $_SERVER['HTTP_HOST'] : 'lwhub.de';
 $lwScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';

@@ -39,6 +39,13 @@ siehe Block „ROUTER“ vor `showPage()` in `assets/js/core/router.js`.
   bekommt jede einen Eintrag in `LW_SUBVIEWS`, `lwCurrentSub()` liefert die aktive, und die Umschalt-
   Funktion ruft am Ende `lwSubChanged(id)` auf. Keine Ansicht als eigene Top-Level-Adresse anlegen.
   Reine Anzeige-Vorlieben (z. B. Tabelle/Akkordeon im Berufeplaner) bekommen keinen Link.
+- Unteradressen (seit 17.11.2026): `/train/2026-11-12` markiert einen Tag (`zugRoFocusDate`),
+  `/members/<name>` klappt ein Mitglied auf (`vOpenMemberFromLink`, Groß/Klein egal, alte Namen über
+  `memberMeta.aliases`), `?w=2646` (oder `?w=46`) setzt die KW auf Dashboard, Liste und Events (`LW_KW_PAGES`).
+  Neuer teilbarer Teil einer Seite → `LW_DETAIL_PAGES`, `lwCurrentDetail()`, `lwApplyDetail()` erweitern und nach
+  jeder Änderung `lwDetailChanged(id)` aufrufen. In der Adresszeile steht `?w=` nur bei einer anderen als der
+  aktuellen Woche; „Link teilen“ hängt immer `?w=` und `?a=<Allianz>` an. `?a=` prüft `lwCheckLinkAlliance()`
+  beim Start (Rückfrage, zum eigenen Charakter der Allianz zu wechseln) und nimmt es danach aus der Adresse.
 - Seiten immer über `showPage(id)` wechseln, nicht `.page.active` von Hand setzen. Nur so stimmen
   Adresse, Zurück/Vor und `lwhub_last_page`.
 - `index.php` hat `<base href="/">`. Relative Adressen (`img/…`, `locales/…`) gelten also immer ab der

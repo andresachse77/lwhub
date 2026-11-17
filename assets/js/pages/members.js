@@ -32,8 +32,28 @@ function toggleVerwaltungRow(name) {
     vDetailOpen = name;
   }
   renderVerwaltung(document.getElementById('v-search')?.value.toLowerCase() || '');
+  lwDetailChanged('v'); // /members/<name>: aufgeklapptes Mitglied hat einen eigenen Link
 }
 window.toggleVerwaltungRow = toggleVerwaltungRow;
+
+// Mitglied aus dem Link aufklappen (/members/lion%20tooth). Gross/Klein egal; ein frueherer Name findet ueber
+// die Namens-Historie (memberMeta.aliases) den heutigen, die Adresse zeigt danach den neuen Namen.
+// Leerer Wert: alles zuklappen. Zeichnet die Liste immer neu.
+function vOpenMemberFromLink(value) {
+  const want = String(value || '').trim().toLowerCase();
+  const all = members.concat(honorMembers);
+  const name = !want ? null
+    : all.find((n) => n.toLowerCase() === want)
+      || all.find((n) => (memberMeta[n]?.aliases || []).some((a) => String(a).toLowerCase() === want));
+  if (want && !name) toast(tr('s_member_not_found').replace('{name}', value));
+  if (vDetailOpen !== name) editingMember = null;
+  vDetailOpen = name || null;
+  // Suche leeren, sonst ist das Mitglied evtl. ausgefiltert
+  const search = document.getElementById('v-search');
+  if (name && search && search.value && !name.toLowerCase().includes(search.value.toLowerCase())) search.value = '';
+  renderVerwaltung(search?.value.toLowerCase() || '');
+  if (name) requestAnimationFrame(() => document.querySelector('#v-list .v-row-wrap.is-open')?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+}
 
 async function toggleVerwaltungFlag(name, flagKey) {
   let e = entries.find(x => x.name === name);
@@ -552,6 +572,7 @@ async function saveMemberEdit(oldName){
   if (vDetailOpen === oldName) vDetailOpen = newName;
   editingMember=null;
   renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
+  lwDetailChanged('v', true); // neuer Name auch in der Adresse
   toast(newName+' gespeichert!');
 }
 window.saveMemberEdit=saveMemberEdit;
@@ -609,6 +630,7 @@ async function removeMember(name){
   if (vDetailOpen === name) vDetailOpen = null;
   if (editingMember === name) editingMember = null;
   renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
+  lwDetailChanged('v', true);
   renderDashboard(); toast(name+' entfernt!');
 }
 window.removeMember=removeMember;

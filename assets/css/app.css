@@ -1350,3 +1350,7 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
   letter-spacing: 0; color: var(--soft); margin-left: 8px; padding: 1px 6px; border: 1px solid var(--line2);
   border-radius: 6px; vertical-align: middle; white-space: nowrap; cursor: help; }
 .logo .lw-build.is-old { color: var(--gold); border-color: var(--gold); }
+
+/* Zug für alle: Tag antippen markiert ihn, die Adresse wird /train/2026-11-12 (train.js, zugRoPickDay) */
+.zug-ro-day { cursor: pointer; }
+.zug-ro-day.is-focus { box-shadow: 0 0 0 2px var(--gold), 0 0 12px rgba(240, 165, 0, 0.35); }

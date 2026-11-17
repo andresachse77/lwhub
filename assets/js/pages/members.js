@@ -32,7 +32,7 @@ let vListScrollY = null; // Handy: Scrollstand der Liste, damit „←“ wieder
 function vSearchValue() { return (document.getElementById('v-search')?.value || '').trim().toLowerCase(); }
 function vRerender() { renderVerwaltung(vSearchValue()); }
 function vCurrentRank(name) { return R5.has(name) ? 5 : R4.has(name) ? 4 : (PREV[name] || 3); }
-function vIsNarrow() { return window.matchMedia('(max-width: 899px)').matches; }
+function vIsNarrow() { return window.matchMedia('(max-width: 1023px)').matches; }
 function vCanWrite() {
   if (authMember?.read_only || authMember?.honor_role) {
     toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.'));
@@ -380,8 +380,6 @@ function vSecProfile(name) {
     `<button type="button" class="vm-chip ${n >= 4 ? 'vm-c-r' : 'vm-c-g'}${rank === n ? ' on' : ''}" data-action="vSetRank" data-args="${lwArgs(name, n)}"${rankLocked ? ' disabled' : ''}>${n}<small>${escHtml(RL[n] || '')}</small></button>`).join('');
   const roles = [['', tr('Aktiv')], ['honor_member', tr('Ehrenmitglied')], ['honor_r4', '👁 ' + tr('Ehren R4')]].map(([v, l]) =>
     `<button type="button" class="vm-chip${honorRole === v ? ' on' : ''}" data-action="vSetRole" data-args="${lwArgs(name, v)}">${escHtml(l)}</button>`).join('');
-  const swap = meta.discordConnected && meta.discordId && meta.id !== meta.discordId
-    ? `<button type="button" class="vm-btn link" data-action="swapMemberIdToDiscord" data-args="${lwArgs(name)}">${escHtml(tr('Spieler-ID auf Discord-ID setzen'))}</button>` : '';
   return `<div class="vm-sec">
       <div class="vm-sec-head"><span class="vm-sec-title">${escHtml(tr('Profil'))}</span>${vSavedBadge('profile')}</div>
       <div class="vm-lbl">${escHtml(tr('Rang'))}</div>
@@ -396,7 +394,6 @@ function vSecProfile(name) {
       <input class="vm-field" inputmode="numeric" autocomplete="off" value="${escHtml(meta.discordId || '')}" data-orig="${escHtml(meta.discordId || '')}" placeholder="${escHtml(tr('numerisch oder leer'))}"
         data-on-change="vSaveDiscord" data-args-change="${lwArgs(name, LW_EL)}" data-on-keydown="vFieldKey" data-args-keydown="${lwArgs(LW_EVENT, LW_EL)}">
       <div class="vm-hint">${escHtml(tr('Speichert beim Verlassen des Felds oder mit Enter. Esc nimmt zurück.'))}</div>
-      ${swap}
       <div class="vm-lbl">${escHtml(tr('Name'))}</div>
       <button type="button" class="vm-btn wide" data-action="vRename" data-args="${lwArgs(name)}">✎ ${escHtml(tr('Umbenennen…'))}</button>
     </div>`;
@@ -431,13 +428,13 @@ function vRenderDetail() {
       ${vRankPill(name, meta)}
     </div>
     ${vMetaLine(name, meta)}
-    ${isHonor ? '' : vSecWeek(name)}
-    ${isHonor ? '' : vSecJob(name)}
-    ${vSecProfile(name)}
     ${isHonor ? '' : `<div class="vm-row-btns">
         <button type="button" class="vm-btn" data-action="openTeamEditor" data-args="${lwArgs(name)}">⚔ ${escHtml(tr('Teams'))}</button>
         <button type="button" class="vm-btn" data-action="openMemberMeInApp" data-args="${lwArgs(name)}">👁 ${escHtml(tr('Me-Ansicht'))}</button>
       </div>`}
+    ${isHonor ? '' : vSecWeek(name)}
+    ${isHonor ? '' : vSecJob(name)}
+    ${vSecProfile(name)}
     <div class="vm-sec vm-danger">
       <div class="vm-sec-head"><span class="vm-sec-title">${escHtml(tr('Gefahrenzone'))}</span></div>
       <button type="button" class="vm-btn danger wide" data-action="removeMember" data-args="${lwArgs(name)}">🗑 ${escHtml(tr('Entfernen…'))}</button>
@@ -607,28 +604,6 @@ async function rejectAccessRequest(requestId) {
 }
 window.rejectAccessRequest = rejectAccessRequest;
 
-async function swapMemberIdToDiscord(name){
-  const meta = memberMeta[name] || {};
-  if(!meta.discordConnected || !meta.discordId){
-    toast('Dieser Member ist noch nicht per Discord verbunden.');
-    return;
-  }
-  if(meta.id === meta.discordId){
-    toast('ID ist bereits identisch mit der Discord-ID.');
-    return;
-  }
-  if(!confirm(`Spieler-ID wirklich auf Discord-ID setzen?\n${meta.id || 'unbekannt'} -> ${meta.discordId}`)) return;
-  try {
-    await apiPost({ action: 'swap_member_id_to_discord', name });
-    await loadMembers();
-    await loadEntries();
-    renderVerwaltung(document.getElementById('v-search').value.toLowerCase());
-    toast(name+' ID auf Discord-ID gesetzt.');
-  } catch(err) {
-    toast(tr('Fehler: ') + err.message);
-  }
-}
-window.swapMemberIdToDiscord = swapMemberIdToDiscord;
 
 async function removeMember(name){
   if (!vCanWrite()) return;

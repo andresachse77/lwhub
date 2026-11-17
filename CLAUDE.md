@@ -68,7 +68,7 @@ siehe Block „ROUTER“ vor `showPage()` in `assets/js/core/router.js`.
 
 Umsetzung von Variante B aus `docs/konzept-verwaltung-ux.html` (Block „VERWALTUNG“ oben in `pages/members.js`).
 
-- Am PC Liste links, Mitglied rechts (`#v-layout`, `#v-list`, `#v-detail`); unter 900 px ist das Mitglied eine
+- Am PC Liste links, Mitglied rechts (`#v-layout`, `#v-list`, `#v-detail`); unter 1024 px (Handy, Tablet) ist das Mitglied eine
   eigene Seite (`.has-sel`, `#page-v.v-member-open`), „←“ (`vBackToList`) bzw. die Zurück-Geste führt zurück.
 - **Alles speichert sofort**, es gibt keinen Bearbeiten-Modus und keinen Speichern-Knopf: Änderungen über
   `vRun(kasten, text, doFn, undoFn)`. Das zeigt „✓ gespeichert“ im Kasten und unten `lwToastUndo` (core/ui.js) mit

@@ -2065,7 +2065,7 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
 
 /* ══════════════════════════════════════════════════════
    Verwaltung: Liste + Mitglied (docs/konzept-verwaltung-ux.html, Variante B; pages/members.js)
-   PC: Liste links, Mitglied rechts (bleibt beim Scrollen stehen). Handy (< 900 px): Mitglied als eigene Seite.
+   PC: Liste links, Mitglied rechts (bleibt beim Scrollen stehen). Handy/Tablet (< 1024 px): Mitglied als eigene Seite.
    Tippflaechen mindestens 48 px, Felder 16 px Schrift (sonst zoomt iOS beim Antippen).
    ══════════════════════════════════════════════════════ */
 .vm-filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
@@ -2073,7 +2073,7 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
 .vm-filter b { margin-left: 6px; color: var(--text); }
 .vm-filter.on { color: var(--gold); border-color: rgba(240,165,0,0.6); background: rgba(240,165,0,0.1); }
 .vm-filter.on b { color: var(--gold); }
-.vm-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 14px; align-items: start; }
+.vm-layout { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(0, 1.3fr); /* Liste nie schmaler als 320 px */ gap: 14px; align-items: start; }
 .vm-list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .vm-detail { position: sticky; top: 68px; max-height: calc(100vh - 80px); /* unter der Navigation (56 px) */ overflow-y: auto; min-width: 0;
   background: var(--card2); border: 1px solid var(--line2); border-radius: 14px; padding: 14px; }
@@ -2134,12 +2134,17 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
 .vm-btn.link { min-height: 44px; padding: 0 4px; background: transparent; border: 0; color: var(--soft); font-size: 12.5px; font-weight: 500; text-decoration: underline; }
 .vm-row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
 .vm-sec.vm-danger { border-color: rgba(224,85,69,0.25); margin-top: 16px; }
-@media (max-width: 899px) {
+@media (max-width: 1023px) {
   .vm-layout { grid-template-columns: 1fr; }
   .vm-layout:not(.has-sel) .vm-detail { display: none; }
   .vm-layout.has-sel .vm-list { display: none; }
   .vm-detail { position: static; max-height: none; overflow: visible; padding: 12px; }
   .vm-back { display: inline-flex; }
+  /* Handy: schlanke Zeilen, nur Name, Unterzeile und Rang (dass Discord fehlt, steht in der Unterzeile) */
+  .vm-row .vm-chev, .vm-row .vm-warn { display: none; }
+  .vm-row { min-height: 64px; padding: 8px 10px; }
+  .vm-row-name { font-size: 16px; }
+  .vm-row-sub { font-size: 13px; }
   .vm-search { font-size: 16px; }
   /* Mitglied offen: nur noch das Mitglied zeigen (eigene Seite), Liste/Anlegen/Anfragen kommen mit „←“ zurueck */
   #page-v.v-member-open > :not(.v-member-panel) { display: none; }
@@ -2160,7 +2165,7 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
 .vm-layout { scroll-margin-top: 64px; } /* scrollIntoView landet unter der Navigation */
 .vm-sec-head + .vm-lbl { margin-top: 0; }
 .v-member-panel { min-width: 0; }
-@media (max-width: 899px) {
+@media (max-width: 1023px) {
   /* Kopf der Mitgliederliste umbrechen, sonst macht das Suchfeld die Seite breiter als den Bildschirm */
   .v-member-panel > .panel-head { flex-wrap: wrap; gap: 8px; }
   .v-member-panel .vm-search { width: 100%; min-height: 48px; }

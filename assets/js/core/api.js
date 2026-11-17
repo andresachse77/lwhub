@@ -183,7 +183,7 @@ async function apiPost(data) {
   const action = (data?.action || '').toLowerCase();
   const blockedHonorActions = new Set([
     'save_entry', 'save_wache', 'save_wueste', 'save_spezial',
-    'add_member', 'edit_member', 'update_member', 'swap_member_id_to_discord',
+    'add_member', 'edit_member', 'update_member',
     'delete_member', 'archive_week', 'update_ergebnis', 'delete_entry',
     'save_beruf', 'resolve_access_request', 'set_member_language', 'cache_discord_profile'
   ]);
@@ -236,14 +236,6 @@ async function apiPost(data) {
           honor_home: data.honor_home || null,
           discord_id: data.discordId
         })
-      });
-    }
-    case 'swap_member_id_to_discord': {
-      const name = encodeURIComponent(data.name || '');
-      return fetchJson(`/members/${name}/swap-id-to-discord`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
       });
     }
     case 'delete_member': {

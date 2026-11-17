@@ -33,7 +33,7 @@ const LW_ACTIONS = new Set([
   'spendeImportFromScanner', 'spendeSet', 'spezialImportFromScanner', 'spezialSaveEvent', 'spezialSet', 'spezialSetNoEvent',
   'spezialToggleSkip', 'submitAccessRequest', 'submitCreate', 'submitCreateApiToken', 'submitEdit',
   'submitGrantAdmin', 'submitMerge', 'submitTransfer', 'syncData', 'toggleCatConfig', 'toggleDoneMode',
-  'toggleEventContrast', 'toggleEventDoneMode', 'toggleFlag', 'swapMemberIdToDiscord', 'toggleVerwaltungFlag', 'toggleVerwaltungRow',
+  'toggleEventContrast', 'toggleEventDoneMode', 'toggleFlag', 'toggleVerwaltungFlag', 'toggleVerwaltungRow',
   'vBackToList', 'vDeleteWeekEntry', 'vFieldKey', 'vRename', 'vSaveBerufSub', 'vSaveDiscord', 'vSaveHome', 'vSelectMember',
   'vSetFilter', 'vSetRank', 'vSetRole', 'vToggleFlag', 'vsImportFromScanner',
   'vsSet', 'vsToggleSparwoche', 'wacheSet', 'wuesteSet', 'zugCalDragStart', 'zugCancelEditForm',

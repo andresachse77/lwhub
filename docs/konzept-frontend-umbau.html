@@ -83,7 +83,7 @@
   <div class="badge-row">
     <span class="badge blue">Konzept</span>
     <span class="badge green">Weitgehend umgesetzt</span>
-    <span class="badge">Stand 16.11.2026</span>
+    <span class="badge">Stand 17.11.2026</span>
     <a class="badge blue" href="#stand" style="text-decoration:none;">▶ Stand &amp; nächste Schritte</a>
     <a class="badge green" href="#gzip-test" style="text-decoration:none;">▶ Live-Test gzip &amp; Header</a>
     <a class="badge green" href="#handler-test" style="text-decoration:none;">▶ Live-Test Inline-Handler</a>
@@ -330,10 +330,20 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
 
 <!-- ───────────────────────────────── -->
 <section id="stand">
-  <h2>Stand 16.11.2026 und nächste Schritte</h2>
-  <div class="note"><p>Konzept A ist umgesetzt, seit 17.11.2026 auch das Laden nach Bedarf (R4-Dateien nur für R4/R5). Die Startseite ist von <strong>496 KB in einer Datei</strong> auf <strong>≈ 25 KB HTML</strong> geschrumpft; CSS, JavaScript und Schriften liegen in eigenen Dateien und bleiben im Browser-Cache, bis sie sich ändern.</p></div>
+  <h2>Stand 17.11.2026 und nächste Schritte</h2>
+  <div class="note"><p>Konzept A ist umgesetzt, seit 17.11.2026 auch das Laden nach Bedarf (R4-Dateien nur für R4/R5). Die Startseite ist von <strong>496 KB in einer Datei</strong> auf <strong>≈ 25 KB HTML</strong> geschrumpft; CSS, JavaScript und Schriften liegen in eigenen Dateien und bleiben im Browser-Cache, bis sie sich ändern. Die CSP der App-Seiten erlaubt weder Inline-Scripts noch <code>style="…"</code>.</p></div>
 
-  <h3>Am 16.11.2026 zusätzlich erledigt</h3>
+  <h3>Am 17.11.2026 erledigt</h3>
+  <ul>
+    <li><strong>Tag, Mitglied und KW im Link:</strong> <code>/train/2026-11-12</code>, <code>/members/name</code>, <code>/me/name</code> (Me-Ansicht, nur R4/R5) und <code>?w=2646</code>. „Link teilen“ hängt die Allianz an; wer gerade einen anderen Charakter nutzt, wird gefragt, ob er wechseln will (siehe Abschnitt 2).</li>
+    <li><strong>Lazy Loading:</strong> Die sieben R4-Dateien bekommen nur R4/R5 (siehe Reihenfolge).</li>
+    <li><strong><code>style=</code>-Attribute umgezogen:</strong> Alle gut 500 stehen als Klassen in <code>app.css</code>. Berechnete Werte (Balkenbreite, -höhe) kommen als <code>data-css</code> und werden per CSSOM gesetzt. Die <code>&lt;style&gt;</code>-Einspritzung des Char-Switchers steht ebenfalls in <code>app.css</code>. Seitdem kommt die CSP der App-Seiten auch bei <code>style-src</code> ohne <code>'unsafe-inline'</code> aus.</li>
+    <li><strong>Verwaltung neu</strong> nach <a href="konzept-verwaltung-ux.html">Konzept Verwaltung</a>, Variante B: am PC Liste und Mitglied nebeneinander, auf dem Handy das Mitglied als eigene Seite (mit „Zurück“ oben und unten). Alles speichert sofort, mit „✓ gespeichert“ und „Rückgängig“. Nachgefragt wird nur bei Umbenennen, Entfernen und dem Sprung auf R4/R5. Tippflächen ab 48&nbsp;px, Filter „Discord fehlt / AFK / Ehrenrollen“, die Suche findet auch frühere Namen. Der Kasten „Feature-Konfiguration“ und „Spieler-ID auf Discord-ID setzen“ sind entfallen.</li>
+    <li><strong>Eintragen-Liste:</strong> Der Bearbeiten-Dialog speichert sofort; „✓ Fertig“ erfasst ein Mitglied ohne Flags mit 0 Punkten. AFK hat überall dieselbe lila Farbe.</li>
+    <li><strong>Aufgeräumt:</strong> Der schwebende Logout-Knopf unten rechts ist weg, Logout steht im Charakter-Menü. Die Discord-Anmeldung zeigt das LWHub-Bild als App-Icon.</li>
+  </ul>
+
+  <h3>Am 16.11.2026 erledigt</h3>
   <ul>
     <li><strong>Einstiegsseite <code>index.php</code></strong> mit Seiten-HTML aus <code>views/</code>; Admin-Seite und -Dialoge kommen wie die R4-Seiten vom Server und nur an R5 bzw. Betreiber (<code>api/partials/admin-pages.php</code>).</li>
     <li><strong>Vorschau in Discord:</strong> <code>og:title</code> je Adresse („LWHub · Zug-Planer“), Vorschaubild (<code>img/og-image.png</code>) und Goldstreifen (<code>theme-color</code>), siehe <code>views/head-meta.php</code>.</li>
@@ -346,13 +356,15 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
 
   <h3>Noch offen (nach Nutzen sortiert)</h3>
   <ol>
-    <li><strong>Tag, Mitglied und KW im Link: erledigt am 17.11.2026</strong>, dazu die Rückfrage bei einer anderen Allianz (siehe Abschnitt 2).</li>
-    <li><strong>HSTS auf 1 Jahr</strong> (<code>max-age=31536000</code>), sobald die Woche seit 16.11. ohne Zertifikatsprobleme lief.</li>
+    <li><strong>Datenschutzerklärung und Nutzungsbedingungen:</strong> Die Anmeldung mit Discord verarbeitet Discord-ID, Name und Avatar, dazu Spielerdaten und Scans. Zwei Seiten (z.&nbsp;B. <code>/privacy</code> und <code>/terms</code>, Deutsch und Englisch), verlinkt auf der Anmeldeseite und im Handbuch. Danach im Discord Developer Portal unter „General Information“ eintragen: <em>URL der Datenschutzerklärung</em> und <em>Nutzungsbedingungen-URL</em>. Discord zeigt sie dann im Anmelde-Dialog. „Interaktions-Endpunkt“ und „Verknüpfte-Rollen-Verifizierung“ braucht der LWHub nicht.</li>
+    <li><strong>Handbuch an die neue Verwaltung anpassen</strong> (Deutsch, Englisch, Französisch): Abschnitt „Verwaltung“ (Liste und Mitglied, alles speichert sofort, Rückgängig, Filter) und bei den Feature-Schaltern „Wo?“ nur noch „Admin → Allianzen“ statt „Verwaltung → Feature-Konfiguration“.</li>
+    <li><strong>HSTS auf 1 Jahr</strong> (<code>max-age=31536000</code>), sobald die Woche seit 16.11. ohne Zertifikatsprobleme lief (ab etwa 23.11.).</li>
+    <li><strong>Verwaltung „Woche schnell“</strong> (Variante D im Konzept Verwaltung): Strafe, Bonus und AFK direkt in jeder Zeile der Liste, als Umschalter über der Liste. Für die wöchentliche Pflege, ohne jedes Mitglied zu öffnen.</li>
+    <li><strong>Gleiche Bausteine überall:</strong> Der Dialog der Eintragen-Liste bekommt den Kasten „Diese Woche“ und die großen Rang-Knöpfe der Verwaltung. „Mitglied hinzufügen“ bekommt Rang- und Rollen-Knöpfe wie im Mitglied (Ehren-R4 als Rolle, nicht als Rang).</li>
+    <li><strong>Fehlende Farbvariablen:</strong> <code>--border</code>, <code>--accent</code> und <code>--muted</code> werden an 12 Stellen benutzt, sind aber nirgends festgelegt. Dadurch fehlen z.&nbsp;B. Trennlinien in den Auswertungen (SE-Inaktiv, Ergebnis). In <code>:root</code> festlegen.</li>
     <li><strong>CSP auch für Scanner, Handbuch und <code>iny/</code></strong> scharf schalten. Handbuch und <code>iny/</code> haben noch Inline-Scripts; der Scanner braucht <code>blob:</code>, <code>wasm-unsafe-eval</code> und <code>cdn.jsdelivr.net</code> für die OCR.</li>
     <li><strong>Russisch als Sprache:</strong> <code>locales/ru.json</code>, <code>SUPPORTED</code> in <code>i18n.js</code> und die Liste in <code>normalizePreferredLanguage()</code> (<code>api/src/helpers.php</code>). Die Schrift ist bereit.</li>
-    <li><strong>Lazy Loading:</strong> <em>erledigt am 17.11.2026</em> (R4-Dateien nur für R4/R5, siehe Reihenfolge).</li>
-    <li><strong><code>style=</code>-Attribute: umgezogen am 17.11.2026.</strong> Alle gut 500 stehen jetzt als Klassen in <code>app.css</code>. Berechnete Werte (Balkenbreite, -höhe) kommen als <code>data-css</code> und werden per CSSOM gesetzt; die <code>    <li><strong><code>style=</code>-Attribute</strong> (rund 500 Stück in HTML und JS-Vorlagen) in CSS-Klassen umziehen; erst dann kann die CSP auch <code>style-src 'unsafe-inline'</code> streichen.</li>lt;style    <li><strong><code>style=</code>-Attribute</strong> (rund 500 Stück in HTML und JS-Vorlagen) in CSS-Klassen umziehen; erst dann kann die CSP auch <code>style-src 'unsafe-inline'</code> streichen.</li>gt;</code>-Einspritzung des Char-Switchers ist ebenfalls in <code>app.css</code>. Seitdem steht die CSP der App-Seiten auch bei <code>style-src</code> ohne <code>'unsafe-inline'</code>.</li>
-    <li><strong>Mehr Live-Tests auf dieser Seite</strong> (Knopf drücken, Ergebnis grün/rot, wie „Komprimierung und Header“): z. B. scharfe CSP auf den App-Seiten, keine Anfrage an Google, <code>og:title</code> je Adresse, Hash-Versionen und Jahres-Cache unter <code>assets/</code>, HSTS-Wert, <code>views/</code> gesperrt, <code>/index.html</code> leitet um.</li>
+    <li><strong>Mehr Live-Tests auf dieser Seite</strong> (Knopf drücken, Ergebnis grün/rot, wie „Komprimierung und Header“): z.&nbsp;B. scharfe CSP auf den App-Seiten (auch <code>style-src</code>), keine Anfrage an Google, <code>og:title</code> je Adresse, Hash-Versionen und Jahres-Cache unter <code>assets/</code>, HSTS-Wert, <code>views/</code> gesperrt, <code>/index.html</code> leitet um.</li>
     <li><strong>Altlasten auf dem Server:</strong> die alte <code>index.html</code> (wird auf <code>/</code> umgeleitet) und die alten FTP-Statusdateien <code>.ftp-deploy-sync-state.json</code> und <code>-v2.json</code> (gesperrt) löschen.</li>
   </ol>
 </section>

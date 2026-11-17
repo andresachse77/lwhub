@@ -2134,6 +2134,7 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
 .vm-btn.link { min-height: 44px; padding: 0 4px; background: transparent; border: 0; color: var(--soft); font-size: 12.5px; font-weight: 500; text-decoration: underline; }
 .vm-row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
 .vm-sec.vm-danger { border-color: rgba(224,85,69,0.25); margin-top: 16px; }
+.vm-btn.vm-back-bottom { display: none; } /* nur Handy, siehe unten */
 @media (max-width: 1023px) {
   .vm-layout { grid-template-columns: 1fr; }
   .vm-layout:not(.has-sel) .vm-detail { display: none; }
@@ -2142,6 +2143,7 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
   .vm-detail { position: static; max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; border-radius: 0; }
   #page-v.v-member-open .v-member-panel { padding: 10px; }
   .vm-back { display: inline-flex; }
+  .vm-btn.vm-back-bottom { display: block; min-height: 56px; margin-top: 16px; font-size: 15px; }
   /* Handy: schlanke Zeilen, nur Name, Unterzeile und Rang (dass Discord fehlt, steht in der Unterzeile) */
   .vm-row .vm-chev, .vm-row .vm-warn { display: none; }
   .vm-row { min-height: 64px; padding: 8px 10px; }

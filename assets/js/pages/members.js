@@ -438,7 +438,9 @@ function vRenderDetail() {
     <div class="vm-sec vm-danger">
       <div class="vm-sec-head"><span class="vm-sec-title">${escHtml(tr('Gefahrenzone'))}</span></div>
       <button type="button" class="vm-btn danger wide" data-action="removeMember" data-args="${lwArgs(name)}">🗑 ${escHtml(tr('Entfernen…'))}</button>
-    </div>`;
+    </div>
+    <!-- Handy: nach dem Scrollen nicht wieder nach oben muessen -->
+    <button type="button" class="vm-btn wide vm-back-bottom" data-action="vBackToList">← ${escHtml(tr('Zurück zur Liste'))}</button>`;
   // „✓ gespeichert“ nach kurzer Zeit ausblenden
   el.querySelectorAll('.vm-saved.on').forEach(b => {
     const left = 1800 - (Date.now() - (vSavedAt[b.dataset.vmSaved] || 0));

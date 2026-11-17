@@ -91,7 +91,7 @@ Vorschau in Discord.
 ## Sicherheit: CSP und Schriften
 
 - Die App-Seiten (`index.php`) senden eine **blockierende** Content-Security-Policy: nur eigene Scripts,
-  kein Inline-Script, keine `on…=`-Attribute. Externe Ziele sind nur Discord (`discord.com`,
+  kein Inline-Script, keine `on…=`-Attribute, kein `style="…"` (`style-src 'self'`). Externe Ziele sind nur Discord (`discord.com`,
   `cdn.discordapp.com`) und `unavatar.io`. Neue externe Quelle (Bild, API, Script) → im `header(...)`
   oben in `index.php` eintragen, sonst blockiert der Browser sie.
 - Scanner, `docs/` und `iny/` haben nur die beobachtende CSP aus der Root-`.htaccess`

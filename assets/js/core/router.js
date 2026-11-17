@@ -164,9 +164,20 @@ let lwApplyingRoute = false; // true, solange der Router selbst eine Ansicht ums
 //   /train/2026-11-12        → Zug, dieser Tag ist markiert
 //   /members/lion%20tooth    → Verwaltung, dieses Mitglied aufgeklappt (Gross/Klein egal, alte Namen gehen auch)
 //   ?w=2646 (oder ?w=46)     → Dashboard, Eintragen-Liste und Events in dieser KW
-const LW_DETAIL_PAGES = new Set(['zv', 'v']);
+//   /me/boby1933             → Mein Bereich dieses Mitglieds (nur R4/R5, „Me-Ansicht“)
+const LW_DETAIL_PAGES = new Set(['zv', 'v', 'm']);
 const LW_KW_PAGES = new Set(['d', 'e', 'w']);
-let lwPendingDetail = null; // { id, value }: Mitglied aus dem Link, bis die Verwaltung geladen ist
+let lwPendingDetail = null; // { id, value }: Mitglied aus dem Link, bis Verwaltung bzw. Mein Bereich geladen ist
+
+// Heutigen Namen eines Mitglieds finden: Gross/Klein egal, auch ueber fruehere Namen (memberMeta.aliases). '' wenn keiner.
+function lwFindMemberName(value) {
+  const want = String(value || '').trim().toLowerCase();
+  if (!want) return '';
+  const all = members.concat(honorMembers);
+  return all.find((n) => n.toLowerCase() === want)
+    || all.find((n) => (memberMeta[n]?.aliases || []).some((a) => String(a).toLowerCase() === want))
+    || '';
+}
 
 // ?w= aus der Adresse: 2646 (JahrWoche wie in der App) oder nur 46 (dann dieses Jahr). null wenn keins/ungueltig.
 function lwKwFromSearch(search) {
@@ -184,13 +195,17 @@ function lwCurrentDetail(id) {
     if (lwPendingDetail?.id === 'v') return lwPendingDetail.value;
     return typeof vDetailOpen === 'string' && vDetailOpen ? vDetailOpen.toLowerCase() : '';
   }
+  if (id === 'm') {
+    if (lwPendingDetail?.id === 'm') return lwPendingDetail.value.toLowerCase();
+    return meViewingOther && meActiveMemberName ? meActiveMemberName.toLowerCase() : '';
+  }
   return '';
 }
 
 // Teil aus dem Link vormerken bzw. setzen ('' = nichts geoeffnet)
 function lwApplyDetail(id, detail) {
   if (id === 'zv') window.zugRoSetFocusDate?.(detail || '');
-  if (id === 'v') lwPendingDetail = { id, value: detail || '' };
+  if (id === 'v' || id === 'm') lwPendingDetail = { id, value: detail || '' };
 }
 
 // KW aus dem Link setzen. true, wenn sie sich geaendert hat (dann muessen die Eintraege neu geladen werden).
@@ -254,7 +269,7 @@ function lwRouteFromLocation() {
   if (id === 'r' && !sub) return { id: 'd', kw: kwOf('d') };
   let detail = '';
   if (id === 'zv' && /^\d{4}-\d{2}-\d{2}$/.test(tail)) detail = tail;
-  if (id === 'v') detail = tail.trim();
+  if (id === 'v' || id === 'm') detail = tail.trim();
   return { id, sub, detail, kw: kwOf(id) };
 }
 function lwPageFromLocation() { return lwRouteFromLocation()?.id || null; }
@@ -545,13 +560,27 @@ async function showPage(id, options = {}) {
 
   // Lazy load Mein Bereich – always reload own data when navigating to tab directly
   if (id === 'm' && authMember) {
-    if (!meHistoryLoaded || meViewingOther) {
+    // /me/<name>: R4/R5 sehen Mein Bereich eines anderen Mitglieds (Me-Ansicht aus Verwaltung, Dashboard …).
+    // Andere bekommen bei so einem Link ihren eigenen Bereich, die Adresse wird dann /me.
+    const pending = lwPendingDetail?.id === 'm' ? lwPendingDetail : null;
+    lwPendingDetail = null;
+    let other = '';
+    if (pending?.value && authMember.can_manage) {
+      await ensureCoreDataLoaded({ forceEntries: !entries.length });
+      other = lwFindMemberName(pending.value) || pending.value; // ehemalige Mitglieder stehen nicht in der Liste
+    }
+    if (other) {
+      meViewingOther = true;
+      meHistoryLoaded = false;
+      await runWithBattleLoader(async () => { await me_loadHistory('', other); });
+    } else if (!meHistoryLoaded || meViewingOther) {
       meViewingOther = false;
       meHistoryLoaded = false;
       await runWithBattleLoader(async () => {
         await me_loadHistory(authMember.discord_id, authMember.member_name);
       });
     }
+    if (pending) lwSyncUrl('m', { replaceUrl: true }); // richtige Schreibweise bzw. /me, wenn nicht erlaubt
   }
   if (id === 'd') renderDashboard();
   if (id === 'e') renderList();

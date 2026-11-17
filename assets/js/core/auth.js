@@ -46,17 +46,12 @@ window.goToPointsGuide = goToPointsGuide;
 function openMemberMe(name) { return openMemberMeInApp(name); }
 window.openMemberMe = openMemberMe;
 
+// Me-Ansicht eines Mitglieds (Verwaltung, Dashboard, SE-Inaktiv): ueber den Router, damit die Adresse
+// /me/<name> wird und Zurueck wieder dorthin fuehrt, woher man kam. Laden macht showPage (Block „Mein Bereich“).
 async function openMemberMeInApp(name) {
   const targetName = String(name || '').trim();
   if (!targetName) return;
-  meViewingOther = true;
-  meHistoryLoaded = false;
-  await me_loadHistory('', targetName);
-  // Activate page-m directly – bypass showPage() to avoid triggering own-data reload
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-m')?.classList.add('active');
-  document.querySelectorAll('#main-tabs .tab, #r4-tab-btns .tab, #admin-tab-btns .tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-m')?.classList.add('active');
+  await showPage('m', { detail: targetName });
 }
 window.openMemberMeInApp = openMemberMeInApp;
 

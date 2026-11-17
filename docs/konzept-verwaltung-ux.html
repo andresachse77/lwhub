@@ -208,8 +208,12 @@
   .device.pc .formbar { left: auto; width: 520px; }
 
   /* Hinweis unten mit Rueckgaengig */
-  .toast { position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 25; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 6px 6px 14px; border-radius: 14px; background: #2b333f; border: 1px solid #3f4855; box-shadow: 0 8px 24px rgba(0,0,0,.45); font-size: 14px; transform: translateY(160%); transition: transform .2s; }
-  .toast.on { transform: none; }
+  .toast { position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 25; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 6px 6px 14px; border-radius: 14px; background: #2b333f; border: 1px solid #3f4855; box-shadow: 0 8px 24px rgba(0,0,0,.45); font-size: 14px;
+    /* versteckt: unsichtbar und nicht antippbar. Nur verschieben reicht nicht: ueber der Speichern-Leiste (F)
+       laege der Hinweis sonst unsichtbar auf „Verwerfen“/„Speichern“ und schluckte die Tipps. */
+    transform: translateY(24px); opacity: 0; visibility: hidden; pointer-events: none;
+    transition: transform .2s, opacity .2s, visibility 0s .2s; }
+  .toast.on { transform: none; opacity: 1; visibility: visible; pointer-events: auto; transition: transform .2s, opacity .2s; }
   .toast span { flex: 1; min-width: 0; }
   .toast button { flex: none; height: 48px; padding: 0 14px; border-radius: 10px; border: 0; background: transparent; color: var(--gold); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
   .toast button[hidden] { display: none; }

@@ -12,4 +12,3 @@
   </div>
 </div>
 
-<button id="logout-btn" data-action="discordLogout">Logout</button>

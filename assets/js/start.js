@@ -93,7 +93,7 @@ async function initApp(){
       return;
     }
 
-    document.getElementById('logout-btn').style.display = 'block';
+    // Logout steht im Charakter-Menue oben (char-switcher.js), kein eigener Knopf mehr
 
     // Init char switcher
     if (typeof window.initCharSwitcher === 'function') {

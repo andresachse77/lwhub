@@ -157,10 +157,7 @@ nav {
 }
 .login-pending strong { font-size: 15px; color: var(--text); }
 .login-pending span { font-size: 12px; color: var(--soft); line-height: 1.5; }
-#logout-btn { position:fixed; bottom:12px; right:12px; z-index:200; background:var(--card2); border:1px solid var(--line2); border-radius:8px; padding:6px 14px; font-size:12px; color:var(--soft); cursor:pointer; font-family:'Inter',sans-serif; }
-#logout-btn:hover { color:var(--red); border-color:var(--red); }
 /* Liegt sonst ueber dem Ende des Charakter-Menues (das hat dort selbst einen Logout-Eintrag) */
-body:has(#cs-dropdown.open) #logout-btn { display:none !important; }
 .kw-wrap { display: flex; align-items: center; gap: 6px; background: var(--card2); border: 1px solid var(--line2); border-radius: 8px; padding: 5px 12px; }
 .kw-wrap label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); }
 .kw-wrap input { background: none; border: none; color: var(--gold); font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; width: 58px; text-align: center; outline: none; }
@@ -1368,8 +1365,6 @@ body.event-high-contrast .wache-tile.done-dim { opacity: 0.76; }
 /* ══ Gruppe A: ehemals style="…" (views/, Admin-Partial, Kern-JS, me/entries/events, Char-Switcher) ══ */
 
 /* ── LOGIN (views/login.php, auth.js, start.js) ── */
-/* Startzustand versteckt, start.js zeigt ihn mit display:block */
-#logout-btn { display:none; }
 .login-alliance-select { width:100%; background:var(--card2); border:1px solid var(--line2); border-radius:8px; color:var(--text); font-size:13px; padding:8px 10px; outline:none; font-family:'Inter',sans-serif; }
 .login-no-alliance { color:var(--soft); font-size:12px; padding:4px 0; }
 .login-denied-reason { color:var(--red); font-size:13px; margin-bottom:1rem; }
@@ -2141,7 +2136,8 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
   .vm-layout.has-sel .vm-list { display: none; }
   /* Handy: kein Rahmen im Rahmen. Das Mitglied liegt direkt im Kasten der Liste, der dafuer weniger Innenabstand hat. */
   .vm-detail { position: static; max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; border-radius: 0; }
-  #page-v.v-member-open .v-member-panel { padding: 10px; }
+  #page-v.v-member-open { padding-left: 8px; padding-right: 8px; }
+  #page-v.v-member-open .v-member-panel { padding: 0; border: 0; background: transparent; }
   .vm-back { display: inline-flex; }
   .vm-btn.vm-back-bottom { display: block; min-height: 56px; margin-top: 16px; font-size: 15px; }
   /* Handy: schlanke Zeilen, nur Name, Unterzeile und Rang (dass Discord fehlt, steht in der Unterzeile) */

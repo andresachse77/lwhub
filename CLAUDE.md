@@ -99,6 +99,15 @@ Vorschau in Discord.
 - Keine Google Fonts und keine anderen Fremd-Server für Schriften: Rajdhani und Inter liegen in
   `assets/fonts/`, eingebunden über `assets/css/fonts.css` (latin, latin-ext, kyrillisch).
 - HSTS steht seit 16.11.2026 auf 1 Woche (`max-age=604800`), nächster Schritt 1 Jahr.
+- **Kein `style="…"`** (seit 17.11.2026), weder in `index.php`/`views/`/`api/partials/` noch in JS-Vorlagen für
+  `innerHTML`, auch nicht in SVG-Strings. Feste Styles → Klasse in `assets/css/app.css` (Präfix der Seite, z. B.
+  `zug-…`, `v-…`, `dash-…`). Werte aus einer kleinen festen Menge (Rang, Status) → Modifier-Klassen
+  (`wt-rank-r4`, `zug-status-planned`). Nur wirklich berechnete Werte (Breite in %, Höhe in px) als
+  `data-css="width:${pct}%"` (Text-Werte mit `escHtml`); `lwApplyDataCss()` in `core/ui.js` setzt sie per CSSOM.
+  In PHP kein `data-css`. `el.style.x = …` im JS ist erlaubt. Aufpassen: Startet ein Element per Klasse
+  versteckt, muss das Einblenden einen Wert setzen (`el.style.display = 'block'`), `''` ließe es versteckt.
+  Prüfen: `grep -nE "style=[\"'\\]" index.php views/*.php api/partials/*.php assets/js/*/*.js assets/js/start.js char-switcher.js`
+  darf nur Kommentare finden.
 
 ## Frontend: CSS/JS unter assets/
 

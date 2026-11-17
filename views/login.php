@@ -12,4 +12,4 @@
   </div>
 </div>
 
-<button id="logout-btn" style="display:none" data-action="discordLogout">Logout</button>
+<button id="logout-btn" data-action="discordLogout">Logout</button>

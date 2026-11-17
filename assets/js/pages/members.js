@@ -96,8 +96,7 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
   for (let i = 0; i < berufDefs.length; i++) {
     const o = berufDefs[i];
     const active = currentBeruf === o.v;
-    const style = active ? 'border-color:rgba(74,158,255,0.5);background:rgba(74,158,255,0.15);color:#80b8ff;' : '';
-    berufBtns += '<button class="flag-btn" data-stop="click" data-action="setVerwaltungBeruf" data-args="' + lwArgs(name, o.v) + '" style="' + style + '">' + o.l + '</button>';
+    berufBtns += '<button class="flag-btn' + (active ? ' v-beruf-on' : '') + '" data-stop="click" data-action="setVerwaltungBeruf" data-args="' + lwArgs(name, o.v) + '">' + o.l + '</button>';
   }
 
   let subHtml = '';
@@ -109,19 +108,19 @@ function buildVerwaltungBerufHtml(name, esc, meta) {
         const n = kriegsherren[i];
         opts += '<option value="' + escHtml(n) + '"' + (n === currentWinwin ? ' selected' : '') + '>' + escHtml(n) + '</option>';
       }
-      winwinEl = '<select class="v-rank-sel" id="v-beruf-winwin" style="flex:1;min-width:120px;" data-stop="click">' + opts + '</select>';
+      winwinEl = '<select class="v-rank-sel v-beruf-winwin" id="v-beruf-winwin" data-stop="click">' + opts + '</select>';
     } else {
-      winwinEl = '<span style="font-size:12px;color:var(--soft);">' + escHtml(tr('Keine Kriegsanführer vorhanden')) + '</span>';
+      winwinEl = '<span class="v-beruf-empty">' + escHtml(tr('Keine Kriegsanführer vorhanden')) + '</span>';
     }
-    subHtml = '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">'
-      + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'
+    subHtml = '<div class="v-beruf-sub">'
+      + '<label class="v-beruf-medhilfe">'
       + '<input type="checkbox" id="v-beruf-medhilfe"' + (currentMedHilfe ? ' checked' : '') + '> 🏥 ' + escHtml(tr('Med. Hilfe'))
       + '</label>' + winwinEl + '</div>'
-      + '<button class="v-btn save" style="margin-top:8px;" data-stop="click" data-action="saveVerwaltungBerufSub" data-args="' + lwArgs(name) + '">✓ ' + escHtml(tr('Beruf speichern')) + '</button>';
+      + '<button class="v-btn save v-beruf-save" data-stop="click" data-action="saveVerwaltungBerufSub" data-args="' + lwArgs(name) + '">✓ ' + escHtml(tr('Beruf speichern')) + '</button>';
   }
 
-  return '<div class="flag-cat" style="background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.18);margin-top:10px;">'
-    + '<div class="flag-cat-title" style="color:#6aabff;">👷 ' + escHtml(tr('Beruf')) + '</div>'
+  return '<div class="flag-cat v-beruf-cat">'
+    + '<div class="flag-cat-title">👷 ' + escHtml(tr('Beruf')) + '</div>'
     + '<div class="flag-btns">' + berufBtns + '</div>'
     + subHtml
     + '</div>';
@@ -136,14 +135,14 @@ function renderVerwaltung(filter=''){
   const honorR4Count = honorMembers.filter(n => memberMeta[n]?.honorRole === 'honor_r4').length;
   const honorMemberCount = honorMembers.length - honorR4Count;
   document.getElementById('v-stats').innerHTML=`
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Gesamt'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--gold);">${totalMembers}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('R5 Chef'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--purple);">${R5.size}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('R4 Leader'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--red);">${R4.size}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">R1–R3</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--green);">${members.filter(n=>!R4.has(n)&&!R5.has(n)).length}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Ehren-R4'))} <span style="font-size:11px;color:var(--softer);">(${escHtml(tr('zählen nicht mit'))})</span></span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:#7fb8ff;">${honorR4Count}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Ehrenmitglieder'))} <span style="font-size:11px;color:var(--softer);">(${escHtml(tr('zählen nicht mit'))})</span></span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:#7fb8ff;">${honorMemberCount}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Discord noch offen'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${missingDiscord ? 'var(--red)' : 'var(--green)'};">${missingDiscord}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--soft);font-size:13px;">${escHtml(tr('Login-Anfragen offen'))}</span><span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:${pendingAccess ? 'var(--blue)' : 'var(--green)'};">${pendingAccess}</span></div>`;
+    <div class="v-stat-row"><span class="v-stat-label">${escHtml(tr('Gesamt'))}</span><span class="v-stat-value v-stat-value--gold">${totalMembers}</span></div>
+    <div class="v-stat-row"><span class="v-stat-label">${escHtml(tr('R5 Chef'))}</span><span class="v-stat-value v-stat-value--purple">${R5.size}</span></div>
+    <div class="v-stat-row"><span class="v-stat-label">${escHtml(tr('R4 Leader'))}</span><span class="v-stat-value v-stat-value--red">${R4.size}</span></div>
+    <div class="v-stat-row"><span class="v-stat-label">R1–R3</span><span class="v-stat-value v-stat-value--green">${members.filter(n=>!R4.has(n)&&!R5.has(n)).length}</span></div>
+    <div class="v-stat-row"><span class="v-stat-label">${escHtml(tr('Ehren-R4'))} <span class="v-stat-note">(${escHtml(tr('zählen nicht mit'))})</span></span><span class="v-stat-value v-stat-value--honor">${honorR4Count}</span></div>
+    <div class="v-stat-row"><span class="v-stat-label">${escHtml(tr('Ehrenmitglieder'))} <span class="v-stat-note">(${escHtml(tr('zählen nicht mit'))})</span></span><span class="v-stat-value v-stat-value--honor">${honorMemberCount}</span></div>
+    <div class="v-stat-row"><span class="v-stat-label">${escHtml(tr('Discord noch offen'))}</span><span class="v-stat-value ${missingDiscord ? 'v-stat-value--red' : 'v-stat-value--green'}">${missingDiscord}</span></div>
+    <div class="v-stat-row v-stat-row--last"><span class="v-stat-label">${escHtml(tr('Login-Anfragen offen'))}</span><span class="v-stat-value ${pendingAccess ? 'v-stat-value--blue' : 'v-stat-value--green'}">${pendingAccess}</span></div>`;
 
   const shownActive = filter ? members.filter(n=>n.toLowerCase().includes(filter)) : members;
   const shownHonor  = filter ? honorMembers.filter(n=>n.toLowerCase().includes(filter)) : honorMembers;
@@ -182,17 +181,17 @@ function renderVerwaltung(filter=''){
       let memberInfoHtml = '';
       if (isEditing) {
         memberInfoHtml = `
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <div style="flex:1;min-width:150px;">
+          <div class="v-edit-row">
+            <div class="v-edit-field">
               <div class="vlabel">Name</div>
               <input class="vinput" id="v-edit-input" value="${name.replace(/"/g,'&quot;')}" data-on-keydown="saveMemberEditOnEnter" data-args-keydown="${lwArgs(LW_EVENT, name)}">
             </div>
-            <div style="flex:1;min-width:150px;">
+            <div class="v-edit-field">
               <div class="vlabel">Discord-ID</div>
               <input class="vinput" id="v-edit-discord" value="${(meta.discordId||'').replace(/"/g,'&quot;')}" placeholder="${escHtml(tr('numerisch oder leer'))}">
             </div>
           </div>
-          <div style="margin-bottom:10px;">
+          <div class="v-edit-block">
             <div class="vlabel">${escHtml(tr('Rang'))}</div>
             <select class="v-rank-sel" id="v-edit-rank">
               <option value="1" ${role===1?'selected':''}>1 · ${escHtml(RL[1])}</option>
@@ -202,7 +201,7 @@ function renderVerwaltung(filter=''){
               <option value="5" ${role===5?'selected':''}>5 · ${escHtml(RL[5])} (R5)</option>
             </select>
           </div>
-          <div style="margin-bottom:10px;">
+          <div class="v-edit-block">
             <div class="vlabel">${escHtml(tr('Rolle/Status'))}</div>
             <select class="v-rank-sel" id="v-edit-honor-role">
               <option value="" ${!isHonor?'selected':''}>${escHtml(tr('Aktives Mitglied'))}</option>
@@ -210,8 +209,8 @@ function renderVerwaltung(filter=''){
               <option value="honor_r4" ${honorRole==='honor_r4'?'selected':''}>${escHtml(tr('Ehren R4'))}</option>
             </select>
           </div>
-          <div style="margin-bottom:10px;">
-            <div class="vlabel">${escHtml(tr('Heimat-Allianz'))} <span style="color:var(--soft);font-size:11px;font-weight:400">(${escHtml(tr('nur bei Ehrenrolle'))})</span></div>
+          <div class="v-edit-block">
+            <div class="vlabel">${escHtml(tr('Heimat-Allianz'))} <span class="v-edit-hint">(${escHtml(tr('nur bei Ehrenrolle'))})</span></div>
             <input class="vinput" id="v-edit-honor-home" list="v-alliance-list" value="${escHtml(meta.honorHome||'')}" placeholder="${escHtml(tr('z. B. IvX'))}" maxlength="50" data-on-focus="fillHonorHomeAllianceList">
           </div>`;
       } else {
@@ -219,11 +218,11 @@ function renderVerwaltung(filter=''){
           ? (() => { const d = new Date(meta.lastVisitAt.replace(' ','T')+'Z'); return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); })()
           : null;
         memberInfoHtml = `
-          <div style="font-size:11px;color:var(--soft);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px;">
+          <div class="v-info-line">
             <span>Discord-ID: ${escHtml(meta.discordId||'–')}${meta.discordUsername?` (${escHtml(meta.discordUsername)})`:''}</span>
             <span>·</span><span>${escHtml(tr('Spieler-ID'))}: ${escHtml(meta.id||'–')}</span>
             ${isHonor ? `<span>·</span><span>${escHtml(tr('Heimat-Allianz'))}: ${escHtml(meta.honorHome||'–')}${meta.honorHomeAlliance ? ' ✓ lwhub' : ''}</span>` : ''}
-            ${lastVisitStr?`<span style="color:#6aabff;">· 🕐 ${lastVisitStr}</span>`:`<span style="color:var(--softer);">· ${escHtml(tr('Noch nie eingeloggt'))}</span>`}
+            ${lastVisitStr?`<span class="v-last-visit">· 🕐 ${lastVisitStr}</span>`:`<span class="v-never-visited">· ${escHtml(tr('Noch nie eingeloggt'))}</span>`}
           </div>`;
       }
 
@@ -236,28 +235,28 @@ function renderVerwaltung(filter=''){
         if (!isCatEnabled(key)) return '';
         const btns = cat.f.map(f => {
           const on = !!currentFlags[f.k];
-          const onStyle = f.t==='r'?'border-color:rgba(224,85,69,0.5);background:rgba(224,85,69,0.15);color:#f09080;'
-            :f.t==='a'?'border-color:rgba(240,165,0,0.4);background:rgba(240,165,0,0.12);color:var(--gold);'
-            :f.t==='n'?'border-color:rgba(155,109,255,0.5);background:rgba(155,109,255,0.15);color:var(--purple);'
-            :'border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.12);color:#80b8ff;';
-          return `<button class="flag-btn" data-stop="click" data-action="toggleVerwaltungFlag" data-args="${lwArgs(name, f.k)}" style="${on?onStyle:''}">${escHtml(tr(f.l))}</button>`;
+          const onClass = f.t==='r'?' v-flag-on-r'
+            :f.t==='a'?' v-flag-on-a'
+            :f.t==='n'?' v-flag-on-n'
+            :' v-flag-on-b';
+          return `<button class="flag-btn${on?onClass:''}" data-stop="click" data-action="toggleVerwaltungFlag" data-args="${lwArgs(name, f.k)}">${escHtml(tr(f.l))}</button>`;
         }).join('');
-        return `<div class="flag-cat" style="background:${cat.bg};border:1px solid ${cat.bc};">
-          <div class="flag-cat-title" style="color:${cat.lc};">${cat.l} <small style="font-weight:400;text-transform:none;letter-spacing:0;opacity:0.7;">KW ${formatYearWeek(kw)}</small></div>
+        return `<div class="flag-cat" data-css="${escHtml('background:' + cat.bg + ';border:1px solid ' + cat.bc)}">
+          <div class="flag-cat-title" data-css="${escHtml('color:' + cat.lc)}">${cat.l} <small class="v-flagcat-kw">KW ${formatYearWeek(kw)}</small></div>
           <div class="flag-btns">${btns}</div>
         </div>`;
       }).join('');
 
       const actionBtns = isEditing
-        ? `<div style="display:flex;gap:8px;margin-top:10px;">
+        ? `<div class="v-actions">
             <button class="v-btn save" data-stop="click" data-action="saveMemberEdit" data-args="${lwArgs(name)}">✓ Speichern</button>
             <button class="v-btn cancel" data-stop="click" data-action="cancelEdit">✕ Abbrechen</button>
           </div>`
-        : `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        : `<div class="v-actions v-actions--wrap">
             <button class="v-btn edit" data-stop="click" data-action="startEdit" data-args="${lwArgs(name)}">✏ ${escHtml(tr('Bearbeiten'))}</button>
             <button class="v-btn del" data-stop="click" data-action="removeMember" data-args="${lwArgs(name)}">🗑 ${escHtml(tr('Entfernen'))}</button>
-            ${isHonor ? '' : `<button class="v-btn" data-stop="click" data-action="openTeamEditor" data-args="${lwArgs(name)}" style="background:rgba(240,165,0,0.1);border-color:rgba(240,165,0,0.3);color:var(--gold);">⚔ ${escHtml(tr('Teams'))}</button>`}
-            ${isHonor ? '' : `<button class="v-btn" data-stop="click" data-action="openMemberMeInApp" data-args="${lwArgs(name)}" style="background:rgba(100,160,255,0.1);border-color:rgba(100,160,255,0.3);color:#80b8ff;">👁 ${escHtml(tr('Me-Ansicht'))}</button>`}
+            ${isHonor ? '' : `<button class="v-btn v-btn-teams" data-stop="click" data-action="openTeamEditor" data-args="${lwArgs(name)}">⚔ ${escHtml(tr('Teams'))}</button>`}
+            ${isHonor ? '' : `<button class="v-btn v-btn-me" data-stop="click" data-action="openMemberMeInApp" data-args="${lwArgs(name)}">👁 ${escHtml(tr('Me-Ansicht'))}</button>`}
           </div>`;
 
       detailHtml = '<div class="v-detail" data-stop="click">'
@@ -269,20 +268,20 @@ function renderVerwaltung(filter=''){
     }
 
     const honorSectionHeader = (shownHonor.length && idx === shownActive.length)
-      ? `<div style="margin:14px 0 8px;padding:8px 10px;border:1px solid rgba(127,184,255,0.35);background:rgba(74,158,255,0.08);border-radius:10px;font-size:12px;font-weight:700;letter-spacing:.5px;color:#9cc7ff;text-transform:uppercase;">${escHtml(tr('Ehrenrollen'))} <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--soft);">· ${escHtml(tr('sehen zu, ändern nichts, zählen nicht mit'))}</span></div>`
+      ? `<div class="v-honor-header">${escHtml(tr('Ehrenrollen'))} <span class="v-honor-header-sub">· ${escHtml(tr('sehen zu, ändern nichts, zählen nicht mit'))}</span></div>`
       : '';
 
     return `${honorSectionHeader}<div class="v-row-wrap${isOpen?' is-open':''}" data-action="toggleVerwaltungRow" data-args="${lwArgs(name)}">
-      <div class="v-row" style="border-bottom:none;cursor:pointer;">
+      <div class="v-row">
         <div class="v-member">
           ${avatar}
-          <div style="flex:1;min-width:0;">
+          <div class="v-member-text">
             <div class="v-name">${escHtml(name)}</div>
           </div>
         </div>
         ${discordState}
         <span class="rank-badge ${rbClass(role)}">${role} · ${RL[role]||''}${isHonor ? ` · ${escHtml(honorBadgeText)}` : ''}</span>
-        <span style="color:var(--softer);font-size:13px;padding:0 4px;">${isOpen?'▲':'▼'}</span>
+        <span class="v-row-arrow">${isOpen?'▲':'▼'}</span>
       </div>
       ${detailHtml}
     </div>`;

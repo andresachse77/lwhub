@@ -13,13 +13,13 @@ async function loadSeInactive() {
     const tooNew = data.too_new || [];
     // Zu neu fuer die Auswertung: grau unter der Tabelle, nicht unter "verpasst"
     const tooNewHtml = tooNew.length
-      ? `<div class="hint" style="margin-top:10px;color:var(--softer);">🆕 ${escHtml(trf('Noch zu neu für die Auswertung (weniger als {n} Wochen dabei):', { n: data.min_weeks || 2 }))} `
-        + tooNew.map((p) => `<span data-action="openMemberMe" data-args="${lwArgs(p.name)}" style="cursor:pointer;text-decoration:underline;text-underline-offset:3px;">${escHtml(p.name)}</span> (${escHtml(tr('seit'))} ${kwLabel(p.since)})`).join(', ')
+      ? `<div class="hint se-too-new">🆕 ${escHtml(trf('Noch zu neu für die Auswertung (weniger als {n} Wochen dabei):', { n: data.min_weeks || 2 }))} `
+        + tooNew.map((p) => `<span data-action="openMemberMe" data-args="${lwArgs(p.name)}" class="se-name-link">${escHtml(p.name)}</span> (${escHtml(tr('seit'))} ${kwLabel(p.since)})`).join(', ')
         + '</div>'
       : '';
 
     if (!data.inactive || data.inactive.length === 0) {
-      box.innerHTML = '<div class="hint" style="color:var(--green);">✓ ' + escHtml(tr('Alle aktiven Mitglieder waren mindestens einmal beim Spezialevent dabei!')) + '</div>' + tooNewHtml;
+      box.innerHTML = '<div class="hint se-ok">✓ ' + escHtml(tr('Alle aktiven Mitglieder waren mindestens einmal beim Spezialevent dabei!')) + '</div>' + tooNewHtml;
       return;
     }
 
@@ -48,44 +48,44 @@ async function loadSeInactive() {
     // Aufsteigend nach Punkten pro Woche
     data.inactive.sort((a, b) => (playerPoints[a.name]?.avg ?? 0) - (playerPoints[b.name]?.avg ?? 0));
 
-    let html = `<div style="margin-bottom:8px;color:var(--softer);font-size:0.85em;">
+    let html = `<div class="se-intro">
       ${data.inactive.length} ${escHtml(tr('Spieler ohne Spezialevent-Teilnahme in den letzten'))} ${weeks} ${escHtml(tr('Wochen'))} (${weekLabels.join(', ')}):
     </div>`;
-    html += `<table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+    html += `<table class="se-table">
       <thead><tr>
-        <th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--border);">${escHtml(tr('Spieler'))}</th>
-        ${(data.weeks||[]).map((w,i) => `<th style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">${weekLabels[i]}<br><span style="font-size:0.82em;color:var(--softer);font-weight:400;">${weekTotals[w] ?? 0} Pkt</span></th>`).join('')}
-        <th style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);" title="${escHtml(tr('Punkte pro Woche, nur Wochen als Mitglied'))}">${escHtml(tr('Ø / Woche'))}</th>
+        <th class="se-cell se-cell-l">${escHtml(tr('Spieler'))}</th>
+        ${(data.weeks||[]).map((w,i) => `<th class="se-cell se-cell-c">${weekLabels[i]}<br><span class="se-sub se-sub-normal">${weekTotals[w] ?? 0} Pkt</span></th>`).join('')}
+        <th class="se-cell se-cell-c" title="${escHtml(tr('Punkte pro Woche, nur Wochen als Mitglied'))}">${escHtml(tr('Ø / Woche'))}</th>
       </tr></thead><tbody>`;
 
     const statusIcon = s => {
-      if (s === 'se')      return '<span style="color:var(--green);">✓ SE</span>';
-      if (s === 'afk')     return '<span style="color:var(--softer);">AFK</span>';
-      if (s === 'no_se')   return '<span style="color:var(--red);">–</span>';
-      if (s === 'new')     return `<span style="color:var(--softer);" title="${escHtml(tr('Noch nicht in der Allianz'))}">${escHtml(tr('neu'))}</span>`;
-      if (s === 'missing') return '<span style="color:var(--softer);">?</span>';
+      if (s === 'se')      return '<span class="se-st-se">✓ SE</span>';
+      if (s === 'afk')     return '<span class="se-st-muted">AFK</span>';
+      if (s === 'no_se')   return '<span class="se-st-miss">–</span>';
+      if (s === 'new')     return `<span class="se-st-muted" title="${escHtml(tr('Noch nicht in der Allianz'))}">${escHtml(tr('neu'))}</span>`;
+      if (s === 'missing') return '<span class="se-st-muted">?</span>';
       return '?';
     };
 
     for (const player of data.inactive) {
       const pp = playerPoints[player.name] || { avg: 0, total: 0, count: 0 };
       // Farbe wie frueher bei 4 Wochen (unter 100 rot, unter 200 gelb), jetzt pro Woche
-      const color = pp.avg < 25 ? 'var(--red)' : pp.avg < 50 ? 'var(--gold)' : 'var(--green)';
-      const sinceTag = player.since ? ` <span style="font-size:0.82em;color:var(--softer);">🆕 ${escHtml(tr('seit'))} ${kwLabel(player.since)}</span>` : '';
+      const avgCls = pp.avg < 25 ? 'se-avg-low' : pp.avg < 50 ? 'se-avg-mid' : 'se-avg-high';
+      const sinceTag = player.since ? ` <span class="se-sub">🆕 ${escHtml(tr('seit'))} ${kwLabel(player.since)}</span>` : '';
       html += `<tr>
-        <td style="padding:4px 8px;border-bottom:1px solid var(--border);">
-          <span style="cursor:pointer;color:var(--accent);text-decoration:underline;text-underline-offset:3px;" data-action="openMemberMe" data-args="${lwArgs(player.name)}">${escHtml(player.name)}</span>${sinceTag}
+        <td class="se-cell">
+          <span class="se-player-link" data-action="openMemberMe" data-args="${lwArgs(player.name)}">${escHtml(player.name)}</span>${sinceTag}
         </td>
         ${(data.weeks||[]).map(w => {
           const detail = player.weeks[w] || { status: 'missing' };
           const pts = pp[w];
           const ptsStr = pts !== null && pts !== undefined
-            ? `<br><span style="font-size:0.82em;color:var(--softer);">${pts} Pkt</span>` : '';
-          return `<td style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">${statusIcon(detail.status)}${ptsStr}</td>`;
+            ? `<br><span class="se-sub">${pts} Pkt</span>` : '';
+          return `<td class="se-cell se-cell-c">${statusIcon(detail.status)}${ptsStr}</td>`;
         }).join('')}
-        <td style="text-align:center;padding:4px 8px;border-bottom:1px solid var(--border);">
-          <span style="font-weight:600;color:${color};">${pp.avg}</span>
-          <br><span style="font-size:0.82em;color:var(--softer);">${escHtml(trf('{t} in {n} Wo.', { t: pp.total, n: pp.count }))}</span>
+        <td class="se-cell se-cell-c">
+          <span class="se-avg ${avgCls}">${pp.avg}</span>
+          <br><span class="se-sub">${escHtml(trf('{t} in {n} Wo.', { t: pp.total, n: pp.count }))}</span>
         </td>
       </tr>`;
     }
@@ -93,7 +93,7 @@ async function loadSeInactive() {
     html += '</tbody></table>' + tooNewHtml;
     box.innerHTML = html;
   } catch(e) {
-    box.innerHTML = `<div class="hint" style="color:var(--red);">${escHtml(tr('Fehler beim Laden:'))} ${escHtml(e?.message || String(e))}</div>`;
+    box.innerHTML = `<div class="hint se-err">${escHtml(tr('Fehler beim Laden:'))} ${escHtml(e?.message || String(e))}</div>`;
   }
 }
 window.loadSeInactive = loadSeInactive;
@@ -154,15 +154,15 @@ function ergebnisRecommend(playerData, weeks) {
 }
 
 function ergebnisWeekCell(entry, realRank, withRank = true) {
-  if (!entry || entry.missing) return '<td style="color:#555;text-align:center;">—</td>';
-  if (entry.afk) return '<td style="color:#f0a500;text-align:center;">⏸ AFK</td>';
+  if (!entry || entry.missing) return '<td class="erg-wk erg-wk-missing">—</td>';
+  if (entry.afk) return '<td class="erg-wk erg-wk-afk">⏸ AFK</td>';
   const pts = calcPoints(entry.flags);
-  if (!withRank) return `<td style="text-align:center;">${pts} Pkt</td>`; // Rang nach Beruf: kein Punkte-Rang
+  if (!withRank) return `<td class="erg-wk">${pts} Pkt</td>`; // Rang nach Beruf: kein Punkte-Rang
   const sug = calcRanking(pts, realRank);
-  let color = '#aaa';
-  if (sug > realRank) color = '#2ecb7a';
-  else if (sug < realRank) color = '#e05545';
-  return `<td style="text-align:center;color:${color};">${pts} Pkt<br><small style="color:${color};">R${sug}</small></td>`;
+  let colorCls = 'erg-wk-same';
+  if (sug > realRank) colorCls = 'erg-wk-up';
+  else if (sug < realRank) colorCls = 'erg-wk-down';
+  return `<td class="erg-wk ${colorCls}">${pts} Pkt<br><small>R${sug}</small></td>`;
 }
 
 async function loadErgebnis() {
@@ -240,44 +240,44 @@ function renderErgebnisTable() {
 
   const th = (k, label, align = 'center') => {
     const arrow = ergebnisSort.key === k ? (ergebnisSort.dir > 0 ? ' ▴' : ' ▾') : '';
-    return `<th data-action="ergebnisSortBy" data-args="${lwArgs(k)}" title="${escHtml(tr('Sortieren'))}" style="text-align:${align};padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;">${escHtml(label)}${arrow}</th>`;
+    return `<th data-action="ergebnisSortBy" data-args="${lwArgs(k)}" title="${escHtml(tr('Sortieren'))}" class="erg-th erg-th-sort${align === 'left' ? ' erg-th-left' : ''}">${escHtml(label)}${arrow}</th>`;
   };
-  let html = `<table class="ergebnis-table" style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+  let html = `<table class="ergebnis-table">
     <thead>
       <tr>
         ${th('name', tr('Spieler'), 'left')}
         ${th('rank', tr('Echter Rang'))}
         ${weeks.map(yw => th('kw:' + yw, 'KW ' + yw)).join('')}
-        ${withRec ? th('rec', tr('Empfehlung')) + `<th style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--border);">${escHtml(tr('Aktion'))}</th>`
+        ${withRec ? th('rec', tr('Empfehlung')) + `<th class="erg-th">${escHtml(tr('Aktion'))}</th>`
           : th('sum', tr('Summe'))}
       </tr>
     </thead>
     <tbody>`;
 
   for (const { player, rec, sum } of sorted) {
-    const rankColor = RC[player.rank] || '#888';
-    const recColor = rec.type === 'promote' ? '#2ecb7a' : rec.type === 'demote' ? '#e05545' : rec.type === 'afk' ? '#f0a500' : '#aaa';
+    const rankCls = 'erg-rank-r' + (RC[player.rank] ? player.rank : 0);
+    const recCls = rec.type === 'promote' ? 'erg-rec-promote' : rec.type === 'demote' ? 'erg-rec-demote' : rec.type === 'afk' ? 'erg-rec-afk' : 'erg-rec-other';
     const weekCells = weeks.map(yw => ergebnisWeekCell(player.entries[yw], player.rank, withRec)).join('');
 
     let actionCell = '<td></td>';
     if (rec.type === 'promote' || rec.type === 'demote') {
       const verb = rec.type === 'promote' ? tr('Befördern') : tr('Herabstufen');
-      const btnColor = rec.type === 'promote' ? '#2ecb7a' : '#e05545';
+      const btnCls = rec.type === 'promote' ? 'erg-apply-promote' : 'erg-apply-demote';
       const esc = player.name.replace(/'/g, "\\'");
-      actionCell = `<td style="text-align:center;">
+      actionCell = `<td class="erg-td-c">
         <button data-action="ergebnisApply" data-args="${lwArgs(player.name, rec.targetRank)}"
-          style="background:${btnColor}22;color:${btnColor};border:1px solid ${btnColor};border-radius:5px;padding:4px 10px;cursor:pointer;font-size:0.8rem;">
+          class="erg-apply-btn ${btnCls}">
           ${verb} → R${rec.targetRank}
         </button>
       </td>`;
     }
 
-    html += `<tr style="border-bottom:1px solid var(--border)20;">
-      <td style="padding:6px 10px;font-weight:500;">${player.name}</td>
-      <td style="text-align:center;padding:6px 4px;color:${rankColor};">R${player.rank} · ${RL[player.rank]||''}</td>
+    html += `<tr class="erg-row">
+      <td class="erg-name">${player.name}</td>
+      <td class="erg-rank ${rankCls}">R${player.rank} · ${RL[player.rank]||''}</td>
       ${weekCells}
-      ${withRec ? `<td style="text-align:center;padding:6px 4px;color:${recColor};white-space:nowrap;">${rec.label}</td>
-      ${actionCell}` : `<td style="text-align:center;padding:6px 4px;font-weight:600;">${sum} Pkt</td>`}
+      ${withRec ? `<td class="erg-rec ${recCls}">${rec.label}</td>
+      ${actionCell}` : `<td class="erg-sum">${sum} Pkt</td>`}
     </tr>`;
   }
 

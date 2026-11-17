@@ -1,7 +1,7 @@
 <?php // Admin-Seite und Admin-Dialoge – nur nach verifiziertem Rank 5 ausgeliefert (members.php, handleTabHtml) ?>
 <!-- ═══ ADMIN PAGE ═══ -->
 <div class="page" id="page-a">
-  <div style="max-width:1100px;margin:0 auto;padding:1.5rem 1.5rem 3rem">
+  <div class="admin-wrap">
     <div class="admin-nav">
       <button class="admin-nav-tab active" data-action="adminShowTab" data-args='["alliances",{"$":"el"}]'>Allianzen</button>
       <button class="admin-nav-tab" data-action="adminShowTab" data-args='["archive",{"$":"el"}]'>Archiv</button>
@@ -37,7 +37,7 @@
         </select>
         <button class="btn btn-ghost" data-action="loadArchive">↻ Aktualisieren</button>
       </div>
-      <div class="card" style="overflow-x:auto">
+      <div class="card admin-card-scroll">
         <table class="archive-table" id="archive-table">
           <thead>
             <tr><th>Spieler</th><th>Allianz</th><th>Rank</th><th>Archiviert</th><th></th></tr>
@@ -55,7 +55,7 @@
           <div class="section-sub">Spieler in eine andere Allianz verschieben. Alle Daten (Einträge, Identitäten, Namenshistorie) werden mitgenommen.</div>
         </div>
       </div>
-      <div class="card" style="max-width:480px">
+      <div class="card admin-card-narrow">
         <div class="field">
           <label>Von Allianz</label>
           <select id="transfer-from" data-on-change="loadTransferPlayers"><option value="">– wählen –</option></select>
@@ -68,7 +68,7 @@
           <label>Nach Allianz</label>
           <select id="transfer-to"><option value="">Ziel-Allianz wählen …</option></select>
         </div>
-        <div class="modal-footer" style="padding:0;margin-top:12px">
+        <div class="modal-footer admin-card-footer">
           <button class="btn btn-gold" data-action="submitTransfer">Transferieren</button>
         </div>
       </div>
@@ -82,7 +82,7 @@
           <div class="section-sub">Ein doppelter Eintrag (aktiv oder archiviert) geht im behaltenen Spieler auf. Name, Rang und Spieler-ID bleiben; Wochen, Scan-Werte, Namen, Discord, Teams und Zug-Platz kommen dazu. Doppelte Wochen: die des behaltenen Spielers gilt.</div>
         </div>
       </div>
-      <div class="card" style="max-width:480px">
+      <div class="card admin-card-narrow">
         <div class="field">
           <label>Allianz</label>
           <select id="merge-alliance" data-on-change="loadMergePlayers"><option value="">– wählen –</option></select>
@@ -95,7 +95,7 @@
           <label>Duplikat (geht auf und verschwindet)</label>
           <select id="merge-drop"><option value="">Erst Allianz wählen</option></select>
         </div>
-        <div class="modal-footer" style="padding:0;margin-top:12px">
+        <div class="modal-footer admin-card-footer">
           <button class="btn btn-gold" data-action="submitMerge">Zusammenführen</button>
         </div>
       </div>
@@ -110,7 +110,7 @@
         </div>
         <button class="btn btn-gold" data-action="openGrantAdmin">+ Admin vergeben</button>
       </div>
-      <div class="card" style="overflow-x:auto">
+      <div class="card admin-card-scroll">
         <table class="archive-table" id="admins-table">
           <thead>
             <tr><th>Spieler</th><th>Discord</th><th>Allianz</th><th>Vergeben von</th><th>Notiz</th><th>Seit</th><th></th></tr>
@@ -129,13 +129,13 @@
         </div>
         <button class="btn btn-gold" data-action="openCreateApiToken">+ Token anlegen</button>
       </div>
-      <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;">
-        <label style="font-size:13px;color:var(--soft);">Allianz:</label>
-        <select id="api-tokens-alliance" data-on-change="loadApiTokens" style="background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:13px;">
+      <div class="admin-tokens-filter">
+        <label class="admin-tokens-filter-label">Allianz:</label>
+        <select id="api-tokens-alliance" data-on-change="loadApiTokens" class="admin-tokens-select">
           <option value="">Lade …</option>
         </select>
       </div>
-      <div class="card" style="overflow-x:auto">
+      <div class="card admin-card-scroll">
         <table class="archive-table" id="api-tokens-table">
           <thead>
             <tr><th>Name</th><th>Rolle</th><th>Erstellt von</th><th>Erstellt</th><th>Zuletzt benutzt</th><th>Läuft ab</th><th>Status</th><th></th></tr>
@@ -180,9 +180,9 @@
 <div class="modal-bg hidden" id="modal-api-token-created">
   <div class="modal">
     <div class="modal-title">Token angelegt</div>
-    <div class="hint" style="color:var(--red);margin-bottom:10px">Dieser Token wird nicht wieder angezeigt. Kopiere ihn jetzt und gib ihn nur an die vorgesehene Person weiter.</div>
+    <div class="hint admin-token-warning">Dieser Token wird nicht wieder angezeigt. Kopiere ihn jetzt und gib ihn nur an die vorgesehene Person weiter.</div>
     <div class="field" data-i18n-skip="1">
-      <input type="text" id="api-token-plain" readonly style="font-family:monospace;font-size:12px" data-on-focus="lwSelectText" data-args-focus='[{"$":"el"}]'>
+      <input type="text" id="api-token-plain" readonly class="admin-token-plain" data-on-focus="lwSelectText" data-args-focus='[{"$":"el"}]'>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" data-action="copyApiToken" data-args='[{"$":"el"}]'>Kopieren</button>
@@ -195,7 +195,7 @@
   <div class="modal">
     <div class="modal-title">Admin vergeben</div>
     <div class="field">
-      <label>Spielername <em style="color:var(--soft);font-weight:400">(oder Discord-ID)</em></label>
+      <label>Spielername <em class="admin-label-note">(oder Discord-ID)</em></label>
       <input type="text" id="grant-player-name" placeholder="z.B. Lion Tooth" autocomplete="off">
       <div class="hint">Name muss exakt mit dem aktuellen Spielernamen übereinstimmen.</div>
     </div>
@@ -223,7 +223,7 @@
       <input type="text" id="create-title" maxlength="255" placeholder="NxU1 – Next Unit 1">
     </div>
     <div class="field">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;">
+      <label class="admin-check-label">
         <input type="checkbox" id="create-accepts-requests">
         Login-Anfragen akzeptieren
       </label>
@@ -250,7 +250,7 @@
       <input type="text" id="edit-title" maxlength="255" placeholder="NxU1 – Next Unit 1">
     </div>
     <div class="field">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;">
+      <label class="admin-check-label">
         <input type="checkbox" id="edit-accepts-requests">
         Login-Anfragen akzeptieren
       </label>
@@ -264,12 +264,12 @@
 </div>
 
 <div class="modal-bg hidden" id="modal-alliance-features">
-  <div class="modal" style="max-width:720px;">
+  <div class="modal admin-features-modal">
     <div class="modal-title" id="alliance-features-title">Features</div>
-    <div class="modal-sub" id="alliance-features-sub" style="margin-bottom:12px;color:var(--soft);font-size:12px;">Steuere hier, welche Bereiche diese Allianz nutzen darf.</div>
+    <div class="modal-sub admin-features-sub" id="alliance-features-sub">Steuere hier, welche Bereiche diese Allianz nutzen darf.</div>
     <div id="alliance-features-body"><div class="empty">Lade …</div></div>
     <div class="modal-footer">
-      <span class="hint" style="margin-right:auto;font-size:11px;" data-i18n="s_alliance_settings_hint">Schalter wirken sofort, Zahlen und Namen mit „Speichern“.</span>
+      <span class="hint admin-features-hint" data-i18n="s_alliance_settings_hint">Schalter wirken sofort, Zahlen und Namen mit „Speichern“.</span>
       <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-alliance-features"]' data-i18n="s_schliessen">Schließen</button>
       <button class="btn btn-gold" id="alliance-features-save" data-action="saveAllianceSettings" data-args='[{"$":"el"}]' disabled data-i18n="s_speichern">Speichern</button>
     </div>

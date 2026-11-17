@@ -46,13 +46,13 @@ function renderList(){
     const hasWarn=e?[...DANGER].some(k=>e.flags[k]):false;
     const af=e?Object.keys(e.flags).filter(k=>e.flags[k]):[];
 
-    const statusIcon=!e?'<span style="color:var(--softer)">○</span>':hasWarn?'<span style="color:var(--red)">⚠</span>':'<span style="color:var(--green)">✓</span>';
+    const statusIcon=!e?'<span class="entries-status-none">○</span>':hasWarn?'<span class="entries-status-warn">⚠</span>':'<span class="entries-status-ok">✓</span>';
     const rankBadge=`<span class="rank-badge ${rbClass(rank)}">${rank} · ${RL[rank]}</span>`;
-    const fixedBadge=isFixed(name)?` <span style="font-size:10px;color:var(--gold);margin-left:3px;">${R5.has(name)?'R5':'R4'}</span>`:'';
+    const fixedBadge=isFixed(name)?` <span class="entries-fixed-badge">${R5.has(name)?'R5':'R4'}</span>`:'';
     const tags=af.slice(0,3).map(k=>{
       const cls=DANGER.has(k)?'r':AMBER.has(k)?'a':NEUTRAL.has(k)?'n':'b';
       return `<span class="tag ${cls}">${LBL[k]||k}</span>`;
-    }).join('')+(af.length>3?`<span class="tag" style="color:var(--softer);border-color:var(--softer);">+${af.length-3}</span>`:'');
+    }).join('')+(af.length>3?`<span class="tag entries-tag-more">+${af.length-3}</span>`:'');
 
     const dimCls=(doneMode===1 && !!e)?' done-dim':'';
     const divider=(i===splitAt)?'<div class="done-divider">✓ Bereits erfasst</div>':'';

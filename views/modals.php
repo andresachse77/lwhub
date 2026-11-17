@@ -1,9 +1,9 @@
 <?php // Dialoge für alle: Anmeldung abgelaufen, Team-Editor ?>
 <div class="modal-bg hidden" id="modal-reauth">
-  <div class="modal" style="width:min(460px, 100%)">
+  <div class="modal reauth-modal">
     <div class="modal-title">🔑 <span data-i18n="s_reauth_title">Anmeldung abgelaufen</span></div>
-    <div class="hint" style="margin-bottom:10px" data-i18n="s_reauth_text">Deine Discord-Anmeldung ist abgelaufen, darum wurde gerade nichts gespeichert. Melde dich in einem neuen Fenster neu an – deine Eingaben hier bleiben stehen. Danach den letzten Schritt einfach wiederholen.</div>
-    <div class="hint" id="reauth-wait" hidden style="margin-bottom:10px;color:var(--gold)" data-i18n="s_reauth_wait">Warte auf die Anmeldung im neuen Fenster … danach kannst du es schließen.</div>
+    <div class="hint reauth-text" data-i18n="s_reauth_text">Deine Discord-Anmeldung ist abgelaufen, darum wurde gerade nichts gespeichert. Melde dich in einem neuen Fenster neu an – deine Eingaben hier bleiben stehen. Danach den letzten Schritt einfach wiederholen.</div>
+    <div class="hint reauth-wait" id="reauth-wait" hidden data-i18n="s_reauth_wait">Warte auf die Anmeldung im neuen Fenster … danach kannst du es schließen.</div>
     <div class="modal-footer">
       <button class="btn btn-ghost" data-action="closeModal" data-args='["modal-reauth"]' data-i18n="s_reauth_later">Später</button>
       <button class="btn btn-gold" data-action="lwhubReauthLogin" data-i18n="s_reauth_btn">Neu anmelden</button>
@@ -11,11 +11,11 @@
   </div>
 </div>
 <div class="modal-bg hidden" id="modal-team-editor">
-  <div class="modal" style="max-width:720px;">
+  <div class="modal team-editor-modal">
     <div class="modal-title" data-i18n="s_teams_bearbeiten">Teams bearbeiten</div>
     <div class="field">
       <label data-i18n="s_spieler">Spieler</label>
-      <div id="team-editor-member-name" style="font-size:14px;color:var(--gold);"></div>
+      <div id="team-editor-member-name" class="team-editor-member-name"></div>
     </div>
     <form id="team-editor-form">
       <div class="field">
@@ -28,7 +28,7 @@
       </div>
       <div class="field">
         <label>T1</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="team-editor-tier-row">
           <select id="team-editor-type-1">
             <option value="">—</option>
             <option value="panzer" data-i18n="s_panzer">Panzer</option>
@@ -40,7 +40,7 @@
       </div>
       <div class="field">
         <label>T2</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="team-editor-tier-row">
           <select id="team-editor-type-2">
             <option value="">—</option>
             <option value="panzer" data-i18n="s_panzer">Panzer</option>
@@ -52,7 +52,7 @@
       </div>
       <div class="field">
         <label>T3</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="team-editor-tier-row">
           <select id="team-editor-type-3">
             <option value="">—</option>
             <option value="panzer" data-i18n="s_panzer">Panzer</option>
@@ -64,7 +64,7 @@
       </div>
       <div class="field">
         <label>T4</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="team-editor-tier-row">
           <select id="team-editor-type-4">
             <option value="">—</option>
             <option value="panzer" data-i18n="s_panzer">Panzer</option>
@@ -76,7 +76,7 @@
       </div>
       <div class="field">
         <label data-i18n="s_helden_slots">Helden-Slots (Drag & Drop)</label>
-        <div id="team-editor-dnd" style="display:grid;gap:10px;"></div>
+        <div id="team-editor-dnd" class="team-editor-dnd"></div>
       </div>
     </form>
     <div class="modal-footer">

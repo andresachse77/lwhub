@@ -528,7 +528,7 @@
       bpHistCurrent = data;
       const canRestore = bpCanEditRankCheck();
       const changes = data.changes || [];
-      let html = `<div style="margin-bottom:8px"><b>${escHtml(tr('s_bp_hist_state_of'))} ${bpHistWhen(data.snapshot.created_at)}</b></div>`;
+      let html = `<div class="bp-hist-state"><b>${escHtml(tr('s_bp_hist_state_of'))} ${bpHistWhen(data.snapshot.created_at)}</b></div>`;
       if (!changes.length) html += `<div class="hint">${escHtml(tr('s_bp_hist_same'))}</div>`;
       html += changes.map(c => `<label class="bp-hist-change">
           ${canRestore ? `<input type="checkbox" class="bp-hist-pick" value="${escHtml(c.id)}" checked>` : ''}
@@ -536,7 +536,7 @@
           <span class="bp-hist-from">${escHtml(tr('s_bp_hist_now'))}: ${bpHistLabel(c.from)}</span><br>
           ${escHtml(tr('s_bp_hist_then'))}: ${bpHistLabel(c.to)}</span></label>`).join('');
       if ((data.gone || []).length) {
-        html += `<div class="hint" style="margin-top:10px">${escHtml(tr('s_bp_hist_gone'))}: `
+        html += `<div class="hint bp-hist-gone">${escHtml(tr('s_bp_hist_gone'))}: `
           + data.gone.map(g => `${escHtml(g.name)} (${bpHistLabel(g)})`).join(', ') + '</div>';
       }
       body.innerHTML = html;
@@ -693,7 +693,7 @@
     bpRenderWrongCount();
 
     if (!queue.length) {
-      queueEl.innerHTML = `<div style="font-size:12px;color:var(--soft);padding:8px;">${escHtml(tr('s_bp_queue_empty'))}</div>`;
+      queueEl.innerHTML = `<div class="bp-queue-empty">${escHtml(tr('s_bp_queue_empty'))}</div>`;
     } else {
       queueEl.innerHTML = queue.map(name =>
         `<div class="bp-queue-item${bpCheckMarkup(name, 'queue').cls}" draggable="true" data-member="${escHtml(name)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, name)}" data-on-dragend="bpDragEnd">
@@ -706,9 +706,9 @@
       ).join('');
     }
 
-    let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
-      + `<div data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpDropNewWarlord" data-args-drop="${lwArgs(LW_EVENT, LW_EL)}" style="padding:8px;border:1px dashed rgba(224,85,69,0.35);border-radius:8px;color:#f09080;font-size:11px;">${escHtml(tr('s_bp_drop_new_warlord'))}</div>`
-      + `<div data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpDropToQueue" data-args-drop="${lwArgs(LW_EVENT, LW_EL)}" style="padding:8px;border:1px dashed rgba(255,255,255,0.2);border-radius:8px;color:var(--soft);font-size:11px;">${escHtml(tr('s_bp_drop_to_queue'))}</div>`
+    let html = '<div class="bp-drop-row">'
+      + `<div data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpDropNewWarlord" data-args-drop="${lwArgs(LW_EVENT, LW_EL)}" class="bp-drop-zone is-warlord">${escHtml(tr('s_bp_drop_new_warlord'))}</div>`
+      + `<div data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpDropToQueue" data-args-drop="${lwArgs(LW_EVENT, LW_EL)}" class="bp-drop-zone">${escHtml(tr('s_bp_drop_to_queue'))}</div>`
       + '</div>';
     document.querySelectorAll('#bp-view [data-bpview]').forEach(b => b.classList.toggle('on', b.dataset.bpview === bpView));
     // "Alle auf-/zuklappen" im Planer-Kopf neben dem Ansicht-Umschalter, nur in der Kartenansicht
@@ -723,11 +723,11 @@
       return;
     }
     html += '<div class="bp-table-wrap"><table class="bp-table">';
-    html += `<thead><tr><th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;">${escHtml(tr('s_kriegsherr'))}</th>`;
+    html += `<thead><tr><th class="bp-th">${escHtml(tr('s_kriegsherr'))}</th>`;
     for (let i = 1; i <= maxIng; i++) {
-      html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;">${escHtml(tr('s_bp_ing_prefix'))} ${i}</th>`;
+      html += `<th class="bp-th">${escHtml(tr('s_bp_ing_prefix'))} ${i}</th>`;
     }
-    html += `<th style="text-align:left;font-size:11px;color:var(--soft);padding:6px;width:44px;"></th></tr></thead><tbody>`;
+    html += `<th class="bp-th bp-th-action"></th></tr></thead><tbody>`;
 
     warlords.forEach((kh) => {
       const engineers = bpEngineerListFor(kh);
@@ -737,7 +737,7 @@
       html += `<td class="bp-cell-name${khCheck.cls}" data-on-dragover="bpAllowDrop" data-args-dragover="${lwArgs(LW_EVENT, LW_EL)}" data-on-dragleave="bpDropLeave" data-args-dragleave="${lwArgs(LW_EL)}" data-on-drop="bpDropToWarlord" data-args-drop="${lwArgs(LW_EVENT, khEnc, LW_EL)}">`;
       html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(kh)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, kh)}" data-on-dragend="bpDragEnd">`;
       html += bpRankShield(kh);
-      html += '<span class="bp-ico" style="font-size:12px;color:#f09080;">⚔</span>';
+      html += '<span class="bp-ico bp-ico-kh">⚔</span>';
       html += `<span class="bp-name-text kh" title="${escHtml(kh)}">${escHtml(kh)}</span>`;
       html += khCheck.hint;
       html += bpAskBtn(kh);
@@ -750,7 +750,7 @@
         if (eng) {
           html += `<div class="bp-name-draggable" draggable="true" data-member="${escHtml(eng)}" data-on-dragstart="bpDragStart" data-args-dragstart="${lwArgs(LW_EVENT, eng)}" data-on-dragend="bpDragEnd">`;
           html += bpRankShield(eng);
-          html += '<span class="bp-ico" style="font-size:12px;color:#80b8ff;">👷</span>';
+          html += '<span class="bp-ico bp-ico-ing">👷</span>';
           html += `<span class="bp-name-text ing" title="${escHtml(eng)}">${escHtml(eng)}</span>`;
           html += engCheck.hint;
           html += bpAskBtn(eng);
@@ -767,7 +767,7 @@
     });
 
     if (!warlords.length) {
-      html += `<tr><td colspan="${maxIng + 2}" style="padding:12px;color:var(--soft);font-size:12px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.15);border-radius:8px;">${escHtml(tr('s_bp_no_warlords'))}</td></tr>`;
+      html += `<tr><td colspan="${maxIng + 2}" class="bp-acc-empty bp-no-warlords">${escHtml(tr('s_bp_no_warlords'))}</td></tr>`;
     }
 
     html += '</tbody></table></div>';
@@ -1096,7 +1096,7 @@
     const { threshold, weeks } = bpFillScores;
     const li = s => `<li>${s}</li>`;
     const engTxt = e => `${bpRankShield(e.name)}<b>${escHtml(e.name)}</b> <span class="bp-fill-pts${e.active ? ' on' : ''}">${e.active ? '★ ' : ''}${escHtml(trf('s_bp_fill_pts', { n: e.pts }))}</span>`;
-    let h = `<div class="hint" style="margin-bottom:10px">${escHtml(trf('s_bp_fill_hint', { n: Number.isFinite(threshold) ? threshold : '–', w: weeks }))}</div>`;
+    let h = `<div class="hint bp-fill-intro">${escHtml(trf('s_bp_fill_hint', { n: Number.isFinite(threshold) ? threshold : '–', w: weeks }))}</div>`;
     if (plan.newKh.length) {
       h += `<div class="bp-fill-h">⚔ ${escHtml(tr('s_bp_fill_new_kh'))} (${plan.newKh.length})</div><ul class="bp-fill-list">`
         + plan.newKh.map(n => li(`${bpRankShield(n)}<b>${escHtml(n)}</b>`)).join('') + '</ul>';

@@ -70,183 +70,8 @@
     return { 1:'R1', 2:'R2', 3:'R3', 4:'R4', 5:'R5' }[+r] || 'R?';
   }
 
-  function rankColor(r) {
-    return { 1:'#f0a500', 2:'#2ecb7a', 3:'#4a9eff', 4:'#e05545', 5:'#9b6dff' }[+r] || '#7a8498';
-  }
-
   // ── CSS ──────────────────────────────────────────────────────────────────────
-  function injectStyles() {
-    if (document.getElementById('cs-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'cs-styles';
-    style.textContent = `
-      #cs-wrap {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-left: auto;
-      }
-      #cs-alliance-name {
-        font-family: 'Rajdhani', sans-serif;
-        font-size: 13px;
-        letter-spacing: 1px;
-        color: var(--gold, #f0a500);
-        white-space: nowrap;
-        max-width: 180px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        cursor: default;
-      }
-      #cs-trigger {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 10px;
-        padding: 5px 10px 5px 5px;
-        cursor: pointer;
-        transition: border-color 0.15s, background 0.15s;
-        flex-shrink: 0;
-      }
-      #cs-trigger:hover { border-color: var(--gold, #f0a500); background: rgba(240,165,0,0.07); }
-      #cs-avatar {
-        width: 28px; height: 28px;
-        border-radius: 50%;
-        border: 1px solid rgba(255,255,255,0.15);
-        object-fit: cover;
-        background: rgba(255,255,255,0.07);
-        flex-shrink: 0;
-      }
-      .cs-avatar-placeholder {
-        width: 28px; height: 28px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, rgba(240,165,0,0.3), rgba(74,158,255,0.3));
-        display: flex; align-items: center; justify-content: center;
-        font-size: 11px; font-weight: 700; color: #fff;
-        flex-shrink: 0;
-        border: 1px solid rgba(255,255,255,0.1);
-      }
-      #cs-char-name {
-        font-size: 12px;
-        font-weight: 600;
-        color: #dde1ec;
-        max-width: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      @media (max-width: 600px) { #cs-char-name { max-width: 72px; } }
-      #cs-caret {
-        font-size: 10px;
-        color: #7a8498;
-        transition: transform 0.15s;
-      }
-      #cs-trigger.open #cs-caret { transform: rotate(180deg); }
-      #cs-dropdown {
-        position: absolute;
-        top: calc(100% + 8px);
-        right: 0;
-        min-width: 240px;
-        background: rgba(13,18,30,0.97);
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 12px;
-        padding: 8px;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.4);
-        z-index: 9999;
-        display: none;
-        /* Laenger als der Bildschirm (viele Seiten im Menue): im Menue scrollen */
-        max-height: calc(100vh - 80px);
-        max-height: calc(100dvh - 80px);
-        overflow-y: auto;
-        overscroll-behavior: contain;
-      }
-      #cs-dropdown.open { display: block; }
-      .cs-section-label {
-        font-size: 10px;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        color: #3e4558;
-        padding: 4px 8px 6px;
-      }
-      .cs-char-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.12s;
-      }
-      .cs-char-item:hover { background: rgba(255,255,255,0.06); }
-      .cs-char-item.active { background: rgba(240,165,0,0.1); border: 1px solid rgba(240,165,0,0.2); }
-      .cs-char-rank {
-        font-size: 10px;
-        font-weight: 700;
-        padding: 2px 6px;
-        border-radius: 999px;
-        flex-shrink: 0;
-      }
-      .cs-char-info { flex: 1; min-width: 0; }
-      .cs-char-info-name { font-size: 13px; font-weight: 600; color: #dde1ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .cs-char-info-alliance { font-size: 11px; color: #7a8498; }
-      .cs-char-active-dot {
-        width: 6px; height: 6px; border-radius: 50%;
-        background: #f0a500; flex-shrink: 0;
-      }
-      .cs-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 6px 0; }
-      .cs-menu-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 13px;
-        color: #7a8498;
-        transition: all 0.12s;
-        border: none;
-        background: none;
-        width: 100%;
-        text-align: left;
-      }
-      .cs-menu-item:hover { background: rgba(255,255,255,0.05); color: #dde1ec; }
-      .cs-rename-form {
-        padding: 8px;
-        border-top: 1px solid rgba(255,255,255,0.07);
-        margin-top: 4px;
-        display: none;
-      }
-      .cs-rename-form.show { display: block; }
-      .cs-rename-form input {
-        width: 100%;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 7px;
-        color: #dde1ec;
-        font-size: 12px;
-        padding: 7px 9px;
-        outline: none;
-        font-family: inherit;
-        margin-bottom: 6px;
-      }
-      .cs-rename-form input:focus { border-color: #f0a500; }
-      .cs-rename-row { display: flex; gap: 6px; }
-      .cs-rename-row button {
-        flex: 1; padding: 6px 8px; border-radius: 7px; border: none;
-        font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
-      }
-      .cs-btn-confirm { background: rgba(240,165,0,0.2); color: #ffd060; border: 1px solid rgba(240,165,0,0.3) !important; }
-      .cs-btn-confirm:hover { background: rgba(240,165,0,0.35); }
-      .cs-btn-cancel { background: rgba(255,255,255,0.05); color: #7a8498; border: 1px solid rgba(255,255,255,0.1) !important; }
-      .cs-btn-cancel:hover { background: rgba(255,255,255,0.1); color: #dde1ec; }
-      .cs-mobile-only { display: none !important; }
-      body.nav-compact .cs-mobile-only { display: flex !important; }
-    `;
-    document.head.appendChild(style);
-  }
+  // Die Styles stehen in assets/css/app.css (Block „CHAR-SWITCHER“), nicht mehr per <style> eingefügt (CSP style-src).
 
   // ── Build DOM ─────────────────────────────────────────────────────────────────
   function buildWidget(discordUser, authMember) {
@@ -431,7 +256,7 @@
     const dropdown = document.getElementById('cs-dropdown');
 
     if ((!chars || !chars.length) && !viewerAlliances.length) {
-      list.innerHTML = `<div style="font-size:12px;color:#7a8498;padding:6px 10px">${escHtml(tr('Keine Charaktere gefunden'))}</div>`;
+      list.innerHTML = `<div class="cs-empty">${escHtml(tr('Keine Charaktere gefunden'))}</div>`;
       return;
     }
     chars = chars || [];
@@ -446,15 +271,15 @@
     let html = '';
     for (const [ally, cs] of Object.entries(byAlliance)) {
       if (Object.keys(byAlliance).length > 1) {
-        html += `<div class="cs-section-label" style="margin-top:4px">${escHtml(ally)}</div>`;
+        html += `<div class="cs-section-label cs-section-label-spaced">${escHtml(ally)}</div>`;
       }
       for (const c of cs) {
         const isActive = c.is_active;
-        const rColor = rankColor(c.rank);
+        const rankKey = [1, 2, 3, 4, 5].includes(+c.rank) ? +c.rank : 'x'; // Farbe: .cs-char-rank-1..5/x in app.css
         html += `
           <div class="cs-char-item${isActive ? ' active' : ''}"
                data-player="${escHtml(c.player_id)}" data-alliance="${escHtml(c.alliance)}" data-name="${escHtml(c.name)}">
-            <span class="cs-char-rank" style="background:${rColor}22;color:${rColor};border:1px solid ${rColor}44" title="${c.honor_role === 'honor_r4' ? escHtml(tr('Ehren-R4: nur ansehen')) : ''}">${escHtml(rankLabel(c.rank, c.honor_role))}</span>
+            <span class="cs-char-rank cs-char-rank-${rankKey}" title="${c.honor_role === 'honor_r4' ? escHtml(tr('Ehren-R4: nur ansehen')) : ''}">${escHtml(rankLabel(c.rank, c.honor_role))}</span>
             <div class="cs-char-info">
               <div class="cs-char-info-name">${escHtml(c.name)}</div>
             </div>
@@ -465,11 +290,11 @@
 
     // Betreiber: Allianzen ohne eigenen Char nur ansehen (aendern kann er dort nur die Feature-Schalter)
     if (viewerAlliances.length) {
-      html += `<div class="cs-section-label" style="margin-top:4px">${escHtml(tr('Ansehen (Betreiber)'))}</div>`;
+      html += `<div class="cs-section-label cs-section-label-spaced">${escHtml(tr('Ansehen (Betreiber)'))}</div>`;
       for (const a of viewerAlliances) {
         html += `
           <div class="cs-char-item${a.is_active ? ' active' : ''}" data-player="" data-alliance="${escHtml(a.alliance)}" data-name="${escHtml(a.alliance)}" data-viewer="1">
-            <span class="cs-char-rank" style="background:#7a849822;color:#9aa4b8;border:1px solid #7a849844">👁</span>
+            <span class="cs-char-rank cs-char-rank-viewer">👁</span>
             <div class="cs-char-info">
               <div class="cs-char-info-name">${escHtml(a.alliance)}</div>
               ${a.title ? `<div class="cs-char-info-alliance">${escHtml(a.title)}</div>` : ''}
@@ -666,8 +491,6 @@
 
   // ── Public init ───────────────────────────────────────────────────────────────
   window.initCharSwitcher = async function (discordUser, authMember) {
-    injectStyles();
-
     const widget = buildWidget(discordUser, authMember);
     injectIntoTopbar(widget);
 

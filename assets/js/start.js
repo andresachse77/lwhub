@@ -69,8 +69,8 @@ async function initApp(){
   if (!API_BASE_CANDIDATES.length) {
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('login-box').innerHTML = `
-      <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;margin-bottom:10px;">API nicht konfiguriert</div>
-      <div style="color:var(--soft);font-size:13px;line-height:1.5;max-width:560px;">
+      <div class="login-config-title">API nicht konfiguriert</div>
+      <div class="login-config-text">
         Bitte setze einmalig die API-URL in der Browser-Konsole:
         <br><br>
         localStorage.setItem('iny_api_base','https://DEIN-API-HOST/api'); location.reload();

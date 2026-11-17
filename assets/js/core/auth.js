@@ -163,11 +163,11 @@ async function renderAccessDenied(user, reason = 'Kein Zugriff') {
     const data = await adminApi('/alliances/open');
     const opts = data.alliances || [];
     if (opts.length > 0) {
-      allianceSelectHtml = `<select id="req-alliance" style="width:100%;background:var(--card2);border:1px solid var(--line2);border-radius:8px;color:var(--text);font-size:13px;padding:8px 10px;outline:none;font-family:'Inter',sans-serif;">`
+      allianceSelectHtml = `<select id="req-alliance" class="login-alliance-select">`
         + opts.map(a => `<option value="${escHtml(a.short_name)}">${escHtml(a.short_name)}${a.title ? ' \u2013 ' + escHtml(a.title) : ''}</option>`).join('')
         + '</select>';
     } else {
-      allianceSelectHtml = '<div style="color:var(--soft);font-size:12px;padding:4px 0;">Aktuell nimmt keine Allianz Login-Anfragen an.</div>';
+      allianceSelectHtml = '<div class="login-no-alliance">Aktuell nimmt keine Allianz Login-Anfragen an.</div>';
     }
   } catch (_) {}
 
@@ -176,8 +176,8 @@ async function renderAccessDenied(user, reason = 'Kein Zugriff') {
       <img src="${avatarUrl}" alt="">
       <span>${safeUsername}</span>
     </div>
-    <div style="color:var(--red);font-size:13px;margin-bottom:1rem;">${escHtml(tr(reason))} \u2013 ${escHtml(tr('dein Discord ist aktuell noch keinem aktiven Mitglied zugeordnet.'))}</div>
-    <button class="discord-btn" style="background:var(--card2);font-size:13px;padding:8px 20px;" data-action="discordLogout">Anderer Account</button>
+    <div class="login-denied-reason">${escHtml(tr(reason))} \u2013 ${escHtml(tr('dein Discord ist aktuell noch keinem aktiven Mitglied zugeordnet.'))}</div>
+    <button class="discord-btn login-alt-btn" data-action="discordLogout">Anderer Account</button>
     <div class="login-request" id="login-request-box">
       <div class="title">Keinen Zugriff? Anfrage senden</div>
       <div class="hint">Schick uns Allianz + Spielername. Das landet direkt in der Verwaltung als Vorschlag.</div>
@@ -220,7 +220,7 @@ async function submitAccessRequest() {
     });
     const box = document.getElementById('login-request-box');
     if (box) {
-      box.innerHTML = '<div class="hint" style="color:var(--green);">Anfrage gesendet. Ein R4/R5 kann dich in der Verwaltung nun direkt zuordnen.</div>';
+      box.innerHTML = '<div class="hint login-request-sent">Anfrage gesendet. Ein R4/R5 kann dich in der Verwaltung nun direkt zuordnen.</div>';
     }
   } catch (err) {
     toast(tr('Fehler: ') + err.message);
@@ -232,10 +232,10 @@ function renderAuthError(message) {
   const loginBox = document.getElementById('login-box');
   if (!loginBox) return;
   loginBox.innerHTML = `
-    <div class="login-pending" style="gap:16px">
+    <div class="login-pending login-error">
       <div class="logo">Alli<em>App</em></div>
-      <div style="color:var(--red);font-size:14px;max-width:320px;text-align:center;line-height:1.5;">${escHtml(message)}</div>
-      <button class="discord-btn" style="font-size:13px;padding:8px 20px;" data-action="lwReload">Neu laden</button>
+      <div class="login-error-text">${escHtml(message)}</div>
+      <button class="discord-btn login-reload-btn" data-action="lwReload">Neu laden</button>
     </div>
   `;
 }

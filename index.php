@@ -13,6 +13,14 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self'; script-s
     . "img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; "
     . "connect-src 'self' https://discord.com https://unavatar.io; frame-src 'self'; frame-ancestors 'self'; "
     . "base-uri 'self'; form-action 'self'; object-src 'none'");
+// Uebergang: dieselbe Regel OHNE 'unsafe-inline' bei style-src, nur beobachtend. Jedes noch vorhandene
+// style="…" erscheint als Meldung in der Browser-Konsole. Sind alle weg, oben 'unsafe-inline' streichen
+// und diese Zeile loeschen.
+header("Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self'; script-src-attr 'none'; "
+    . "style-src 'self'; font-src 'self'; "
+    . "img-src 'self' data: blob: https://cdn.discordapp.com https://unavatar.io; "
+    . "connect-src 'self' https://discord.com https://unavatar.io; frame-src 'self'; frame-ancestors 'self'; "
+    . "base-uri 'self'; form-action 'self'; object-src 'none'", false);
 ?>
 <!DOCTYPE html>
 <html lang="de">

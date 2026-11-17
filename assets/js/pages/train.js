@@ -16,6 +16,7 @@
   let zugDragMember     = null;   // member name being dragged from queue
   let zugDragSourceDate = null;   // date string of calendar cell being dragged
 
+  // Farben je Status: dieselben Werte stehen als .zug-status-<status> in app.css (kein style-Attribut wegen CSP)
   const STATUS_COLOR = {
     planned:   'rgba(74,158,255,0.55)',
     completed: 'rgba(46,203,122,0.65)',
@@ -23,6 +24,11 @@
     cancelled: 'rgba(100,100,100,0.45)',
   };
   const STATUS_LABEL = { planned:'Geplant', completed:'Abgeschlossen', noshow:'No-Show', cancelled:'Abgesagt' };
+  // Klasse für den Hintergrund eines Kalendertags: unbekannter Status wie „geplant“, ohne Eintrag keiner
+  function zugStatusClass(entry) {
+    if (!entry) return '';
+    return ' zug-status-' + (STATUS_COLOR[entry.status] ? entry.status : 'planned');
+  }
 
   // ── helpers ────────────────────────────────────────────────────────────────
   function zugMonthStart(ym) {
@@ -45,7 +51,7 @@
   function zugSvg(size) {
     size = size || 16;
     const w = Math.round(size * 1.9);
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${size}" viewBox="0 0 38 20" style="vertical-align:middle;display:inline-block;">`
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${size}" viewBox="0 0 38 20" class="zug-svg">`
       // smoke puffs
       + `<circle cx="9" cy="2.2" r="2" fill="rgba(255,255,255,0.42)"/>`
       + `<circle cx="13.5" cy="0.9" r="1.2" fill="rgba(255,255,255,0.28)"/>`
@@ -262,14 +268,14 @@
 
     // Transposed layout: rows = weekdays (Mo–So), columns = calendar weeks
     const DAY_NAMES = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-    const DAY_COL_W = 36;
-    let html = '<table style="width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed;">';
-    html += '<colgroup><col style="width:' + DAY_COL_W + 'px;">';
+    // Breite der Tages-Spalte (36px) steht in .zug-cal-daycol
+    let html = '<table class="zug-cal-table">';
+    html += '<colgroup><col class="zug-cal-daycol">';
     for (let i = 0; i < weeks.length; i++) html += '<col>';
     html += '</colgroup>';
 
     // Header row: corner + one KW-header per week (with mail button)
-    html += '<thead><tr><th style="padding:2px;"></th>';
+    html += '<thead><tr><th class="zug-cal-corner"></th>';
     for (const week of weeks) {
       const kw = isoWeek(week[0]);
       const kwYear = new Date(week[3] + 'T00:00').getFullYear();
@@ -284,9 +290,9 @@
           : dayName + ' (' + dayNum + '): \u2014');
       }
       const mailAttr = mailLines.join('\n').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      html += '<th style="text-align:center;padding:3px 4px;">'
-        + '<div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--soft);text-transform:uppercase;margin-bottom:3px;">KW ' + kw + '</div>'
-        + '<button data-mailtext="' + mailAttr + '" data-action="zugCopyMail" data-args="' + lwArgs(LW_EL) + '" style="font-size:9px;padding:2px 6px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--soft);cursor:pointer;transition:all 0.15s;" title="Mail-Text f\u00fcr KW ' + kw + ' kopieren">\u2709 Mail</button>'
+      html += '<th class="zug-cal-kw-head">'
+        + '<div class="zug-cal-kw-text zug-cal-kw-label">KW ' + kw + '</div>'
+        + '<button data-mailtext="' + mailAttr + '" data-action="zugCopyMail" data-args="' + lwArgs(LW_EL) + '" class="zug-cal-mail-btn" title="Mail-Text f\u00fcr KW ' + kw + ' kopieren">\u2709 Mail</button>'
         + '</th>';
     }
     html += '</tr></thead><tbody>';
@@ -294,28 +300,26 @@
     // 7 rows: one per weekday
     for (let dow = 0; dow < 7; dow++) {
       const isWeekend = dow >= 5;
-      html += '<tr><td style="font-size:11px;font-weight:700;color:' + (isWeekend ? 'var(--soft-2)' : 'var(--soft)') + ';white-space:nowrap;padding:3px 6px 3px 2px;vertical-align:top;">' + DAY_NAMES[dow] + '</td>';
+      html += '<tr><td class="zug-cal-dow' + (isWeekend ? ' is-weekend' : '') + '">' + DAY_NAMES[dow] + '</td>';
       for (const week of weeks) {
         const dateStr = week[dow];
         const dayNum = parseInt(dateStr.slice(8));
         const isToday = dateStr === today;
         const entry = byDate[dateStr];
         const allEntries = byDateAll[dateStr] || [];
-        const bgColor = entry ? STATUS_COLOR[entry.status] || STATUS_COLOR.planned : 'transparent';
-        const border  = isToday ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.06)';
         const isPlanned = entry && entry.status === 'planned';
-        let inner = '<div style="font-size:11px;font-weight:600;color:' + (isToday ? 'var(--gold)' : 'var(--soft)') + ';display:flex;justify-content:space-between;">'
+        let inner = '<div class="zug-cal-daynum zug-cal-daynum-row' + (isToday ? ' is-today' : '') + '">'
           + '<span>' + dayNum + '</span>'
-          + (isPlanned ? '<span style="opacity:0.35;font-size:9px;">\u28bf</span>' : '')
+          + (isPlanned ? '<span class="zug-cal-grip">\u28bf</span>' : '')
           + '</div>';
         if (entry) {
-          inner += '<div style="font-size:10px;line-height:1.3;margin-top:2px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
-          if (entry.vip_name) inner += '<div style="font-size:9px;color:var(--gold-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.vip_name) + '">\u2b50 ' + escHtml(entry.vip_name) + '</div>';
+          inner += '<div class="zug-cal-name" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
+          if (entry.vip_name) inner += '<div class="zug-cal-vip" title="' + escHtml(entry.vip_name) + '">\u2b50 ' + escHtml(entry.vip_name) + '</div>';
         } else if (allEntries.length) {
-          inner += '<div style="font-size:9px;color:var(--soft-2);margin-top:3px;">' + allEntries.length + ' and. RW</div>';
+          inner += '<div class="zug-cal-others">' + allEntries.length + ' and. RW</div>';
         }
         const draggable = isPlanned ? 'draggable="true" data-on-dragstart="zugCalDragStart" data-args-dragstart="' + lwArgs(LW_EVENT, dateStr) + '"' : '';
-        html += '<td ' + draggable + ' data-action="zugDayClick" data-args="' + lwArgs(dateStr) + '" data-on-dragover="zugDragOver" data-args-dragover="' + lwArgs(LW_EVENT, LW_EL) + '" data-on-dragleave="zugDragLeave" data-args-dragleave="' + lwArgs(LW_EL, String(isToday)) + '" data-on-drop="zugHandleDrop" data-args-drop="' + lwArgs(LW_EVENT, dateStr, LW_EL, String(isToday)) + '" data-date="' + dateStr + '" style="background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:6px 5px;cursor:' + (isPlanned ? 'grab' : 'pointer') + ';transition:0.15s;vertical-align:top;" data-on-mouseover="zugDayHover" data-args-mouseover="' + lwArgs(LW_EL, true, isToday) + '" data-on-mouseout="zugDayHover" data-args-mouseout="' + lwArgs(LW_EL, false, isToday) + '">'
+        html += '<td ' + draggable + ' data-action="zugDayClick" data-args="' + lwArgs(dateStr) + '" data-on-dragover="zugDragOver" data-args-dragover="' + lwArgs(LW_EVENT, LW_EL) + '" data-on-dragleave="zugDragLeave" data-args-dragleave="' + lwArgs(LW_EL, String(isToday)) + '" data-on-drop="zugHandleDrop" data-args-drop="' + lwArgs(LW_EVENT, dateStr, LW_EL, String(isToday)) + '" data-date="' + dateStr + '" class="zug-day-cell zug-cal-day' + zugStatusClass(entry) + (isToday ? ' is-today' : '') + (isPlanned ? ' is-planned' : '') + '" data-on-mouseover="zugDayHover" data-args-mouseover="' + lwArgs(LW_EL, true, isToday) + '" data-on-mouseout="zugDayHover" data-args-mouseout="' + lwArgs(LW_EL, false, isToday) + '">'
           + inner + '</td>';
       }
       html += '</tr>';
@@ -368,8 +372,8 @@
     if (!el) return;
     if (!plannedEl) return;
     if (!zugQueue.length) {
-      el.innerHTML = '<div style="color:var(--soft);font-size:12px;padding:8px;">Noch keine Mitglieder in der Queue. Bitte Queue-Sync ausführen.</div>';
-      plannedEl.innerHTML = '<div style="color:var(--soft);font-size:12px;padding:8px;">Keine geplanten Schaffner.</div>';
+      el.innerHTML = '<div class="zug-empty-msg">Noch keine Mitglieder in der Queue. Bitte Queue-Sync ausführen.</div>';
+      plannedEl.innerHTML = '<div class="zug-empty-msg">Keine geplanten Schaffner.</div>';
       return;
     }
     // Wer hat bereits einen geplanten Termin in der Zukunft?
@@ -387,26 +391,25 @@
 
     const renderRow = (row, rank, isFirst, isAssigned) => {
       const last = row.last_turn_date ? tr('Letzter Einsatz') + ': ' + row.last_turn_date : tr('Noch nie');
-      const bg     = isAssigned ? 'rgba(46,203,122,0.07)'  : isFirst ? 'rgba(240,165,0,0.1)'       : 'rgba(255,255,255,0.025)';
-      const border = isAssigned ? 'rgba(46,203,122,0.25)'  : isFirst ? 'rgba(240,165,0,0.3)'        : 'rgba(255,255,255,0.05)';
-      const numCol = isAssigned ? 'var(--green)'            : isFirst ? 'var(--gold)'                : 'var(--soft-2)';
-      const badge  = isAssigned ? '<span style="font-size:10px;color:var(--green);white-space:nowrap;">✓ geplant</span>' :
+      // Farben je Zustand (frei / Erster / geplant): .zug-queue-row, .is-first, .is-assigned in app.css
+      const state  = isAssigned ? ' is-assigned' : isFirst ? ' is-first' : '';
+      const badge  = isAssigned ? '<span class="zug-queue-done">✓ geplant</span>' :
                      isFirst    ? '<span>' + zugSvg(15) + '</span>' :
-                                  '<span style="font-size:11px;color:var(--soft-2);opacity:0.5;">⠿</span>';
-      return '<div draggable="true" data-member="' + escHtml(row.member_name) + '" data-on-dragstart="zugDragStart" data-args-dragstart="' + lwArgs(LW_EVENT, row.member_name) + '" data-on-dragover="zugQueueDragOver" data-args-dragover="' + lwArgs(LW_EVENT, LW_EL) + '" data-on-dragleave="zugQueueDragLeave" data-args-dragleave="' + lwArgs(LW_EL) + '" data-on-drop="zugQueueDrop" data-args-drop="' + lwArgs(LW_EVENT, LW_EL) + '" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:' + bg + ';border:1px solid ' + border + ';cursor:grab;' + (isAssigned ? 'opacity:0.6;' : '') + '">' +
-        '<span style="font-family:\'Rajdhani\',sans-serif;font-size:18px;color:' + numCol + ';width:22px;text-align:center;">' + rank + '</span>' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(row.member_name) + '</div>' +
-          '<div style="font-size:10px;color:var(--soft-2);">' + last + ' · ' + row.turn_count + tr('× gefahren') + '</div>' +
+                                  '<span class="zug-queue-grip">⠿</span>';
+      return '<div draggable="true" data-member="' + escHtml(row.member_name) + '" data-on-dragstart="zugDragStart" data-args-dragstart="' + lwArgs(LW_EVENT, row.member_name) + '" data-on-dragover="zugQueueDragOver" data-args-dragover="' + lwArgs(LW_EVENT, LW_EL) + '" data-on-dragleave="zugQueueDragLeave" data-args-dragleave="' + lwArgs(LW_EL) + '" data-on-drop="zugQueueDrop" data-args-drop="' + lwArgs(LW_EVENT, LW_EL) + '" class="zug-queue-row' + state + '">' +
+        '<span class="zug-queue-rank">' + rank + '</span>' +
+        '<div class="zug-queue-main">' +
+          '<div class="zug-queue-name">' + escHtml(row.member_name) + '</div>' +
+          '<div class="zug-queue-meta">' + last + ' · ' + row.turn_count + tr('× gefahren') + '</div>' +
         '</div>' + badge + '</div>';
     };
 
     el.innerHTML = free.length
       ? free.map((row, i) => renderRow(row, i + 1, i === 0, false)).join('')
-      : '<div style="color:var(--soft);font-size:12px;padding:8px;">Alle verfügbaren Mitglieder sind bereits geplant.</div>';
+      : '<div class="zug-empty-msg">Alle verfügbaren Mitglieder sind bereits geplant.</div>';
     plannedEl.innerHTML = assigned.length
       ? assigned.map((row) => renderRow(row, '–', false, true)).join('')
-      : '<div style="color:var(--soft);font-size:12px;padding:8px;">Keine geplanten Schaffner.</div>';
+      : '<div class="zug-empty-msg">Keine geplanten Schaffner.</div>';
   }
 
   // ── drag & drop ────────────────────────────────────────────────────────────
@@ -560,7 +563,7 @@
       document.getElementById('zug-ev-notes').value         = '';
       document.getElementById('zug-ev-schaffner').value     = memberName;
       document.getElementById('zug-ev-save-btn').textContent = 'Anlegen';
-      document.getElementById('zug-ev-form').style.display = '';
+      document.getElementById('zug-ev-form').style.display = 'block';
     }
     overlay.style.display = 'flex';
   };
@@ -605,9 +608,9 @@
       document.getElementById('zug-ev-info-schaffner').textContent = e.schaffner_name + (e.is_substitute && e.original_schaffner_name ? ` (Einspringer für ${e.original_schaffner_name})` : '');
       document.getElementById('zug-ev-info-vip').textContent = e.vip_name || '—';
       const statusEl = document.getElementById('zug-ev-info-status');
-      statusEl.innerHTML = `<span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;background:${STATUS_COLOR[e.status]};color:var(--text);">${STATUS_LABEL[e.status]||e.status}</span>`;
+      statusEl.innerHTML = `<span class="zug-status-pill${STATUS_COLOR[e.status] ? ' zug-status-' + e.status : ''}">${STATUS_LABEL[e.status]||e.status}</span>`;
       document.getElementById('zug-ev-info-notes').textContent = e.notes || '';
-      document.getElementById('zug-ev-existing').style.display = '';
+      document.getElementById('zug-ev-existing').style.display = 'block';
       document.getElementById('zug-ev-title').textContent = 'Termin bearbeiten';
     } else {
       if (isHonorReadOnlyUser()) {
@@ -646,7 +649,7 @@
       members.filter(m => m !== zugOpenEntry?.schaffner_name)
              .map(m => `<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('');
     document.getElementById('zug-ev-noshow-notes').value = '';
-    document.getElementById('zug-ev-noshow').style.display = '';
+    document.getElementById('zug-ev-noshow').style.display = 'block';
   };
 
   window.zugCancelNoShow = function() {
@@ -676,7 +679,7 @@
   window.zugCancelEditForm = function() {
     if (zugOpenEntry) {
       document.getElementById('zug-ev-form').style.display = 'none';
-      document.getElementById('zug-ev-existing').style.display = '';
+      document.getElementById('zug-ev-existing').style.display = 'block';
     } else {
       zugCloseEventForm();
     }
@@ -715,7 +718,7 @@
     }
 
     document.getElementById('zug-ev-existing').style.display    = 'none';
-    document.getElementById('zug-ev-form').style.display        = '';
+    document.getElementById('zug-ev-form').style.display        = 'block';
   };
 
   window.zugSaveEntry = async function() {
@@ -874,35 +877,34 @@
 
     // Transposed layout: rows = weekdays (Mo–So), columns = calendar weeks (KW N)
     const DAY_NAMES = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-    const DAY_COL_W = 36;
-    let html = '<table style="width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed;">';
-    html += '<colgroup><col style="width:' + DAY_COL_W + 'px;">';
+    // Breite der Tages-Spalte (36px) steht in .zug-cal-daycol
+    let html = '<table class="zug-cal-table">';
+    html += '<colgroup><col class="zug-cal-daycol">';
     for (let i = 0; i < weeks.length; i++) html += '<col>';
     html += '</colgroup>';
-    html += '<thead><tr><th style="padding:2px;"></th>';
+    html += '<thead><tr><th class="zug-cal-corner"></th>';
     for (const week of weeks) {
       const kw = isoWeek(week[0]);
-      html += '<th style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--soft);text-transform:uppercase;padding:3px 4px;">KW ' + kw + '</th>';
+      html += '<th class="zug-cal-kw-head zug-cal-kw-text">KW ' + kw + '</th>';
     }
     html += '</tr></thead><tbody>';
 
     for (let dow = 0; dow < 7; dow++) {
       const isWeekend = dow >= 5;
-      html += '<tr><td style="font-size:11px;font-weight:700;color:' + (isWeekend ? 'var(--soft-2)' : 'var(--soft)') + ';white-space:nowrap;padding:3px 6px 3px 2px;vertical-align:top;">' + DAY_NAMES[dow] + '</td>';
+      html += '<tr><td class="zug-cal-dow' + (isWeekend ? ' is-weekend' : '') + '">' + DAY_NAMES[dow] + '</td>';
       for (const week of weeks) {
         const dateStr = week[dow];
         const dayNum = parseInt(dateStr.slice(8));
         const isToday = dateStr === today;
         const entry = byDate[dateStr];
-        const bgColor = entry ? STATUS_COLOR[entry.status] || STATUS_COLOR.planned : 'transparent';
-        const border  = isToday ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.06)';
         const isFocus = dateStr === zugRoFocusDate;
-        let inner = '<div style="font-size:11px;font-weight:600;color:' + (isToday ? 'var(--gold)' : 'var(--soft)') + '">' + dayNum + '</div>';
+        let inner = '<div class="zug-cal-daynum' + (isToday ? ' is-today' : '') + '">' + dayNum + '</div>';
         if (entry) {
-          inner += '<div style="font-size:10px;line-height:1.3;margin-top:2px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
-          if (entry.vip_name) inner += '<div style="font-size:9px;color:var(--gold-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(entry.vip_name) + '">\u2b50 ' + escHtml(entry.vip_name) + '</div>';
+          inner += '<div class="zug-cal-name" title="' + escHtml(entry.schaffner_name) + '">' + zugSvg(12) + ' ' + escHtml(entry.schaffner_name) + '</div>';
+          if (entry.vip_name) inner += '<div class="zug-cal-vip" title="' + escHtml(entry.vip_name) + '">\u2b50 ' + escHtml(entry.vip_name) + '</div>';
         }
-        html += '<td class="zug-ro-day' + (isFocus ? ' is-focus' : '') + '" data-date="' + dateStr + '" data-action="zugRoPickDay" data-args="' + lwArgs(dateStr) + '" style="background:' + bgColor + ';border:' + border + ';border-radius:8px;padding:5px;vertical-align:top;">' + inner + '</td>';
+        // Hintergrund je Status (.zug-status-*), goldener Rand für heute (.is-today)
+        html += '<td class="zug-day-cell zug-ro-day' + zugStatusClass(entry) + (isToday ? ' is-today' : '') + (isFocus ? ' is-focus' : '') + '" data-date="' + dateStr + '" data-action="zugRoPickDay" data-args="' + lwArgs(dateStr) + '">' + inner + '</td>';
       }
       html += '</tr>';
     }

@@ -12,7 +12,7 @@
       </div>
       <div id="teams-summary" class="empty">Lade …</div>
     </section>
-    <section class="me-panel" style="margin-top:18px;">
+    <section class="me-panel me-panel-spaced">
       <div class="me-panel-head">
         <div>
           <div class="me-panel-title" data-i18n="s_allianz_ubersicht">Allianz-Übersicht</div>

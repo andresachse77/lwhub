@@ -32,7 +32,7 @@
           <div class="me-panel-title">Wochenübersicht</div>
           <div class="me-panel-sub" id="week-sub">Woche wählen und Details sehen</div>
         </div>
-        <div id="rank-change-badge" style="display:none"></div>
+        <div id="rank-change-badge" class="me-rank-change-badge"></div>
       </div>
       <div class="me-week-switch">
         <button class="me-kw-btn" type="button" id="week-prev" data-action="meStepWeek" data-args="[-1]">‹</button>
@@ -43,14 +43,14 @@
         <div class="me-delta-label" data-i18n="s_vergleich_zur_vorwoche">Vergleich zur Vorwoche</div>
         <div class="me-delta-value" id="week-delta">–</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="me-stat" style="padding:12px 14px;">
+      <div class="me-week-stats">
+        <div class="me-stat me-week-stat">
           <div class="me-stat-label">Positive Einträge</div>
-          <div class="me-stat-value" style="font-size:26px;" id="week-good">0</div>
+          <div class="me-stat-value me-week-stat-value" id="week-good">0</div>
         </div>
-        <div class="me-stat" style="padding:12px 14px;">
+        <div class="me-stat me-week-stat">
           <div class="me-stat-label">Warnungen</div>
-          <div class="me-stat-value" style="font-size:26px;color:var(--red);" id="week-warn">0</div>
+          <div class="me-stat-value me-week-stat-value me-week-stat-warn" id="week-warn">0</div>
         </div>
       </div>
     </aside>
@@ -65,13 +65,13 @@
         </div>
         <div class="me-activities-split">
           <div>
-            <div class="me-act-col-head" style="color:var(--green)">
+            <div class="me-act-col-head me-act-col-head-good">
               <div class="me-dot me-dot-green"></div>Verdient
             </div>
             <div id="acts-positive"></div>
           </div>
           <div>
-            <div class="me-act-col-head" style="color:var(--red)">
+            <div class="me-act-col-head me-act-col-head-bad">
               <div class="me-dot me-dot-red"></div>Gekostet
             </div>
             <div id="acts-negative"></div>
@@ -80,7 +80,7 @@
       </div>
     </section>
 
-    <section class="me-panel" id="potential-section" style="display:none">
+    <section class="me-panel me-potential-section" id="potential-section">
       <div class="me-panel-head">
         <div>
           <div class="me-panel-title">Dein Potenzial</div>
@@ -90,7 +90,7 @@
       <div class="me-potential-grid" id="potential-grid"></div>
     </section>
 
-    <section class="me-panel" style="margin-top:18px;">
+    <section class="me-panel me-panel-spaced">
       <div class="me-panel-head">
         <div>
           <div class="me-panel-title">Historie</div>
@@ -100,14 +100,14 @@
       <div class="me-timeline" id="timeline"></div>
     </section>
 
-    <details class="me-changelog-details" id="changelog-details" style="display:none">
+    <details class="me-changelog-details me-changelog-hidden" id="changelog-details">
       <summary>Rank-Änderungen</summary>
       <div class="me-changelog-body">
         <div class="me-change-log" id="change-log"></div>
       </div>
     </details>
 
-    <section class="me-panel" id="me-berufe-section" style="display:none;margin-top:18px;">
+    <section class="me-panel me-panel-spaced me-berufe-section" id="me-berufe-section">
       <div class="me-panel-head">
         <div>
           <div class="me-panel-title"><span aria-hidden="true">👷</span> <span>Beruf</span></div>

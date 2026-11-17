@@ -105,3 +105,27 @@ async function runWithBattleLoader(task, minVisibleMs = 1800, showDelayMs = 120,
     }
   }
 }
+
+// ── Berechnete Styles ohne style-Attribut ──
+// Die CSP soll style-src ohne 'unsafe-inline' werden: dann wirkt kein style="…" mehr, weder im HTML noch in
+// innerHTML-Vorlagen. Feste Styles gehören als Klasse nach assets/css/app.css. Nur für Werte, die erst im JS
+// entstehen (Breite in %, Farbe aus Daten), schreibt die Vorlage data-css="width:42%" (Wert mit escHtml).
+// Das hier setzt sie per CSSOM (el.style, von der CSP erlaubt), sobald das Element im DOM ist, und zwar noch
+// vor dem nächsten Zeichnen. Danach ist data-css weg, das Element hat nur noch ganz normale el.style-Werte.
+function lwApplyDataCss(root) {
+  if (!root || root.nodeType !== 1) return;
+  const els = root.hasAttribute('data-css') ? [root] : [];
+  els.push(...root.querySelectorAll('[data-css]'));
+  for (const el of els) {
+    const css = el.getAttribute('data-css');
+    el.removeAttribute('data-css');
+    if (css) el.style.cssText += ';' + css;
+  }
+}
+new MutationObserver((mutations) => {
+  for (const m of mutations) {
+    if (m.type === 'attributes') lwApplyDataCss(m.target);
+    else m.addedNodes.forEach(lwApplyDataCss);
+  }
+}).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-css'] });
+lwApplyDataCss(document.body);

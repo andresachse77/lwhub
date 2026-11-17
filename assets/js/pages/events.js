@@ -174,7 +174,7 @@ function renderWache() {
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
         <div class="wt-name">${name}${formerTag(name)}</div>
-        <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
+        <div class="wt-rank wt-rank-r${RC[rank]?rank:'x'}">R${rank} · ${RL[rank]||''}</div>
       </div>
       <div class="wt-btns">${btnBad}${btnGood}</div>
     </div>`;
@@ -254,7 +254,7 @@ function renderWueste() {
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
         <div class="wt-name">${name}${formerTag(name)}</div>
-        <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
+        <div class="wt-rank wt-rank-r${RC[rank]?rank:'x'}">R${rank} · ${RL[rank]||''}</div>
       </div>
       <div class="wt-btns">${btnAnm}${btnTeil}${btnFehl}</div>
     </div>`;
@@ -334,7 +334,7 @@ function renderSpezial() {
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
         <div class="wt-name">${name}${formerTag(name)}</div>
-        <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
+        <div class="wt-rank wt-rank-r${RC[rank]?rank:'x'}">R${rank} · ${RL[rank]||''}</div>
       </div>
       <div class="wt-btns">${btnTeil}${btn50}${btn20}</div>
     </div>`;
@@ -791,7 +791,7 @@ function renderVS() {
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
         <div class="wt-name">${name}${formerTag(name)}</div>
-        <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
+        <div class="wt-rank wt-rank-r${RC[rank]?rank:'x'}">R${rank} · ${RL[rank]||''}</div>
         <div class="wt-scan${scanCls}" title="${escHtml(tr(spar ? 'Höchster gescannter VS-Tageswert (Sparziel: höchstens 10 Mio)' : 'Gescannte VS-Wochenpunkte'))}">${scan ? scanInfo : '&nbsp;'}</div>
       </div>
       <div class="wt-btns">${spar ? btnSpar : btnUnter + btnT30 + btnT10}</div>
@@ -995,7 +995,7 @@ function renderSpende() {
     return divider+`<div class="wache-tile${dimCls} ${cls}${formerCls(name)}">
       <div class="wt-top">
         <div class="wt-name">${name}${formerTag(name)}</div>
-        <div class="wt-rank" style="color:${RC[rank]||'#888'}">R${rank} · ${RL[rank]||''}</div>
+        <div class="wt-rank wt-rank-r${RC[rank]?rank:'x'}">R${rank} · ${RL[rank]||''}</div>
         <div class="wt-scan" title="${escHtml(tr(scan?.from_days ? 'Gescannte Spenden (Summe der Tageswerte, keine Wochen-Rangliste)' : 'Gescannte Wochenspenden'))}">${scanInfo}</div>
       </div>
       <div class="wt-btns">${btnUnter}${btnTop20}</div>

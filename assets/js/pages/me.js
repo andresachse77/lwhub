@@ -11,7 +11,7 @@ let meViewingOther = false; // true when viewing another member via Verwaltung
 
 function me_buildAvatarMarkup() {
   const avatarUrl = meHistoryBundle?.member?.discord_avatar_url || null;
-  if (avatarUrl) return `<img src="${escHtml(avatarUrl)}" alt="Discord Avatar" style="width:76px;height:76px;border-radius:22px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`;
+  if (avatarUrl) return `<img src="${escHtml(avatarUrl)}" alt="Discord Avatar">`; // Maße/Rahmen über #member-avatar-wrap img in app.css
   const initials = String(meHistoryBundle?.member?.name || meHistoryBundle?.member?.member_name || meActiveMemberName || '?').trim().slice(0, 2).toUpperCase();
   return `<div class="me-placeholder">${escHtml(initials || '?')}</div>`;
 }
@@ -72,9 +72,8 @@ function me_renderOverview() {
   document.getElementById('member-meta').textContent =
     (discordName ? discordName + ' · ' : '') + tr('letzter Abgleich') + ' ' + formatWhen(checkedAt);
 
-  const rankColor = RC[member.rank] || '#97a3bc';
   document.getElementById('member-badges').innerHTML =
-    `<span class="me-badge" style="background:${rankColor}20;color:${rankColor};border:1px solid ${rankColor}40;">R${member.rank} · ${RL[member.rank] || 'Member'}</span>`;
+    `<span class="me-badge me-badge-rank-${RC[member.rank] ? member.rank : 'x'}">R${member.rank} · ${RL[member.rank] || 'Member'}</span>`;
 
   document.getElementById('stat-points').textContent = String(selectedPoints);
   document.getElementById('stat-rank-display').textContent = `R${member.rank} · ${RL[member.rank] || 'Member'}`;
@@ -117,7 +116,7 @@ function me_renderWeekPanel() {
   if (selected && previous && selected.final_rank !== previous.final_rank) {
     const better = selected.final_rank < previous.final_rank;
     rankChangeBadge.style.display = 'block';
-    rankChangeBadge.innerHTML = `<span class="me-badge" style="background:${better ? 'rgba(46,203,122,0.14)' : 'rgba(224,85,69,0.14)'};color:${better ? '#88ecb8' : '#f39b8f'};border:1px solid ${better ? 'rgba(46,203,122,0.24)' : 'rgba(224,85,69,0.24)'};">R${previous.final_rank} → R${selected.final_rank}</span>`;
+    rankChangeBadge.innerHTML = `<span class="me-badge ${better ? 'me-badge-rank-up' : 'me-badge-rank-down'}">R${previous.final_rank} → R${selected.final_rank}</span>`;
   } else {
     rankChangeBadge.style.display = 'none';
   }
@@ -165,7 +164,7 @@ function me_renderActivities() {
     ? negatives.map(({ key, impact }) =>
         `<div class="me-act-item bad"><span>${escHtml(LBL[key] || key)}</span><span class="me-act-pts neg">${impact}</span></div>`
       ).join('')
-    : '<div class="me-empty" style="border-color:rgba(46,203,122,0.2);color:var(--green)">' + escHtml(tr('s_keine_strafpunkte_diese_woche')) + '</div>';
+    : '<div class="me-empty me-empty-good">' + escHtml(tr('s_keine_strafpunkte_diese_woche')) + '</div>';
 }
 
 function me_renderPotential() {
@@ -204,7 +203,7 @@ function me_renderTimeline() {
         <div class="me-timeline-meta">R${week.final_rank} · ${RL[week.final_rank] || 'Member'}</div>
       </div>
       <div>
-        <div class="me-bar-track"><div class="me-bar-fill" style="width:${Math.max(8, Math.round((points / maxPoints) * 100))}%;"></div></div>
+        <div class="me-bar-track"><div class="me-bar-fill" data-css="width:${Math.max(8, Math.round((points / maxPoints) * 100))}%"></div></div>
         <div class="me-timeline-meta">${Object.keys(week.flags || {}).filter(k => week.flags[k]).length} ${tr('aktive Felder')}</div>
       </div>
       <div class="me-timeline-score">
@@ -266,7 +265,7 @@ function renderMeBerufe() {
     section.style.display = 'none';
     return;
   }
-  section.style.display = '';
+  section.style.display = 'block'; // explizit: Klasse me-berufe-section versteckt
 
   const beruf    = meBerufPending?.beruf    !== undefined ? meBerufPending.beruf    : (meta.beruf ?? member.beruf ?? null);
   const medHilfe = meBerufPending?.medHilfe !== undefined ? meBerufPending.medHilfe : !!(meta.berufMedHilfe ?? member.beruf_med_hilfe);
@@ -314,7 +313,7 @@ function renderMeBerufe() {
     }
   }
 
-  html += `<button class="v-btn save" style="margin-top:14px;" type="button" data-action="saveMeBeruf">✓ ${escHtml(tr('Speichern'))}</button>`;
+  html += `<button class="v-btn save me-beruf-save" type="button" data-action="saveMeBeruf">✓ ${escHtml(tr('Speichern'))}</button>`;
   content.innerHTML = html;
 }
 window.renderMeBerufe = renderMeBerufe;

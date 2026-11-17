@@ -11,8 +11,9 @@ let _adminAlliances = [];
 function adminRankLabel(r) {
   return { 1:'Rookie', 2:'Pro', 3:'Elite', 4:'Leader', 5:'Chef' }[r] || 'Unbekannt';
 }
-function adminRankColor(r) {
-  return { 1:'#f0a500', 2:'#2ecb7a', 3:'#4a9eff', 4:'#e05545', 5:'#9b6dff' }[r] || '#7a8498';
+// Farbklasse zum Rang: adm-rank-r1 … r5, r0 = unbekannt (Farben in app.css, Block „Admin“)
+function adminRankKey(r) {
+  return [1, 2, 3, 4, 5].includes(Number(r)) ? Number(r) : 0;
 }
 
 async function adminInitPage() {
@@ -56,16 +57,16 @@ function renderAllianceList() {
   if (!el) return;
   if (!_adminAlliances.length) { el.innerHTML = '<div class="empty">Keine Allianzen gefunden.</div>'; return; }
   el.innerHTML = _adminAlliances.map(a => `
-    <div class="alliance-row" style="cursor:pointer;" data-action="allianceRowClick" data-args="${lwArgs(LW_EVENT, a.short_name)}">
+    <div class="alliance-row adm-clickable" data-action="allianceRowClick" data-args="${lwArgs(LW_EVENT, a.short_name)}">
       <div class="alliance-short">${escHtml(a.short_name)}</div>
       <div class="alliance-title-text">
-        ${a.title ? escHtml(a.title) : '<em style="color:var(--soft)">Kein Titel</em>'}
+        ${a.title ? escHtml(a.title) : '<em class="adm-no-title">Kein Titel</em>'}
         <small>Erstellt: ${a.created_at ? a.created_at.slice(0,10) : '-'}</small>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <div class="adm-alliance-meta">
         ${a.accepts_requests
-          ? '<span style="font-size:11px;background:rgba(46,203,122,0.15);color:var(--green);border:1px solid rgba(46,203,122,0.3);border-radius:6px;padding:2px 8px;">Anfragen offen</span>'
-          : '<span style="font-size:11px;color:var(--soft);">Anfragen geschlossen</span>'}
+          ? '<span class="adm-req-open">Anfragen offen</span>'
+          : '<span class="adm-req-closed">Anfragen geschlossen</span>'}
         <div class="alliance-actions">
           <button class="btn btn-ghost btn-sm" data-action="openAllianceFeatures" data-args="${lwArgs(a.short_name)}">Features</button>
           <button class="btn btn-ghost btn-sm" data-action="openEditAlliance" data-args="${lwArgs(a.short_name, a.title || '', a.accepts_requests ? 1 : 0)}">Bearbeiten</button>
@@ -143,10 +144,10 @@ async function loadArchive() {
       <tr>
         <td><strong>${escHtml(p.current_name)}</strong></td>
         <td>${escHtml(p.alliance)}</td>
-        <td><span class="rank-badge" style="background:${adminRankColor(p.current_rank_code)}22;color:${adminRankColor(p.current_rank_code)};border:1px solid ${adminRankColor(p.current_rank_code)}44">
+        <td><span class="rank-badge adm-rank-r${adminRankKey(p.current_rank_code)}">
           R${p.current_rank_code} ${escHtml(adminRankLabel(p.current_rank_code))}
         </span></td>
-        <td style="color:var(--soft);font-size:12px">${p.archived_at ? p.archived_at.slice(0,16).replace('T',' ') : '-'}</td>
+        <td class="adm-cell-muted">${p.archived_at ? p.archived_at.slice(0,16).replace('T',' ') : '-'}</td>
         <td><button class="btn btn-green btn-sm" data-action="restorePlayer" data-args="${lwArgs(p.archive_id, p.current_name)}">Wiederherstellen</button></td>
       </tr>
     `).join('');
@@ -302,17 +303,17 @@ async function loadAdmins() {
     const selfId = authMember?.discord_id || '';
     tbody.innerHTML = admins.map(a => {
       const avatarHtml = a.avatar
-        ? `<img src="https://cdn.discordapp.com/avatars/${escHtml(a.discord_user_id)}/${escHtml(a.avatar)}.png?size=32" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;">` : '';
+        ? `<img src="https://cdn.discordapp.com/avatars/${escHtml(a.discord_user_id)}/${escHtml(a.avatar)}.png?size=32" class="adm-avatar">` : '';
       const displayName = a.player_name || a.username || a.discord_user_id;
       const isSelf = a.discord_user_id === selfId;
       return `<tr>
         <td><strong>${escHtml(displayName)}</strong></td>
-        <td style="color:var(--soft);font-size:12px">${avatarHtml}${escHtml(a.username || a.discord_user_id)}</td>
-        <td>${a.alliance ? escHtml(a.alliance) : '<em style="color:var(--softer)">-</em>'}</td>
-        <td style="color:var(--soft);font-size:12px">${escHtml(a.granted_by === 'system' ? tr('System') : (a.granted_by || '-'))}</td>
-        <td style="color:var(--soft);font-size:12px">${escHtml(a.note || '')}</td>
-        <td style="color:var(--soft);font-size:12px">${a.granted_at ? a.granted_at.slice(0,10) : '-'}</td>
-        <td>${isSelf ? '' : `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" data-action="revokeAdmin" data-args="${lwArgs(a.discord_user_id, displayName)}">${escHtml(tr('Entziehen'))}</button>`}</td>
+        <td class="adm-cell-muted">${avatarHtml}${escHtml(a.username || a.discord_user_id)}</td>
+        <td>${a.alliance ? escHtml(a.alliance) : '<em class="adm-softer">-</em>'}</td>
+        <td class="adm-cell-muted">${escHtml(a.granted_by === 'system' ? tr('System') : (a.granted_by || '-'))}</td>
+        <td class="adm-cell-muted">${escHtml(a.note || '')}</td>
+        <td class="adm-cell-muted">${a.granted_at ? a.granted_at.slice(0,10) : '-'}</td>
+        <td>${isSelf ? '' : `<button class="btn btn-ghost btn-sm adm-btn-revoke" data-action="revokeAdmin" data-args="${lwArgs(a.discord_user_id, displayName)}">${escHtml(tr('Entziehen'))}</button>`}</td>
       </tr>`;
     }).join('');
   } catch (e) {
@@ -394,19 +395,19 @@ async function loadApiTokens() {
     const day = v => v ? escHtml(String(v).slice(0, 16)) : '';
     tbody.innerHTML = tokens.map(t => {
       const status = !t.is_active
-        ? `<span style="color:var(--red)">${escHtml(tr('Widerrufen'))}</span>`
+        ? `<span class="adm-st-revoked">${escHtml(tr('Widerrufen'))}</span>`
         : t.expired
-          ? `<span style="color:var(--soft)">${escHtml(tr('Abgelaufen'))}</span>`
-          : `<span style="color:var(--green)">${escHtml(tr('Aktiv'))}</span>`;
-      return `<tr${t.is_active ? '' : ' style="opacity:.55"'}>
-        <td><strong>${escHtml(t.client_name)}</strong><div style="color:var(--softer);font-size:11px;font-family:monospace">${escHtml(String(t.token_id).slice(0, 8))}</div></td>
+          ? `<span class="adm-st-expired">${escHtml(tr('Abgelaufen'))}</span>`
+          : `<span class="adm-st-active">${escHtml(tr('Aktiv'))}</span>`;
+      return `<tr${t.is_active ? '' : ' class="adm-token-inactive"'}>
+        <td><strong>${escHtml(t.client_name)}</strong><div class="adm-token-id">${escHtml(String(t.token_id).slice(0, 8))}</div></td>
         <td>${escHtml(apiTokenRoleLabel(t.role))}</td>
-        <td style="color:var(--soft);font-size:12px">${escHtml(t.created_by_name || t.created_by || '-')}</td>
-        <td style="color:var(--soft);font-size:12px">${day(t.created_at)}</td>
-        <td style="color:var(--soft);font-size:12px">${t.last_used_at ? day(t.last_used_at) : escHtml(tr('nie'))}</td>
-        <td style="color:var(--soft);font-size:12px">${t.expires_at ? day(t.expires_at) : escHtml(tr('unbegrenzt'))}</td>
+        <td class="adm-cell-muted">${escHtml(t.created_by_name || t.created_by || '-')}</td>
+        <td class="adm-cell-muted">${day(t.created_at)}</td>
+        <td class="adm-cell-muted">${t.last_used_at ? day(t.last_used_at) : escHtml(tr('nie'))}</td>
+        <td class="adm-cell-muted">${t.expires_at ? day(t.expires_at) : escHtml(tr('unbegrenzt'))}</td>
         <td>${status}</td>
-        <td>${t.is_active ? `<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" data-action="revokeApiToken" data-args="${lwArgs(t.token_id, t.client_name)}">${escHtml(tr('Widerrufen'))}</button>` : ''}</td>
+        <td>${t.is_active ? `<button class="btn btn-ghost btn-sm adm-btn-revoke" data-action="revokeApiToken" data-args="${lwArgs(t.token_id, t.client_name)}">${escHtml(tr('Widerrufen'))}</button>` : ''}</td>
       </tr>`;
     }).join('');
   } catch (e) {

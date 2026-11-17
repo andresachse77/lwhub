@@ -242,17 +242,13 @@ function openEditor(name){
   document.getElementById('flagCats').innerHTML=CATS.map(cat=>{
     const btns=cat.f.map(f=>{
       const on=!!edFlags[f.k];
-      const onStyle=f.t==='r'
-        ?'border-color:rgba(224,85,69,0.5);background:rgba(224,85,69,0.15);color:#f09080;'
-        :f.t==='a'
-        ?'border-color:rgba(240,165,0,0.4);background:rgba(240,165,0,0.12);color:var(--gold);'
-        :f.t==='n'
-        ?'border-color:rgba(155,109,255,0.5);background:rgba(155,109,255,0.15);color:var(--purple);'
-        :'border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.12);color:#80b8ff;';
-      return `<button class="flag-btn" data-fk="${f.k}" data-action="toggleFlag" data-args="${lwArgs(f.k)}" style="${on?onStyle:''}">${escHtml(tr(f.l))}</button>`;
+      // Farben je Typ: .editor-flag-on-r/a/n/b in app.css
+      const onCls=on?' editor-flag-on-'+(['r','a','n'].includes(f.t)?f.t:'b'):'';
+      return `<button class="flag-btn${onCls}" data-fk="${f.k}" data-action="toggleFlag" data-args="${lwArgs(f.k)}">${escHtml(tr(f.l))}</button>`;
     }).join('');
-    return `<div class="flag-cat" style="background:${cat.bg};border:1px solid ${cat.bc};">
-      <div class="flag-cat-title" style="color:${cat.lc};">${escHtml(tr(cat.l))}</div>
+    // Kategorie-Farben (bg/bc/lc aus CATS) je Typ: .editor-flag-cat-r/a/n/b in app.css
+    return `<div class="flag-cat editor-flag-cat-${['r','a','n'].includes(cat.t)?cat.t:'b'}">
+      <div class="flag-cat-title">${escHtml(tr(cat.l))}</div>
       <div class="flag-btns">${btns}</div>
     </div>`;
   }).join('');
@@ -268,12 +264,10 @@ function toggleFlag(k){
   const btn=document.querySelector(`[data-fk="${k}"]`);
   const f=FLAGS.find(x=>x.k===k);
   const on=edFlags[k];
-  const onStyle=f.t==='r'
-    ?'border-color:rgba(224,85,69,0.5);background:rgba(224,85,69,0.15);color:#f09080;'
-    :f.t==='a'
-    ?'border-color:rgba(240,165,0,0.4);background:rgba(240,165,0,0.12);color:var(--gold);'
-    :'border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.12);color:#80b8ff;';
-  btn.style.cssText=on?onStyle:'';
+  // wie bisher: r und a eigene Farbe, alles andere blau
+  const onCls='editor-flag-on-'+(f.t==='r'||f.t==='a'?f.t:'b');
+  btn.classList.remove('editor-flag-on-r','editor-flag-on-a','editor-flag-on-n','editor-flag-on-b');
+  if(on) btn.classList.add(onCls);
 }
 window.toggleFlag=toggleFlag;
 

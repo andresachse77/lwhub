@@ -11,17 +11,17 @@
       <article class="pg-grid">
         <div class="pg-kpi">
           <div class="pg-label">Theoretisches Maximum</div>
-          <div class="pg-value" style="color:var(--gold2)">385</div>
+          <div class="pg-value pg-value-gold2">385</div>
           <div class="pg-note">Bei idealer Kombination ohne Strafpunkte</div>
         </div>
         <div class="pg-kpi">
           <div class="pg-label">Top VS-Gewichtung</div>
-          <div class="pg-value" style="color:var(--blue)">140</div>
+          <div class="pg-value pg-value-blue">140</div>
           <div class="pg-note">VS Gesamt wird mit Faktor 5 gerechnet (Deckel 140)</div>
         </div>
         <div class="pg-kpi" data-guide-features="strafe">
           <div class="pg-label">Strafpunkte</div>
-          <div class="pg-value" style="color:var(--red)">bis -140</div>
+          <div class="pg-value pg-value-red">bis -140</div>
           <div class="pg-note">Inaktiv + NAP + Verhalten extern etc.</div>
         </div>
       </article>
@@ -52,7 +52,7 @@
             <div class="pg-row" data-guide-features="strafe"><div class="pg-name">Ankuendigungs-Mails / Verhalten intern</div><div class="pg-badge pg-minus">-15 / -15</div></div>
           </div>
         </div>
-        <div id="pg-beispiel-section" style="margin-top:16px;">
+        <div id="pg-beispiel-section" class="pg-example-section">
           <h2 class="pg-h2">Beispielrechnung</h2>
           <div class="pg-example">
             <div class="pg-ex-row" data-guide-features="vs"><span>VS Gewichtung</span><strong>+125</strong></div>

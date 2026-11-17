@@ -81,55 +81,55 @@ function renderFeatureToggles(containerId, alliance, config) {
   const inputId = `${containerId}-berufe-max`;
   const correctionInputId = `${containerId}-combat-correction`;
   const historyWeeks = Math.max(1, Math.min(8, Number.parseInt(String(config?.history_weeks ?? ''), 10) || 4));
-  el.innerHTML = `<div style="display:flex;flex-direction:column;">` +
+  el.innerHTML = `<div class="feat-list">` +
     FEATURE_CAT_DEFS.map(({ key, icon, label, sub }) => {
       const on = isConfiguredFeatureEnabled(key, config);
-      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);">
-        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(icon)} ${escHtml(tr(label))}</div><div style="font-size:11px;color:var(--soft);">${escHtml(tr(sub))}</div></div>
-        <button data-action="toggleCatConfig" data-args="${lwArgs(key, alliance)}" class="v-btn ${on ? 'save' : 'del'}" style="min-width:88px;">${on ? '✓ ' + escHtml(tr('Aktiv')) : '✗ ' + escHtml(tr('Inaktiv'))}</button>
+      return `<div class="feat-row">
+        <div class="feat-text"><div class="feat-title">${escHtml(icon)} ${escHtml(tr(label))}</div><div class="feat-sub">${escHtml(tr(sub))}</div></div>
+        <button data-action="toggleCatConfig" data-args="${lwArgs(key, alliance)}" class="v-btn feat-toggle-btn ${on ? 'save' : 'del'}">${on ? '✓ ' + escHtml(tr('Aktiv')) : '✗ ' + escHtml(tr('Inaktiv'))}</button>
       </div>`;
     }).join('') +
-    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;">⚙ ${escHtml(tr('s_max_ingenieure_kriegsherr'))}</div>
-        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_berufe_grenze_default'))}</div>
+    `<div class="feat-setting">
+      <div class="feat-text">
+        <div class="feat-title">⚙ ${escHtml(tr('s_max_ingenieure_kriegsherr'))}</div>
+        <div class="feat-sub">${escHtml(tr('s_berufe_grenze_default'))}</div>
       </div>
-      <input id="${escHtml(inputId)}" type="number" min="1" max="10" value="${maxIng}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
+      <input id="${escHtml(inputId)}" type="number" min="1" max="10" value="${maxIng}" class="feat-input feat-input--num">
     </div>` +
-    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);">
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;">⚙ ${escHtml(tr('s_combat_power_correction'))}</div>
-        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_combat_power_correction_sub'))}</div>
+    `<div class="feat-setting feat-setting--sep">
+      <div class="feat-text">
+        <div class="feat-title">⚙ ${escHtml(tr('s_combat_power_correction'))}</div>
+        <div class="feat-sub">${escHtml(tr('s_combat_power_correction_sub'))}</div>
       </div>
-      <input id="${escHtml(correctionInputId)}" type="number" min="0" max="998" value="${combatCorrection}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
+      <input id="${escHtml(correctionInputId)}" type="number" min="0" max="998" value="${combatCorrection}" class="feat-input feat-input--num">
     </div>` +
-    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);">
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;">⚙ ${escHtml(tr('s_history_weeks'))}</div>
-        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_history_weeks_sub'))}</div>
+    `<div class="feat-setting feat-setting--sep">
+      <div class="feat-text">
+        <div class="feat-title">⚙ ${escHtml(tr('s_history_weeks'))}</div>
+        <div class="feat-sub">${escHtml(tr('s_history_weeks_sub'))}</div>
       </div>
-      <input id="${escHtml(containerId)}-history-weeks" type="number" min="1" max="8" value="${historyWeeks}" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
+      <input id="${escHtml(containerId)}-history-weeks" type="number" min="1" max="8" value="${historyWeeks}" class="feat-input feat-input--num">
     </div>` +
-    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap;">
-      <div style="flex:1;min-width:180px;">
-        <div style="font-size:13px;font-weight:500;">🏷 ${escHtml(tr('s_rank_names'))}</div>
-        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('s_rank_names_sub'))}</div>
+    `<div class="feat-setting feat-setting--sep feat-setting--wrap">
+      <div class="feat-text feat-text--rank">
+        <div class="feat-title">🏷 ${escHtml(tr('s_rank_names'))}</div>
+        <div class="feat-sub">${escHtml(tr('s_rank_names_sub'))}</div>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">` +
+      <div class="feat-rank-names">` +
       [1, 2, 3, 4, 5].map(r => {
         const fallback = r === 5 ? tr('s_chef') : DEFAULT_RL[r];
         const value = String(config?.['rank_name_' + r] ?? '').trim();
-        return `<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--soft);">R${r}
-          <input id="${escHtml(containerId)}-rank-name-${r}" type="text" maxlength="30" value="${escHtml(value)}" placeholder="${escHtml(fallback)}" style="width:96px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;"></label>`;
+        return `<label class="feat-rank-label">R${r}
+          <input id="${escHtml(containerId)}-rank-name-${r}" type="text" maxlength="30" value="${escHtml(value)}" placeholder="${escHtml(fallback)}" class="feat-input feat-input--rank"></label>`;
       }).join('') +
       `</div>
     </div>` +
-    `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);">
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;">🌐 ${escHtml(tr('Server-Nummer'))}</div>
-        <div style="font-size:11px;color:var(--soft);">${escHtml(tr('Allianzen mit derselben Server-Nummer teilen sich die Spezialevent-Termine.'))}</div>
+    `<div class="feat-setting feat-setting--sep">
+      <div class="feat-text">
+        <div class="feat-title">🌐 ${escHtml(tr('Server-Nummer'))}</div>
+        <div class="feat-sub">${escHtml(tr('Allianzen mit derselben Server-Nummer teilen sich die Spezialevent-Termine.'))}</div>
       </div>
-      <input id="${escHtml(containerId)}-server" type="text" inputmode="numeric" maxlength="6" value="${escHtml(String(config?.server ?? ''))}" placeholder="—" style="width:70px;background:var(--card2);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;font-size:12px;">
+      <input id="${escHtml(containerId)}-server" type="text" inputmode="numeric" maxlength="6" value="${escHtml(String(config?.server ?? ''))}" placeholder="—" class="feat-input feat-input--num">
     </div>` +
     `</div>`;
   el.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => allianceSettingsDirty(true)));
@@ -357,15 +357,15 @@ window.toggleCatConfig = toggleCatConfig;
 function renderFlagsAdmin() {
   const el = document.getElementById('v-flag-config');
   if (!el) return;
-  el.innerHTML = `<div style="display:flex;flex-direction:column;">` +
+  el.innerHTML = `<div class="feat-list">` +
     FEATURE_CAT_DEFS.map(({ key, label, sub }) => {
       const on = isCatEnabled(key);
-      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);">
-        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(tr(label))}</div><div style="font-size:11px;color:var(--soft);">${escHtml(tr(sub))}</div></div>
-        <span class="rank-badge ${on?'r4':'r3'}" style="min-width:80px;text-align:center;">${on?'✓ '+escHtml(tr('s_aktiv')):'✗ '+escHtml(tr('s_inaktiv'))}</span>
+      return `<div class="feat-row">
+        <div class="feat-text"><div class="feat-title">${escHtml(tr(label))}</div><div class="feat-sub">${escHtml(tr(sub))}</div></div>
+        <span class="rank-badge flags-status-badge ${on?'r4':'r3'}">${on?'✓ '+escHtml(tr('s_aktiv')):'✗ '+escHtml(tr('s_inaktiv'))}</span>
       </div>`;
     }).join('') +
-    `</div><div style="font-size:11px;color:var(--softer);margin-top:8px;">Editierbar unter <strong>Admin → Allianzen → Features</strong> (nur R5).</div>`;
+    `</div><div class="flags-admin-hint">Editierbar unter <strong>Admin → Allianzen → Features</strong> (nur R5).</div>`;
 }
 window.renderFlagsAdmin = renderFlagsAdmin;
 

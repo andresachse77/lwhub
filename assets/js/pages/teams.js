@@ -328,14 +328,14 @@ function renderTeamEditorDnD() {
       const shownHero = hero || fallbackHero;
       const isLockedMonkeySlot = false;
       const content = hero
-        ? `<img src="${escHtml(hero.thumb)}" alt="${escHtml(hero.name)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`
+        ? `<img src="${escHtml(hero.thumb)}" alt="${escHtml(hero.name)}" class="team-slot-img">`
         : shownHero
-          ? `<img src="${escHtml(shownHero.thumb)}" alt="${escHtml(shownHero.name)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`
-          : `<div style="width:44px;height:44px;border-radius:8px;border:1px dashed ${isLockedMonkeySlot ? 'rgba(240,165,0,0.45)' : 'rgba(255,255,255,0.2)'};display:grid;place-items:center;color:${isLockedMonkeySlot ? 'var(--gold)' : 'var(--soft)'};font-size:11px;">${displayPos === 0 ? tr('s_affe') : tr('s_slot')}</div>`;
+          ? `<img src="${escHtml(shownHero.thumb)}" alt="${escHtml(shownHero.name)}" class="team-slot-img">`
+          : `<div class="team-slot-empty${isLockedMonkeySlot ? ' is-locked' : ''}">${displayPos === 0 ? tr('s_affe') : tr('s_slot')}</div>`;
       const title = shownHero ? escHtml(shownHero.name) : (isLockedMonkeySlot ? tr('s_affe_slot_gesperrt') : tr('s_drop_hero'));
-      const clearBtn = shownHero ? `<button type="button" data-action="clearTeamHero" data-args="${lwArgs(slot, dataPos)}" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:1px solid rgba(224,85,69,0.5);background:rgba(224,85,69,0.2);color:#f4b1a8;font-size:10px;line-height:1;padding:0;">×</button>` : '';
-      const lockBadge = isLockedMonkeySlot ? '<span style="position:absolute;bottom:-8px;right:-6px;font-size:10px;color:var(--gold);">🔒</span>' : '';
-      return `<div style="position:relative;" draggable="${shownHero ? 'true' : 'false'}" data-on-dragstart="onTeamSlotDragStart" data-args-dragstart="${lwArgs(LW_EVENT, slot, dataPos)}" data-on-dragover="allowHeroDrop" data-args-dragover="${lwArgs(LW_EVENT)}" data-on-drop="onTeamSlotDrop" data-args-drop="${lwArgs(LW_EVENT, slot, dataPos)}" title="${title}">${content}${clearBtn}${lockBadge}</div>`;
+      const clearBtn = shownHero ? `<button type="button" data-action="clearTeamHero" data-args="${lwArgs(slot, dataPos)}" class="team-slot-clear">×</button>` : '';
+      const lockBadge = isLockedMonkeySlot ? '<span class="team-slot-lock">🔒</span>' : '';
+      return `<div class="team-slot" draggable="${shownHero ? 'true' : 'false'}" data-on-dragstart="onTeamSlotDragStart" data-args-dragstart="${lwArgs(LW_EVENT, slot, dataPos)}" data-on-dragover="allowHeroDrop" data-args-dragover="${lwArgs(LW_EVENT)}" data-on-drop="onTeamSlotDrop" data-args-drop="${lwArgs(LW_EVENT, slot, dataPos)}" title="${title}">${content}${clearBtn}${lockBadge}</div>`;
     }).join('');
 
     const poolInfo = catalog.length
@@ -343,12 +343,12 @@ function renderTeamEditorDnD() {
       : `<div class="section-sub">${tr('s_kein_heldenbilder')}</div>`;
 
     blockHtml.push(`
-      <div class="card" style="padding:10px 12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+      <div class="card team-editor-block">
+        <div class="team-editor-head">
           <strong>T${slot}</strong>
           <span class="section-sub">${tr('s_six_slots_monkey')} · ${escHtml(tr('s_' + effectiveType))} · ${catalog.length} ${tr('s_helden')}</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(44px,1fr));gap:8px;margin-bottom:8px;">${slotCells}</div>
+        <div class="team-slot-grid">${slotCells}</div>
         ${poolInfo}
       </div>
     `);
@@ -359,28 +359,26 @@ function renderTeamEditorDnD() {
     ? overallHeroes.map((hero) => {
       const used = findHeroPlacement(hero.id);
       const usedLabel = used ? `T${used.slot} · S${used.pos + 1}` : tr('s_frei');
-      const usedColor = used ? 'var(--gold)' : 'var(--green)';
-      return `<div draggable="true" data-on-dragstart="onPoolHeroDragStart" data-args-dragstart="${lwArgs(LW_EVENT, hero.id)}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(255,255,255,0.02);cursor:grab;">
-        <div style="display:flex;align-items:center;gap:8px;min-width:0;">
-          <img src="${escHtml(hero.thumb)}" alt="${escHtml(hero.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;">
-          <span style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(hero.name)}</span>
+            return `<div draggable="true" data-on-dragstart="onPoolHeroDragStart" data-args-dragstart="${lwArgs(LW_EVENT, hero.id)}" class="team-pool-hero">
+        <div class="team-pool-hero-main">
+          <img src="${escHtml(hero.thumb)}" alt="${escHtml(hero.name)}" class="team-pool-hero-img">
+          <span class="team-pool-hero-name">${escHtml(hero.name)}</span>
         </div>
-        <span style="font-size:11px;color:${usedColor};white-space:nowrap;">${usedLabel}</span>
+        <span class="team-pool-hero-used${used ? ' is-used' : ''}">${usedLabel}</span>
       </div>`;
     }).join('')
     : `<div class="section-sub">${tr('s_kein_helden_verfuegbar')}</div>`;
 
-  const responsiveCols = 'minmax(0,1fr) 220px';
-  const rightPanelCardStyle = 'padding:10px 12px;position:sticky;top:12px;align-self:start;height:min(520px,calc(100vh - 56px));display:flex;flex-direction:column;overflow:hidden;';
+  // Spalten, Größe und Sticky der Heldenliste stehen in app.css (.team-editor-layout, .team-editor-pool-card)
   mount.innerHTML = `
-    <div style="display:grid;grid-template-columns:${responsiveCols};gap:12px;align-items:start;">
-      <div style="display:grid;gap:10px;min-width:0;">${blockHtml.join('')}</div>
-      <div class="card" style="${rightPanelCardStyle}">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+    <div class="team-editor-layout">
+      <div class="team-editor-blocks">${blockHtml.join('')}</div>
+      <div class="card team-editor-pool-card">
+        <div class="team-editor-head">
           <strong>${tr('s_alle_helden')}</strong>
           <span class="section-sub">${tr('s_global_eindeutig')}</span>
         </div>
-        <div id="team-editor-hero-pool" style="display:grid;gap:6px;min-height:0;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;">${rightPanel}</div>
+        <div id="team-editor-hero-pool" class="team-editor-hero-pool">${rightPanel}</div>
       </div>
     </div>
   `;
@@ -410,10 +408,10 @@ function renderTeamHeroStrip(team) {
   if (!displayHeroes.some(Boolean)) return '';
   const html = displayHeroes.map((id, index) => {
     const hero = id ? (map.get(String(id)) || getHeroById(id)) : null;
-    if (!hero) return `<div aria-hidden="true" style="width:100%;aspect-ratio:1;"></div>`;
-    return `<img src="${escHtml(hero.thumb)}" alt="${escHtml(hero.name)}" title="${escHtml(hero.name)}" style="width:100%;aspect-ratio:1;border-radius:6px;object-fit:cover;border:1px solid rgba(255,255,255,0.12);">`;
+    if (!hero) return `<div aria-hidden="true" class="team-strip-empty"></div>`;
+    return `<img src="${escHtml(hero.thumb)}" alt="${escHtml(hero.name)}" title="${escHtml(hero.name)}" class="team-strip-img">`;
   }).join('');
-  return `<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:8px;width:100%;">${html}</div>`;
+  return `<div class="team-strip">${html}</div>`;
 }
 
 async function openTeamEditor(targetName = null) {
@@ -589,18 +587,18 @@ async function renderTeamsPage() {
         ? ` · ${tr('s_affe_lv')} ${team.monkey_level}`
         : '';
       const heroesHtml = renderTeamHeroStrip(team);
-      return `<div class="card" style="margin-bottom:8px;padding:12px 14px;">T${team.slot}: <strong>${typeLabel}</strong> · ${tr('s_combat_power')} ${power}${monkey}${heroesHtml}</div>`;
+      return `<div class="card team-row-card">T${team.slot}: <strong>${typeLabel}</strong> · ${tr('s_combat_power')} ${power}${monkey}${heroesHtml}</div>`;
     }).join('');
     const updatedAt = teamData.updated_at ? new Date(teamData.updated_at) : null;
     const stale = updatedAt && (Date.now() - updatedAt.getTime()) > 28 * 24 * 60 * 60 * 1000;
-    const staleBanner = stale ? `<div class="card" style="margin-top:10px;padding:10px 12px;border-color:rgba(224,85,69,0.35);background:rgba(224,85,69,0.1);color:#f09080;">⚠ ${escHtml(tr('s_teams_aelter_als_4_wochen'))}</div>` : '';
+    const staleBanner = stale ? `<div class="card team-stale-banner">⚠ ${escHtml(tr('s_teams_aelter_als_4_wochen'))}</div>` : '';
     summaryEl.innerHTML = `
-      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;">
-        <div><strong>${escHtml(teamData.member_name || currentName)}</strong><div class="section-sub" style="margin-top:4px;">${teamData.has_data ? tr('s_teams_aktueller_stand') : tr('s_teams_noch_keine_daten')}</div></div>
-        <div class="card" style="margin:0;padding:10px 12px;min-width:180px;">${tr('s_total_hero_power')}: <strong>${formatPower(teamData.total_hero_power)}</strong></div>
+      <div class="team-summary-head">
+        <div><strong>${escHtml(teamData.member_name || currentName)}</strong><div class="section-sub team-summary-sub">${teamData.has_data ? tr('s_teams_aktueller_stand') : tr('s_teams_noch_keine_daten')}</div></div>
+        <div class="card team-power-card">${tr('s_total_hero_power')}: <strong>${formatPower(teamData.total_hero_power)}</strong></div>
       </div>
       ${staleBanner}
-      <div style="margin-top:12px;">${rows || '<div class="empty">Keine Team-Daten vorhanden.</div>'}</div>`;
+      <div class="team-summary-rows">${rows || '<div class="empty">Keine Team-Daten vorhanden.</div>'}</div>`;
   } catch (err) {
     summaryEl.innerHTML = '<div class="empty">Fehler beim Laden der Teams.</div>';
   }
@@ -615,8 +613,8 @@ async function renderTeamsPage() {
       return n.toLocaleString('de-DE');
     };
     listEl.innerHTML = members.length ? `
-      <div style="overflow-x:auto;">
-        <table class="archive-table" style="width:100%;">
+      <div class="team-list-scroll">
+        <table class="archive-table">
           <thead>
             <tr>
               <th>${escHtml(tr('s_spieler'))}</th>
@@ -632,7 +630,7 @@ async function renderTeamsPage() {
             ${members.map((row) => {
       const updatedAt = row.updated_at ? new Date(row.updated_at) : null;
       const stale = updatedAt && (Date.now() - updatedAt.getTime()) > 28 * 24 * 60 * 60 * 1000;
-      const staleBadge = stale ? '<span style="color:#f09080;font-weight:700;">⚠</span>' : '';
+      const staleBadge = stale ? '<span class="team-stale-badge">⚠</span>' : '';
       const teamCell = (slot) => {
         const power = formatPower(row[`t${slot}_power`]);
         const typeRaw = String(row[`t${slot}_type`] || '').trim();
@@ -649,7 +647,7 @@ async function renderTeamsPage() {
               <td>${teamCell(2)}</td>
               <td>${teamCell(3)}</td>
               <td>${teamCell(4)}</td>
-              <td style="white-space:nowrap;">${staleBadge}${row.updated_at ? new Date(row.updated_at).toLocaleString('de-DE') : '—'}</td>
+              <td class="team-list-date">${staleBadge}${row.updated_at ? new Date(row.updated_at).toLocaleString('de-DE') : '—'}</td>
             </tr>`;
     }).join('')}
           </tbody>

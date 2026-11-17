@@ -806,6 +806,10 @@
     "s_teams_gespeichert": "Teams saved.",
     "Fehler beim Wechseln: ": "Switch error: ",
     "Fehler: ": "Error: ",
+    "speichert…": "saving…",
+    "✓ gespeichert": "✓ saved",
+    "Fehler beim Speichern": "Error while saving",
+    "✓ Fertig": "✓ Done",
     "Sync-Fehler: ": "Sync error: "
   }
 }

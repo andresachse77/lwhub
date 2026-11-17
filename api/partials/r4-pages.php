@@ -293,6 +293,8 @@ $auNav = function (string $active) use ($member): string {
   <div class="editor-wrap" id="editor">
     <div class="editor-header">
       <div class="editor-name" id="editorName"></div>
+      <!-- Jede Aenderung speichert sofort (data.js, edScheduleSave), hier steht der Stand -->
+      <span class="editor-save-state" id="editorSaveState" aria-live="polite"></span>
       <button class="editor-close" id="editorClose">✕</button>
     </div>
 
@@ -307,7 +309,7 @@ $auNav = function (string $active) use ($member): string {
     <div class="fixed-note" id="fixedNote"></div>
 
     <div class="flag-cats" id="flagCats"></div>
-    <button class="save-btn" id="saveBtn">✓ Speichern</button>
+    <button class="save-btn" id="saveBtn" title="Änderungen sind schon gespeichert. Ohne Flags wird das Mitglied mit 0 Punkten erfasst.">✓ Fertig</button>
   </div>
 
   <div class="member-list" id="memberList"></div>

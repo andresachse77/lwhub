@@ -800,6 +800,10 @@
     "s_teams_gespeichert": "Equipos guardados.",
     "Fehler beim Wechseln: ": "Error al cambiar: ",
     "Fehler: ": "Error: ",
+    "speichert…": "guardando…",
+    "✓ gespeichert": "✓ guardado",
+    "Fehler beim Speichern": "Error al guardar",
+    "✓ Fertig": "✓ Listo",
     "Sync-Fehler: ": "Error de sincronización: "
   }
 }

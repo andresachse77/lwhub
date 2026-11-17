@@ -109,6 +109,65 @@ async function saveEntry(name, rank, flags) {
   await loadEntries();
 }
 
+// ── Bearbeiten-Dialog speichert sofort ──
+// Wie in der Verwaltung: jeder Klick auf ein Flag oder einen Rang wird gespeichert (kurz gesammelt, damit
+// schnelles Klicken nur einmal speichert). „✓ Fertig“ und ✕ schliessen nur noch; „Fertig“ erfasst ein
+// Mitglied ohne Flags wie bisher mit 0 Punkten.
+let edSaveTimer = null;
+let edDirty = false;
+let edSaveChain = Promise.resolve(); // Speichern nacheinander, nie zwei Anfragen fuer denselben Stand
+
+function edCanWrite() {
+  if (authMember?.read_only || authMember?.honor_role) {
+    toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.'));
+    return false;
+  }
+  return true;
+}
+
+function edSetSaveState(state) {
+  const el = document.getElementById('editorSaveState');
+  if (!el) return;
+  el.textContent = state === 'saving' ? tr('speichert…') : state === 'saved' ? tr('✓ gespeichert')
+    : state === 'error' ? tr('Fehler beim Speichern') : '';
+  el.classList.toggle('is-saved', state === 'saved');
+  el.classList.toggle('is-error', state === 'error');
+}
+
+function edMarkOpenRow() {
+  document.querySelectorAll('.member-row').forEach((r) => r.classList.toggle('is-open', !!edName && r.dataset.name === edName));
+}
+
+function edScheduleSave() {
+  edDirty = true;
+  edSetSaveState('saving');
+  clearTimeout(edSaveTimer);
+  edSaveTimer = setTimeout(edFlushSave, 400);
+}
+
+// Offene Aenderung jetzt speichern. Name, Rang und Flags werden sofort festgehalten, der Dialog darf danach zugehen.
+function edFlushSave() {
+  clearTimeout(edSaveTimer);
+  edSaveTimer = null;
+  if (!edDirty || !edName) return edSaveChain;
+  edDirty = false;
+  const name = edName;
+  const rank = isFixed(name) ? fixedRank(name) : edRank;
+  const flags = { ...edFlags };
+  edSaveChain = edSaveChain.then(async () => {
+    try {
+      await saveEntry(name, rank, flags);
+      renderAll();
+      edMarkOpenRow();
+      if (edName === name && !edDirty) edSetSaveState('saved');
+    } catch (err) {
+      if (edName === name) edSetSaveState('error');
+      toast(tr('Fehler: ') + (err?.message || err));
+    }
+  });
+  return edSaveChain;
+}
+
 // Called after R4 pages are injected into the DOM
 function initR4Listeners() {
   initFilterBars();
@@ -123,26 +182,27 @@ function initR4Listeners() {
     rankRow.addEventListener('click', function(e) {
       const btn = e.target.closest('.rk-btn');
       if (!btn || btn.disabled) return;
-      edRank = parseInt(btn.dataset.r);
+      const r = parseInt(btn.dataset.r);
+      if (r === edRank || !edCanWrite()) return;
+      edRank = r;
       document.querySelectorAll('.rk-btn').forEach(b => b.classList.toggle('on', parseInt(b.dataset.r) === edRank));
+      edScheduleSave();
     });
   }
 
+  // „✓ Fertig“: Aenderungen sind schon gespeichert. Noch gar nicht erfasst? Dann jetzt (auch ohne Flags, 0 Punkte).
   const saveBtn = document.getElementById('saveBtn');
   if (saveBtn && !saveBtn._listenerAttached) {
     saveBtn._listenerAttached = true;
     saveBtn.addEventListener('click', async function() {
-      if (authMember?.read_only || authMember?.honor_role) {
-        toast(tr('Nur Lesezugriff (Ehrenrolle): Änderungen sind nicht erlaubt.'));
-        return;
-      }
       if (!edName) return;
-      const rank = isFixed(edName) ? fixedRank(edName) : edRank;
-      const was = !!entries.find(x => x.name === edName);
-      await saveEntry(edName, rank, {...edFlags});
-      renderAll();
-      toast(edName + (was ? ' aktualisiert!' : ' gespeichert!'));
-      closeEditor();
+      if (!edCanWrite()) return;
+      const name = edName;
+      if (!entries.find(x => x.name === name)) edDirty = true;
+      const changed = edDirty;
+      closeEditor(); // speichert Offenes noch (edFlushSave)
+      await edSaveChain;
+      if (changed) toast(name + ' gespeichert!');
     });
   }
 
@@ -220,6 +280,8 @@ function initR4Listeners() {
 // ── RANK BUTTONS ──
 function openEditor(name){
   if(guardFormer(name)) return;
+  edFlushSave(); // Offenes vom vorigen Mitglied noch speichern
+  edSetSaveState('');
   edName=name;
   const e=entries.find(x=>x.name===name);
   edFlags=e?{...e.flags}:{};
@@ -260,21 +322,25 @@ function openEditor(name){
 window.openEditor=openEditor;
 
 function toggleFlag(k){
+  if(!edName || !edCanWrite()) return;
   edFlags[k]=!edFlags[k];
   const btn=document.querySelector(`[data-fk="${k}"]`);
   const f=FLAGS.find(x=>x.k===k);
   const on=edFlags[k];
-  // wie bisher: r und a eigene Farbe, alles andere blau
-  const onCls='editor-flag-on-'+(f.t==='r'||f.t==='a'?f.t:'b');
+  // Farbe je Typ wie beim Oeffnen (openEditor): r rot, a gold, n (AFK) lila, sonst blau
+  const onCls='editor-flag-on-'+(['r','a','n'].includes(f.t)?f.t:'b');
   btn.classList.remove('editor-flag-on-r','editor-flag-on-a','editor-flag-on-n','editor-flag-on-b');
   if(on) btn.classList.add(onCls);
+  edScheduleSave();
 }
 window.toggleFlag=toggleFlag;
 
 function closeEditor(){
+  edFlushSave(); // Offenes noch speichern, bevor der Name weg ist
   document.getElementById('editor').style.display='none';
-  document.querySelectorAll('.member-row').forEach(r=>r.classList.remove('is-open'));
   edName=null; edFlags={};
+  edMarkOpenRow();
+  edSetSaveState('');
 }
 
 // ── KW ──

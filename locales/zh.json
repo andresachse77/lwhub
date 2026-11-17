@@ -800,6 +800,10 @@
     "s_teams_gespeichert": "队伍已保存。",
     "Fehler beim Wechseln: ": "切换时出错：",
     "Fehler: ": "错误：",
+    "speichert…": "保存中…",
+    "✓ gespeichert": "✓ 已保存",
+    "Fehler beim Speichern": "保存失败",
+    "✓ Fertig": "✓ 完成",
     "Sync-Fehler: ": "同步错误："
   }
 }

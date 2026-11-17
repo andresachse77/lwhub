@@ -800,6 +800,10 @@
     "s_teams_gespeichert": "Drużyny zapisane.",
     "Fehler beim Wechseln: ": "Błąd podczas zmiany: ",
     "Fehler: ": "Błąd: ",
+    "speichert…": "zapisywanie…",
+    "✓ gespeichert": "✓ zapisano",
+    "Fehler beim Speichern": "Błąd zapisu",
+    "✓ Fertig": "✓ Gotowe",
     "Sync-Fehler: ": "Błąd sync: "
   }
 }

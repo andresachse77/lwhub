@@ -800,6 +800,10 @@
     "s_teams_gespeichert": "Équipes enregistrées.",
     "Fehler beim Wechseln: ": "Erreur lors du changement : ",
     "Fehler: ": "Erreur : ",
+    "speichert…": "enregistrement…",
+    "✓ gespeichert": "✓ enregistré",
+    "Fehler beim Speichern": "Erreur lors de l’enregistrement",
+    "✓ Fertig": "✓ Terminé",
     "Sync-Fehler: ": "Erreur de sync : "
   }
 }

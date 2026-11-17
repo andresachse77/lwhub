@@ -800,6 +800,10 @@
     "s_teams_gespeichert": "Squadre salvate.",
     "Fehler beim Wechseln: ": "Errore cambio: ",
     "Fehler: ": "Errore: ",
+    "speichert…": "salvataggio…",
+    "✓ gespeichert": "✓ salvato",
+    "Fehler beim Speichern": "Errore durante il salvataggio",
+    "✓ Fertig": "✓ Fatto",
     "Sync-Fehler: ": "Errore sincronizzazione: "
   }
 }

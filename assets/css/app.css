@@ -2062,3 +2062,106 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
 .bp-hist-state { margin-bottom: 8px; }
 .hint.bp-hist-gone { margin-top: 10px; }
 .hint.bp-fill-intro { margin-bottom: 10px; }
+
+/* ══════════════════════════════════════════════════════
+   Verwaltung: Liste + Mitglied (docs/konzept-verwaltung-ux.html, Variante B; pages/members.js)
+   PC: Liste links, Mitglied rechts (bleibt beim Scrollen stehen). Handy (< 900 px): Mitglied als eigene Seite.
+   Tippflaechen mindestens 48 px, Felder 16 px Schrift (sonst zoomt iOS beim Antippen).
+   ══════════════════════════════════════════════════════ */
+.vm-filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+.vm-filter { flex: none; min-height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid var(--line2); background: transparent; color: var(--soft); font: inherit; font-size: 13px; cursor: pointer; }
+.vm-filter b { margin-left: 6px; color: var(--text); }
+.vm-filter.on { color: var(--gold); border-color: rgba(240,165,0,0.6); background: rgba(240,165,0,0.1); }
+.vm-filter.on b { color: var(--gold); }
+.vm-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 14px; align-items: start; }
+.vm-list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.vm-detail { position: sticky; top: 68px; max-height: calc(100vh - 80px); /* unter der Navigation (56 px) */ overflow-y: auto; min-width: 0;
+  background: var(--card2); border: 1px solid var(--line2); border-radius: 14px; padding: 14px; }
+.vm-empty { color: var(--soft); text-align: center; padding: 48px 10px; font-size: 14px; }
+.vm-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 6px 8px 6px 10px;
+  border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.vm-row:hover { border-color: var(--line2); }
+.vm-row.is-sel { border-color: rgba(240,165,0,0.55); background: rgba(240,165,0,0.06); }
+.vm-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.vm-row-name { font-size: 15px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.vm-row-sub { font-size: 12px; color: var(--soft); overflow-wrap: anywhere; }
+.vm-warn { flex: none; font-size: 12px; font-weight: 700; color: var(--gold); border: 1px solid rgba(240,165,0,0.4); border-radius: 999px; padding: 1px 8px; }
+.vm-chev { flex: none; width: 18px; text-align: center; color: var(--soft); font-size: 18px; }
+.rank-badge.vm-honor-pill { color: #9cc7ff; background: rgba(74,158,255,0.1); border: 1px solid rgba(127,184,255,0.4); }
+.vm-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.vm-head .v-avatar { width: 48px; height: 48px; }
+.vm-name { flex: 1; min-width: 0; font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; color: var(--gold); line-height: 1.1; overflow-wrap: anywhere; }
+.vm-back { display: none; flex: none; min-width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--line2); background: transparent; color: var(--text); font-size: 18px; cursor: pointer; align-items: center; justify-content: center; }
+.vm-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 12px; color: var(--soft); margin-bottom: 12px; }
+.vm-meta b { color: var(--text); font-weight: 600; }
+.vm-sec { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px 12px; margin-bottom: 10px; background: rgba(255,255,255,0.015); }
+.vm-sec-head { display: flex; align-items: center; gap: 8px; min-height: 32px; margin-bottom: 8px; }
+.vm-sec-title { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--soft); }
+.vm-sec-title b { color: var(--gold); }
+.vm-saved { margin-left: auto; font-size: 12px; color: var(--green); opacity: 0; transition: opacity 0.25s; white-space: nowrap; }
+.vm-saved.on { opacity: 1; }
+.vm-kw { display: flex; gap: 4px; }
+.vm-kw button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line2); background: transparent; color: var(--text); font-size: 16px; cursor: pointer; }
+.vm-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--soft); margin: 12px 0 6px; }
+.vm-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vm-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.vm-grid5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.vm-chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 0 10px; border-radius: 12px;
+  border: 1px solid var(--line2); background: var(--card); color: var(--soft); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; line-height: 1.15; }
+.vm-chip:hover { color: var(--text); }
+.vm-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+.vm-chip.on { color: #80b8ff; background: rgba(74,158,255,0.14); border-color: rgba(74,158,255,0.5); }
+.vm-chip.vm-c-r.on { color: #f09080; background: rgba(224,85,69,0.16); border-color: rgba(224,85,69,0.55); }
+.vm-chip.vm-c-a.on { color: var(--gold); background: rgba(240,165,0,0.14); border-color: rgba(240,165,0,0.5); }
+.vm-chip.vm-c-n.on { color: #b99bff; background: rgba(155,109,255,0.17); border-color: rgba(155,109,255,0.55); }
+.vm-chip.vm-c-g.on { color: var(--green); background: rgba(46,203,122,0.14); border-color: rgba(46,203,122,0.5); }
+.vm-grid5 .vm-chip { flex-direction: column; gap: 0; font-size: 17px; min-height: 56px; padding: 4px 2px; }
+.vm-grid5 .vm-chip small { font-size: 10px; font-weight: 500; opacity: 0.85; }
+.vm-switch { display: flex; align-items: center; gap: 12px; min-height: 52px; margin-top: 4px; font-size: 14px; cursor: pointer; }
+.vm-switch input { appearance: none; -webkit-appearance: none; width: 52px; height: 30px; margin: 0; border-radius: 15px; background: #2a3040; position: relative; flex: none; cursor: pointer; transition: background 0.15s; }
+.vm-switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--text); transition: left 0.15s; }
+.vm-switch input:checked { background: var(--green); }
+.vm-switch input:checked::after { left: 25px; }
+.vm-field { width: 100%; min-height: 48px; border-radius: 12px; border: 1px solid var(--line2); background: var(--card); color: var(--text); font-family: inherit; font-size: 16px; padding: 0 12px; outline: none; }
+.vm-field:focus { border-color: rgba(240,165,0,0.6); }
+.vm-hint { font-size: 11.5px; color: var(--soft); margin-top: 4px; }
+.vm-week-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.vm-week-foot .vm-hint { margin-top: 0; }
+.vm-btn { min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line2); background: var(--card); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.vm-btn:hover { border-color: rgba(255,255,255,0.25); }
+.vm-btn.wide { width: 100%; }
+.vm-btn.danger { color: #ff9f94; border-color: rgba(224,85,69,0.45); background: transparent; }
+.vm-btn.link { min-height: 44px; padding: 0 4px; background: transparent; border: 0; color: var(--soft); font-size: 12.5px; font-weight: 500; text-decoration: underline; }
+.vm-row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.vm-sec.vm-danger { border-color: rgba(224,85,69,0.25); margin-top: 16px; }
+@media (max-width: 899px) {
+  .vm-layout { grid-template-columns: 1fr; }
+  .vm-layout:not(.has-sel) .vm-detail { display: none; }
+  .vm-layout.has-sel .vm-list { display: none; }
+  .vm-detail { position: static; max-height: none; overflow: visible; padding: 12px; }
+  .vm-back { display: inline-flex; }
+  .vm-search { font-size: 16px; }
+  /* Mitglied offen: nur noch das Mitglied zeigen (eigene Seite), Liste/Anlegen/Anfragen kommen mit „←“ zurueck */
+  #page-v.v-member-open > :not(.v-member-panel) { display: none; }
+  #page-v.v-member-open .v-member-panel > .panel-head,
+  #page-v.v-member-open .v-member-panel > .vm-filters { display: none; }
+}
+
+/* Hinweis unten mit „Rückgängig“ (core/ui.js, lwToastUndo). Versteckt: unsichtbar UND nicht antippbar. */
+.lw-undo-toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 3000; width: min(480px, calc(100% - 20px));
+  display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 6px 6px 16px; border-radius: 14px;
+  background: #2b333f; border: 1px solid #3f4855; box-shadow: 0 8px 24px rgba(0,0,0,0.45); color: var(--text); font-size: 14px;
+  transform: translate(-50%, 24px); opacity: 0; visibility: hidden; pointer-events: none;
+  transition: transform 0.2s, opacity 0.2s, visibility 0s 0.2s; }
+.lw-undo-toast.on { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; transition: transform 0.2s, opacity 0.2s; }
+.lw-undo-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.lw-undo-btn { flex: none; min-height: 48px; padding: 0 14px; border-radius: 10px; border: 0; background: transparent; color: var(--gold); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+.lw-undo-btn[hidden] { display: none; }
+.vm-layout { scroll-margin-top: 64px; } /* scrollIntoView landet unter der Navigation */
+.vm-sec-head + .vm-lbl { margin-top: 0; }
+.v-member-panel { min-width: 0; }
+@media (max-width: 899px) {
+  /* Kopf der Mitgliederliste umbrechen, sonst macht das Suchfeld die Seite breiter als den Bildschirm */
+  .v-member-panel > .panel-head { flex-wrap: wrap; gap: 8px; }
+  .v-member-panel .vm-search { width: 100%; min-height: 48px; }
+}

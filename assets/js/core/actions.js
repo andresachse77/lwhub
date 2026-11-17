@@ -21,19 +21,21 @@ const LW_ACTIONS = new Set([
   'bpDropLeave', 'bpDropNewWarlord', 'bpDropToEngineerSlot', 'bpDropToQueue', 'bpDropToWarlord', 'bpFillApply',
   'bpFillReroll', 'bpFillRest', 'bpHistBack', 'bpHistRestore', 'bpHistShow', 'bpJumpWrong', 'bpMakeWarlord', 'bpOpenHistory', 'bpOpenTemplates', 'bpSaveRankCheck',
   'bpSetView', 'bpTogglePair', 'bpTplInsertVar', 'bpTplRenderPreview', 'bpTplResetLang', 'bpTplSave',
-  'bpTplSwitchLang', 'bpTplSwitchVariant', 'bpUnsetWarlord', 'cancelEdit', 'changeYearWeek', 'clearTeamHero',
+  'bpTplSwitchLang', 'bpTplSwitchVariant', 'bpUnsetWarlord', 'changeYearWeek', 'clearTeamHero',
   'closeApiTokenCreated', 'closeModal', 'closeTeamEditor', 'copyApiToken', 'discordLogin', 'discordLogout',
   'ergebnisApply', 'ergebnisSortBy', 'fillHonorHomeAllianceList', 'loadApiTokens', 'loadArchive', 'loadErgebnis',
   'loadMergePlayers', 'loadSeInactive', 'loadTransferPlayers', 'lwReload', 'lwSelectText', 'lwShareLink', 'lwhubReauthLogin',
   'mapAccessRequestToMember', 'meBerufSelect', 'meSelectWeek', 'meStepWeek', 'onPoolHeroDragStart', 'onTeamSlotDragStart',
   'onTeamSlotDrop', 'openAllianceFeatures', 'openCreateAlliance', 'openCreateApiToken', 'openEditAlliance', 'openEditor',
   'openGrantAdmin', 'openMemberMe', 'openMemberMeInApp', 'openTeamEditor', 'rejectAccessRequest', 'removeMember',
-  'restorePlayer', 'revokeAdmin', 'revokeApiToken', 'saveAllianceSettings', 'saveMeBeruf', 'saveMemberEdit',
-  'saveMemberEditOnEnter', 'saveTeams', 'saveVerwaltungBerufSub', 'selectEventView', 'setVerwaltungBeruf', 'showPage',
+  'restorePlayer', 'revokeAdmin', 'revokeApiToken', 'saveAllianceSettings', 'saveMeBeruf',
+  'saveTeams', 'selectEventView', 'setVerwaltungBeruf', 'showPage',
   'spendeImportFromScanner', 'spendeSet', 'spezialImportFromScanner', 'spezialSaveEvent', 'spezialSet', 'spezialSetNoEvent',
-  'spezialToggleSkip', 'startEdit', 'submitAccessRequest', 'submitCreate', 'submitCreateApiToken', 'submitEdit',
+  'spezialToggleSkip', 'submitAccessRequest', 'submitCreate', 'submitCreateApiToken', 'submitEdit',
   'submitGrantAdmin', 'submitMerge', 'submitTransfer', 'syncData', 'toggleCatConfig', 'toggleDoneMode',
-  'toggleEventContrast', 'toggleEventDoneMode', 'toggleFlag', 'toggleVerwaltungFlag', 'toggleVerwaltungRow', 'vsImportFromScanner',
+  'toggleEventContrast', 'toggleEventDoneMode', 'toggleFlag', 'swapMemberIdToDiscord', 'toggleVerwaltungFlag', 'toggleVerwaltungRow',
+  'vBackToList', 'vDeleteWeekEntry', 'vFieldKey', 'vRename', 'vSaveBerufSub', 'vSaveDiscord', 'vSaveHome', 'vSelectMember',
+  'vSetFilter', 'vSetRank', 'vSetRole', 'vToggleFlag', 'vsImportFromScanner',
   'vsSet', 'vsToggleSparwoche', 'wacheSet', 'wuesteSet', 'zugCalDragStart', 'zugCancelEditForm',
   'zugCancelNoShow', 'zugCloseEventForm', 'zugConfirmNoShow', 'zugCopyMail', 'zugDayClick', 'zugDayHover',
   'zugDeleteEntry', 'zugDragLeave', 'zugDragOver', 'zugDragStart', 'zugEditExisting', 'zugHandleDrop',
@@ -112,7 +114,6 @@ function allianceRowClick(e, shortName) {
   if (e.target.closest('button')) return;
   openAllianceFeatures(shortName);
 }
-function saveMemberEditOnEnter(e, name) { if (e.key === 'Enter') saveMemberEdit(name); }
 function zugDayHover(el, on, isToday) {
   el.style.borderColor = (on || isToday) ? 'var(--gold)' : 'rgba(255,255,255,0.06)';
 }

@@ -482,7 +482,24 @@ $auNav = function (string $active) use ($member): string {
 
 <!-- ═══ VERWALTUNG ═══ -->
 <div class="page" id="page-v">
-  <div class="v-top-grid">
+  <!-- MITGLIEDER: Liste + Mitglied (docs/konzept-verwaltung-ux.html, Variante B; members.js) -->
+  <div class="panel v-member-panel">
+    <div class="panel-head">
+      <div class="panel-title">👥 <span data-i18n="s_mitgliederliste">Mitgliederliste</span></div>
+      <div class="kw-nav v-kw-push">
+        <button class="kw-btn" type="button" data-action="changeYearWeek" data-args="[-1]" title="Vorherige Woche">‹</button>
+        <div class="kw-wrap"><label>KW</label><span class="kw-val">--</span></div>
+        <button class="kw-btn" type="button" data-action="changeYearWeek" data-args="[1]" title="Nächste Woche">›</button>
+      </div>
+      <input class="search-input v-search-narrow vm-search" id="v-search" type="search" placeholder="Suchen (auch frühere Namen)">
+    </div>
+    <div class="vm-filters" id="v-filters"></div>
+    <div class="vm-layout" id="v-layout">
+      <div class="vm-list" id="v-list"></div>
+      <div class="vm-detail" id="v-detail"></div>
+    </div>
+  </div>
+  <div class="v-top-grid v-panel-gap">
 
     <!-- ADD MEMBER -->
     <div class="panel">
@@ -533,29 +550,8 @@ $auNav = function (string $active) use ($member): string {
     <div id="v-access-requests" class="v-access-list"></div>
   </div>
 
-  <!-- MEMBER TABLE -->
-  <div class="panel v-panel-gap">
-    <div class="panel-head">
-      <div class="panel-title">👥 <span data-i18n="s_mitgliederliste">Mitgliederliste</span></div>
-      <div class="kw-nav v-kw-push">
-        <button class="kw-btn" type="button" data-action="changeYearWeek" data-args="[-1]" title="Vorherige Woche">‹</button>
-        <div class="kw-wrap"><label>KW</label><span class="kw-val">--</span></div>
-        <button class="kw-btn" type="button" data-action="changeYearWeek" data-args="[1]" title="Nächste Woche">›</button>
-      </div>
-      <input class="search-input v-search-narrow" id="v-search" placeholder="Suchen...">
-    </div>
-    <div id="v-list"></div>
-  </div>
 
 
-  <!-- FEATURE CONFIG -->
-  <div class="panel v-panel-gap">
-    <div class="panel-head">
-      <div class="panel-title">✨ <span>Feature-Konfiguration</span></div>
-      <div class="panel-sub">Legt fest welche Features erfasst und ausgewertet werden</div>
-    </div>
-    <div id="v-flag-config"><div class="empty">Lade …</div></div>
-  </div>
 
   <!-- DOKUMENTE: Planung API, Scanner und Android-App -->
   <div class="panel v-panel-gap">

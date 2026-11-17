@@ -426,6 +426,11 @@ window.addEventListener('popstate', () => {
     lwApplySub(route.id, route.sub, true);
     return;
   }
+  // Verwaltung schon offen, nur das Mitglied wechselt (Zurueck-Geste am Handy): nicht alles neu laden
+  if (route.id === 'v' && active && sameKw && typeof vOpenMemberFromLink === 'function') {
+    vOpenMemberFromLink(route.detail || '');
+    return;
+  }
   showPage(route.id, { fromHistory: true, sub: route.sub, detail: route.detail || '', kw: route.kw });
 });
 

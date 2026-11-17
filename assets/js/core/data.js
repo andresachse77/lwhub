@@ -29,6 +29,8 @@ async function loadMembers() {
       discordAvatarUrl: m.discord_avatar_url || null,
       discordConnected: !!m.discord_connected,
       lastVisitAt: m.last_visit_at || null,
+      power: Number.isFinite(m.current_power) ? m.current_power : null, // aus dem Scanner
+      hq: Number.isFinite(m.hq_level) ? m.hq_level : null,
       beruf: m.beruf || null,
       berufMedHilfe: !!m.beruf_med_hilfe,
       berufWinwin: m.beruf_winwin || null,
@@ -265,7 +267,7 @@ function initR4Listeners() {
       document.getElementById('v-new-name').value = '';
       if (document.getElementById('v-new-discord')) document.getElementById('v-new-discord').value = '';
       if (document.getElementById('v-new-home')) document.getElementById('v-new-home').value = '';
-      renderVerwaltung();
+      vSelectMember(name); // neues Mitglied gleich oeffnen (Beruf, Discord-ID …)
       toast(name + ' hinzugefügt!');
     });
   }

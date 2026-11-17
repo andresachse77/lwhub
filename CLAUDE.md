@@ -63,6 +63,22 @@ siehe Block „ROUTER“ vor `showPage()` in `assets/js/core/router.js`.
   `LwhubAccess.reportState(params)`. Der LWHub übernimmt nur die Schlüssel aus `LW_FRAME_PARAMS` als
   `?…` in seine Adresse und gibt sie beim Öffnen eines Links an den Rahmen weiter.
 
+
+## Verwaltung: Liste + Mitglied (seit 17.11.2026)
+
+Umsetzung von Variante B aus `docs/konzept-verwaltung-ux.html` (Block „VERWALTUNG“ oben in `pages/members.js`).
+
+- Am PC Liste links, Mitglied rechts (`#v-layout`, `#v-list`, `#v-detail`); unter 900 px ist das Mitglied eine
+  eigene Seite (`.has-sel`, `#page-v.v-member-open`), „←“ (`vBackToList`) bzw. die Zurück-Geste führt zurück.
+- **Alles speichert sofort**, es gibt keinen Bearbeiten-Modus und keinen Speichern-Knopf: Änderungen über
+  `vRun(kasten, text, doFn, undoFn)`. Das zeigt „✓ gespeichert“ im Kasten und unten `lwToastUndo` (core/ui.js) mit
+  „Rückgängig“. Neue Felder genauso anbinden, mit einer echten Gegenänderung als `undoFn`.
+- Profil (Name, Rang, Rolle, Heimat-Allianz, Discord-ID) immer über `vSaveProfile(name, änderungen)`: Der Server
+  (`PUT /members/{name}`) will den ganzen Stand, die Discord-ID nur, wenn sie mitgeschickt wird.
+- Nachfragen nur bei Umbenennen, Entfernen und dem Sprung auf R4/R5.
+- „Alle Flags weg“ = erfasst mit 0 Punkten (wie in der Eintragen-Liste); löschen nur mit „Wocheneintrag löschen“.
+- Tippflächen mindestens 48 px, Felder 16 px Schrift (CSS-Block „Verwaltung: Liste + Mitglied“ in app.css).
+- Hinweise unten: versteckt immer `visibility: hidden; pointer-events: none`, sonst blockieren sie Knöpfe.
 ## Dokumentseiten (docs/)
 
 Jede Seite unter `docs/` (Konzepte, Aufgabenlisten, Handbuch) bekommt oben rechts **🔗 Teilen** und

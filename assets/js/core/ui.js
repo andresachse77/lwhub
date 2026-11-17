@@ -129,3 +129,34 @@ new MutationObserver((mutations) => {
   }
 }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-css'] });
 lwApplyDataCss(document.body);
+
+// ── Hinweis unten mit „Rückgängig“ ──
+// Nach einer Änderung, die sofort gespeichert wurde: lwToastUndo('Mira: AFK gesetzt', async () => {…}).
+// Ohne onUndo nur der Text. Versteckt ist der Hinweis unsichtbar UND nicht antippbar (CSS .lw-undo-toast),
+// sonst läge er unsichtbar über Knöpfen am unteren Rand.
+let lwUndoTimer = null;
+function lwToastUndo(text, onUndo) {
+  let t = document.getElementById('lw-undo-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'lw-undo-toast';
+    t.className = 'lw-undo-toast';
+    t.setAttribute('role', 'status');
+    t.innerHTML = '<span class="lw-undo-text"></span><button type="button" class="lw-undo-btn"></button>';
+    document.body.appendChild(t);
+    t.querySelector('button').addEventListener('click', () => {
+      const fn = t._undo;
+      t._undo = null;
+      t.classList.remove('on');
+      if (fn) fn();
+    });
+  }
+  t.querySelector('.lw-undo-text').textContent = text;
+  const btn = t.querySelector('button');
+  btn.textContent = tr('Rückgängig');
+  btn.hidden = !onUndo;
+  t._undo = onUndo || null;
+  t.classList.add('on');
+  clearTimeout(lwUndoTimer);
+  lwUndoTimer = setTimeout(() => { t.classList.remove('on'); t._undo = null; }, 5000);
+}

@@ -82,8 +82,9 @@
 <div class="header">
   <div class="badge-row">
     <span class="badge blue">Konzept</span>
-    <span class="badge amber">Entwurf</span>
+    <span class="badge green">Weitgehend umgesetzt</span>
     <span class="badge">Stand 16.11.2026</span>
+    <a class="badge blue" href="#stand" style="text-decoration:none;">▶ Stand &amp; nächste Schritte</a>
     <a class="badge green" href="#gzip-test" style="text-decoration:none;">▶ Live-Test gzip &amp; Header</a>
     <a class="badge green" href="#handler-test" style="text-decoration:none;">▶ Live-Test Inline-Handler</a>
   </div>
@@ -97,7 +98,7 @@
   <div class="stats">
     <div class="stat"><div class="num">72</div><div class="lbl">Zeilen in index.php (am 10.11. noch 10.272 in index.html), Seiten-HTML in <code>views/</code></div></div>
     <div class="stat"><div class="num">≈ 25 KB</div><div class="lbl">HTML der Startseite (ungepackt, ohne Rollen-Seiten), vorher ≈ 496 KB</div></div>
-    <div class="stat"><div class="num">0</div><div class="lbl">Inline-JavaScript in index.html. Dafür ≈ 106 KB Kern in <code>assets/js/core/</code> und ≈ 303 KB Seiten in <code>assets/js/pages/</code></div></div>
+    <div class="stat"><div class="num">0</div><div class="lbl">Inline-JavaScript in <code>index.php</code>/<code>views/</code>. Dafür ≈ 106 KB Kern in <code>assets/js/core/</code> und ≈ 303 KB Seiten in <code>assets/js/pages/</code></div></div>
     <div class="stat"><div class="num">≈ 71 KB</div><div class="lbl">CSS, seit 16.11.2026 eigene Datei <code>assets/css/app.css</code></div></div>
     <div class="stat"><div class="num">≈ 330</div><div class="lbl">Funktionen, fast alle global</div></div>
     <div class="stat"><div class="num">0</div><div class="lbl">Inline-Handler (<code>on…=</code>) im HTML, vorher 231 (davon 168 <code>onclick=</code>), umgebaut am 08.11.2026</div></div>
@@ -302,7 +303,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
     <li><strong>CSS auslagern: erledigt am 16.11.2026</strong>. Das ganze CSS steht jetzt in <code>assets/css/app.css</code>, die Schrift kommt als eigener <code>&lt;link&gt;</code>. Beim Deploy bekommt der Link einen Hash der Datei (<code>app.css?v=5883dadfd6f5</code>), damit darf der Browser sie ein Jahr behalten und lädt sie nur nach einer echten Änderung neu. Das Aufteilen in <code>base.css</code> und Seiten-CSS machen wir zusammen mit den Seiten-Modulen: vorher brächte es nur mehr Anfragen.</li>
     <li><strong>Kern auslagern: erledigt am 16.11.2026.</strong> Unter <code>assets/js/core/</code> liegen jetzt <code>actions.js</code> (Verteiler), <code>api.js</code> (<code>fetchJson</code>, <code>api</code>), <code>auth.js</code> (Discord-Login), <code>points.js</code> (Formeln, Kategorien, KW) und <code>state.js</code>, jede mit eigener Hash-Version. Es sind noch normale Scripts mit globalen Funktionen; zu Modulen mit <code>export</code> werden sie erst, wenn die Seiten selbst Module sind. <code>i18n.js</code> lag schon vorher in einer eigenen Datei.</li>
     <li><strong>Seiten einzeln herauslösen</strong>, die großen und abgeschlossenen zuerst. <strong>Erledigt am 16.11.2026:</strong> Zug (<code>assets/js/pages/train.js</code>), Berufeplaner (<code>jobs.js</code>), Events mit Wache, Wüste, Spezial, VS und Spenden (<code>events.js</code>), Admin (<code>admin.js</code>), Verwaltung (<code>members.js</code>) und Auswertungen mit SE-Inaktiv und Ergebnis (<code>stats.js</code>). Die Feature-Schalter (<code>flagConfig</code>) werden überall gebraucht und liegen deshalb im Kern (<code>core/features.js</code>); die Umschaltung der Auswertungs-Ansichten gehört zum Router und bleibt in <code>index.html</code>. Gestartet wird die App aus <code>assets/js/start.js</code>, damit beim Start alle Seiten da sind. <strong>Seit 16.11.2026 auch der Rest:</strong> Mein Bereich (<code>me.js</code>), Teams (<code>teams.js</code>), Eintragen-Liste (<code>entries.js</code>), Dashboard mit Ranking-Tabelle (<code>dashboard.js</code>), dazu im Kern <code>ui.js</code>, <code>data.js</code> und <code>router.js</code>. In <code>index.html</code> steht kein JavaScript mehr, nur noch HTML. Damit verschwindet auch die CSP-Meldung zum Inline-Script, und die CSP kann später ohne <code>unsafe-inline</code> scharf geschaltet werden. <strong>HTML aufgeteilt (16.11.2026):</strong> <code>index.html</code> ist jetzt <code>index.php</code> und enthält nur noch den Rahmen (Kopf, Plätze für die Rollen-Seiten, Script-Tags, gut 70 Zeilen). Die Seiten für alle stehen in <code>views/</code> (Login, Navigation, Mein Bereich, Teams, Punkte-Guide, Ladeanimation, Zug-Ansicht, Dialoge) und werden per <code>include</code> eingesetzt; der Browser bekommt genau dasselbe HTML wie vorher. Das Deploy lädt erst alle Dateien und zum Schluss <code>index.php</code>, <code>.htaccess</code> und <code>deploy-version.json</code> hoch. Auch das HTML der Admin-Seite und ihrer Dialoge steht nicht mehr im Rahmen: es kommt wie die R4-Seiten vom Server (<code>api/partials/admin-pages.php</code>) und nur an R5. Die Berufeplaner-Dialoge stehen jetzt bei den R4-Seiten (<code>r4-pages.php</code>).</li>
-    <li><strong>Lazy Loading einschalten</strong>, sobald eine Seite ihr eigenes Modul hat.</li>
+    <li><strong>Lazy Loading einschalten</strong>, sobald eine Seite ihr eigenes Modul hat. <em>Noch offen.</em> Der Nutzen ist kleiner als anfangs gedacht: Seit alle Dateien eine Hash-Version haben und ein Jahr im Cache bleiben, lädt jeder Browser sie nur einmal pro Änderung. Spürbar wäre es vor allem beim allerersten Besuch von R1–R3.</li>
     <li><strong>Inline-Handler abbauen: erledigt am 08.11.2026.</strong> Alle 231 <code>on…=</code> in <code>index.html</code> und <code>api/partials/</code> sind ersetzt (dazu 5 im Scanner). Im HTML steht nur noch, <em>was</em> passieren soll:
       <pre>&lt;button data-action="showPage" data-args='["m"]'&gt;
 &lt;div data-on-drop="bpAccDrop" data-args-drop="${lwArgs(LW_EVENT, khEnc, LW_EL)}"&gt;</pre>
@@ -319,12 +320,41 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
 
   <h3>Schnelle Gewinne, die sofort gehen</h3>
   <ul>
-    <li>gzip in der <code>.htaccess</code> einschalten (<code>mod_deflate</code>). Gemessen: Der Server liefert heute <strong>unkomprimiert</strong> aus, mit gzip werden aus 496 KB nur noch 117 KB.</li>
-    <li>Sicherheits-Header setzen: <code>Strict-Transport-Security</code>, <code>X-Content-Type-Options: nosniff</code>, <code>Referrer-Policy</code>, dazu eine CSP zuerst im Modus <code>Content-Security-Policy-Report-Only</code>. So sehen wir, was sie blockieren würde, ohne dass etwas kaputtgeht.</li>
+    <li><strong>Erledigt am 08.11.2026:</strong> gzip in der <code>.htaccess</code> (<code>mod_deflate</code>). Gemessen: vorher <strong>unkomprimiert</strong>, mit gzip wurden aus 496 KB nur noch 117 KB.</li>
+    <li><strong>Erledigt:</strong> Sicherheits-Header (<code>X-Content-Type-Options: nosniff</code>, <code>Referrer-Policy</code>, <code>X-Frame-Options</code>, <code>Permissions-Policy</code>). <code>Strict-Transport-Security</code> (HSTS) läuft schrittweise: 1 Tag ab 08.11., 1 Woche ab 16.11.2026, ab etwa 23.11. auf 1 Jahr. Die CSP lief erst nur beobachtend (<code>Report-Only</code>); <strong>seit 16.11.2026 blockiert sie auf den App-Seiten</strong> (gesetzt in <code>index.php</code>: nur eigene Scripts, kein Inline-Script). Scanner, Handbuch und <code>iny/</code> bleiben vorerst beim Beobachten.</li>
     <li><strong>Erledigt am 16.11.2026</strong> für <code>assets/css/</code> und <code>assets/js/</code>. Cache-Header: <code>index.php</code> kurz cachen, versionierte Dateien unter <code>assets/</code> lange (<code>Cache-Control: max-age=31536000, immutable</code>). Das funktioniert, weil <code>deploy-refresh.js</code> neue Versionen ohnehin erkennt.</li>
   </ul>
 
-  <div class="note warn"><p><strong>Was A bewusst nicht ändert:</strong> PHP-API, Datenbank, Discord-Login (außer dem Rücksprung), Scanner (<code>web-scanner-onnx/</code>) und das Aussehen. Für die Nutzer sieht alles gleich aus, es kommen nur die Adressen und der Teilen-Knopf dazu.</p></div>
+  <div class="note warn"><p><strong>Was A bewusst nicht ändert:</strong> PHP-API, Datenbank, Discord-Login (außer dem Rücksprung), Scanner (<code>web-scanner-onnx/</code>, dort wurden nur die Inline-Scripts in eigene Dateien verschoben) und das Aussehen. Für die Nutzer sieht alles gleich aus, es kommen nur die Adressen und der Teilen-Knopf dazu.</p></div>
+</section>
+
+<!-- ───────────────────────────────── -->
+<section id="stand">
+  <h2>Stand 16.11.2026 und nächste Schritte</h2>
+  <div class="note"><p>Konzept A ist bis auf das Laden nach Bedarf umgesetzt. Die Startseite ist von <strong>496 KB in einer Datei</strong> auf <strong>≈ 25 KB HTML</strong> geschrumpft; CSS, JavaScript und Schriften liegen in eigenen Dateien und bleiben im Browser-Cache, bis sie sich ändern.</p></div>
+
+  <h3>Am 16.11.2026 zusätzlich erledigt</h3>
+  <ul>
+    <li><strong>Einstiegsseite <code>index.php</code></strong> mit Seiten-HTML aus <code>views/</code>; Admin-Seite und -Dialoge kommen wie die R4-Seiten vom Server und nur an R5 bzw. Betreiber (<code>api/partials/admin-pages.php</code>).</li>
+    <li><strong>Vorschau in Discord:</strong> <code>og:title</code> je Adresse („LWHub · Zug-Planer“), Vorschaubild (<code>img/og-image.png</code>) und Goldstreifen (<code>theme-color</code>), siehe <code>views/head-meta.php</code>.</li>
+    <li><strong>Schriften selbst gehostet</strong> (<code>assets/fonts/</code>, <code>assets/css/fonts.css</code>): keine Verbindung mehr zu Google. Polnisch über latin-ext; Kyrillisch für späteres Russisch vorbereitet (Rajdhani hat keine kyrillischen Zeichen, dafür springt Inter ein).</li>
+    <li><strong>Deploy in zwei Durchgängen:</strong> erst alle Dateien, zum Schluss <code>index.php</code>, <code>.htaccess</code> und <code>deploy-version.json</code>. So zeigt nie eine Seite auf Dateien, die noch nicht oben sind.</li>
+    <li><strong>Update-Logik:</strong> Jeder Tab vergleicht mit der Version, mit der er geladen wurde, lädt höchstens einmal je Version neu und räumt <code>?__deploy</code> aus der Adresse. Versionsanzeige neben dem Logo mit <code>?showversion=1</code> (aus mit <code>?showversion=0</code>).</li>
+    <li><strong>Behobene Fehler:</strong> Links auf Zug, Berufe oder Events landeten bei R4/R5 auf <code>/me</code>; Admin fehlte für Betreiber mit R4-Charakter; Sprachen fr/pl/es/zh wurden nicht gespeichert; 404 beim Laden der Helden-Kataloge.</li>
+    <li><strong>Aufgeräumt:</strong> Reiter „⚙ Admin“ statt doppeltem Menüpunkt „Allianz-Verwaltung“; Scanner-Seiten ohne Inline-Script; in der Browser-Konsole stehen nur noch Fehler und Warnungen.</li>
+  </ul>
+
+  <h3>Noch offen (nach Nutzen sortiert)</h3>
+  <ol>
+    <li><strong>Tag und Mitglied im Link:</strong> <code>/train/2026-11-12</code>, <code>/members/lion%20tooth</code> und <code>/stats/points?w=46</code> öffnen bisher nur die Seite, nicht den Tag, das Mitglied oder die KW. Dazu die Rückfrage, wenn ein Link eine andere Allianz meint als den aktiven Charakter (siehe Abschnitt 2).</li>
+    <li><strong>HSTS auf 1 Jahr</strong> (<code>max-age=31536000</code>), sobald die Woche seit 16.11. ohne Zertifikatsprobleme lief.</li>
+    <li><strong>CSP auch für Scanner, Handbuch und <code>iny/</code></strong> scharf schalten. Handbuch und <code>iny/</code> haben noch Inline-Scripts; der Scanner braucht <code>blob:</code>, <code>wasm-unsafe-eval</code> und <code>cdn.jsdelivr.net</code> für die OCR.</li>
+    <li><strong>Russisch als Sprache:</strong> <code>locales/ru.json</code>, <code>SUPPORTED</code> in <code>i18n.js</code> und die Liste in <code>normalizePreferredLanguage()</code> (<code>api/src/helpers.php</code>). Die Schrift ist bereit.</li>
+    <li><strong>Lazy Loading</strong> der Seiten-Dateien (siehe Reihenfolge, Nutzen inzwischen klein).</li>
+    <li><strong><code>style=</code>-Attribute</strong> (rund 500 Stück in HTML und JS-Vorlagen) in CSS-Klassen umziehen; erst dann kann die CSP auch <code>style-src 'unsafe-inline'</code> streichen.</li>
+    <li><strong>Mehr Live-Tests auf dieser Seite</strong> (Knopf drücken, Ergebnis grün/rot, wie „Komprimierung und Header“): z. B. scharfe CSP auf den App-Seiten, keine Anfrage an Google, <code>og:title</code> je Adresse, Hash-Versionen und Jahres-Cache unter <code>assets/</code>, HSTS-Wert, <code>views/</code> gesperrt, <code>/index.html</code> leitet um.</li>
+    <li><strong>Altlasten auf dem Server:</strong> die alte <code>index.html</code> (wird auf <code>/</code> umgeleitet) und die alten FTP-Statusdateien <code>.ftp-deploy-sync-state.json</code> und <code>-v2.json</code> (gesperrt) löschen.</li>
+  </ol>
 </section>
 
 <!-- ───────────────────────────────── -->
@@ -336,7 +366,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
     <tr><th>Datei</th><th>Komprimiert</th><th>Übertragen</th><th>Entpackt</th><th>Cache-Control</th><th>nosniff</th><th>CSP (Beobachtung)</th><th>X-Frame-Options</th></tr>
     <tr><td colspan="8">Noch nicht geprüft.</td></tr>
   </table></div>
-  <p>Erwartung: Beide Zeilen sind grün, die Startseite kommt mit etwa 115 KB statt 484 KB an.</p>
+  <p>Erwartung: Beide Zeilen sind grün. Die Startseite kommt seit dem Umbau am 16.11.2026 mit etwa 7 KB an (25 KB entpackt); am 08.11. waren es noch 496 KB unkomprimiert, mit gzip 117 KB.</p>
 </section>
 <script>
 (function () {
@@ -419,11 +449,11 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
   <p>Die <code>.htaccess</code> schickt schon die Ziel-CSP mit, aber nur im Beobachtungsmodus (<code>Content-Security-Policy-Report-Only</code>). Darin steht <code>script-src-attr 'none'</code>, das heißt: <strong>jeder</strong> Inline-Handler (<code>onclick=</code>, <code>onchange=</code>, <code>ondrop=</code> …) wäre verboten. Heute meldet der Browser das nur, später würde er die Knöpfe blockieren.</p>
 
   <h3>1. Wie viele Inline-Handler hat die Startseite gerade?</h3>
-  <p>Der Knopf lädt <code>index.html</code> frisch vom Server und zählt. So sieht man nach jedem Umbauschritt, ob die Zahl sinkt.</p>
+  <p>Der Knopf lädt die Startseite (heute <code>index.php</code> mit <code>views/</code>) frisch vom Server und zählt. So sieht man nach jedem Umbauschritt, ob die Zahl sinkt. Aussagekräftig nur auf lwhub.de, lokal ohne PHP-Server kommt „Failed to fetch“.</p>
   <p><button type="button" id="ih-run" class="test-btn">Startseite zählen</button> <span id="ih-note" class="test-note"></span></p>
   <div class="table-wrap"><table id="ih-table">
     <tr><th>Art</th><th>Anzahl</th><th>Ersatz</th></tr>
-    <tr><td colspan="3">Noch nicht gezählt. Seit dem Umbau am 08.11.2026 sollte überall 0 stehen (vorher 171 in <code>index.html</code>).</td></tr>
+    <tr><td colspan="3">Noch nicht gezählt. Seit dem Umbau am 08.11.2026 sollte überall 0 stehen (vorher 171 in der damaligen <code>index.html</code>).</td></tr>
   </table></div>
   <p>Die Partials (<code>api/partials/</code>, R4- und Admin-Seiten) kommen erst nach dem Login über die API und werden hier nicht mitgezählt. Laut Quelltext sind es dort seit dem 08.11.2026 ebenfalls 0 (vorher 57 <code>onclick=</code> und 3 <code>onchange=</code>).</p>
 
@@ -482,7 +512,7 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
       Object.keys(counts).forEach(function (k) { row(['on' + k, String(counts[k]), 'Listener am Container'], 'bad'); });
       var sel = (text.match(/\[onclick=/g) || []).length;
       if (sel) row(['querySelector(\'[onclick=…]\')', String(sel), 'auf [data-action=…] umstellen'], 'mid');
-      var sum = row(['Summe in index.html', String(total), total ? 'Ziel: 0' : 'geschafft'], total ? 'bad' : 'good');
+      var sum = row(['Summe auf der Startseite', String(total), total ? 'Ziel: 0' : 'geschafft'], total ? 'bad' : 'good');
       sum.style.fontWeight = '600';
       note.textContent = 'Gezählt um ' + new Date().toLocaleTimeString('de-DE') + '.';
     } catch (err) {

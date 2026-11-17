@@ -81,6 +81,18 @@ Vorschau in Discord.
 - `DirectoryIndex` in der Root-`.htaccess` gilt für alle Unterordner (`docs/handbuch/`, `iny/`, Scanner
   haben `index.html`), deshalb `index.php index.html`.
 
+## Sicherheit: CSP und Schriften
+
+- Die App-Seiten (`index.php`) senden eine **blockierende** Content-Security-Policy: nur eigene Scripts,
+  kein Inline-Script, keine `on…=`-Attribute. Externe Ziele sind nur Discord (`discord.com`,
+  `cdn.discordapp.com`) und `unavatar.io`. Neue externe Quelle (Bild, API, Script) → im `header(...)`
+  oben in `index.php` eintragen, sonst blockiert der Browser sie.
+- Scanner, `docs/` und `iny/` haben nur die beobachtende CSP aus der Root-`.htaccess`
+  (`Content-Security-Policy-Report-Only`). Lokal spiegelt `scripte/router.php` diese Header.
+- Keine Google Fonts und keine anderen Fremd-Server für Schriften: Rajdhani und Inter liegen in
+  `assets/fonts/`, eingebunden über `assets/css/fonts.css` (latin, latin-ext, kyrillisch).
+- HSTS steht seit 16.11.2026 auf 1 Woche (`max-age=604800`), nächster Schritt 1 Jahr.
+
 ## Frontend: CSS/JS unter assets/
 
 Seit dem 16.11.2026 steht das CSS der Hauptseite in `assets/css/app.css` (nicht mehr im `<style>` von

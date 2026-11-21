@@ -15,6 +15,10 @@
   --text: #dde1ec;
   --soft: #7a8498;
   --softer: #3e4558;
+  /* Namen aus älteren Seiten (SE-Inaktiv, Ergebnis, Auswertungen, Events, Admin) */
+  --border: var(--line2);
+  --accent: var(--blue);
+  --muted: var(--soft);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1852,9 +1856,7 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
 .rank-badge.flags-status-badge { min-width:80px; text-align:center; }
 .flags-admin-hint { font-size:11px; color:var(--softer); margin-top:8px; }
 
-/* ── SE-Inaktiv (/stats, loadSeInactive in stats.js) ──
-   Hinweis: --border und --accent sind in :root nicht definiert, die Deklarationen bleiben trotzdem wie im
-   früheren style="…" stehen (gleiches Verhalten: Rahmen/Farbe fallen weg bzw. werden geerbt). */
+/* ── SE-Inaktiv (/stats, loadSeInactive in stats.js) ── */
 .se-too-new { margin-top: 10px; color: var(--softer); }
 .se-name-link { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .se-ok { color: var(--green); }
@@ -1880,7 +1882,7 @@ body.nav-compact .cs-mobile-only { display: flex !important; }
 .erg-th { text-align: center; padding: 6px 10px; border-bottom: 1px solid var(--border); }
 .erg-th.erg-th-left { text-align: left; }
 .erg-th-sort { cursor: pointer; user-select: none; white-space: nowrap; }
-.erg-row { border-bottom: 1px solid var(--border)20; }
+.erg-row { border-bottom: 1px solid var(--line); }
 .erg-name { padding: 6px 10px; font-weight: 500; }
 .erg-td-c { text-align: center; }
 .erg-wk { text-align: center; }

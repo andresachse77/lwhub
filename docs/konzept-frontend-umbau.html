@@ -83,7 +83,7 @@
   <div class="badge-row">
     <span class="badge blue">Konzept</span>
     <span class="badge green">Weitgehend umgesetzt</span>
-    <span class="badge">Stand 17.11.2026</span>
+    <span class="badge">Stand 21.11.2026</span>
     <a class="badge blue" href="#stand" style="text-decoration:none;">▶ Stand &amp; nächste Schritte</a>
     <a class="badge green" href="#gzip-test" style="text-decoration:none;">▶ Live-Test gzip &amp; Header</a>
     <a class="badge green" href="#handler-test" style="text-decoration:none;">▶ Live-Test Inline-Handler</a>
@@ -330,8 +330,13 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
 
 <!-- ───────────────────────────────── -->
 <section id="stand">
-  <h2>Stand 17.11.2026 und nächste Schritte</h2>
+  <h2>Stand 21.11.2026 und nächste Schritte</h2>
   <div class="note"><p>Konzept A ist umgesetzt, seit 17.11.2026 auch das Laden nach Bedarf (R4-Dateien nur für R4/R5). Die Startseite ist von <strong>496 KB in einer Datei</strong> auf <strong>≈ 25 KB HTML</strong> geschrumpft; CSS, JavaScript und Schriften liegen in eigenen Dateien und bleiben im Browser-Cache, bis sie sich ändern. Die CSP der App-Seiten erlaubt weder Inline-Scripts noch <code>style="…"</code>.</p></div>
+
+  <h3>Am 21.11.2026 erledigt</h3>
+  <ul>
+    <li><strong>Fehlende Farbvariablen:</strong> <code>--border</code>, <code>--accent</code> und <code>--muted</code> stehen jetzt in <code>:root</code> (als <code>--line2</code>, <code>--blue</code> und <code>--soft</code>). Damit sind die Trennlinien in SE-Inaktiv und Ergebnis wieder da, Spielernamen in SE-Inaktiv sind blau, die grauen Hinweise in Auswertungen und Events stimmen.</li>
+  </ul>
 
   <h3>Am 17.11.2026 erledigt</h3>
   <ul>
@@ -361,7 +366,6 @@ assets/css/app.css       ← das ganze CSS, einmal gecacht</pre>
     <li><strong>HSTS auf 1 Jahr</strong> (<code>max-age=31536000</code>), sobald die Woche seit 16.11. ohne Zertifikatsprobleme lief (ab etwa 23.11.).</li>
     <li><strong>Verwaltung „Woche schnell“</strong> (Variante D im Konzept Verwaltung): Strafe, Bonus und AFK direkt in jeder Zeile der Liste, als Umschalter über der Liste. Für die wöchentliche Pflege, ohne jedes Mitglied zu öffnen.</li>
     <li><strong>Gleiche Bausteine überall:</strong> Der Dialog der Eintragen-Liste bekommt den Kasten „Diese Woche“ und die großen Rang-Knöpfe der Verwaltung. „Mitglied hinzufügen“ bekommt Rang- und Rollen-Knöpfe wie im Mitglied (Ehren-R4 als Rolle, nicht als Rang).</li>
-    <li><strong>Fehlende Farbvariablen:</strong> <code>--border</code>, <code>--accent</code> und <code>--muted</code> werden an 12 Stellen benutzt, sind aber nirgends festgelegt. Dadurch fehlen z.&nbsp;B. Trennlinien in den Auswertungen (SE-Inaktiv, Ergebnis). In <code>:root</code> festlegen.</li>
     <li><strong>CSP auch für Scanner, Handbuch und <code>iny/</code></strong> scharf schalten. Handbuch und <code>iny/</code> haben noch Inline-Scripts; der Scanner braucht <code>blob:</code>, <code>wasm-unsafe-eval</code> und <code>cdn.jsdelivr.net</code> für die OCR.</li>
     <li><strong>Russisch als Sprache:</strong> <code>locales/ru.json</code>, <code>SUPPORTED</code> in <code>i18n.js</code> und die Liste in <code>normalizePreferredLanguage()</code> (<code>api/src/helpers.php</code>). Die Schrift ist bereit.</li>
     <li><strong>Mehr Live-Tests auf dieser Seite</strong> (Knopf drücken, Ergebnis grün/rot, wie „Komprimierung und Header“): z.&nbsp;B. scharfe CSP auf den App-Seiten (auch <code>style-src</code>), keine Anfrage an Google, <code>og:title</code> je Adresse, Hash-Versionen und Jahres-Cache unter <code>assets/</code>, HSTS-Wert, <code>views/</code> gesperrt, <code>/index.html</code> leitet um.</li>
